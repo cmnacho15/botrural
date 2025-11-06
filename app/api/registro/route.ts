@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import bcrypt from "bcryptjs"
+import { Role } from "@prisma/client" // Importa el enum
 
 export async function POST(request: Request) {
   try {
@@ -23,7 +24,7 @@ export async function POST(request: Request) {
         name,
         email: email || null,
         password: hashedPassword,
-        role: invitacion.role,
+        role: invitacion.role as Role, // Castea explícitamente a Role
         campoId: invitacion.campoId,
       },
     })
