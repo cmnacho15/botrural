@@ -1,0 +1,216 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                 String       @id @default(cuid())
+  email              String?      @unique
+  name               String?
+  password           String?
+  role               Role         @default(ADMIN)
+  campoId            String?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+  accounts           Account[]
+  eventos            Evento[]
+  createdInvitations Invitation[] @relation("CreatedInvitations")
+  usedInvitations    Invitation[] @relation("UsedInvitations")
+  sessions           Session[]
+  campo              Campo?       @relation(fields: [campoId], references: [id])
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Campo {
+  id          String       @id @default(cuid())
+  nombre      String
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  eventos     Evento[]
+  gastos      Gasto[]
+  insumos     Insumo[]
+  invitations Invitation[]
+  lotes       Lote[]
+  usuarios    User[]
+}
+
+model Lote {
+  id                String             @id @default(cuid())
+  nombre            String
+  hectareas         Float
+  poligono          Json?
+  campoId           String
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  animalesLote      AnimalLote[]
+  cultivos          Cultivo[]
+  eventos           Evento[]
+  gastos            Gasto[]
+  campo             Campo              @relation(fields: [campoId], references: [id], onDelete: Cascade)
+  movimientosInsumo MovimientoInsumo[]
+}
+
+model Cultivo {
+  id           String   @id @default(cuid())
+  tipoCultivo  String
+  fechaSiembra DateTime
+  hectareas    Float
+  loteId       String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  lote         Lote     @relation(fields: [loteId], references: [id], onDelete: Cascade)
+}
+
+model AnimalLote {
+  id           String   @id @default(cuid())
+  categoria    String
+  cantidad     Int
+  fechaIngreso DateTime @default(now())
+  loteId       String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  lote         Lote     @relation(fields: [loteId], references: [id], onDelete: Cascade)
+}
+
+model Evento {
+  id          String     @id @default(cuid())
+  tipo        TipoEvento
+  descripcion String
+  fecha       DateTime
+  cantidad    Int?
+  categoria   String?
+  loteId      String?
+  usuarioId   String
+  campoId     String
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  campo       Campo      @relation(fields: [campoId], references: [id], onDelete: Cascade)
+  lote        Lote?      @relation(fields: [loteId], references: [id])
+  usuario     User       @relation(fields: [usuarioId], references: [id])
+}
+
+model Insumo {
+  id          String             @id @default(cuid())
+  nombre      String
+  unidad      String
+  campoId     String
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  stock       Float              @default(0)
+  campo       Campo              @relation(fields: [campoId], references: [id], onDelete: Cascade)
+  movimientos MovimientoInsumo[]
+}
+
+model MovimientoInsumo {
+  id        String   @id @default(cuid())
+  tipo      String
+  cantidad  Float
+  fecha     DateTime
+  notas     String?
+  insumoId  String
+  loteId    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  insumo    Insumo   @relation(fields: [insumoId], references: [id], onDelete: Cascade)
+  lote      Lote?    @relation(fields: [loteId], references: [id])
+}
+
+model Gasto {
+  id          String   @id @default(cuid())
+  tipo        String
+  monto       Float
+  fecha       DateTime
+  descripcion String?
+  categoria   String
+  metodoPago  String?
+  campoId     String
+  loteId      String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  campo       Campo    @relation(fields: [campoId], references: [id], onDelete: Cascade)
+  lote        Lote?    @relation(fields: [loteId], references: [id])
+}
+
+model Invitation {
+  id          String    @id @default(dbgenerated("gen_random_uuid()"))
+  token       String    @unique
+  role        String
+  campoId     String
+  createdById String
+  usedById    String?
+  expiresAt   DateTime  @db.Timestamptz(6)
+  usedAt      DateTime? @db.Timestamptz(6)
+  createdAt   DateTime? @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime? @default(now()) @updatedAt @db.Timestamptz(6)
+  campo       Campo     @relation(fields: [campoId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  createdBy   User      @relation("CreatedInvitations", fields: [createdById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  usedBy      User?     @relation("UsedInvitations", fields: [usedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+enum Role {
+  ADMIN
+  USUARIO
+}
+
+enum TipoEvento {
+  NACIMIENTO
+  MOVIMIENTO
+  VENTA
+  COMPRA
+  TRASLADO
+  MORTANDAD
+  CONSUMO
+  ABORTO
+  DESTETE
+  TACTO
+  TRATAMIENTO
+  RECATEGORIZACION
+  SIEMBRA
+  PULVERIZACION
+  REFERTILIZACION
+  RIEGO
+  MONITOREO
+  COSECHA
+  OTROS_LABORES
+  LLUVIA
+  HELADA
+  USO_INSUMO
+  INGRESO_INSUMO
+}
