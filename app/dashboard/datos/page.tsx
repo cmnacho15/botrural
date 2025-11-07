@@ -1,4 +1,6 @@
 "use client";
+export const dynamic = 'force-dynamic'
+
 
 import { DatosProvider, useDatos } from "@/app/contexts/DatosContext";
 import { useState } from "react";

@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/app/api/auth/[...nextauth]/route"
 import { prisma } from "@/lib/prisma"
 import { redirect } from "next/navigation"
+import { Role } from "@prisma/client"
 
 type Props = { 
   params: Promise<{ token: string }> // Ahora es una Promise
@@ -35,7 +36,7 @@ export default async function AceptarInvitacionPage({ params }: Props) {
     where: { id: userId },
     data: {
       campoId: invitation.campoId,
-      role: invitation.role,
+      role: invitation.role as Role,
     },
   })
 

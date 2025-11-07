@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/whatsapp/renew-token?secret=Xp9Kz2mNvQ8rTbY1cDfE3gHiJ4kLmO5pQ6rS7tU8vW9xY0zA",
-      "schedule": "0 0 */50 * *"
+      "schedule": "0 0 1 */2 *"
     }
   ]
 }
