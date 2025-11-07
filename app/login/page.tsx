@@ -13,7 +13,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const router = useRouter()
 
-  // Manejar Login
+  // ✅ Iniciar sesión
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setError('')
@@ -27,7 +27,7 @@ export default function LoginPage() {
       })
 
       if (res?.error) {
-        setError(res.error)
+        setError('Email o contraseña incorrectos')
       } else {
         router.push('/dashboard')
         router.refresh()
@@ -39,7 +39,7 @@ export default function LoginPage() {
     }
   }
 
-  // Manejar Registro
+  // ✅ Registrar usuario (nuevo)
   const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setError('')
@@ -68,7 +68,7 @@ export default function LoginPage() {
       if (!res.ok) {
         setError(data.error || 'Error al registrarse')
       } else {
-        // Registro exitoso, ahora hacer login automático
+        // Registro exitoso → iniciar sesión automáticamente
         const loginRes = await signIn('credentials', {
           email: email.toLowerCase().trim(),
           password,
@@ -79,7 +79,8 @@ export default function LoginPage() {
           setError('Cuenta creada. Por favor inicia sesión.')
           setIsLogin(true)
         } else {
-          router.push('/dashboard')
+          // 👇 Redirigir al paso para crear el nombre del campo
+          router.push('/registro/campo')
           router.refresh()
         }
       }
@@ -90,6 +91,9 @@ export default function LoginPage() {
     }
   }
 
+  // ==============================
+  // 🔽 INTERFAZ VISUAL (UI)
+  // ==============================
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 via-blue-50 to-purple-50">
       <div className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md">
@@ -141,7 +145,10 @@ export default function LoginPage() {
         )}
 
         {/* Formulario */}
-        <form onSubmit={isLogin ? handleLogin : handleRegister} className="space-y-4">
+        <form
+          onSubmit={isLogin ? handleLogin : handleRegister}
+          className="space-y-4"
+        >
           {/* Campo Nombre (solo en registro) */}
           {!isLogin && (
             <div>

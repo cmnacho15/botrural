@@ -3,20 +3,36 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState } from 'react'
+import useSWR from 'swr'
 import { InsumosProvider } from '@/app/contexts/InsumosContext'
 import { GastosProvider } from '@/app/contexts/GastosContext'
 import ModalNuevoDato from '@/app/components/modales/ModalNuevoDato'
+
+// 🔄 Hook SWR para traer datos con cache
+const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [nuevoDatoMenuOpen, setNuevoDatoMenuOpen] = useState(false)
   const [modalTipo, setModalTipo] = useState<string | null>(null)
-  const campoNombre = 'RODAZO'
+
+  // 🧠 Carga el nombre del campo asociado al usuario
+  const { data, error, isLoading } = useSWR('/api/usuarios/campo', fetcher, {
+    revalidateOnFocus: false,
+    dedupingInterval: 1000 * 60 * 5, // cache 5 minutos
+  })
+
+  // 🌾 Nombre del campo
+  const campoNombre = error
+    ? 'Error al cargar'
+    : isLoading
+    ? null
+    : data?.campoNombre || 'Sin campo'
 
   const menuSections = [
     {
-      title: campoNombre,
+      title: campoNombre || '', // si está cargando, no muestra texto
       items: [
         { href: '/dashboard/empezar', icon: '🚀', label: 'Cómo Empezar', badge: '2/3' },
         { href: '/dashboard', icon: '📊', label: 'Resumen' },
@@ -41,54 +57,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     },
   ]
 
-  const eventosOptions = [
-    {
-      category: 'Animales',
-      items: [
-        { icon: '⊞', label: 'Cambio De Potrero', action: 'cambio-potrero' },
-        { icon: '💉', label: 'Tratamiento', action: 'tratamiento' },
-        { icon: '💵', label: 'Venta', action: 'venta' },
-        { icon: '🛒', label: 'Compra', action: 'compra' },
-        { icon: '🚚', label: 'Traslado', action: 'traslado' },
-        { icon: '🐣', label: 'Nacimiento', action: 'nacimiento' },
-        { icon: '💀', label: 'Mortandad', action: 'mortandad' },
-        { icon: '🌾', label: 'Consumo', action: 'consumo' },
-        { icon: '⊗', label: 'Aborto', action: 'aborto' },
-        { icon: '🥛', label: 'Destete', action: 'destete' },
-        { icon: '✋', label: 'Tacto', action: 'tacto' },
-        { icon: '🏷️', label: 'Recategorización', action: 'recategorizacion' },
-      ],
-    },
-    {
-      category: 'Agricultura',
-      items: [
-        { icon: '🚜', label: 'Siembra', action: 'siembra' },
-        { icon: '🧴', label: 'Pulverización', action: 'pulverizacion' },
-        { icon: '🌱', label: 'Refertilización', action: 'refertilizacion' },
-        { icon: '💧', label: 'Riego', action: 'riego' },
-        { icon: '🔍', label: 'Monitoreo', action: 'monitoreo' },
-        { icon: '🌾', label: 'Cosecha', action: 'cosecha' },
-        { icon: '🔧', label: 'Otros Labores', action: 'otros-labores' },
-      ],
-    },
-    {
-      category: 'Clima',
-      items: [
-        { icon: '🌧️', label: 'Lluvia', action: 'lluvia' },
-        { icon: '❄️', label: 'Helada', action: 'helada' },
-      ],
-    },
-    {
-      category: 'Insumos y Finanzas',
-      items: [
-        { icon: '⊞', label: 'Uso De Insumos', action: 'uso-insumos' },
-        { icon: '⊞', label: 'Ingreso de Insumos', action: 'ingreso-insumos' },
-        { icon: '💰', label: 'Gasto', action: 'gasto' },
-        { icon: '👤', label: 'Ingreso', action: 'ingreso' },
-      ],
-    },
-  ]
-
   const handleEventoClick = (action: string) => {
     setNuevoDatoMenuOpen(false)
     setModalTipo(action)
@@ -101,7 +69,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {/* HEADER */}
           <header className="bg-white border-b border-gray-200 px-4 sm:px-6 py-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              {/* Botón hamburguesa solo en móvil */}
+              {/* Botón hamburguesa (solo móvil) */}
               <button
                 onClick={() => setSidebarOpen(true)}
                 className="p-2 rounded-lg text-gray-600 hover:bg-gray-100 lg:hidden"
@@ -124,7 +92,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               {/* LOGO */}
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-green-400 to-blue-500" />
-                <span className="text-lg sm:text-xl font-bold text-gray-900">BotRural</span>
+                <span className="text-lg sm:text-xl font-bold text-gray-900">
+                  BotRural
+                </span>
               </div>
             </div>
 
@@ -137,42 +107,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <span className="text-lg sm:text-xl">＋</span>
                 <span className="hidden sm:inline">Nuevo Dato</span>
               </button>
-
-              {nuevoDatoMenuOpen && (
-                <>
-                  <div
-                    className="fixed inset-0 z-10 bg-transparent"
-                    onClick={() => setNuevoDatoMenuOpen(false)}
-                  />
-                  <div className="absolute right-0 mt-2 w-[90vw] sm:w-[700px] lg:w-[800px] bg-white rounded-xl shadow-2xl border border-gray-200 p-6 z-20 max-h-[80vh] overflow-y-auto">
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6 sm:gap-8">
-                      {eventosOptions.map((section, idx) => (
-                        <div key={idx}>
-                          <h3 className="text-sm font-bold text-gray-900 mb-3">{section.category}</h3>
-                          <div className="space-y-2">
-                            {section.items.map((item, itemIdx) => (
-                              <button
-                                key={itemIdx}
-                                onClick={() => handleEventoClick(item.action)}
-                                className="w-full flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
-                              >
-                                <span className="text-base sm:text-lg">{item.icon}</span>
-                                <span>{item.label}</span>
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </>
-              )}
             </div>
           </header>
 
-          {/* CONTENIDO */}
+          {/* CONTENIDO PRINCIPAL */}
           <div className="flex flex-1 overflow-hidden">
-            {/* OVERLAY MÓVIL */}
+            {/* Overlay móvil */}
             {sidebarOpen && (
               <div
                 className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 lg:hidden"
@@ -190,8 +130,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 {menuSections.map((section, idx) => (
                   <div key={idx} className="mb-6">
                     <h3 className="px-4 mb-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                      {section.title}
+                      {isLoading ? (
+                        <div className="h-3 w-24 bg-gray-200 rounded-full animate-pulse" />
+                      ) : (
+                        section.title
+                      )}
                     </h3>
+
                     <div className="space-y-1">
                       {section.items.map((item) => {
                         const isActive =

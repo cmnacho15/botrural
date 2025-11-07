@@ -48,7 +48,7 @@ export const authOptions = {
   },
 
   callbacks: {
-    // Guardamos info adicional en el token JWT
+    // 🔐 Guardar info en el token JWT
     async jwt({ token, user }: any) {
       if (user) {
         token.id = user.id;
@@ -58,13 +58,23 @@ export const authOptions = {
       return token;
     },
 
-    // Pasamos la info del token a la sesión visible en el frontend
+    // 🔁 Actualizar datos de usuario desde Prisma en cada sesión
     async session({ session, token }: any) {
       if (session.user) {
-        session.user.id = token.id as string;
-        session.user.role = token.role;
-        session.user.campoId = token.campoId;
+        const dbUser = await prisma.user.findUnique({
+          where: { id: token.id as string },
+          select: { id: true, name: true, email: true, telefono: true, role: true, campoId: true },
+        });
+
+        if (dbUser) {
+          session.user = { ...session.user, ...dbUser };
+        } else {
+          session.user.id = token.id as string;
+          session.user.role = token.role;
+          session.user.campoId = token.campoId;
+        }
       }
+
       return session;
     },
   },
