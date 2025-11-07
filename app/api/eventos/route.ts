@@ -10,20 +10,11 @@ export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions)
 
-    if (!session?.user?.email) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 })
     }
 
-    // Buscar el usuario por email
-    const usuario = await prisma.user.findUnique({
-      where: { email: session.user.email },
-    })
-
-    if (!usuario) {
-      return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 })
-    }
-
-    const usuarioId = usuario.id
+    const usuarioId = session.user.id
     const campo = await prisma.campo.findFirst()
 
     if (!campo) {
