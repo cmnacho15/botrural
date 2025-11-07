@@ -7,13 +7,21 @@ export async function POST(request: Request) {
   try {
     console.log("🚀 Endpoint de renovación llamado");
 
-    // Verificar autorización básica
+    // Obtener el secret del header o de la URL
     const authHeader = request.headers.get("authorization");
+    const url = new URL(request.url);
+    const secretFromUrl = url.searchParams.get("secret");
+
     const expectedAuth = `Bearer ${process.env.CRON_SECRET}`;
+    const expectedSecret = process.env.CRON_SECRET;
 
     console.log("🔐 Verificando autorización...");
-    
-    if (authHeader !== expectedAuth) {
+
+    // Verificar si viene del header (Postman) o de la URL (Vercel Cron)
+    const isAuthorizedByHeader = authHeader === expectedAuth;
+    const isAuthorizedByUrl = secretFromUrl === expectedSecret;
+
+    if (!isAuthorizedByHeader && !isAuthorizedByUrl) {
       console.error("❌ Autorización inválida");
       return NextResponse.json(
         { error: "No autorizado" },
@@ -41,11 +49,15 @@ export async function POST(request: Request) {
 
     const expiresInDays = Math.floor((result.expiresIn || 0) / 86400);
 
+    // Aquí podrías enviar un email/notificación con el nuevo token
+    console.log("🔑 NUEVO TOKEN (GUÁRDALO EN TU .ENV):");
+    console.log(result.newToken);
+
     return NextResponse.json({
       success: true,
       message: "Token renovado exitosamente",
       expiresInDays: expiresInDays,
-      instruction: "Copia el nuevo token de los logs del servidor y actualiza tu .env",
+      instruction: "Copia el nuevo token de los logs y actualiza las variables de entorno en Vercel",
       newTokenPreview: result.newToken?.substring(0, 30) + "...",
     });
 
@@ -61,7 +73,6 @@ export async function POST(request: Request) {
   }
 }
 
-// También permitir GET para testing más fácil
 export async function GET(request: Request) {
   return POST(request);
 }
