@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { getServerSession } from "next-auth"
-import { authOptions } from "../auth/[...nextauth]/route"
+import { authOptions } from "@/app/api/auth/[...nextauth]/route"
 
 // =======================================
 // GET: Listar usuarios del campo actual
@@ -9,19 +9,20 @@ import { authOptions } from "../auth/[...nextauth]/route"
 export async function GET() {
   try {
     const session = await getServerSession(authOptions)
-    if (!session?.user?.email) {
+
+    if (!session?.user?.id) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 })
     }
 
-    // Buscar el usuario actual y su campo asociado
+    // Buscar el usuario actual con su campo asociado
     const usuario = await prisma.user.findUnique({
-      where: { email: session.user.email },
+      where: { id: session.user.id },
       include: { campo: true },
     })
 
-    if (!usuario || !usuario.campoId) {
+    if (!usuario?.campoId) {
       return NextResponse.json(
-        { error: "Usuario sin campo asignado" },
+        { error: "El usuario no tiene campo asignado" },
         { status: 400 }
       )
     }
@@ -31,26 +32,29 @@ export async function GET() {
       where: { campoId: usuario.campoId },
       include: {
         _count: { select: { eventos: true } },
+        campo: { select: { nombre: true } },
       },
       orderBy: { createdAt: "asc" },
     })
 
+    // Formatear respuesta
     const data = usuarios.map((u) => ({
       id: u.id,
-      nombre: u.name,
-      email: u.email,
+      nombre: u.name || "Sin nombre",
+      email: u.email || "Sin email",
       rol: u.role === "ADMIN"
         ? "Administrador con Datos Finanzas"
         : "Usuario",
       datosIngresados: u._count.eventos,
       fechaRegistro: new Date(u.createdAt).toLocaleDateString("es-UY"),
+      campoNombre: u.campo?.nombre || "Campo",
     }))
 
     return NextResponse.json(data)
   } catch (error) {
-    console.error("Error al obtener usuarios:", error)
+    console.error("💥 Error al obtener usuarios:", error)
     return NextResponse.json(
-      { error: "Error al obtener usuarios" },
+      { error: "Error al obtener usuarios", details: String(error) },
       { status: 500 }
     )
   }

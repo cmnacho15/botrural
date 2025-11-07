@@ -1,63 +1,122 @@
-import { prisma } from '@/lib/prisma'
-import { NextResponse } from 'next/server'
+import { prisma } from "@/lib/prisma";
+import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
-// ✅ GET - Obtener todos los insumos (con relaciones completas)
+// 📦 GET - Obtener insumos del campo del usuario autenticado
 export async function GET() {
   try {
-    const insumos = await prisma.insumo.findMany({
-      include: {
-        movimientos: {
-          orderBy: { fecha: 'desc' },
-        },
-        campo: {
-          select: { nombre: true },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-    })
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+    }
 
-    // 🔹 Aseguramos que siempre sea un array
-    return NextResponse.json(insumos ?? [])
+    // Buscar usuario y su campo
+    const usuario = await prisma.user.findUnique({
+      where: { id: session.user.id },
+    });
+
+    if (!usuario?.campoId) {
+      return NextResponse.json(
+        { error: "El usuario no tiene campo asignado" },
+        { status: 400 }
+      );
+    }
+
+    // ✅ Insumos base que siempre deben existir
+    const insumosBase = [
+      { nombre: "Gasoil", unidad: "Litros" },
+      { nombre: "Rollos", unidad: "Unidades" },
+      { nombre: "Maíz", unidad: "Kilos" },
+      { nombre: "Balanceado", unidad: "Kilos" },
+      { nombre: "Alambre", unidad: "Metros" },
+    ];
+
+    // Verificar y crear los que falten
+    for (const insumo of insumosBase) {
+      const existente = await prisma.insumo.findFirst({
+        where: {
+          campoId: usuario.campoId,
+          nombre: insumo.nombre,
+        },
+      });
+
+      if (!existente) {
+        await prisma.insumo.create({
+          data: {
+            nombre: insumo.nombre,
+            unidad: insumo.unidad,
+            stock: 0,
+            campoId: usuario.campoId,
+          },
+        });
+      }
+    }
+
+    // Traer todos los insumos del campo (ya con los base garantizados)
+    const insumos = await prisma.insumo.findMany({
+      where: { campoId: usuario.campoId },
+      orderBy: { nombre: "asc" },
+    });
+
+    return NextResponse.json(insumos);
   } catch (error) {
-    console.error('Error obteniendo insumos:', error)
-    return NextResponse.json({ error: 'Error obteniendo insumos' }, { status: 500 })
+    console.error("💥 Error obteniendo insumos:", error);
+    return NextResponse.json(
+      { error: "Error obteniendo insumos" },
+      { status: 500 }
+    );
   }
 }
 
-// ✅ POST - Crear nuevo insumo
+// ➕ POST - Crear nuevo insumo personalizado
 export async function POST(request: Request) {
   try {
-    const body = await request.json()
-    const { nombre, unidad } = body
-
-    if (!nombre || !unidad) {
-      return NextResponse.json({ error: 'Faltan campos requeridos' }, { status: 400 })
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
     }
 
-    // Obtener o crear campo base
-    let campo = await prisma.campo.findFirst()
-    if (!campo) {
-      campo = await prisma.campo.create({
-        data: { nombre: 'Mi Campo' },
-      })
+    const usuario = await prisma.user.findUnique({
+      where: { id: session.user.id },
+    });
+
+    if (!usuario?.campoId) {
+      return NextResponse.json(
+        { error: "El usuario no tiene campo asignado" },
+        { status: 400 }
+      );
     }
 
-    // Crear insumo nuevo
-    const insumo = await prisma.insumo.create({
+    const body = await request.json();
+    const { nombre, unidad, stock } = body;
+
+    const insumoExistente = await prisma.insumo.findFirst({
+      where: { campoId: usuario.campoId, nombre },
+    });
+
+    if (insumoExistente) {
+      return NextResponse.json(
+        { error: "Ya existe un insumo con ese nombre" },
+        { status: 409 }
+      );
+    }
+
+    const nuevoInsumo = await prisma.insumo.create({
       data: {
         nombre,
         unidad,
-        campoId: campo.id,
+        stock: parseFloat(stock || 0),
+        campoId: usuario.campoId,
       },
-    })
+    });
 
-    // 🔹 Retornar insumo recién creado con movimientos vacíos
-    return NextResponse.json(
-      { ...insumo, movimientos: [] },
-      { status: 201 }
-    )
+    return NextResponse.json(nuevoInsumo, { status: 201 });
   } catch (error) {
-    console.error('Error creando insumo:', error)
-    return NextResponse.json({ error: 'Error creando insumo' }, { status: 500 })
+    console.error("💥 Error creando insumo:", error);
+    return NextResponse.json(
+      { error: "Error creando insumo" },
+      { status: 500 }
+    );
   }
 }

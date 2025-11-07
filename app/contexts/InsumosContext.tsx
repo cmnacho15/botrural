@@ -46,7 +46,10 @@ export function InsumosProvider({ children }: { children: ReactNode }) {
     setIsLoading(true)
     setError(null)
     try {
-      const res = await fetch('/api/insumos', { cache: 'no-store' })
+      const res = await fetch('/api/insumos', {
+        cache: 'no-store',
+        credentials: 'include', // ✅ manda cookies de sesión al backend
+      })
 
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
 
@@ -75,6 +78,7 @@ export function InsumosProvider({ children }: { children: ReactNode }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ nombre, unidad }),
+        credentials: 'include', // ✅ agrega cookies de sesión
       })
 
       if (!res.ok) throw new Error(`Error HTTP ${res.status}`)
@@ -121,6 +125,7 @@ export function InsumosProvider({ children }: { children: ReactNode }) {
           insumoId,
           loteId: loteId || null,
         }),
+        credentials: 'include', // ✅ agrega cookies de sesión
       })
 
       const data = await res.json()

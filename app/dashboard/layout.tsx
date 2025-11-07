@@ -32,7 +32,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const menuSections = [
     {
-      title: campoNombre || '', // si está cargando, no muestra texto
+      title: campoNombre || '',
       items: [
         { href: '/dashboard/empezar', icon: '🚀', label: 'Cómo Empezar', badge: '2/3' },
         { href: '/dashboard', icon: '📊', label: 'Resumen' },
@@ -57,7 +57,56 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     },
   ]
 
+  const eventosOptions = [
+    {
+      category: 'Animales',
+      items: [
+        { icon: '⊞', label: 'Cambio de Potrero', action: 'cambio-potrero' },
+        { icon: '💉', label: 'Tratamiento', action: 'tratamiento' },
+        { icon: '💵', label: 'Venta', action: 'venta' },
+        { icon: '🛒', label: 'Compra', action: 'compra' },
+        { icon: '🚚', label: 'Traslado', action: 'traslado' },
+        { icon: '🐣', label: 'Nacimiento', action: 'nacimiento' },
+        { icon: '💀', label: 'Mortandad', action: 'mortandad' },
+        { icon: '🌾', label: 'Consumo', action: 'consumo' },
+        { icon: '⊗', label: 'Aborto', action: 'aborto' },
+        { icon: '🥛', label: 'Destete', action: 'destete' },
+        { icon: '✋', label: 'Tacto', action: 'tacto' },
+        { icon: '🏷️', label: 'Recategorización', action: 'recategorizacion' },
+      ],
+    },
+    {
+      category: 'Agricultura',
+      items: [
+        { icon: '🚜', label: 'Siembra', action: 'siembra' },
+        { icon: '🧴', label: 'Pulverización', action: 'pulverizacion' },
+        { icon: '🌱', label: 'Refertilización', action: 'refertilizacion' },
+        { icon: '💧', label: 'Riego', action: 'riego' },
+        { icon: '🔍', label: 'Monitoreo', action: 'monitoreo' },
+        { icon: '🌾', label: 'Cosecha', action: 'cosecha' },
+        { icon: '🔧', label: 'Otros Labores', action: 'otros-labores' },
+      ],
+    },
+    {
+      category: 'Clima',
+      items: [
+        { icon: '🌧️', label: 'Lluvia', action: 'lluvia' },
+        { icon: '❄️', label: 'Helada', action: 'helada' },
+      ],
+    },
+    {
+      category: 'Insumos y Finanzas',
+      items: [
+        { icon: '⊞', label: 'Uso de Insumos', action: 'uso-insumos' },
+        { icon: '⊞', label: 'Ingreso de Insumos', action: 'ingreso-insumos' },
+        { icon: '💰', label: 'Gasto', action: 'gasto' },
+        { icon: '👤', label: 'Ingreso', action: 'ingreso' },
+      ],
+    },
+  ]
+
   const handleEventoClick = (action: string) => {
+    console.log('🟢 Seleccionaste evento:', action)
     setNuevoDatoMenuOpen(false)
     setModalTipo(action)
   }
@@ -101,18 +150,58 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             {/* NUEVO DATO */}
             <div className="relative">
               <button
-                onClick={() => setNuevoDatoMenuOpen(!nuevoDatoMenuOpen)}
-                className="flex items-center gap-2 px-3 sm:px-4 py-2.5 rounded-lg bg-blue-500 text-white hover:bg-blue-600 font-medium text-sm sm:text-base"
+                onClick={() => {
+                  console.log('🟢 Clic en Nuevo Dato')
+                  setNuevoDatoMenuOpen(!nuevoDatoMenuOpen)
+                }}
+                className="flex items-center gap-2 px-3 sm:px-4 py-2.5 rounded-lg bg-blue-500 text-white hover:bg-blue-600 font-medium text-sm sm:text-base transition-all"
               >
                 <span className="text-lg sm:text-xl">＋</span>
                 <span className="hidden sm:inline">Nuevo Dato</span>
               </button>
+
+              {nuevoDatoMenuOpen && (
+                <>
+                  <div
+                    className="fixed inset-0 z-10 bg-transparent"
+                    onClick={() => {
+                      console.log('🟡 Cerrando menú Nuevo Dato')
+                      setNuevoDatoMenuOpen(false)
+                    }}
+                  />
+                  <div className="absolute right-0 mt-2 w-[90vw] sm:w-[700px] lg:w-[800px] bg-white rounded-xl shadow-2xl border border-gray-200 p-6 z-20 max-h-[80vh] overflow-y-auto">
+                    <h2 className="text-lg font-semibold mb-4 text-gray-800">
+                      Seleccioná qué tipo de dato querés ingresar
+                    </h2>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6 sm:gap-8">
+                      {eventosOptions.map((section, idx) => (
+                        <div key={idx}>
+                          <h3 className="text-sm font-bold text-gray-900 mb-3">
+                            {section.category}
+                          </h3>
+                          <div className="space-y-2">
+                            {section.items.map((item, itemIdx) => (
+                              <button
+                                key={itemIdx}
+                                onClick={() => handleEventoClick(item.action)}
+                                className="w-full flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
+                              >
+                                <span className="text-base sm:text-lg">{item.icon}</span>
+                                <span>{item.label}</span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           </header>
 
           {/* CONTENIDO PRINCIPAL */}
           <div className="flex flex-1 overflow-hidden">
-            {/* Overlay móvil */}
             {sidebarOpen && (
               <div
                 className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 lg:hidden"
