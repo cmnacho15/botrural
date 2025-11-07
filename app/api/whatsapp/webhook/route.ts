@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+// ✅ Verificación del webhook (cuando Meta hace GET)
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const mode = url.searchParams.get("hub.mode");
@@ -17,18 +18,42 @@ export async function GET(req: Request) {
   }
 }
 
+// 📩 Manejo de mensajes entrantes desde WhatsApp
 export async function POST(req: Request) {
-  const data = await req.json();
+  try {
+    const data = await req.json();
+    console.log("📩 NUEVO MENSAJE RECIBIDO:", JSON.stringify(data, null, 2));
 
-  console.log("📩 NUEVO MENSAJE RECIBIDO:", JSON.stringify(data, null, 2));
+    const message = data.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
+    if (!message) {
+      console.log("⚠️ No se encontró mensaje en el body.");
+      return NextResponse.json({ received: true });
+    }
 
-  const message = data?.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
-  const from = message?.from;
-  const text = message?.text?.body;
+    const from = message.from; // número del remitente
+    const type = message.type; // tipo de mensaje: text, image, audio, etc.
 
-  if (from && text) {
-    console.log(`📨 Mensaje de ${from}: ${text}`);
+    // 📝 Texto
+    if (type === "text") {
+      const text = message.text?.body;
+      console.log(`📝 Texto recibido de ${from}: ${text}`);
+    }
+
+    // 🎤 Audio
+    if (type === "audio") {
+      const audioId = message.audio?.id;
+      console.log(`🎤 Audio recibido de ${from}: ${audioId}`);
+    }
+
+    // 🖼️ Imagen
+    if (type === "image") {
+      const imageId = message.image?.id;
+      console.log(`🖼️ Imagen recibida de ${from}: ${imageId}`);
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("❌ Error procesando mensaje:", error);
+    return NextResponse.json({ success: false, error: error }, { status: 500 });
   }
-
-  return NextResponse.json({ success: true });
 }
