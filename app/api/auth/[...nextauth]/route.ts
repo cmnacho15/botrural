@@ -1,7 +1,7 @@
-import NextAuth from "next-auth"
-import CredentialsProvider from "next-auth/providers/credentials"
-import { prisma } from "@/lib/prisma"
-import bcrypt from "bcryptjs"
+import NextAuth from "next-auth";
+import CredentialsProvider from "next-auth/providers/credentials";
+import { prisma } from "@/lib/prisma";
+import bcrypt from "bcryptjs";
 
 export const authOptions = {
   providers: [
@@ -13,56 +13,62 @@ export const authOptions = {
       },
       async authorize(credentials): Promise<any> {
         if (!credentials?.email || !credentials.password) {
-          return null
+          return null;
         }
 
         const user = await prisma.user.findUnique({
           where: { email: credentials.email },
-        })
+        });
 
         if (!user || !user.password) {
-          return null
+          return null;
         }
 
-        const isValid = await bcrypt.compare(
-          credentials.password,
-          user.password
-        )
-        
+        const isValid = await bcrypt.compare(credentials.password, user.password);
         if (!isValid) {
-          return null
+          return null;
         }
 
         return {
           id: user.id,
           email: user.email,
           name: user.name,
-        }
+          role: user.role,
+          campoId: user.campoId,
+        };
       },
     }),
   ],
-  session: { 
-    strategy: "jwt" as const,
-  },
+
+  session: { strategy: "jwt" as const },
   secret: process.env.NEXTAUTH_SECRET,
+
   pages: {
     signIn: "/login",
   },
+
   callbacks: {
+    // Guardamos info adicional en el token JWT
     async jwt({ token, user }: any) {
       if (user) {
-        token.id = user.id
+        token.id = user.id;
+        token.role = user.role;
+        token.campoId = user.campoId;
       }
-      return token
+      return token;
     },
+
+    // Pasamos la info del token a la sesión visible en el frontend
     async session({ session, token }: any) {
       if (session.user) {
-        session.user.id = token.id as string
+        session.user.id = token.id as string;
+        session.user.role = token.role;
+        session.user.campoId = token.campoId;
       }
-      return session
+      return session;
     },
   },
-}
+};
 
-const handler = NextAuth(authOptions)
-export { handler as GET, handler as POST }
+const handler = NextAuth(authOptions);
+export { handler as GET, handler as POST };

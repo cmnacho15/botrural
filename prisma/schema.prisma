@@ -8,21 +8,25 @@ datasource db {
 }
 
 model User {
-  id                 String       @id @default(cuid())
-  email              String?      @unique
-  telefono           String?      @unique      // 📱 Nuevo campo para WhatsApp
-  name               String?
-  password           String?
-  role               Role         @default(USUARIO) // 👤 Por defecto “USUARIO” (no ADMIN)
-  campoId            String?
-  createdAt          DateTime     @default(now())
-  updatedAt          DateTime     @updatedAt
-  accounts           Account[]
-  eventos            Evento[]
-  createdInvitations Invitation[] @relation("CreatedInvitations")
-  usedInvitations    Invitation[] @relation("UsedInvitations")
-  sessions           Session[]
-  campo              Campo?       @relation(fields: [campoId], references: [id])
+  id                    String       @id @default(cuid())
+  email                 String?      @unique
+  name                  String?
+  password              String?
+  role                  Role         @default(USUARIO)
+  campoId               String?
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
+  telefono              String?      @unique
+  whatsappState         String?      @default("IDLE")
+  lastMessageAt         DateTime?    @db.Timestamp(6)
+  onboardingStartedAt   DateTime?    @db.Timestamp(6)
+  onboardingCompletedAt DateTime?    @db.Timestamp(6)
+  accounts              Account[]
+  eventos               Evento[]
+  createdInvitations    Invitation[] @relation("CreatedInvitations")
+  usedInvitations       Invitation[] @relation("UsedInvitations")
+  sessions              Session[]
+  campo                 Campo?       @relation(fields: [campoId], references: [id])
 }
 
 model Account {
@@ -171,7 +175,7 @@ model Gasto {
 
 model Invitation {
   id          String    @id @default(dbgenerated("gen_random_uuid()"))
-  token       String    @unique
+  token       String    @unique @default(cuid())
   role        String
   campoId     String
   createdById String
