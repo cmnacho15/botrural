@@ -4,32 +4,55 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 import useSWR from 'swr'
-import { InsumosProvider } from '@/app/contexts/InsumosContext'
-import { GastosProvider } from '@/app/contexts/GastosContext'
+
+// ✅ Contextos y hooks
+import { DatosProvider, useDatos } from '@/app/contexts/DatosContext'
+import { InsumosProvider, useInsumos } from '@/app/contexts/InsumosContext'
+import { GastosProvider, useGastos } from '@/app/contexts/GastosContext'
+
+// ✅ Modal
 import ModalNuevoDato from '@/app/components/modales/ModalNuevoDato'
 
 // 🔄 Hook SWR para traer datos con cache
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
+// ==========================================
+// ✅ Layout principal envuelto en DatosProvider
+// ==========================================
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <DatosProvider>
+      <DashboardLayoutInner>{children}</DashboardLayoutInner>
+    </DatosProvider>
+  )
+}
+
+// ==========================================
+// ✅ Contenido principal del Dashboard
+// ==========================================
+function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [nuevoDatoMenuOpen, setNuevoDatoMenuOpen] = useState(false)
   const [modalTipo, setModalTipo] = useState<string | null>(null)
 
-  // 🧠 Carga el nombre del campo asociado al usuario
+  // ✅ Hooks de contextos
+  const { refetch: refetchDatos } = useDatos()
+  const { refreshInsumos } = useInsumos()
+  const { refreshGastos } = useGastos()
+
+  // 🧠 Nombre del campo (SWR)
   const { data, error, isLoading } = useSWR('/api/usuarios/campo', fetcher, {
     revalidateOnFocus: false,
-    dedupingInterval: 1000 * 60 * 5, // cache 5 minutos
+    dedupingInterval: 1000 * 60 * 5,
   })
-
-  // 🌾 Nombre del campo
   const campoNombre = error
     ? 'Error al cargar'
     : isLoading
     ? null
     : data?.campoNombre || 'Sin campo'
 
+  // 🧭 Menú principal
   const menuSections = [
     {
       title: campoNombre || '',
@@ -57,6 +80,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     },
   ]
 
+  // 📋 Opciones del modal “Nuevo dato”
   const eventosOptions = [
     {
       category: 'Animales',
@@ -97,16 +121,25 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     {
       category: 'Insumos y Finanzas',
       items: [
-        { icon: '⊞', label: 'Uso de Insumos', action: 'uso-insumos' },
-        { icon: '⊞', label: 'Ingreso de Insumos', action: 'ingreso-insumos' },
+        { icon: '📦', label: 'Uso de Insumos', action: 'uso-insumos' },
+        { icon: '📥', label: 'Ingreso de Insumos', action: 'ingreso-insumos' },
         { icon: '💰', label: 'Gasto', action: 'gasto' },
         { icon: '👤', label: 'Ingreso', action: 'ingreso' },
       ],
     },
   ]
 
+  // ✅ Refresca todos los contextos cuando se guarda algo nuevo
+  const handleSuccess = async () => {
+    await Promise.all([
+      refetchDatos(),
+      refreshInsumos(),
+      refreshGastos(),
+    ])
+    setModalTipo(null)
+  }
+
   const handleEventoClick = (action: string) => {
-    console.log('🟢 Seleccionaste evento:', action)
     setNuevoDatoMenuOpen(false)
     setModalTipo(action)
   }
@@ -118,7 +151,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {/* HEADER */}
           <header className="bg-white border-b border-gray-200 px-4 sm:px-6 py-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              {/* Botón hamburguesa (solo móvil) */}
+              {/* Botón menú móvil */}
               <button
                 onClick={() => setSidebarOpen(true)}
                 className="p-2 rounded-lg text-gray-600 hover:bg-gray-100 lg:hidden"
@@ -129,31 +162,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   stroke="currentColor"
                   viewBox="0 0 24 24"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 6h16M4 12h16M4 18h16"
-                  />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
               </button>
 
-              {/* LOGO */}
+              {/* Logo */}
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-green-400 to-blue-500" />
-                <span className="text-lg sm:text-xl font-bold text-gray-900">
-                  BotRural
-                </span>
+                <span className="text-lg sm:text-xl font-bold text-gray-900">BotRural</span>
               </div>
             </div>
 
-            {/* NUEVO DATO */}
+            {/* Botón Nuevo Dato */}
             <div className="relative">
               <button
-                onClick={() => {
-                  console.log('🟢 Clic en Nuevo Dato')
-                  setNuevoDatoMenuOpen(!nuevoDatoMenuOpen)
-                }}
+                onClick={() => setNuevoDatoMenuOpen(!nuevoDatoMenuOpen)}
                 className="flex items-center gap-2 px-3 sm:px-4 py-2.5 rounded-lg bg-blue-500 text-white hover:bg-blue-600 font-medium text-sm sm:text-base transition-all"
               >
                 <span className="text-lg sm:text-xl">＋</span>
@@ -164,10 +187,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <>
                   <div
                     className="fixed inset-0 z-10 bg-transparent"
-                    onClick={() => {
-                      console.log('🟡 Cerrando menú Nuevo Dato')
-                      setNuevoDatoMenuOpen(false)
-                    }}
+                    onClick={() => setNuevoDatoMenuOpen(false)}
                   />
                   <div className="absolute right-0 mt-2 w-[90vw] sm:w-[700px] lg:w-[800px] bg-white rounded-xl shadow-2xl border border-gray-200 p-6 z-20 max-h-[80vh] overflow-y-auto">
                     <h2 className="text-lg font-semibold mb-4 text-gray-800">
@@ -176,9 +196,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6 sm:gap-8">
                       {eventosOptions.map((section, idx) => (
                         <div key={idx}>
-                          <h3 className="text-sm font-bold text-gray-900 mb-3">
-                            {section.category}
-                          </h3>
+                          <h3 className="text-sm font-bold text-gray-900 mb-3">{section.category}</h3>
                           <div className="space-y-2">
                             {section.items.map((item, itemIdx) => (
                               <button
@@ -263,12 +281,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">{children}</main>
           </div>
 
-          {/* MODAL NUEVO DATO */}
+          {/* ✅ MODAL NUEVO DATO */}
           <ModalNuevoDato
             isOpen={modalTipo !== null}
             onClose={() => setModalTipo(null)}
             tipo={modalTipo || ''}
-            onSuccess={() => setModalTipo(null)}
+            onSuccess={handleSuccess} // Refresca todo y cierra
           />
         </div>
       </GastosProvider>
