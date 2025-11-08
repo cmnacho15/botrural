@@ -17,7 +17,6 @@ export async function GET(request: Request) {
       include: { campo: true },
     })
 
-    // Si no tiene campo asociado, devolver vacío
     if (!usuario?.campoId) {
       return NextResponse.json([], { status: 200 })
     }
@@ -27,6 +26,7 @@ export async function GET(request: Request) {
     const tipo = searchParams.get('tipo')
     const categoria = searchParams.get('categoria')
 
+    // ✅ Filtrar por campoId del usuario
     const where: any = { campoId: usuario.campoId }
     if (tipo) where.tipo = tipo
     if (categoria) where.categoria = categoria
@@ -71,7 +71,7 @@ export async function POST(request: Request) {
         descripcion,
         categoria,
         metodoPago,
-        campoId: usuario.campoId,
+        campoId: usuario.campoId, // ✅ asociar al campo del usuario
         loteId: loteId || null,
       },
       include: { lote: true },
@@ -84,9 +84,22 @@ export async function POST(request: Request) {
   }
 }
 
-// ✅ DELETE - Eliminar gasto
+// ✅ DELETE - Eliminar gasto solo si pertenece al campo del usuario autenticado
 export async function DELETE(request: Request) {
   try {
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
+    }
+
+    const usuario = await prisma.user.findUnique({
+      where: { id: session.user.id },
+    })
+
+    if (!usuario?.campoId) {
+      return NextResponse.json({ error: 'Usuario sin campo asignado' }, { status: 400 })
+    }
+
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
 
@@ -94,7 +107,15 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'ID requerido' }, { status: 400 })
     }
 
+    // ✅ Verificar que el gasto pertenece al mismo campo
+    const gasto = await prisma.gasto.findUnique({ where: { id } })
+
+    if (!gasto || gasto.campoId !== usuario.campoId) {
+      return NextResponse.json({ error: 'No autorizado para eliminar este gasto' }, { status: 403 })
+    }
+
     await prisma.gasto.delete({ where: { id } })
+
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('💥 Error eliminando gasto:', error)

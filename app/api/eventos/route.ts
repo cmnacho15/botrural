@@ -1,28 +1,29 @@
-import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '../auth/[...nextauth]/route'
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { getServerSession } from "next-auth";
+import { authOptions } from "../auth/[...nextauth]/route";
 
 // ==============================================
 // POST: Crear un nuevo evento con lógica integrada
 // ==============================================
 export async function POST(request: Request) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession(authOptions);
 
     if (!session?.user?.id) {
-      return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
+      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
     }
 
     const usuario = await prisma.user.findUnique({
-      where: { id: session.user.id }
-    })
+      where: { id: session.user.id },
+      select: { campoId: true },
+    });
 
     if (!usuario?.campoId) {
-      return NextResponse.json({ error: 'Usuario sin campo' }, { status: 400 })
+      return NextResponse.json({ error: "Usuario sin campo" }, { status: 400 });
     }
 
-    const body = await request.json()
+    const body = await request.json();
     const {
       tipo,
       fecha,
@@ -37,10 +38,10 @@ export async function POST(request: Request) {
       loteDestinoId,
       metodoPago,
       intensidad,
-      notas
-    } = body
+      notas,
+    } = body;
 
-    console.log('📥 Creando evento:', { tipo, descripcion })
+    console.log("📥 Creando evento:", { tipo, descripcion });
 
     // 1️⃣ CREAR EL EVENTO PRINCIPAL
     const evento = await prisma.evento.create({
@@ -52,239 +53,256 @@ export async function POST(request: Request) {
         categoria: categoria || null,
         loteId: loteId || null,
         usuarioId: session.user.id,
-        campoId: usuario.campoId
-      }
-    })
+        campoId: usuario.campoId,
+      },
+    });
 
-    console.log('✅ Evento creado:', evento.id)
+    console.log("✅ Evento creado:", evento.id);
 
     // 2️⃣ LÓGICA SEGÚN EL TIPO DE EVENTO
     switch (tipo) {
-      // 🌧️ LLUVIA
-      case 'LLUVIA':
-        break
+      // 🌧️ LLUVIA / ❄️ HELADA
+      case "LLUVIA":
+      case "HELADA":
+        break;
 
-      // ❄️ HELADA
-      case 'HELADA':
-        break
-
-      // 💸 GASTO 
-      case 'GASTO':
+      // 💸 GASTO
+      case "GASTO":
         if (monto && parseFloat(monto) > 0) {
           await prisma.gasto.create({
             data: {
-              tipo: 'GASTO', // ✅ aseguramos que el tipo sea GASTO
+              tipo: "GASTO",
               monto: parseFloat(monto),
               fecha: fecha ? new Date(fecha) : new Date(),
               descripcion: descripcion || `Gasto en ${categoria}`,
-              categoria: categoria || 'Otros',
+              categoria: categoria || "Otros",
               metodoPago: metodoPago || null,
               campoId: usuario.campoId,
-              loteId: loteId || null
-            }
-          })
-          console.log('✅ Gasto registrado correctamente')
+              loteId: loteId || null,
+            },
+          });
+          console.log("✅ Gasto registrado correctamente");
         }
-        break
+        break;
 
       // 💰 VENTA
-      case 'VENTA':
+      case "VENTA":
         if (loteId && cantidad && categoria) {
           const animalExistente = await prisma.animalLote.findFirst({
-            where: { loteId, categoria }
-          })
+            where: { loteId, categoria, lote: { campoId: usuario.campoId } },
+          });
 
           if (animalExistente) {
-            const nuevaCantidad = Math.max(0, animalExistente.cantidad - parseInt(cantidad))
+            const nuevaCantidad = Math.max(0, animalExistente.cantidad - parseInt(cantidad));
             if (nuevaCantidad === 0) {
-              await prisma.animalLote.delete({ where: { id: animalExistente.id } })
+              await prisma.animalLote.delete({ where: { id: animalExistente.id } });
             } else {
               await prisma.animalLote.update({
                 where: { id: animalExistente.id },
-                data: { cantidad: nuevaCantidad }
-              })
+                data: { cantidad: nuevaCantidad },
+              });
             }
           }
-          console.log('✅ Animales restados del lote (venta)')
+          console.log("✅ Animales restados del lote (venta)");
         }
-        break
+        break;
 
       // 📦 USO DE INSUMO
-      case 'USO_INSUMO':
+      case "USO_INSUMO":
         if (!insumoId || !cantidad) {
-          return NextResponse.json({ error: 'insumoId y cantidad requeridos' }, { status: 400 })
+          return NextResponse.json({ error: "insumoId y cantidad requeridos" }, { status: 400 });
         }
 
-        const insumoUso = await prisma.insumo.findUnique({ where: { id: insumoId } })
+        const insumoUso = await prisma.insumo.findFirst({
+          where: { id: insumoId, campoId: usuario.campoId },
+        });
         if (!insumoUso) {
-          return NextResponse.json({ error: 'Insumo no encontrado' }, { status: 404 })
+          return NextResponse.json({ error: "Insumo no encontrado" }, { status: 404 });
         }
 
         await prisma.movimientoInsumo.create({
           data: {
-            tipo: 'USO',
+            tipo: "USO",
             cantidad: parseFloat(cantidad),
             fecha: fecha ? new Date(fecha) : new Date(),
             notas: notas || descripcion || null,
             insumoId,
-            loteId: loteId || null
-          }
-        })
+            loteId: loteId || null,
+          },
+        });
 
         await prisma.insumo.update({
           where: { id: insumoId },
-          data: { stock: Math.max(0, insumoUso.stock - parseFloat(cantidad)) }
-        })
+          data: { stock: Math.max(0, insumoUso.stock - parseFloat(cantidad)) },
+        });
 
-        console.log('✅ Uso de insumo registrado')
-        break
+        console.log("✅ Uso de insumo registrado");
+        break;
 
       // 📥 INGRESO DE INSUMO
-      case 'INGRESO_INSUMO':
+      case "INGRESO_INSUMO":
         if (!insumoId || !cantidad) {
-          return NextResponse.json({ error: 'insumoId y cantidad requeridos' }, { status: 400 })
+          return NextResponse.json({ error: "insumoId y cantidad requeridos" }, { status: 400 });
         }
 
-        const insumoIngreso = await prisma.insumo.findUnique({ where: { id: insumoId } })
+        const insumoIngreso = await prisma.insumo.findFirst({
+          where: { id: insumoId, campoId: usuario.campoId },
+        });
         if (!insumoIngreso) {
-          return NextResponse.json({ error: 'Insumo no encontrado' }, { status: 404 })
+          return NextResponse.json({ error: "Insumo no encontrado" }, { status: 404 });
         }
 
         await prisma.movimientoInsumo.create({
           data: {
-            tipo: 'INGRESO',
+            tipo: "INGRESO",
             cantidad: parseFloat(cantidad),
             fecha: fecha ? new Date(fecha) : new Date(),
             notas: notas || descripcion || null,
             insumoId,
-            loteId: loteId || null
-          }
-        })
+            loteId: loteId || null,
+          },
+        });
 
         await prisma.insumo.update({
           where: { id: insumoId },
-          data: { stock: insumoIngreso.stock + parseFloat(cantidad) }
-        })
+          data: { stock: insumoIngreso.stock + parseFloat(cantidad) },
+        });
 
-        // Si tiene monto, crear gasto
         if (monto && parseFloat(monto) > 0) {
           await prisma.gasto.create({
             data: {
-              tipo: 'GASTO',
+              tipo: "GASTO",
               monto: parseFloat(monto),
               fecha: fecha ? new Date(fecha) : new Date(),
               descripcion: `Compra de ${insumoIngreso.nombre}`,
-              categoria: 'Insumos',
+              categoria: "Insumos",
               metodoPago: metodoPago || null,
               campoId: usuario.campoId,
-              loteId: loteId || null
-            }
-          })
+              loteId: loteId || null,
+            },
+          });
         }
 
-        console.log('✅ Ingreso de insumo registrado')
-        break
+        console.log("✅ Ingreso de insumo registrado");
+        break;
 
       // 🚜 SIEMBRA
-      case 'SIEMBRA':
+      case "SIEMBRA":
         if (loteId && tipoCultivo && hectareas) {
           await prisma.cultivo.create({
             data: {
               tipoCultivo,
               fechaSiembra: fecha ? new Date(fecha) : new Date(),
               hectareas: parseFloat(hectareas),
-              loteId
-            }
-          })
-          console.log('✅ Cultivo creado en el lote')
+              loteId,
+            },
+          });
+          console.log("✅ Cultivo creado en el lote");
         }
-        break
+        break;
 
       // 🌾 COSECHA
-      case 'COSECHA':
+      case "COSECHA":
         if (loteId && tipoCultivo) {
           await prisma.cultivo.deleteMany({
-            where: { loteId, tipoCultivo }
-          })
-          console.log('✅ Cultivo eliminado tras cosecha')
+            where: { loteId, tipoCultivo, lote: { campoId: usuario.campoId } },
+          });
+          console.log("✅ Cultivo eliminado tras cosecha");
         }
-        break
+        break;
 
       // 🐣 NACIMIENTO
-      case 'NACIMIENTO':
+      case "NACIMIENTO":
         if (loteId && cantidad && categoria) {
           const animalExistente = await prisma.animalLote.findFirst({
-            where: { loteId, categoria }
-          })
+            where: { loteId, categoria, lote: { campoId: usuario.campoId } },
+          });
 
           if (animalExistente) {
             await prisma.animalLote.update({
               where: { id: animalExistente.id },
-              data: { cantidad: animalExistente.cantidad + parseInt(cantidad) }
-            })
+              data: { cantidad: animalExistente.cantidad + parseInt(cantidad) },
+            });
           } else {
             await prisma.animalLote.create({
-              data: { categoria, cantidad: parseInt(cantidad), loteId }
-            })
+              data: { categoria, cantidad: parseInt(cantidad), loteId },
+            });
           }
-
-          console.log('✅ Nacimientos registrados')
+          console.log("✅ Nacimientos registrados");
         }
-        break
+        break;
 
       // ☠️ MORTANDAD
-      case 'MORTANDAD':
+      case "MORTANDAD":
         if (loteId && cantidad && categoria) {
           const animalExistente = await prisma.animalLote.findFirst({
-            where: { loteId, categoria }
-          })
+            where: { loteId, categoria, lote: { campoId: usuario.campoId } },
+          });
 
           if (animalExistente) {
-            const nuevaCantidad = Math.max(0, animalExistente.cantidad - parseInt(cantidad))
+            const nuevaCantidad = Math.max(0, animalExistente.cantidad - parseInt(cantidad));
             if (nuevaCantidad === 0) {
-              await prisma.animalLote.delete({ where: { id: animalExistente.id } })
+              await prisma.animalLote.delete({ where: { id: animalExistente.id } });
             } else {
               await prisma.animalLote.update({
                 where: { id: animalExistente.id },
-                data: { cantidad: nuevaCantidad }
-              })
+                data: { cantidad: nuevaCantidad },
+              });
             }
           }
-
-          console.log('✅ Mortandad registrada')
+          console.log("✅ Mortandad registrada");
         }
-        break
+        break;
 
       default:
-        break
+        break;
     }
 
-    return NextResponse.json({ success: true, evento }, { status: 201 })
+    return NextResponse.json({ success: true, evento }, { status: 201 });
   } catch (error) {
-    console.error('❌ Error creando evento:', error)
+    console.error("❌ Error creando evento:", error);
     return NextResponse.json(
-      { error: 'Error al crear el evento', details: error instanceof Error ? error.message : 'Unknown error' },
+      {
+        error: "Error al crear el evento",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
       { status: 500 }
-    )
+    );
   }
 }
 
 // ==============================================
-// GET: Listar eventos
+// GET: Listar eventos del campo del usuario
 // ==============================================
 export async function GET() {
   try {
+    const session = await getServerSession(authOptions);
+
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+    }
+
+    const usuario = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { campoId: true },
+    });
+
+    if (!usuario?.campoId) {
+      return NextResponse.json([], { status: 200 });
+    }
+
     const eventos = await prisma.evento.findMany({
+      where: { campoId: usuario.campoId },
       include: {
         usuario: { select: { name: true } },
-        lote: { select: { nombre: true } }
+        lote: { select: { nombre: true } },
       },
-      orderBy: { fecha: 'desc' }
-    })
+      orderBy: { fecha: "desc" },
+    });
 
-    return NextResponse.json(eventos)
+    return NextResponse.json(eventos);
   } catch (error) {
-    console.error('Error al obtener eventos:', error)
-    return NextResponse.json({ error: 'Error al obtener eventos' }, { status: 500 })
+    console.error("Error al obtener eventos:", error);
+    return NextResponse.json({ error: "Error al obtener eventos" }, { status: 500 });
   }
 }

@@ -3,9 +3,10 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
-// 🧱 POST → Crear campo y asociarlo al usuario actual
+// 🧱 POST → Crear un campo y asociarlo al usuario actual
 export async function POST(req: Request) {
   try {
+    // 🔐 Verificar sesión activa
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
@@ -13,6 +14,7 @@ export async function POST(req: Request) {
 
     const { nombre } = await req.json();
 
+    // 🧩 Validar nombre
     if (!nombre || nombre.trim().length < 2) {
       return NextResponse.json(
         { error: "El nombre del campo es requerido" },
@@ -20,12 +22,13 @@ export async function POST(req: Request) {
       );
     }
 
-    // Verificar si el usuario ya tiene un campo
+    // 🧩 Buscar usuario actual
     const usuario = await prisma.user.findUnique({
       where: { id: session.user.id },
       include: { campo: true },
     });
 
+    // Si ya tiene campo, no permitir duplicar
     if (usuario?.campoId) {
       return NextResponse.json(
         { error: "El usuario ya tiene un campo asociado" },
@@ -33,7 +36,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // Crear campo nuevo
+    // 🚜 Crear campo y asociarlo al usuario
     const campo = await prisma.campo.create({
       data: {
         nombre: nombre.trim(),
@@ -43,11 +46,13 @@ export async function POST(req: Request) {
       },
     });
 
-    // Actualizar usuario para asociarlo al campo y hacerlo ADMIN
+    // 👑 Asignar campoId al usuario y rol ADMIN
     await prisma.user.update({
       where: { id: session.user.id },
       data: { campoId: campo.id, role: "ADMIN" },
     });
+
+    console.log(`✅ Campo creado: ${campo.nombre} (asociado a ${session.user.email})`);
 
     return NextResponse.json({
       success: true,
@@ -58,6 +63,44 @@ export async function POST(req: Request) {
     console.error("💥 Error creando campo:", error);
     return NextResponse.json(
       { error: "Error interno al crear campo", details: String(error) },
+      { status: 500 }
+    );
+  }
+}
+
+// 📋 GET → Obtener campo del usuario autenticado
+export async function GET() {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+    }
+
+    // Buscar el campo del usuario actual
+    const usuario = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      include: {
+        campo: {
+          include: {
+            lotes: true,
+            usuarios: { select: { id: true, name: true, email: true, role: true } },
+          },
+        },
+      },
+    });
+
+    if (!usuario?.campo) {
+      return NextResponse.json(
+        { message: "El usuario no tiene un campo asociado" },
+        { status: 200 }
+      );
+    }
+
+    return NextResponse.json(usuario.campo, { status: 200 });
+  } catch (error) {
+    console.error("💥 Error obteniendo campo:", error);
+    return NextResponse.json(
+      { error: "Error interno al obtener campo", details: String(error) },
       { status: 500 }
     );
   }

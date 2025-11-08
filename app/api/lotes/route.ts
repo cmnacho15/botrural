@@ -1,47 +1,77 @@
-import { prisma } from '@/lib/prisma'
-import { NextResponse } from 'next/server'
+import { prisma } from "@/lib/prisma";
+import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
-// ✅ Nuevo método GET: obtiene todos los lotes existentes
+// 📋 GET - Obtener lotes del campo del usuario autenticado
 export async function GET() {
   try {
+    // 🔐 Verificar sesión
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+    }
+
+    // Buscar usuario y su campo
+    const usuario = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      include: { campo: true },
+    });
+
+    if (!usuario?.campoId) {
+      return NextResponse.json([], { status: 200 });
+    }
+
+    // Traer lotes asociados al campo del usuario
     const lotes = await prisma.lote.findMany({
+      where: { campoId: usuario.campoId },
       include: {
         campo: true,
         cultivos: true,
         animalesLote: true,
       },
-      orderBy: { createdAt: 'desc' },
-    })
+      orderBy: { createdAt: "desc" },
+    });
 
-    return NextResponse.json(lotes, { status: 200 })
+    return NextResponse.json(lotes, { status: 200 });
   } catch (error) {
-    console.error('Error obteniendo lotes:', error)
+    console.error("💥 Error obteniendo lotes:", error);
     return NextResponse.json(
-      { error: 'Error obteniendo los lotes' },
+      { error: "Error obteniendo los lotes" },
       { status: 500 }
-    )
+    );
   }
 }
 
-// Método POST existente: crear un nuevo lote
+// 🧩 POST - Crear nuevo lote asociado al campo del usuario autenticado
 export async function POST(request: Request) {
   try {
-    const body = await request.json()
-    const { nombre, hectareas, campoId } = body
+    // 🔐 Validar sesión
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+    }
 
-    // Por ahora usamos un campoId temporal
-    // Después lo obtenemos del usuario logueado
-    const tempCampoId = 'temp-campo-id'
+    const usuario = await prisma.user.findUnique({
+      where: { id: session.user.id },
+    });
 
-    // Crear o buscar el campo
-    let campo = await prisma.campo.findFirst()
-    
-    if (!campo) {
-      campo = await prisma.campo.create({
-        data: {
-          nombre: 'El Porvenir',
-        },
-      })
+    if (!usuario?.campoId) {
+      return NextResponse.json(
+        { error: "El usuario no tiene un campo asignado" },
+        { status: 400 }
+      );
+    }
+
+    // Leer datos del body
+    const body = await request.json();
+    const { nombre, hectareas } = body;
+
+    if (!nombre || !hectareas) {
+      return NextResponse.json(
+        { error: "Nombre y hectáreas son requeridos" },
+        { status: 400 }
+      );
     }
 
     // Crear el lote
@@ -49,16 +79,18 @@ export async function POST(request: Request) {
       data: {
         nombre,
         hectareas: parseFloat(hectareas),
-        campoId: campo.id,
+        campoId: usuario.campoId, // ✅ Asociado automáticamente
       },
-    })
+    });
 
-    return NextResponse.json(lote, { status: 201 })
+    console.log(`✅ Lote creado: ${nombre} (${hectareas} ha)`);
+
+    return NextResponse.json(lote, { status: 201 });
   } catch (error) {
-    console.error('Error creando lote:', error)
+    console.error("💥 Error creando lote:", error);
     return NextResponse.json(
-      { error: 'Error creando el lote' },
+      { error: "Error creando el lote" },
       { status: 500 }
-    )
+    );
   }
 }

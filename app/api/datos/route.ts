@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getServerSession } from "next-auth";
+import { authOptions } from "../auth/[...nextauth]/route";
 
 // ==============================================
 // 🔹 Configuración de categorías e íconos
@@ -13,7 +15,7 @@ const categoriaPorTipo: Record<string, string> = {
   TRASLADO: "animales",
   NACIMIENTO: "animales",
   MORTANDAD: "animales",
-  CONSUMO: "animales", // ← consumo animal
+  CONSUMO: "animales",
   ABORTO: "animales",
   DESTETE: "animales",
   TACTO: "animales",
@@ -33,12 +35,11 @@ const categoriaPorTipo: Record<string, string> = {
   HELADA: "clima",
 
   // 💰 Finanzas
-  GASTO: "finanzas", // ← agregado
+  GASTO: "finanzas",
   INGRESO: "finanzas",
 };
 
 const iconoPorTipo: Record<string, string> = {
-  // 🐄 Animales
   MOVIMIENTO: "🔄",
   TRATAMIENTO: "💉",
   VENTA: "💰",
@@ -46,13 +47,11 @@ const iconoPorTipo: Record<string, string> = {
   TRASLADO: "🚛",
   NACIMIENTO: "🐣",
   MORTANDAD: "💀",
-  CONSUMO: "🍖", // ← agregado
+  CONSUMO: "🍖",
   ABORTO: "❌",
   DESTETE: "🔀",
   TACTO: "✋",
   RECATEGORIZACION: "🏷️",
-
-  // 🌾 Agricultura
   SIEMBRA: "🌱",
   PULVERIZACION: "💦",
   REFERTILIZACION: "🌿",
@@ -60,13 +59,9 @@ const iconoPorTipo: Record<string, string> = {
   MONITOREO: "🔍",
   COSECHA: "🌾",
   OTROS_LABORES: "🔧",
-
-  // 🌦️ Clima
   LLUVIA: "🌧️",
   HELADA: "❄️",
-
-  // 💰 Finanzas
-  GASTO: "💸", // ← agregado
+  GASTO: "💸",
   INGRESO: "💰",
 };
 
@@ -75,6 +70,20 @@ const iconoPorTipo: Record<string, string> = {
 // ==============================================
 export async function GET(request: Request) {
   try {
+    const session = await getServerSession(authOptions);
+
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+    }
+
+    const usuario = await prisma.user.findUnique({
+      where: { id: session.user.id },
+    });
+
+    if (!usuario?.campoId) {
+      return NextResponse.json({ error: "Usuario sin campo asignado" }, { status: 400 });
+    }
+
     const { searchParams } = new URL(request.url);
     const categoria = searchParams.get("categoria");
     const fechaDesde = searchParams.get("fechaDesde");
@@ -82,10 +91,11 @@ export async function GET(request: Request) {
     const busqueda = searchParams.get("busqueda");
 
     // ==============================
-    // 1️⃣ Obtener datos base
+    // 1️⃣ Obtener datos base (filtrados por campo)
     // ==============================
     const [eventos, gastos, movimientosInsumos] = await Promise.all([
       prisma.evento.findMany({
+        where: { campoId: usuario.campoId },
         include: {
           usuario: { select: { name: true } },
           lote: { select: { nombre: true } },
@@ -93,12 +103,16 @@ export async function GET(request: Request) {
         orderBy: { fecha: "desc" },
       }),
       prisma.gasto.findMany({
+        where: { campoId: usuario.campoId },
         include: {
           lote: { select: { nombre: true } },
         },
         orderBy: { fecha: "desc" },
       }),
       prisma.movimientoInsumo.findMany({
+        where: {
+          insumo: { campoId: usuario.campoId },
+        },
         include: {
           insumo: { select: { nombre: true, unidad: true } },
           lote: { select: { nombre: true } },

@@ -2,31 +2,32 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
-import crypto from "crypto"; // ✅ agregado para generar el token
+import crypto from "crypto"; // ✅ necesario para generar token único
 
-// 📋 GET - Listar invitaciones del campo
+// 📋 GET → Listar invitaciones del campo del usuario autenticado
 export async function GET(request: Request) {
   try {
     const session = await getServerSession(authOptions);
-
     if (!session?.user?.id) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
     }
 
+    // Obtener usuario con su campo
     const usuario = await prisma.user.findUnique({
       where: { id: session.user.id },
       include: { campo: true },
     });
 
-    if (!usuario?.campo) {
+    if (!usuario?.campoId) {
       return NextResponse.json(
-        { error: "No se encontró campo" },
+        { error: "El usuario no tiene campo asignado" },
         { status: 400 }
       );
     }
 
-    const invitations = await prisma.invitation.findMany({
-      where: { campoId: usuario.campo.id },
+    // Obtener todas las invitaciones del campo
+    const invitaciones = await prisma.invitation.findMany({
+      where: { campoId: usuario.campoId },
       include: {
         createdBy: { select: { name: true, email: true } },
         usedBy: { select: { name: true, telefono: true } },
@@ -34,7 +35,7 @@ export async function GET(request: Request) {
       orderBy: { createdAt: "desc" },
     });
 
-    return NextResponse.json(invitations);
+    return NextResponse.json(invitaciones, { status: 200 });
   } catch (error) {
     console.error("💥 Error obteniendo invitaciones:", error);
     return NextResponse.json(
@@ -44,13 +45,10 @@ export async function GET(request: Request) {
   }
 }
 
-// 🧩 POST - Crear invitación
+// 🧩 POST → Crear invitación nueva
 export async function POST(req: Request) {
-  console.log("=== INICIO POST /api/invitaciones ===");
   try {
     const session = await getServerSession(authOptions);
-    console.log("1️⃣ Session:", session);
-
     if (!session?.user?.id) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
     }
@@ -60,7 +58,7 @@ export async function POST(req: Request) {
       include: { campo: true },
     });
 
-    if (!usuario?.campo) {
+    if (!usuario?.campoId) {
       return NextResponse.json(
         { error: "No se encontró campo asociado" },
         { status: 400 }
@@ -73,48 +71,51 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Rol inválido" }, { status: 400 });
     }
 
+    // Generar token y fecha de expiración
+    const token = crypto.randomBytes(16).toString("hex");
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7);
 
-    // ✅ Crear la invitación con token generado
+    // Crear invitación
     const invitacion = await prisma.invitation.create({
       data: {
-        token: crypto.randomBytes(16).toString("hex"), // ← token único
+        token,
         role,
-        campoId: usuario.campo.id,
+        campoId: usuario.campoId,
         createdById: usuario.id,
         expiresAt,
       },
     });
 
-    console.log("✅ Invitación creada:", invitacion.id);
-
-    // 🔗 Generar link de WhatsApp con el TOKEN
+    // Generar link de WhatsApp con token
     const botNumber = process.env.WHATSAPP_BOT_NUMBER || "59899465242";
     const message = encodeURIComponent(invitacion.token);
     const whatsappLink = `https://wa.me/${botNumber}?text=${message}`;
 
-    console.log("🔗 Link generado:", whatsappLink);
+    console.log(`✅ Invitación creada para campo ${usuario.campoId}`);
+    console.log(`🔗 Link: ${whatsappLink}`);
 
-    return NextResponse.json({
-      success: true,
-      invitacion,
-      whatsappLink,
-    });
-  } catch (error) {
-    console.error("💥 ERROR COMPLETO:", error);
     return NextResponse.json(
-      { error: "Error interno", details: String(error) },
+      {
+        success: true,
+        invitacion,
+        whatsappLink,
+      },
+      { status: 201 }
+    );
+  } catch (error) {
+    console.error("💥 Error creando invitación:", error);
+    return NextResponse.json(
+      { error: "Error interno al crear invitación", details: String(error) },
       { status: 500 }
     );
   }
 }
 
-// ❌ DELETE - Eliminar invitación
+// ❌ DELETE → Eliminar una invitación específica
 export async function DELETE(request: Request) {
   try {
     const session = await getServerSession(authOptions);
-
     if (!session?.user?.id) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
     }
@@ -124,6 +125,26 @@ export async function DELETE(request: Request) {
 
     if (!id) {
       return NextResponse.json({ error: "ID requerido" }, { status: 400 });
+    }
+
+    // Verificar que la invitación pertenece al campo del usuario
+    const usuario = await prisma.user.findUnique({
+      where: { id: session.user.id },
+    });
+
+    if (!usuario?.campoId) {
+      return NextResponse.json(
+        { error: "El usuario no tiene campo asignado" },
+        { status: 400 }
+      );
+    }
+
+    const invitacion = await prisma.invitation.findUnique({ where: { id } });
+    if (!invitacion || invitacion.campoId !== usuario.campoId) {
+      return NextResponse.json(
+        { error: "No autorizado para eliminar esta invitación" },
+        { status: 403 }
+      );
     }
 
     await prisma.invitation.delete({ where: { id } });
