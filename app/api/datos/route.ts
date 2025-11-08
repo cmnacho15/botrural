@@ -96,35 +96,35 @@ export async function GET(request: Request) {
     // 1️⃣ Obtener datos base (filtrados por campo)
     // ==============================
     const [eventos, gastos, movimientosInsumos] = await Promise.all([
-      prisma.evento.findMany({
-        where: {
-          campoId: usuario.campoId,
-          tipo: { not: "GASTO" }, // ✅ EXCLUIR GASTOS (vienen de la tabla Gasto)
-        },
-        include: {
-          usuario: { select: { name: true } },
-          lote: { select: { nombre: true } },
-        },
-        orderBy: { fecha: "desc" },
-      }),
-
-      prisma.gasto.findMany({
-        where: { campoId: usuario.campoId },
-        include: { lote: { select: { nombre: true } } },
-        orderBy: { fecha: "desc" },
-      }),
-
-      prisma.movimientoInsumo.findMany({
-        where: {
-          insumo: { campoId: usuario.campoId },
-        },
-        include: {
-          insumo: { select: { nombre: true, unidad: true } },
-          lote: { select: { nombre: true } },
-        },
-        orderBy: { fecha: "desc" },
-      }),
-    ]);
+  prisma.evento.findMany({
+    where: {
+      campoId: usuario.campoId,
+      tipo: {
+        not: 'GASTO'
+      }
+    },
+    include: {
+      usuario: { select: { name: true } },
+      lote: { select: { nombre: true } },
+    },
+    orderBy: { fecha: 'desc' },
+  }),
+  prisma.gasto.findMany({
+    where: { campoId: usuario.campoId },
+    include: { lote: { select: { nombre: true } } },
+    orderBy: { fecha: 'desc' },
+  }),
+  prisma.movimientoInsumo.findMany({
+    where: {
+      insumo: { campoId: usuario.campoId },
+    },
+    include: {
+      insumo: { select: { nombre: true, unidad: true } },
+      lote: { select: { nombre: true } },
+    },
+    orderBy: { fecha: 'desc' },
+  }),
+]);
 
     // ==============================
     // 2️⃣ Unificar todos los datos
