@@ -26,7 +26,6 @@ function FiltrosDatos() {
   return (
     <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
       <div className="flex flex-wrap gap-4 items-center">
-        {/* Filtro por categoría */}
         <div className="flex gap-2 flex-wrap">
           {categorias.map((cat) => (
             <button
@@ -44,7 +43,6 @@ function FiltrosDatos() {
           ))}
         </div>
 
-        {/* Búsqueda */}
         <div className="flex-1 min-w-[200px]">
           <input
             type="text"
@@ -65,11 +63,9 @@ function TarjetaDato({ dato }: { dato: any }) {
     const hoy = new Date()
     const fechaDato = new Date(fecha)
     const diff = Math.floor((hoy.getTime() - fechaDato.getTime()) / (1000 * 60 * 60 * 24))
-
     if (diff === 0) return 'Hoy'
     if (diff === 1) return 'Ayer'
     if (diff < 7) return `Hace ${diff} días`
-
     return fechaDato.toLocaleDateString('es-UY', {
       day: 'numeric',
       month: 'short',
@@ -97,8 +93,8 @@ function TarjetaDato({ dato }: { dato: any }) {
   const renderDetalles = () => {
     const detalles = []
 
-    // 💵 Monto (siempre rojo)
-    if (dato.detalles?.monto) {
+    // 💵 MONTO — SIEMPRE se muestra si existe
+    if (dato.detalles?.monto !== undefined && dato.detalles?.monto !== null) {
       detalles.push(
         <span
           key="monto"
@@ -109,7 +105,19 @@ function TarjetaDato({ dato }: { dato: any }) {
       )
     }
 
-    // 🏷️ Categoría de gasto (rojo)
+    // 📊 CANTIDAD — siempre se muestra si hay
+    if (dato.detalles?.cantidad) {
+      detalles.push(
+        <span
+          key="cantidad"
+          className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-medium"
+        >
+          📊 {dato.detalles.cantidad} {dato.detalles.unidad || ''}
+        </span>
+      )
+    }
+
+    // 🏷️ Categoría de gasto
     if (dato.detalles?.categoriaGasto) {
       detalles.push(
         <span
@@ -121,7 +129,7 @@ function TarjetaDato({ dato }: { dato: any }) {
       )
     }
 
-    // 💳 Método de pago (rojo)
+    // 💳 Método de pago
     if (dato.detalles?.metodoPago) {
       detalles.push(
         <span
@@ -129,18 +137,6 @@ function TarjetaDato({ dato }: { dato: any }) {
           className="bg-red-100 text-red-700 px-3 py-1 rounded-full text-sm"
         >
           💳 {dato.detalles.metodoPago}
-        </span>
-      )
-    }
-
-    // 📊 Cantidad
-    if (dato.detalles?.cantidad) {
-      detalles.push(
-        <span
-          key="cantidad"
-          className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-medium"
-        >
-          📊 {dato.detalles.cantidad} {dato.detalles.unidad || ''}
         </span>
       )
     }
@@ -220,7 +216,7 @@ function TarjetaDato({ dato }: { dato: any }) {
   )
 }
 
-// ==================== LISTA DE DATOS ====================
+// ==================== LISTA Y PÁGINA ====================
 function ListaDatos() {
   const { datos, loading, error } = useDatos()
 
@@ -269,7 +265,6 @@ function ListaDatos() {
   )
 }
 
-// ==================== PÁGINA PRINCIPAL ====================
 export default function DatosPage() {
   return (
     <DatosProvider>
