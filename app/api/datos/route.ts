@@ -229,11 +229,13 @@ export async function GET(request: Request) {
     }
 
     // ==============================
-    // 4️⃣ Ordenar por fecha descendente
-    // ==============================
-    datosFiltrados.sort(
-      (a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime()
-    );
+// 4️⃣ Ordenar por fecha descendente (más reciente primero)
+// ==============================
+datosFiltrados.sort((a, b) => {
+  const fechaA = a.fecha instanceof Date ? a.fecha : new Date(a.fecha);
+  const fechaB = b.fecha instanceof Date ? b.fecha : new Date(b.fecha);
+  return fechaB.getTime() - fechaA.getTime();
+});
 
     // ✅ Devolver respuesta final
     return NextResponse.json(datosFiltrados);
