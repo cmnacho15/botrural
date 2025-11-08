@@ -71,7 +71,6 @@ const iconoPorTipo: Record<string, string> = {
 export async function GET(request: Request) {
   try {
     const session = await getServerSession(authOptions);
-
     if (!session?.user?.id) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
     }
@@ -98,18 +97,23 @@ export async function GET(request: Request) {
     // ==============================
     const [eventos, gastos, movimientosInsumos] = await Promise.all([
       prisma.evento.findMany({
-        where: { campoId: usuario.campoId },
+        where: {
+          campoId: usuario.campoId,
+          tipo: { not: "GASTO" }, // ✅ EXCLUIR GASTOS (vienen de la tabla Gasto)
+        },
         include: {
           usuario: { select: { name: true } },
           lote: { select: { nombre: true } },
         },
         orderBy: { fecha: "desc" },
       }),
+
       prisma.gasto.findMany({
         where: { campoId: usuario.campoId },
         include: { lote: { select: { nombre: true } } },
         orderBy: { fecha: "desc" },
       }),
+
       prisma.movimientoInsumo.findMany({
         where: {
           insumo: { campoId: usuario.campoId },
@@ -146,7 +150,7 @@ export async function GET(request: Request) {
       });
     });
 
-    // 💸 GASTOS — ✅ Actualizado según pedido
+    // 💸 GASTOS (solo desde tabla Gasto)
     gastos.forEach((gasto) => {
       datosUnificados.push({
         id: gasto.id,
@@ -159,7 +163,10 @@ export async function GET(request: Request) {
         usuario: null,
         lote: gasto.lote?.nombre || null,
         detalles: {
-          monto: gasto.monto,
+          monto:
+            gasto.monto !== null
+              ? parseFloat(gasto.monto.toString())
+              : undefined,
           categoriaGasto: gasto.categoria,
           metodoPago: gasto.metodoPago,
         },
@@ -173,9 +180,9 @@ export async function GET(request: Request) {
         fecha: mov.fecha,
         tipo: mov.tipo,
         categoria: "insumos",
-        descripcion: `${mov.tipo === "INGRESO" ? "Ingreso" : "Uso"} de ${
-          mov.insumo.nombre
-        }: ${mov.cantidad} ${mov.insumo.unidad}`,
+        descripcion: `${
+          mov.tipo === "INGRESO" ? "Ingreso" : "Uso"
+        } de ${mov.insumo.nombre}: ${mov.cantidad} ${mov.insumo.unidad}`,
         icono: mov.tipo === "INGRESO" ? "📥" : "📤",
         color: mov.tipo === "INGRESO" ? "green" : "red",
         usuario: null,
@@ -195,7 +202,9 @@ export async function GET(request: Request) {
     let datosFiltrados = [...datosUnificados];
 
     if (categoria && categoria !== "todos") {
-      datosFiltrados = datosFiltrados.filter((d) => d.categoria === categoria);
+      datosFiltrados = datosFiltrados.filter(
+        (d) => d.categoria === categoria
+      );
     }
 
     if (fechaDesde) {
@@ -214,7 +223,7 @@ export async function GET(request: Request) {
       const q = busqueda.toLowerCase();
       datosFiltrados = datosFiltrados.filter(
         (d) =>
-          d.descripcion.toLowerCase().includes(q) ||
+          d.descripcion?.toLowerCase().includes(q) ||
           (d.tipo && d.tipo.toLowerCase().includes(q))
       );
     }
