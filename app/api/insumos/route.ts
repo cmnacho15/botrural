@@ -30,6 +30,7 @@ export async function GET() {
       { nombre: "Maíz", unidad: "Kilos" },
       { nombre: "Balanceado", unidad: "Kilos" },
       { nombre: "Alambre", unidad: "Metros" },
+      { nombre: "Botellas", unidad: "Litros" },
     ];
 
     // Verificar y crear los que falten
@@ -53,11 +54,18 @@ export async function GET() {
       }
     }
 
-    // Traer todos los insumos del campo (ya con los base garantizados)
+    // ✅ Traer todos los insumos del campo con sus movimientos
     const insumos = await prisma.insumo.findMany({
       where: { campoId: usuario.campoId },
+      include: {
+        movimientos: {
+          orderBy: { fecha: "desc" },
+        },
+      },
       orderBy: { nombre: "asc" },
     });
+
+    console.log(`✅ Devolviendo ${insumos.length} insumos con movimientos`);
 
     return NextResponse.json(insumos);
   } catch (error) {
@@ -91,6 +99,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { nombre, unidad, stock } = body;
 
+    // Verificar duplicado
     const insumoExistente = await prisma.insumo.findFirst({
       where: { campoId: usuario.campoId, nombre },
     });
@@ -102,6 +111,7 @@ export async function POST(request: Request) {
       );
     }
 
+    // Crear insumo nuevo
     const nuevoInsumo = await prisma.insumo.create({
       data: {
         nombre,
@@ -110,6 +120,8 @@ export async function POST(request: Request) {
         campoId: usuario.campoId,
       },
     });
+
+    console.log(`✅ Nuevo insumo creado: ${nombre} (${unidad})`);
 
     return NextResponse.json(nuevoInsumo, { status: 201 });
   } catch (error) {
