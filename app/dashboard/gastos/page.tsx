@@ -64,7 +64,6 @@ function GastosContent() {
     { value: 22, label: '22%' },
   ]
 
-  // ✅ FILTRAR POR CATEGORÍA
   const gastosFiltrados = categoriaSeleccionada
     ? gastosDB.filter(g => g.categoria === categoriaSeleccionada)
     : gastosDB
@@ -82,11 +81,9 @@ function GastosContent() {
     ? categoriasConDatos
     : categoriasConDatos.slice(0, 9)
 
-  // ✅ CALCULAR TOTALES DE GASTOS E INGRESOS
   const totalGastos = gastosDB.filter(g => g.tipo === 'GASTO').reduce((sum, g) => sum + g.monto, 0)
   const totalIngresos = gastosDB.filter(g => g.tipo === 'INGRESO').reduce((sum, g) => sum + g.monto, 0)
 
-  // ✅ TABLA CON DETECCIÓN DE INGRESOS
   const transacciones = gastosFiltrados.map((gasto) => {
     const categoria = categorias.find((c) => c.nombre === gasto.categoria)
     const esIngreso = gasto.tipo === 'INGRESO'
@@ -224,70 +221,99 @@ function GastosContent() {
         </div>
       </div>
 
-      {/* GRID PRINCIPAL */}
-      <div className="px-4 sm:px-6 lg:px-8 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Categorías */}
-        <div className="lg:col-span-4">
-          <div className="bg-white rounded-xl shadow-sm p-5 sm:p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-semibold text-gray-900">Categorías de Gastos</h2>
-              <button
-                onClick={() => setModalCategoriaOpen(true)}
-                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-blue-50 text-blue-600"
-              >
-                +
-              </button>
-            </div>
+      {/* CONTENIDO PRINCIPAL */}
+      <div className="px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+        
+        {/* SECCIÓN 1: Categorías */}
+        <div className="bg-white rounded-xl shadow-sm p-5 sm:p-6">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">Categorías de Gastos</h2>
+            <button
+              onClick={() => setModalCategoriaOpen(true)}
+              className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-blue-50 text-blue-600"
+            >
+              +
+            </button>
+          </div>
 
-            <div className="space-y-2">
-              {/* ✅ BOTÓN "TODOS LOS GASTOS" CON FILTRO */}
+          {/* Grid de categorías que se expande horizontalmente */}
+          <div className={`grid gap-2 ${mostrarTodasCategorias ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'}`}>
+            {/* Todos los gastos */}
+            <button
+              onClick={() => setCategoriaSeleccionada(null)}
+              className={`flex justify-between items-center px-3 py-3 rounded-lg transition ${
+                categoriaSeleccionada === null ? 'bg-blue-50' : 'hover:bg-gray-50'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-gray-900">Todos los gastos</span>
+                <span className="px-2 py-0.5 bg-gray-200 text-gray-700 rounded-full text-xs font-medium">{gastosDB.length}</span>
+              </div>
+              <span className="text-sm font-semibold text-gray-900">{totalGastos} {moneda}</span>
+            </button>
+
+            {/* Categorías individuales */}
+            {categoriasVisibles.map((cat, idx) => (
               <button
-                onClick={() => setCategoriaSeleccionada(null)}
-                className={`w-full flex justify-between items-center px-3 py-3 rounded-lg transition ${
-                  categoriaSeleccionada === null ? 'bg-blue-50' : 'hover:bg-gray-50'
+                key={idx}
+                onClick={() => setCategoriaSeleccionada(cat.nombre)}
+                className={`flex justify-between items-center px-3 py-3 rounded-lg cursor-pointer transition ${
+                  categoriaSeleccionada === cat.nombre ? 'bg-blue-50' : 'hover:bg-gray-50'
                 }`}
               >
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-gray-900">Todos los gastos</span>
-                  <span className="px-2 py-0.5 bg-gray-200 text-gray-700 rounded-full text-xs font-medium">{gastosDB.length}</span>
+                <div className="flex items-center gap-3">
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: cat.color }} />
+                  <span className="text-sm text-gray-700">{cat.nombre}</span>
+                  {cat.cantidad > 0 && (
+                    <span className="px-2 py-0.5 bg-gray-200 text-gray-700 rounded-full text-xs font-medium">
+                      {cat.cantidad}
+                    </span>
+                  )}
                 </div>
-                <span className="text-sm font-semibold text-gray-900">{totalGastos} {moneda}</span>
+                <span className="text-sm text-gray-900">{cat.total}</span>
               </button>
+            ))}
+          </div>
 
-              {/* ✅ CATEGORÍAS CON FILTRO AL HACER CLICK */}
-              {categoriasVisibles.map((cat, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => setCategoriaSeleccionada(cat.nombre)}
-                  className={`w-full flex justify-between items-center px-3 py-3 rounded-lg cursor-pointer transition ${
-                    categoriaSeleccionada === cat.nombre ? 'bg-blue-50' : 'hover:bg-gray-50'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: cat.color }} />
-                    <span className="text-sm text-gray-700">{cat.nombre}</span>
-                    {cat.cantidad > 0 && (
-                      <span className="px-2 py-0.5 bg-gray-200 text-gray-700 rounded-full text-xs font-medium">
-                        {cat.cantidad}
-                      </span>
-                    )}
-                  </div>
-                  <span className="text-sm text-gray-900">{cat.total}</span>
-                </button>
-              ))}
+          <button
+            onClick={() => setMostrarTodasCategorias(!mostrarTodasCategorias)}
+            className="w-full text-center text-sm text-blue-600 hover:text-blue-700 font-medium pt-3"
+          >
+            {mostrarTodasCategorias ? 'Colapsar' : 'Ver más categorías'}
+          </button>
+        </div>
 
-              <button
-                onClick={() => setMostrarTodasCategorias(!mostrarTodasCategorias)}
-                className="w-full text-center text-sm text-blue-600 hover:text-blue-700 font-medium pt-3"
-              >
-                {mostrarTodasCategorias ? 'Colapsar' : 'Ver más categorías'}
-              </button>
+        {/* SECCIÓN 2: Gráficos (más grandes cuando las categorías están expandidas) */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Distribución */}
+          <div className="bg-white rounded-xl shadow-sm p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-6">
+              {categoriaSeleccionada ? `Gastos en ${categoriaSeleccionada}` : 'Distribución de Gastos'}
+            </h2>
+            <div className="flex items-center justify-center" style={{ height: mostrarTodasCategorias ? '400px' : '300px' }}>
+              <div className="text-center">
+                <div className="text-6xl mb-4">📊</div>
+                <p className="text-gray-500 text-lg">Gráfico circular</p>
+                <p className="text-gray-400 text-sm mt-2">Integrar con Chart.js o Recharts</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Tendencias */}
+          <div className="bg-white rounded-xl shadow-sm p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-6">Tendencias Mensuales</h2>
+            <div className="flex items-center justify-center" style={{ height: mostrarTodasCategorias ? '400px' : '300px' }}>
+              <div className="text-center">
+                <div className="text-6xl mb-4">📈</div>
+                <p className="text-gray-500 text-lg">Gráfico de barras</p>
+                <p className="text-gray-400 text-sm mt-2">Integrar con Chart.js o Recharts</p>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Tabla de gastos */}
-        <div className="lg:col-span-8 bg-white rounded-xl shadow-sm p-5 sm:p-6">
+        {/* SECCIÓN 3: Tabla de Gastos e Ingresos (al final) */}
+        <div className="bg-white rounded-xl shadow-sm p-5 sm:p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4 sm:mb-6">
             {categoriaSeleccionada ? `Gastos en ${categoriaSeleccionada}` : 'Gastos e Ingresos Registrados'}
           </h2>
@@ -305,7 +331,6 @@ function GastosContent() {
                 {transacciones.map((t, idx) => (
                   <tr key={idx} className="hover:bg-gray-50">
                     <td className="px-4 sm:px-6 py-3">{t.fecha}</td>
-                    {/* ✅ MOSTRAR INGRESOS EN VERDE Y GASTOS EN ROJO */}
                     <td className="px-4 sm:px-6 py-3">
                       <div className={`font-semibold ${t.esIngreso ? 'text-green-600' : 'text-red-600'}`}>
                         {t.esIngreso ? '+' : '-'}{t.monto}
@@ -326,7 +351,7 @@ function GastosContent() {
             </table>
           </div>
 
-          {/* ✅ RESUMEN DE TOTALES */}
+          {/* Resumen de totales */}
           <div className="mt-6 pt-6 border-t border-gray-200 grid grid-cols-2 gap-4">
             <div className="bg-red-50 rounded-lg p-4">
               <div className="text-sm text-red-700 font-medium mb-1">Total Gastos</div>
