@@ -26,17 +26,23 @@ export default function ModalNuevoDato({
 }: ModalNuevoDatoProps) {
   if (!isOpen) return null
 
+  // ✅ AGREGAR ESTA FUNCIÓN:
+  const handleSuccess = () => {
+    onSuccess()
+    window.location.reload()
+  }
+
   return (
     <div className="fixed inset-0 backdrop-blur-md bg-white/30 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        {tipo === 'lluvia' && <ModalLluvia onClose={onClose} onSuccess={onSuccess} />}
-        {tipo === 'helada' && <ModalHelada onClose={onClose} onSuccess={onSuccess} />}
-        {tipo === 'gasto' && <ModalGasto onClose={onClose} onSuccess={onSuccess} />}
-        {tipo === 'ingreso' && <ModalIngreso onClose={onClose} onSuccess={onSuccess} />}
-        {tipo === 'uso-insumos' && <ModalUsoInsumos onClose={onClose} onSuccess={onSuccess} />}
-        {tipo === 'ingreso-insumos' && <ModalIngresoInsumos onClose={onClose} onSuccess={onSuccess} />}
-        {tipo === 'siembra' && <ModalSiembra onClose={onClose} onSuccess={onSuccess} />}
-        {tipo === 'nacimiento' && <ModalNacimiento onClose={onClose} onSuccess={onSuccess} />}
+        {tipo === 'lluvia' && <ModalLluvia onClose={onClose} onSuccess={handleSuccess} />}
+        {tipo === 'helada' && <ModalHelada onClose={onClose} onSuccess={handleSuccess} />}
+        {tipo === 'gasto' && <ModalGasto onClose={onClose} onSuccess={handleSuccess} />}
+        {tipo === 'ingreso' && <ModalIngreso onClose={onClose} onSuccess={handleSuccess} />}
+        {tipo === 'uso-insumos' && <ModalUsoInsumos onClose={onClose} onSuccess={handleSuccess} />}
+        {tipo === 'ingreso-insumos' && <ModalIngresoInsumos onClose={onClose} onSuccess={handleSuccess} />}
+        {tipo === 'siembra' && <ModalSiembra onClose={onClose} onSuccess={handleSuccess} />}
+        {tipo === 'nacimiento' && <ModalNacimiento onClose={onClose} onSuccess={handleSuccess} />}
       </div>
     </div>
   )
