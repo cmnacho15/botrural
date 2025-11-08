@@ -59,37 +59,36 @@ export async function POST(request: Request) {
     console.log('✅ Evento creado:', evento.id)
 
     // 2️⃣ LÓGICA SEGÚN EL TIPO DE EVENTO
-
     switch (tipo) {
-      // 🌧️ LLUVIA - Solo guardar evento
+      // 🌧️ LLUVIA
       case 'LLUVIA':
         break
 
-      // ❄️ HELADA - Solo guardar evento
+      // ❄️ HELADA
       case 'HELADA':
         break
 
-      // 💸 COMPRA / CONSUMO → Crear GASTO
-      case 'COMPRA':
+      // 💸 GASTO o CONSUMO
+      case 'GASTO':
       case 'CONSUMO':
         if (monto && parseFloat(monto) > 0) {
           await prisma.gasto.create({
             data: {
-              tipo: 'GASTO',
+              tipo: 'GASTO', // ✅ aseguramos que el tipo sea GASTO
               monto: parseFloat(monto),
               fecha: fecha ? new Date(fecha) : new Date(),
-              descripcion: descripcion || '',
+              descripcion: descripcion || `Gasto en ${categoria}`,
               categoria: categoria || 'Otros',
               metodoPago: metodoPago || null,
               campoId: usuario.campoId,
               loteId: loteId || null
             }
           })
-          console.log('✅ Gasto registrado')
+          console.log('✅ Gasto registrado correctamente')
         }
         break
 
-      // 💰 VENTA → Restar animales del lote
+      // 💰 VENTA
       case 'VENTA':
         if (loteId && cantidad && categoria) {
           const animalExistente = await prisma.animalLote.findFirst({
@@ -98,7 +97,6 @@ export async function POST(request: Request) {
 
           if (animalExistente) {
             const nuevaCantidad = Math.max(0, animalExistente.cantidad - parseInt(cantidad))
-            
             if (nuevaCantidad === 0) {
               await prisma.animalLote.delete({ where: { id: animalExistente.id } })
             } else {
@@ -112,7 +110,7 @@ export async function POST(request: Request) {
         }
         break
 
-      // 📦 USO DE INSUMO → Crear movimiento + restar stock
+      // 📦 USO DE INSUMO
       case 'USO_INSUMO':
         if (!insumoId || !cantidad) {
           return NextResponse.json({ error: 'insumoId y cantidad requeridos' }, { status: 400 })
@@ -142,7 +140,7 @@ export async function POST(request: Request) {
         console.log('✅ Uso de insumo registrado')
         break
 
-      // 📥 INGRESO DE INSUMO → Crear movimiento + sumar stock (+ gasto si tiene monto)
+      // 📥 INGRESO DE INSUMO
       case 'INGRESO_INSUMO':
         if (!insumoId || !cantidad) {
           return NextResponse.json({ error: 'insumoId y cantidad requeridos' }, { status: 400 })
@@ -188,7 +186,7 @@ export async function POST(request: Request) {
         console.log('✅ Ingreso de insumo registrado')
         break
 
-      // 🚜 SIEMBRA → Crear cultivo en el lote
+      // 🚜 SIEMBRA
       case 'SIEMBRA':
         if (loteId && tipoCultivo && hectareas) {
           await prisma.cultivo.create({
@@ -203,7 +201,7 @@ export async function POST(request: Request) {
         }
         break
 
-      // 🌾 COSECHA → Eliminar cultivo del lote (opcional)
+      // 🌾 COSECHA
       case 'COSECHA':
         if (loteId && tipoCultivo) {
           await prisma.cultivo.deleteMany({
@@ -213,53 +211,7 @@ export async function POST(request: Request) {
         }
         break
 
-      // 🐄 TRASLADO/MOVIMIENTO → Mover animales entre potreros
-      case 'TRASLADO':
-      case 'MOVIMIENTO':
-        if (loteId && loteDestinoId && cantidad && categoria) {
-          // Restar del lote origen
-          const animalOrigen = await prisma.animalLote.findFirst({
-            where: { loteId, categoria }
-          })
-
-          if (animalOrigen) {
-            const nuevaCantOrigen = Math.max(0, animalOrigen.cantidad - parseInt(cantidad))
-            
-            if (nuevaCantOrigen === 0) {
-              await prisma.animalLote.delete({ where: { id: animalOrigen.id } })
-            } else {
-              await prisma.animalLote.update({
-                where: { id: animalOrigen.id },
-                data: { cantidad: nuevaCantOrigen }
-              })
-            }
-          }
-
-          // Sumar al lote destino
-          const animalDestino = await prisma.animalLote.findFirst({
-            where: { loteId: loteDestinoId, categoria }
-          })
-
-          if (animalDestino) {
-            await prisma.animalLote.update({
-              where: { id: animalDestino.id },
-              data: { cantidad: animalDestino.cantidad + parseInt(cantidad) }
-            })
-          } else {
-            await prisma.animalLote.create({
-              data: {
-                categoria,
-                cantidad: parseInt(cantidad),
-                loteId: loteDestinoId
-              }
-            })
-          }
-
-          console.log('✅ Animales trasladados entre potreros')
-        }
-        break
-
-      // 🐣 NACIMIENTO → Sumar animales al lote
+      // 🐣 NACIMIENTO
       case 'NACIMIENTO':
         if (loteId && cantidad && categoria) {
           const animalExistente = await prisma.animalLote.findFirst({
@@ -273,19 +225,15 @@ export async function POST(request: Request) {
             })
           } else {
             await prisma.animalLote.create({
-              data: {
-                categoria,
-                cantidad: parseInt(cantidad),
-                loteId
-              }
+              data: { categoria, cantidad: parseInt(cantidad), loteId }
             })
           }
 
-          console.log('✅ Nacimientos registrados en el lote')
+          console.log('✅ Nacimientos registrados')
         }
         break
 
-      // ☠️ MORTANDAD → Restar animales del lote
+      // ☠️ MORTANDAD
       case 'MORTANDAD':
         if (loteId && cantidad && categoria) {
           const animalExistente = await prisma.animalLote.findFirst({
@@ -294,7 +242,6 @@ export async function POST(request: Request) {
 
           if (animalExistente) {
             const nuevaCantidad = Math.max(0, animalExistente.cantidad - parseInt(cantidad))
-            
             if (nuevaCantidad === 0) {
               await prisma.animalLote.delete({ where: { id: animalExistente.id } })
             } else {
@@ -305,36 +252,10 @@ export async function POST(request: Request) {
             }
           }
 
-          console.log('✅ Mortandad registrada, animales restados')
+          console.log('✅ Mortandad registrada')
         }
         break
 
-      // 🧪 PULVERIZACIÓN → Registrar uso de insumo si tiene insumoId
-      case 'PULVERIZACION':
-        if (insumoId && cantidad) {
-          const insumo = await prisma.insumo.findUnique({ where: { id: insumoId } })
-          
-          if (insumo) {
-            await prisma.movimientoInsumo.create({
-              data: {
-                tipo: 'USO',
-                cantidad: parseFloat(cantidad),
-                fecha: fecha ? new Date(fecha) : new Date(),
-                notas: `Pulverización: ${descripcion}`,
-                insumoId,
-                loteId: loteId || null
-              }
-            })
-
-            await prisma.insumo.update({
-              where: { id: insumoId },
-              data: { stock: Math.max(0, insumo.stock - parseFloat(cantidad)) }
-            })
-          }
-        }
-        break
-
-      // Otros eventos solo se guardan
       default:
         break
     }
@@ -342,10 +263,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true, evento }, { status: 201 })
   } catch (error) {
     console.error('❌ Error creando evento:', error)
-    return NextResponse.json({
-      error: 'Error al crear el evento',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 })
+    return NextResponse.json(
+      { error: 'Error al crear el evento', details: error instanceof Error ? error.message : 'Unknown error' },
+      { status: 500 }
+    )
   }
 }
 

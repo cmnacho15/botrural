@@ -84,6 +84,7 @@ export default function ModalIngresoInsumos({ onClose, onSuccess }: ModalIngreso
     }
   }
 
+  // ✅ ACTUALIZADO: usa /api/insumos/movimientos
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -95,16 +96,14 @@ export default function ModalIngresoInsumos({ onClose, onSuccess }: ModalIngreso
     setLoading(true)
 
     try {
-      const response = await fetch('/api/eventos', {
+      const response = await fetch('/api/insumos/movimientos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          tipo: 'INGRESO_INSUMO',
+          tipo: 'INGRESO',
           fecha,
-          descripcion: `Ingreso de ${insumoSeleccionado?.nombre}: ${cantidad} ${insumoSeleccionado?.unidad}`,
           insumoId,
           cantidad: parseFloat(cantidad),
-          monto: monto ? parseFloat(monto) : null,
           notas,
         }),
       })
@@ -240,23 +239,6 @@ export default function ModalIngresoInsumos({ onClose, onSuccess }: ModalIngreso
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
             required
           />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Monto (opcional)
-          </label>
-          <input
-            type="number"
-            step="0.01"
-            value={monto}
-            onChange={(e) => setMonto(e.target.value)}
-            placeholder="0.00 UYU"
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-          />
-          <p className="text-xs text-gray-500 mt-1">
-            Si ingresás un monto, se registrará automáticamente como gasto
-          </p>
         </div>
 
         <div>

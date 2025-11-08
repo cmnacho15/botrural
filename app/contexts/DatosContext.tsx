@@ -1,13 +1,13 @@
-"use client";
+'use client';
 
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 // Tipos unificados para todos los datos
 export type DatoUnificado = {
   id: string;
   fecha: Date;
   tipo: string;
-  categoria: "animales" | "agricultura" | "clima" | "finanzas" | "insumos";
+  categoria: 'animales' | 'agricultura' | 'clima' | 'finanzas' | 'insumos';
   descripcion: string;
   icono: string;
   color: string;
@@ -37,10 +37,10 @@ export function DatosProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filtros, setFiltros] = useState({
-    categoria: "todos",
+    categoria: 'todos',
     fechaDesde: null as Date | null,
     fechaHasta: null as Date | null,
-    busqueda: "",
+    busqueda: '',
   });
 
   const fetchDatos = async () => {
@@ -49,18 +49,24 @@ export function DatosProvider({ children }: { children: ReactNode }) {
       setError(null);
 
       const params = new URLSearchParams();
-      if (filtros.categoria !== "todos") params.append("categoria", filtros.categoria);
-      if (filtros.fechaDesde) params.append("fechaDesde", filtros.fechaDesde.toISOString());
-      if (filtros.fechaHasta) params.append("fechaHasta", filtros.fechaHasta.toISOString());
-      if (filtros.busqueda) params.append("busqueda", filtros.busqueda);
+      if (filtros.categoria !== 'todos') params.append('categoria', filtros.categoria);
+      if (filtros.fechaDesde) params.append('fechaDesde', filtros.fechaDesde.toISOString());
+      if (filtros.fechaHasta) params.append('fechaHasta', filtros.fechaHasta.toISOString());
+      if (filtros.busqueda) params.append('busqueda', filtros.busqueda);
 
       const response = await fetch(`/api/datos?${params}`);
-      if (!response.ok) throw new Error("Error al cargar datos");
+      if (!response.ok) throw new Error('Error al cargar datos');
 
       const data = await response.json();
-      setDatos(data);
+
+      // ✅ ORDENAR POR FECHA MÁS RECIENTE PRIMERO
+      const datosOrdenados = data.sort(
+        (a: any, b: any) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime()
+      );
+
+      setDatos(datosOrdenados);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error desconocido");
+      setError(err instanceof Error ? err.message : 'Error desconocido');
     } finally {
       setLoading(false);
     }
@@ -88,6 +94,6 @@ export function DatosProvider({ children }: { children: ReactNode }) {
 
 export function useDatos() {
   const context = useContext(DatosContext);
-  if (!context) throw new Error("useDatos debe usarse dentro de DatosProvider");
+  if (!context) throw new Error('useDatos debe usarse dentro de DatosProvider');
   return context;
 }
