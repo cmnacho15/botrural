@@ -1,8 +1,0 @@
-{
-  "crons": [
-    {
-      "path": "/api/whatsapp/renew-token",
-      "schedule": "0 */12 * * *"  
-    }
-  ]
-}
