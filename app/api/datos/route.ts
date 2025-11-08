@@ -96,35 +96,31 @@ export async function GET(request: Request) {
     // 1️⃣ Obtener datos base (filtrados por campo)
     // ==============================
     const [eventos, gastos, movimientosInsumos] = await Promise.all([
-  prisma.evento.findMany({
-    where: {
-      campoId: usuario.campoId,
-      tipo: {
-        not: 'GASTO'
-      }
-    },
-    include: {
-      usuario: { select: { name: true } },
-      lote: { select: { nombre: true } },
-    },
-    orderBy: { fecha: 'desc' },
-  }),
-  prisma.gasto.findMany({
-    where: { campoId: usuario.campoId },
-    include: { lote: { select: { nombre: true } } },
-    orderBy: { fecha: 'desc' },
-  }),
-  prisma.movimientoInsumo.findMany({
-    where: {
-      insumo: { campoId: usuario.campoId },
-    },
-    include: {
-      insumo: { select: { nombre: true, unidad: true } },
-      lote: { select: { nombre: true } },
-    },
-    orderBy: { fecha: 'desc' },
-  }),
-]);
+      prisma.evento.findMany({
+        where: {
+          campoId: usuario.campoId,
+          tipo: { not: "GASTO" }, // ✅ EXCLUIR GASTOS (vienen de tabla gasto)
+        },
+        include: {
+          usuario: { select: { name: true } },
+          lote: { select: { nombre: true } },
+        },
+        orderBy: { fecha: "desc" },
+      }),
+      prisma.gasto.findMany({
+        where: { campoId: usuario.campoId },
+        include: { lote: { select: { nombre: true } } },
+        orderBy: { fecha: "desc" },
+      }),
+      prisma.movimientoInsumo.findMany({
+        where: { insumo: { campoId: usuario.campoId } },
+        include: {
+          insumo: { select: { nombre: true, unidad: true } },
+          lote: { select: { nombre: true } },
+        },
+        orderBy: { fecha: "desc" },
+      }),
+    ]);
 
     // ==============================
     // 2️⃣ Unificar todos los datos
@@ -163,10 +159,11 @@ export async function GET(request: Request) {
         usuario: null,
         lote: gasto.lote?.nombre || null,
         detalles: {
+          // 🔒 Aseguramos número para el frontend
           monto:
-            gasto.monto !== null
+            gasto.monto !== null && gasto.monto !== undefined
               ? parseFloat(gasto.monto.toString())
-              : undefined,
+              : 0,
           categoriaGasto: gasto.categoria,
           metodoPago: gasto.metodoPago,
         },
@@ -196,27 +193,30 @@ export async function GET(request: Request) {
       });
     });
 
+    // ✅ ORDENAR INMEDIATAMENTE DESPUÉS DE UNIFICAR (más reciente primero)
+    datosUnificados.sort((a, b) => {
+      const fechaA = a.fecha instanceof Date ? a.fecha : new Date(a.fecha);
+      const fechaB = b.fecha instanceof Date ? b.fecha : new Date(b.fecha);
+      return fechaB.getTime() - fechaA.getTime();
+    });
+
     // ==============================
-    // 3️⃣ Filtros
+    // 3️⃣ Filtros (aplicar DESPUÉS del sort)
     // ==============================
     let datosFiltrados = [...datosUnificados];
 
     if (categoria && categoria !== "todos") {
-      datosFiltrados = datosFiltrados.filter(
-        (d) => d.categoria === categoria
-      );
+      datosFiltrados = datosFiltrados.filter((d) => d.categoria === categoria);
     }
 
     if (fechaDesde) {
-      datosFiltrados = datosFiltrados.filter(
-        (d) => new Date(d.fecha) >= new Date(fechaDesde)
-      );
+      const fd = new Date(fechaDesde);
+      datosFiltrados = datosFiltrados.filter((d) => new Date(d.fecha) >= fd);
     }
 
     if (fechaHasta) {
-      datosFiltrados = datosFiltrados.filter(
-        (d) => new Date(d.fecha) <= new Date(fechaHasta)
-      );
+      const fh = new Date(fechaHasta);
+      datosFiltrados = datosFiltrados.filter((d) => new Date(d.fecha) <= fh);
     }
 
     if (busqueda) {
@@ -228,14 +228,7 @@ export async function GET(request: Request) {
       );
     }
 
-    // ==============================
-// 4️⃣ Ordenar por fecha descendente (más reciente primero)
-// ==============================
-datosFiltrados.sort((a, b) => {
-  const fechaA = a.fecha instanceof Date ? a.fecha : new Date(a.fecha);
-  const fechaB = b.fecha instanceof Date ? b.fecha : new Date(b.fecha);
-  return fechaB.getTime() - fechaA.getTime();
-});
+    // ❌ Ya NO hay sort acá (se hizo arriba)
 
     // ✅ Devolver respuesta final
     return NextResponse.json(datosFiltrados);
