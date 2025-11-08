@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import crypto from "crypto"; // ✅ agregado para generar el token
 
 // 📋 GET - Listar invitaciones del campo
 export async function GET(request: Request) {
@@ -18,7 +19,10 @@ export async function GET(request: Request) {
     });
 
     if (!usuario?.campo) {
-      return NextResponse.json({ error: "No se encontró campo" }, { status: 400 });
+      return NextResponse.json(
+        { error: "No se encontró campo" },
+        { status: 400 }
+      );
     }
 
     const invitations = await prisma.invitation.findMany({
@@ -33,7 +37,10 @@ export async function GET(request: Request) {
     return NextResponse.json(invitations);
   } catch (error) {
     console.error("💥 Error obteniendo invitaciones:", error);
-    return NextResponse.json({ error: "Error obteniendo invitaciones" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Error obteniendo invitaciones" },
+      { status: 500 }
+    );
   }
 }
 
@@ -54,7 +61,10 @@ export async function POST(req: Request) {
     });
 
     if (!usuario?.campo) {
-      return NextResponse.json({ error: "No se encontró campo asociado" }, { status: 400 });
+      return NextResponse.json(
+        { error: "No se encontró campo asociado" },
+        { status: 400 }
+      );
     }
 
     const { role } = await req.json();
@@ -66,8 +76,10 @@ export async function POST(req: Request) {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7);
 
+    // ✅ Crear la invitación con token generado
     const invitacion = await prisma.invitation.create({
       data: {
+        token: crypto.randomBytes(16).toString("hex"), // ← token único
         role,
         campoId: usuario.campo.id,
         createdById: usuario.id,
@@ -119,6 +131,9 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("💥 Error eliminando invitación:", error);
-    return NextResponse.json({ error: "Error eliminando invitación" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Error eliminando invitación" },
+      { status: 500 }
+    );
   }
 }
