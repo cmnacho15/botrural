@@ -1,3 +1,4 @@
+// Updated: 2025-11-07
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { getServerSession } from "next-auth"
