@@ -81,7 +81,10 @@ export async function GET(request: Request) {
     });
 
     if (!usuario?.campoId) {
-      return NextResponse.json({ error: "Usuario sin campo asignado" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Usuario sin campo asignado" },
+        { status: 400 }
+      );
     }
 
     const { searchParams } = new URL(request.url);
@@ -104,9 +107,7 @@ export async function GET(request: Request) {
       }),
       prisma.gasto.findMany({
         where: { campoId: usuario.campoId },
-        include: {
-          lote: { select: { nombre: true } },
-        },
+        include: { lote: { select: { nombre: true } } },
         orderBy: { fecha: "desc" },
       }),
       prisma.movimientoInsumo.findMany({
@@ -145,16 +146,16 @@ export async function GET(request: Request) {
       });
     });
 
-    // 💸 GASTOS / 💰 INGRESOS
+    // 💸 GASTOS — ✅ Actualizado según pedido
     gastos.forEach((gasto) => {
       datosUnificados.push({
         id: gasto.id,
         fecha: gasto.fecha,
-        tipo: gasto.tipo,
+        tipo: "GASTO",
         categoria: "finanzas",
-        descripcion: `${gasto.tipo === "GASTO" ? "Gasto" : "Ingreso"}: ${gasto.descripcion || gasto.categoria}`,
-        icono: gasto.tipo === "GASTO" ? "💸" : "💰",
-        color: gasto.tipo === "GASTO" ? "red" : "green",
+        descripcion: gasto.descripcion || `Gasto en ${gasto.categoria}`,
+        icono: "💸",
+        color: "red",
         usuario: null,
         lote: gasto.lote?.nombre || null,
         detalles: {
@@ -172,7 +173,9 @@ export async function GET(request: Request) {
         fecha: mov.fecha,
         tipo: mov.tipo,
         categoria: "insumos",
-        descripcion: `${mov.tipo === "INGRESO" ? "Ingreso" : "Uso"} de ${mov.insumo.nombre}: ${mov.cantidad} ${mov.insumo.unidad}`,
+        descripcion: `${mov.tipo === "INGRESO" ? "Ingreso" : "Uso"} de ${
+          mov.insumo.nombre
+        }: ${mov.cantidad} ${mov.insumo.unidad}`,
         icono: mov.tipo === "INGRESO" ? "📥" : "📤",
         color: mov.tipo === "INGRESO" ? "green" : "red",
         usuario: null,
