@@ -68,9 +68,8 @@ export async function POST(request: Request) {
       case 'HELADA':
         break
 
-      // 💸 GASTO o CONSUMO
+      // 💸 GASTO 
       case 'GASTO':
-      case 'CONSUMO':
         if (monto && parseFloat(monto) > 0) {
           await prisma.gasto.create({
             data: {

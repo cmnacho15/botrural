@@ -201,7 +201,8 @@ enum TipoEvento {
   COMPRA
   TRASLADO
   MORTANDAD
-  CONSUMO
+  CONSUMO           // ← Este queda para consumo de animales
+  GASTO             // ← AGREGAR ESTE para gastos de dinero
   ABORTO
   DESTETE
   TACTO

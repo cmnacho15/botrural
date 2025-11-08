@@ -32,7 +32,7 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          tipo: 'CONSUMO',
+          tipo: 'GASTO',  // ✅ CAMBIAR DE CONSUMO A GASTO
           fecha,
           descripcion: descripcion || `Gasto en ${categoria}`,
           categoria,
