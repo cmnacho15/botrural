@@ -1,13 +1,12 @@
-import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "../auth/[...nextauth]/route";
+import { NextResponse } from "next/server"
+import { prisma } from "@/lib/prisma"
+import { getServerSession } from "next-auth"
+import { authOptions } from "../auth/[...nextauth]/route"
 
 // ==============================================
 // 🔹 Configuración de categorías e íconos
 // ==============================================
 const categoriaPorTipo: Record<string, string> = {
-  // 🐄 Animales
   MOVIMIENTO: "animales",
   TRATAMIENTO: "animales",
   VENTA: "animales",
@@ -20,8 +19,6 @@ const categoriaPorTipo: Record<string, string> = {
   DESTETE: "animales",
   TACTO: "animales",
   RECATEGORIZACION: "animales",
-
-  // 🌾 Agricultura
   SIEMBRA: "agricultura",
   PULVERIZACION: "agricultura",
   REFERTILIZACION: "agricultura",
@@ -29,15 +26,11 @@ const categoriaPorTipo: Record<string, string> = {
   MONITOREO: "agricultura",
   COSECHA: "agricultura",
   OTROS_LABORES: "agricultura",
-
-  // 🌦️ Clima
   LLUVIA: "clima",
   HELADA: "clima",
-
-  // 💰 Finanzas
   GASTO: "finanzas",
   INGRESO: "finanzas",
-};
+}
 
 const iconoPorTipo: Record<string, string> = {
   MOVIMIENTO: "🔄",
@@ -63,43 +56,43 @@ const iconoPorTipo: Record<string, string> = {
   HELADA: "❄️",
   GASTO: "💸",
   INGRESO: "💰",
-};
+}
 
 // ==============================================
 // 🔹 GET: Unificar eventos, gastos e insumos
 // ==============================================
 export async function GET(request: Request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(authOptions)
     if (!session?.user?.id) {
-      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+      return NextResponse.json({ error: "No autenticado" }, { status: 401 })
     }
 
     const usuario = await prisma.user.findUnique({
       where: { id: session.user.id },
-    });
+    })
 
     if (!usuario?.campoId) {
       return NextResponse.json(
         { error: "Usuario sin campo asignado" },
         { status: 400 }
-      );
+      )
     }
 
-    const { searchParams } = new URL(request.url);
-    const categoria = searchParams.get("categoria");
-    const fechaDesde = searchParams.get("fechaDesde");
-    const fechaHasta = searchParams.get("fechaHasta");
-    const busqueda = searchParams.get("busqueda");
+    const { searchParams } = new URL(request.url)
+    const categoria = searchParams.get("categoria")
+    const fechaDesde = searchParams.get("fechaDesde")
+    const fechaHasta = searchParams.get("fechaHasta")
+    const busqueda = searchParams.get("busqueda")
 
     // ==============================
-    // 1️⃣ Obtener datos base (filtrados por campo)
+    // 1️⃣ Obtener datos base
     // ==============================
     const [eventos, gastos, movimientosInsumos] = await Promise.all([
       prisma.evento.findMany({
         where: {
           campoId: usuario.campoId,
-          tipo: { not: "GASTO" }, // ✅ EXCLUIR GASTOS (vienen de tabla gasto)
+          tipo: { not: "GASTO" },
         },
         include: {
           usuario: { select: { name: true } },
@@ -107,11 +100,13 @@ export async function GET(request: Request) {
         },
         orderBy: { fecha: "desc" },
       }),
+
       prisma.gasto.findMany({
         where: { campoId: usuario.campoId },
         include: { lote: { select: { nombre: true } } },
         orderBy: { fecha: "desc" },
       }),
+
       prisma.movimientoInsumo.findMany({
         where: { insumo: { campoId: usuario.campoId } },
         include: {
@@ -120,18 +115,19 @@ export async function GET(request: Request) {
         },
         orderBy: { fecha: "desc" },
       }),
-    ]);
+    ])
 
     // ==============================
     // 2️⃣ Unificar todos los datos
     // ==============================
-    const datosUnificados: any[] = [];
+    const datosUnificados: any[] = []
 
     // 🎯 EVENTOS
     eventos.forEach((evento) => {
       datosUnificados.push({
         id: evento.id,
         fecha: evento.fecha,
+        createdAt: evento.createdAt,
         tipo: evento.tipo,
         categoria: categoriaPorTipo[evento.tipo] || "otros",
         descripcion: evento.descripcion,
@@ -143,14 +139,15 @@ export async function GET(request: Request) {
           cantidad: evento.cantidad,
           categoriaEvento: evento.categoria,
         },
-      });
-    });
+      })
+    })
 
-    // 💸 GASTOS (solo desde tabla Gasto)
+    // 💸 GASTOS
     gastos.forEach((gasto) => {
       datosUnificados.push({
         id: gasto.id,
         fecha: gasto.fecha,
+        createdAt: gasto.createdAt,
         tipo: "GASTO",
         categoria: "finanzas",
         descripcion: gasto.descripcion || `Gasto en ${gasto.categoria}`,
@@ -159,27 +156,25 @@ export async function GET(request: Request) {
         usuario: null,
         lote: gasto.lote?.nombre || null,
         detalles: {
-          // 🔒 Aseguramos número para el frontend
           monto:
-            gasto.monto !== null && gasto.monto !== undefined
-              ? parseFloat(gasto.monto.toString())
-              : 0,
+            gasto.monto !== null ? parseFloat(gasto.monto.toString()) : undefined,
           categoriaGasto: gasto.categoria,
           metodoPago: gasto.metodoPago,
         },
-      });
-    });
+      })
+    })
 
     // 🧪 MOVIMIENTOS DE INSUMOS
     movimientosInsumos.forEach((mov) => {
       datosUnificados.push({
         id: mov.id,
         fecha: mov.fecha,
+        createdAt: mov.createdAt,
         tipo: mov.tipo,
         categoria: "insumos",
-        descripcion: `${
-          mov.tipo === "INGRESO" ? "Ingreso" : "Uso"
-        } de ${mov.insumo.nombre}: ${mov.cantidad} ${mov.insumo.unidad}`,
+        descripcion: `${mov.tipo === "INGRESO" ? "Ingreso" : "Uso"} de ${
+          mov.insumo.nombre
+        }: ${mov.cantidad} ${mov.insumo.unidad}`,
         icono: mov.tipo === "INGRESO" ? "📥" : "📤",
         color: mov.tipo === "INGRESO" ? "green" : "red",
         usuario: null,
@@ -190,53 +185,55 @@ export async function GET(request: Request) {
           unidad: mov.insumo.unidad,
           notas: mov.notas,
         },
-      });
-    });
+      })
+    })
 
-    // ✅ ORDENAR INMEDIATAMENTE DESPUÉS DE UNIFICAR (más reciente primero)
+    // ✅ ORDENAR: primero por fecha del modal, luego por creación
     datosUnificados.sort((a, b) => {
-      const fechaA = a.fecha instanceof Date ? a.fecha : new Date(a.fecha);
-      const fechaB = b.fecha instanceof Date ? b.fecha : new Date(b.fecha);
-      return fechaB.getTime() - fechaA.getTime();
-    });
+      const fechaA = new Date(a.fecha).getTime()
+      const fechaB = new Date(b.fecha).getTime()
+      if (fechaB !== fechaA) return fechaB - fechaA
+      const creadoA = a.createdAt ? new Date(a.createdAt).getTime() : 0
+      const creadoB = b.createdAt ? new Date(b.createdAt).getTime() : 0
+      return creadoB - creadoA
+    })
 
     // ==============================
-    // 3️⃣ Filtros (aplicar DESPUÉS del sort)
+    // 3️⃣ Filtros
     // ==============================
-    let datosFiltrados = [...datosUnificados];
+    let datosFiltrados = [...datosUnificados]
 
     if (categoria && categoria !== "todos") {
-      datosFiltrados = datosFiltrados.filter((d) => d.categoria === categoria);
+      datosFiltrados = datosFiltrados.filter((d) => d.categoria === categoria)
     }
 
     if (fechaDesde) {
-      const fd = new Date(fechaDesde);
-      datosFiltrados = datosFiltrados.filter((d) => new Date(d.fecha) >= fd);
+      datosFiltrados = datosFiltrados.filter(
+        (d) => new Date(d.fecha) >= new Date(fechaDesde)
+      )
     }
 
     if (fechaHasta) {
-      const fh = new Date(fechaHasta);
-      datosFiltrados = datosFiltrados.filter((d) => new Date(d.fecha) <= fh);
+      datosFiltrados = datosFiltrados.filter(
+        (d) => new Date(d.fecha) <= new Date(fechaHasta)
+      )
     }
 
     if (busqueda) {
-      const q = busqueda.toLowerCase();
+      const q = busqueda.toLowerCase()
       datosFiltrados = datosFiltrados.filter(
         (d) =>
           d.descripcion?.toLowerCase().includes(q) ||
           (d.tipo && d.tipo.toLowerCase().includes(q))
-      );
+      )
     }
 
-    // ❌ Ya NO hay sort acá (se hizo arriba)
-
-    // ✅ Devolver respuesta final
-    return NextResponse.json(datosFiltrados);
+    return NextResponse.json(datosFiltrados)
   } catch (error) {
-    console.error("💥 Error al obtener datos:", error);
+    console.error("💥 Error al obtener datos:", error)
     return NextResponse.json(
       { error: "Error al obtener datos" },
       { status: 500 }
-    );
+    )
   }
 }
