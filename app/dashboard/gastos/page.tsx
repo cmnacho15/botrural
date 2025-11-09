@@ -23,16 +23,6 @@ type Categoria = {
   color: string
 }
 
-// Simulación de datos
-const gastosSimulados: Gasto[] = [
-  { id: '1', tipo: 'GASTO', fecha: '2024-11-01', monto: 120, categoria: 'Alimentación', descripcion: 'Supermercado', metodoPago: 'efectivo' },
-  { id: '2', tipo: 'GASTO', fecha: '2024-10-15', monto: 89, categoria: 'Alimentación', descripcion: 'Carnicería', metodoPago: 'tarjeta' },
-  { id: '3', tipo: 'GASTO', fecha: '2024-09-20', monto: 100, categoria: 'Otros', descripcion: 'Varios', metodoPago: 'efectivo' },
-  { id: '4', tipo: 'GASTO', fecha: '2024-10-05', monto: 50, categoria: 'Alimentación', descripcion: 'Verdulería', metodoPago: 'efectivo' },
-  { id: '5', tipo: 'INGRESO', fecha: '2024-11-01', monto: 500, categoria: 'Otros', descripcion: 'Venta de hacienda', metodoPago: 'transferencia' },
-  { id: '6', tipo: 'GASTO', fecha: '2024-11-03', monto: 70, categoria: 'Alimentación', descripcion: 'Panadería', metodoPago: 'efectivo' },
-]
-
 export default function GastosPage() {
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string | null>(null)
   const [mostrarTodasCategorias, setMostrarTodasCategorias] = useState(false)
@@ -49,6 +39,10 @@ export default function GastosPage() {
   const [editDescripcion, setEditDescripcion] = useState('')
   const [editMetodoPago, setEditMetodoPago] = useState('efectivo')
   const [loadingEdit, setLoadingEdit] = useState(false)
+
+  // ✅ NUEVOS ESTADOS PARA DATOS REALES
+  const [gastosData, setGastosData] = useState<Gasto[]>([])
+  const [loading, setLoading] = useState(true)
 
   const [categorias, setCategorias] = useState<Categoria[]>([
     { nombre: 'Alimentación', cantidad: 0, total: 0, color: '#a855f7' },
@@ -72,12 +66,31 @@ export default function GastosPage() {
     { nombre: 'Sueldos', cantidad: 0, total: 0, color: '#dc2626' },
   ])
 
+  // ✅ FETCH DE DATOS REALES
+  const fetchGastos = async () => {
+    try {
+      setLoading(true)
+      const response = await fetch('/api/gastos')
+      if (!response.ok) throw new Error('Error al cargar gastos')
+      const data = await response.json()
+      setGastosData(data)
+    } catch (error) {
+      console.error('Error:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchGastos()
+  }, [])
+
   const gastosFiltrados = categoriaSeleccionada
-    ? gastosSimulados.filter(g => g.categoria === categoriaSeleccionada)
-    : gastosSimulados
+    ? gastosData.filter(g => g.categoria === categoriaSeleccionada)
+    : gastosData
 
   const categoriasConDatos = categorias.map((cat) => {
-    const gastosCategoria = gastosSimulados.filter((g) => g.tipo === 'GASTO' && g.categoria === cat.nombre)
+    const gastosCategoria = gastosData.filter((g) => g.tipo === 'GASTO' && g.categoria === cat.nombre)
     return {
       ...cat,
       cantidad: gastosCategoria.length,
@@ -89,16 +102,16 @@ export default function GastosPage() {
     ? categoriasConDatos
     : categoriasConDatos.slice(0, 9)
 
-  const totalGastos = gastosSimulados.filter(g => g.tipo === 'GASTO').reduce((sum, g) => sum + g.monto, 0)
-  const totalIngresos = gastosSimulados.filter(g => g.tipo === 'INGRESO').reduce((sum, g) => sum + g.monto, 0)
+  const totalGastos = gastosData.filter(g => g.tipo === 'GASTO').reduce((sum, g) => sum + g.monto, 0)
+  const totalIngresos = gastosData.filter(g => g.tipo === 'INGRESO').reduce((sum, g) => sum + g.monto, 0)
 
   const datosPieChart = categoriaSeleccionada
     ? (() => {
-        const totalCategoria = gastosSimulados
+        const totalCategoria = gastosData
           .filter(g => g.tipo === 'GASTO' && g.categoria === categoriaSeleccionada)
           .reduce((sum, g) => sum + g.monto, 0)
 
-        const totalResto = gastosSimulados
+        const totalResto = gastosData
           .filter(g => g.tipo === 'GASTO' && g.categoria !== categoriaSeleccionada)
           .reduce((sum, g) => sum + g.monto, 0)
 
@@ -164,37 +177,51 @@ export default function GastosPage() {
     setEditMetodoPago(gasto.metodoPago || 'efectivo')
     setModalEditOpen(true)
   }
+
   const handleGuardarEdicion = async () => {
-  if (!gastoEditando) return
+    if (!gastoEditando) return
 
-  setLoadingEdit(true)
-  try {
-    const response = await fetch(`/api/gastos/${gastoEditando.id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        tipo: gastoEditando.tipo,
-        fecha: editFecha,
-        monto: parseFloat(editMonto),
-        categoria: editCategoria,
-        descripcion: editDescripcion,
-        metodoPago: editMetodoPago,
-      }),
-    })
+    setLoadingEdit(true)
+    try {
+      const response = await fetch(`/api/gastos/${gastoEditando.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tipo: gastoEditando.tipo,
+          fecha: editFecha,
+          monto: parseFloat(editMonto),
+          categoria: editCategoria,
+          descripcion: editDescripcion,
+          metodoPago: editMetodoPago,
+        }),
+      })
 
-    if (!response.ok) throw new Error('Error al actualizar')
+      if (!response.ok) throw new Error('Error al actualizar')
 
-    setModalEditOpen(false)
-    setGastoEditando(null)
-    alert('¡Gasto actualizado exitosamente!')
-    window.location.reload()
-  } catch (error) {
-    console.error('Error al actualizar:', error)
-    alert('Error al actualizar el gasto')
-  } finally {
-    setLoadingEdit(false)
+      setModalEditOpen(false)
+      setGastoEditando(null)
+      alert('¡Gasto actualizado exitosamente!')
+      await fetchGastos() // ✅ Refrescar datos en vez de reload
+    } catch (error) {
+      console.error('Error al actualizar:', error)
+      alert('Error al actualizar el gasto')
+    } finally {
+      setLoadingEdit(false)
+    }
   }
-}
+
+  // ✅ LOADING STATE
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-500">Cargando gastos...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* HEADER */}
@@ -263,7 +290,7 @@ export default function GastosPage() {
                 >
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium text-gray-900">Todos los gastos</span>
-                    <span className="px-2 py-0.5 bg-gray-200 text-gray-700 rounded-full text-xs font-medium">{gastosSimulados.length}</span>
+                    <span className="px-2 py-0.5 bg-gray-200 text-gray-700 rounded-full text-xs font-medium">{gastosData.length}</span>
                   </div>
                   <span className="text-sm font-semibold text-gray-900">{totalGastos} {moneda}</span>
                 </button>
@@ -380,7 +407,7 @@ export default function GastosPage() {
                   >
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium text-gray-900">Todos</span>
-                      <span className="px-2 py-0.5 bg-gray-200 text-gray-700 rounded-full text-xs font-medium">{gastosSimulados.length}</span>
+                      <span className="px-2 py-0.5 bg-gray-200 text-gray-700 rounded-full text-xs font-medium">{gastosData.length}</span>
                     </div>
                     <span className="text-xs font-semibold text-gray-900">{totalGastos}</span>
                   </button>
@@ -692,12 +719,12 @@ export default function GastosPage() {
                 Cancelar
               </button>
               <button
-  onClick={handleGuardarEdicion}
-  disabled={loadingEdit}
-  className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
->
-  {loadingEdit ? 'Guardando...' : 'Guardar Cambios'}
-</button>
+                onClick={handleGuardarEdicion}
+                disabled={loadingEdit}
+                className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+              >
+                {loadingEdit ? 'Guardando...' : 'Guardar Cambios'}
+              </button>
             </div>
           </div>
         </div>
