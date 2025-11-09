@@ -308,16 +308,21 @@ const datosPieChart = categoriaSeleccionada
           >
             {mostrarTodasCategorias ? 'Colapsar' : 'Ver más categorías'}
           </button>
+          <div className="mt-2 border-t border-gray-100"></div>
         </div>
 
         {/* SECCIÓN 2: Gráficos */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+<div
+  className={`grid gap-6 transition-all ${
+    mostrarTodasCategorias ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1 lg:grid-cols-3'
+  }`}
+>
           {/* Distribución */}
           <div className="bg-white rounded-xl shadow-sm p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-6">
               {categoriaSeleccionada ? `Distribución: ${categoriaSeleccionada}` : 'Distribución de Gastos'}
             </h2>
-            <div style={{ height: mostrarTodasCategorias ? '400px' : '300px' }}>
+            <div style={{ height: mostrarTodasCategorias ? '450px' : '320px' }} className="transition-all duration-300">
               {datosPieChart.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
@@ -351,7 +356,7 @@ const datosPieChart = categoriaSeleccionada
             <h2 className="text-lg font-semibold text-gray-900 mb-6">
               {categoriaSeleccionada ? `Tendencias: ${categoriaSeleccionada}` : 'Tendencias Mensuales'}
             </h2>
-            <div style={{ height: mostrarTodasCategorias ? '400px' : '300px' }}>
+            <div style={{ height: mostrarTodasCategorias ? '450px' : '320px' }} className="transition-all duration-300">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={datosBarChart}>
                   <CartesianGrid strokeDasharray="3 3" />
