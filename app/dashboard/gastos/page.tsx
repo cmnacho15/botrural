@@ -94,24 +94,30 @@ function GastosContent() {
   const totalGastos = gastosDB.filter(g => g.tipo === 'GASTO').reduce((sum, g) => sum + g.monto, 0)
   const totalIngresos = gastosDB.filter(g => g.tipo === 'INGRESO').reduce((sum, g) => sum + g.monto, 0)
 
-  // ✅ Preparar datos para gráfico circular (según categoría seleccionada)
+  // Preparar datos para gráfico circular (según categoría seleccionada)
 const datosPieChart = categoriaSeleccionada
   ? (() => {
-      // Si hay categoría seleccionada, agrupar por mes
-      const gastosCat = gastosFiltrados.filter(g => g.tipo === 'GASTO')
-      const porMes: { [key: string]: number } = {}
-      
-      gastosCat.forEach(gasto => {
-        const mes = new Date(gasto.fecha).toLocaleDateString('es-UY', { month: 'short', year: 'numeric' })
-        if (!porMes[mes]) porMes[mes] = 0
-        porMes[mes] += gasto.monto
-      })
-      
-      return Object.entries(porMes).map(([nombre, total]) => ({
-        nombre,
-        total,
-        color: categorias.find(c => c.nombre === categoriaSeleccionada)?.color || '#6b7280'
-      }))
+      // Calcular el total de la categoría y el total general
+      const totalCategoria = gastosDB
+        .filter(g => g.tipo === 'GASTO' && g.categoria === categoriaSeleccionada)
+        .reduce((sum, g) => sum + g.monto, 0)
+
+      const totalResto = gastosDB
+        .filter(g => g.tipo === 'GASTO' && g.categoria !== categoriaSeleccionada)
+        .reduce((sum, g) => sum + g.monto, 0)
+
+      return [
+        {
+          nombre: categoriaSeleccionada,
+          total: totalCategoria,
+          color: categorias.find(c => c.nombre === categoriaSeleccionada)?.color || '#3b82f6'
+        },
+        {
+          nombre: 'Resto',
+          total: totalResto,
+          color: '#e5e7eb' // gris suave
+        }
+      ]
     })()
   : categoriasConDatos.filter(c => c.total > 0)
 
@@ -125,6 +131,7 @@ const datosPieChart = categoriaSeleccionada
     })
 
     const gastosAFiltrar = gastosFiltrados.filter(g => g.tipo === 'GASTO')
+    
 
     gastosAFiltrar.forEach(gasto => {
       const fecha = new Date(gasto.fecha)
