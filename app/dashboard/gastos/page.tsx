@@ -91,7 +91,7 @@ function GastosContent() {
   const transacciones = gastosFiltrados.map((gasto) => {
     const categoria = categorias.find((c) => c.nombre === gasto.categoria)
     const esIngreso = gasto.tipo === 'INGRESO'
-
+    
     return {
       id: gasto.id,
       tipo: gasto.tipo,
@@ -143,7 +143,8 @@ function GastosContent() {
     )
   }
 
-  const calcularMontoTotal = () => items.reduce((sum, i) => sum + i.precioFinal, 0)
+  const calcularMontoTotal = () =>
+    items.reduce((sum, i) => sum + i.precioFinal, 0)
 
   const handleConfirmarGasto = async () => {
     if (!proveedor) {
@@ -241,7 +242,6 @@ function GastosContent() {
 
           {/* Grid de categorías */}
           <div className={`grid gap-2 ${mostrarTodasCategorias ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'}`}>
-            {/* Todos los gastos */}
             <button
               onClick={() => setCategoriaSeleccionada(null)}
               className={`flex justify-between items-center px-3 py-3 rounded-lg transition ${
@@ -255,7 +255,6 @@ function GastosContent() {
               <span className="text-sm font-semibold text-gray-900">{totalGastos} {moneda}</span>
             </button>
 
-            {/* Categorías individuales */}
             {categoriasVisibles.map((cat, idx) => (
               <button
                 key={idx}
@@ -288,7 +287,7 @@ function GastosContent() {
 
         {/* SECCIÓN 2: Gráficos */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* 📊 PIE CHART */}
+          {/* Distribución */}
           <div className="bg-white rounded-xl shadow-sm p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-6">
               {categoriaSeleccionada ? `Gastos en ${categoriaSeleccionada}` : 'Distribución de Gastos'}
@@ -316,7 +315,7 @@ function GastosContent() {
             </div>
           </div>
 
-          {/* 📈 BAR CHART */}
+          {/* Tendencias */}
           <div className="bg-white rounded-xl shadow-sm p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-6">Tendencias Mensuales</h2>
             <div style={{ height: mostrarTodasCategorias ? '400px' : '300px' }}>
@@ -363,120 +362,114 @@ function GastosContent() {
                       <div className="text-xs text-gray-500">{moneda}</div>
                     </td>
                     <td className="px-4 sm:px-6 py-3">{t.item}</td>
-<td className="px-4 sm:px-6 py-3">
-  <span
-    className="inline-block px-3 py-1 rounded-lg text-xs font-medium"
-    style={{ backgroundColor: `${t.color}15`, color: t.color }}
-  >
-    {t.categoria}
-  </span>
-</td>
-<td className="px-4 sm:px-6 py-3">{t.usuario}</td>
-<td className="px-4 sm:px-6 py-3 text-right text-gray-400">✏️</td>
-</tr>
-))}
-</tbody>
-</table>
-</div>
+                    <td className="px-4 sm:px-6 py-3">
+                                            <span
+                        className="inline-block px-3 py-1 rounded-lg text-xs font-medium"
+                        style={{ backgroundColor: `${t.color}15`, color: t.color }}
+                      >
+                        {t.categoria}
+                      </span>
+                    </td>
+                    <td className="px-4 sm:px-6 py-3">{t.usuario}</td>
+                    <td className="px-4 sm:px-6 py-3 text-right text-gray-400">✏️</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
 
-{/* Resumen de totales */}
-<div className="mt-6 pt-6 border-t border-gray-200 grid grid-cols-2 gap-4">
-  <div className="bg-red-50 rounded-lg p-4">
-    <div className="text-sm text-red-700 font-medium mb-1">Total Gastos</div>
-    <div className="text-2xl font-bold text-red-600">
-      -{totalGastos} {moneda}
-    </div>
-  </div>
-  <div className="bg-green-50 rounded-lg p-4">
-    <div className="text-sm text-green-700 font-medium mb-1">Total Ingresos</div>
-    <div className="text-2xl font-bold text-green-600">
-      +{totalIngresos} {moneda}
-    </div>
-  </div>
-</div>
-</div>
-</div>
-
-{/* MODAL NUEVA CATEGORÍA */}
-{modalCategoriaOpen && (
-  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm">
-    <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-lg font-semibold text-gray-900">
-          Nueva categoría de gastos
-        </h2>
-        <button
-          onClick={() => setModalCategoriaOpen(false)}
-          className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
-        >
-          ✕
-        </button>
-      </div>
-
-      <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-900 mb-2">
-            Nombre de la categoría
-          </label>
-          <input
-            type="text"
-            placeholder="Nombre"
-            maxLength={120}
-            value={nuevaCategoriaNombre}
-            onChange={(e) => setNuevaCategoriaNombre(e.target.value)}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none"
-          />
-          <p className="text-xs text-gray-400 mt-1">
-            {nuevaCategoriaNombre.length}/120
-          </p>
+          {/* Resumen de totales */}
+          <div className="mt-6 pt-6 border-t border-gray-200 grid grid-cols-2 gap-4">
+            <div className="bg-red-50 rounded-lg p-4">
+              <div className="text-sm text-red-700 font-medium mb-1">Total Gastos</div>
+              <div className="text-2xl font-bold text-red-600">-{totalGastos} {moneda}</div>
+            </div>
+            <div className="bg-green-50 rounded-lg p-4">
+              <div className="text-sm text-green-700 font-medium mb-1">Total Ingresos</div>
+              <div className="text-2xl font-bold text-green-600">+{totalIngresos} {moneda}</div>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div className="mt-6 flex justify-end">
-        <button
-          onClick={() => {
-            if (nuevaCategoriaNombre.trim() === '') return
-            const nuevaCat = {
-              nombre: nuevaCategoriaNombre.trim(),
-              cantidad: 0,
-              total: 0,
-              color: '#' + Math.floor(Math.random() * 16777215).toString(16),
-            }
-            setCategorias((prev) => [...prev, nuevaCat])
-            setNuevaCategoriaNombre('')
-            setModalCategoriaOpen(false)
-          }}
-          disabled={nuevaCategoriaNombre.trim() === ''}
-          className={`px-6 py-3 rounded-lg text-white font-medium transition ${
-            nuevaCategoriaNombre.trim() === ''
-              ? 'bg-gray-300 cursor-not-allowed'
-              : 'bg-blue-600 hover:bg-blue-700'
-          }`}
-        >
-          Confirmar
-        </button>
-      </div>
+      {/* MODAL NUEVA CATEGORÍA */}
+      {modalCategoriaOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-lg font-semibold text-gray-900">Nueva categoría de gastos</h2>
+              <button
+                onClick={() => setModalCategoriaOpen(false)}
+                className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-900 mb-2">
+                  Nombre de la categoría
+                </label>
+                <input
+                  type="text"
+                  placeholder="Nombre"
+                  maxLength={120}
+                  value={nuevaCategoriaNombre}
+                  onChange={(e) => setNuevaCategoriaNombre(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none"
+                />
+                <p className="text-xs text-gray-400 mt-1">
+                  {nuevaCategoriaNombre.length}/120
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={() => {
+                  if (nuevaCategoriaNombre.trim() === '') return
+                  const nuevaCat = {
+                    nombre: nuevaCategoriaNombre.trim(),
+                    cantidad: 0,
+                    total: 0,
+                    color: '#' + Math.floor(Math.random() * 16777215).toString(16),
+                  }
+                  setCategorias((prev) => [...prev, nuevaCat])
+                  setNuevaCategoriaNombre('')
+                  setModalCategoriaOpen(false)
+                }}
+                disabled={nuevaCategoriaNombre.trim() === ''}
+                className={`px-6 py-3 rounded-lg text-white font-medium transition ${
+                  nuevaCategoriaNombre.trim() === ''
+                    ? 'bg-gray-300 cursor-not-allowed'
+                    : 'bg-blue-600 hover:bg-blue-700'
+                }`}
+              >
+                Confirmar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
-  </div>
-)}
-</div>
-)
+  )
 }
 
 export default function GastosPage() {
-return (
-  <Suspense
-    fallback={
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Cargando gastos...</p>
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Cargando gastos...</p>
+          </div>
         </div>
-      </div>
-    }
-  >
-    <GastosContent />
-  </Suspense>
-)
+      }
+    >
+      <GastosContent />
+    </Suspense>
+  )
 }
-                   
+                       
