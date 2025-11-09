@@ -6,9 +6,11 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 // ✅ PUT - Actualizar gasto
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const params = await context.params // ← CAMBIO AQUÍ
+    
     const session = await getServerSession(authOptions)
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
@@ -58,12 +60,14 @@ export async function PUT(
   }
 }
 
-// ✅ DELETE - Eliminar gasto (usando params en lugar de query)
+// ✅ DELETE - Eliminar gasto
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const params = await context.params // ← CAMBIO AQUÍ
+    
     const session = await getServerSession(authOptions)
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
