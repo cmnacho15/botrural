@@ -48,6 +48,7 @@ export default function GastosPage() {
   const [editCategoria, setEditCategoria] = useState('')
   const [editDescripcion, setEditDescripcion] = useState('')
   const [editMetodoPago, setEditMetodoPago] = useState('efectivo')
+  const [loadingEdit, setLoadingEdit] = useState(false)
 
   const [categorias, setCategorias] = useState<Categoria[]>([
     { nombre: 'Alimentación', cantidad: 0, total: 0, color: '#a855f7' },
