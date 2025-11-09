@@ -164,7 +164,37 @@ export default function GastosPage() {
     setEditMetodoPago(gasto.metodoPago || 'efectivo')
     setModalEditOpen(true)
   }
+  const handleGuardarEdicion = async () => {
+  if (!gastoEditando) return
 
+  setLoadingEdit(true)
+  try {
+    const response = await fetch(`/api/gastos/${gastoEditando.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tipo: gastoEditando.tipo,
+        fecha: editFecha,
+        monto: parseFloat(editMonto),
+        categoria: editCategoria,
+        descripcion: editDescripcion,
+        metodoPago: editMetodoPago,
+      }),
+    })
+
+    if (!response.ok) throw new Error('Error al actualizar')
+
+    setModalEditOpen(false)
+    setGastoEditando(null)
+    alert('¡Gasto actualizado exitosamente!')
+    window.location.reload()
+  } catch (error) {
+    console.error('Error al actualizar:', error)
+    alert('Error al actualizar el gasto')
+  } finally {
+    setLoadingEdit(false)
+  }
+}
   return (
     <div className="min-h-screen bg-gray-50">
       {/* HEADER */}
@@ -662,14 +692,12 @@ export default function GastosPage() {
                 Cancelar
               </button>
               <button
-                onClick={() => {
-                  alert('Cambios guardados (simulación)')
-                  setModalEditOpen(false)
-                }}
-                className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
-              >
-                Guardar Cambios
-              </button>
+  onClick={handleGuardarEdicion}
+  disabled={loadingEdit}
+  className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+>
+  {loadingEdit ? 'Guardando...' : 'Guardar Cambios'}
+</button>
             </div>
           </div>
         </div>
