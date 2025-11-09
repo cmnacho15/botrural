@@ -1,22 +1,10 @@
 'use client'
-export const dynamic = 'force-dynamic'
 
-import { useState, useEffect, Suspense } from 'react'
-import { useSearchParams } from 'next/navigation'
-import { useGastos } from '@/app/contexts/GastosContext'
+import { useState, useEffect } from 'react'
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip,
   BarChart, Bar, XAxis, YAxis, CartesianGrid
 } from 'recharts'
-
-type Item = {
-  id: string
-  nombre: string
-  categoria: string
-  precio: number
-  iva: number
-  precioFinal: number
-}
 
 type Gasto = {
   id: string
@@ -28,19 +16,31 @@ type Gasto = {
   metodoPago?: string
 }
 
-function GastosContent() {
-  const searchParams = useSearchParams()
-  const { gastos: gastosDB, isLoading: loadingGastos, addGasto } = useGastos()
+type Categoria = {
+  nombre: string
+  cantidad: number
+  total: number
+  color: string
+}
 
+// Simulación de datos
+const gastosSimulados: Gasto[] = [
+  { id: '1', tipo: 'GASTO', fecha: '2024-11-01', monto: 120, categoria: 'Alimentación', descripcion: 'Supermercado', metodoPago: 'efectivo' },
+  { id: '2', tipo: 'GASTO', fecha: '2024-10-15', monto: 89, categoria: 'Alimentación', descripcion: 'Carnicería', metodoPago: 'tarjeta' },
+  { id: '3', tipo: 'GASTO', fecha: '2024-09-20', monto: 100, categoria: 'Otros', descripcion: 'Varios', metodoPago: 'efectivo' },
+  { id: '4', tipo: 'GASTO', fecha: '2024-10-05', monto: 50, categoria: 'Alimentación', descripcion: 'Verdulería', metodoPago: 'efectivo' },
+  { id: '5', tipo: 'INGRESO', fecha: '2024-11-01', monto: 500, categoria: 'Otros', descripcion: 'Venta de hacienda', metodoPago: 'transferencia' },
+  { id: '6', tipo: 'GASTO', fecha: '2024-11-03', monto: 70, categoria: 'Alimentación', descripcion: 'Panadería', metodoPago: 'efectivo' },
+]
+
+export default function GastosPage() {
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string | null>(null)
   const [mostrarTodasCategorias, setMostrarTodasCategorias] = useState(false)
   const [moneda, setMoneda] = useState('UYU')
   const [iva, setIva] = useState('con')
-  const [periodo, setPeriodo] = useState('ultimo-ano')
   const [modalCategoriaOpen, setModalCategoriaOpen] = useState(false)
   const [nuevaCategoriaNombre, setNuevaCategoriaNombre] = useState('')
   
-  // Estados para modal de edición
   const [modalEditOpen, setModalEditOpen] = useState(false)
   const [gastoEditando, setGastoEditando] = useState<Gasto | null>(null)
   const [editFecha, setEditFecha] = useState('')
@@ -48,9 +48,8 @@ function GastosContent() {
   const [editCategoria, setEditCategoria] = useState('')
   const [editDescripcion, setEditDescripcion] = useState('')
   const [editMetodoPago, setEditMetodoPago] = useState('efectivo')
-  const [loadingEdit, setLoadingEdit] = useState(false)
 
-  const [categorias, setCategorias] = useState([
+  const [categorias, setCategorias] = useState<Categoria[]>([
     { nombre: 'Alimentación', cantidad: 0, total: 0, color: '#a855f7' },
     { nombre: 'Otros', cantidad: 0, total: 0, color: '#22c55e' },
     { nombre: 'Administración', cantidad: 0, total: 0, color: '#f97316' },
@@ -72,14 +71,12 @@ function GastosContent() {
     { nombre: 'Sueldos', cantidad: 0, total: 0, color: '#dc2626' },
   ])
 
-  // Filtrar gastos según categoría seleccionada
   const gastosFiltrados = categoriaSeleccionada
-    ? gastosDB.filter(g => g.categoria === categoriaSeleccionada)
-    : gastosDB
+    ? gastosSimulados.filter(g => g.categoria === categoriaSeleccionada)
+    : gastosSimulados
 
-  // Calcular datos de categorías
   const categoriasConDatos = categorias.map((cat) => {
-    const gastosCategoria = gastosDB.filter((g) => g.tipo === 'GASTO' && g.categoria === cat.nombre)
+    const gastosCategoria = gastosSimulados.filter((g) => g.tipo === 'GASTO' && g.categoria === cat.nombre)
     return {
       ...cat,
       cantidad: gastosCategoria.length,
@@ -91,47 +88,43 @@ function GastosContent() {
     ? categoriasConDatos
     : categoriasConDatos.slice(0, 9)
 
-  const totalGastos = gastosDB.filter(g => g.tipo === 'GASTO').reduce((sum, g) => sum + g.monto, 0)
-  const totalIngresos = gastosDB.filter(g => g.tipo === 'INGRESO').reduce((sum, g) => sum + g.monto, 0)
+  const totalGastos = gastosSimulados.filter(g => g.tipo === 'GASTO').reduce((sum, g) => sum + g.monto, 0)
+  const totalIngresos = gastosSimulados.filter(g => g.tipo === 'INGRESO').reduce((sum, g) => sum + g.monto, 0)
 
-  // Preparar datos para gráfico circular (según categoría seleccionada)
-const datosPieChart = categoriaSeleccionada
-  ? (() => {
-      // Calcular el total de la categoría y el total general
-      const totalCategoria = gastosDB
-        .filter(g => g.tipo === 'GASTO' && g.categoria === categoriaSeleccionada)
-        .reduce((sum, g) => sum + g.monto, 0)
+  const datosPieChart = categoriaSeleccionada
+    ? (() => {
+        const totalCategoria = gastosSimulados
+          .filter(g => g.tipo === 'GASTO' && g.categoria === categoriaSeleccionada)
+          .reduce((sum, g) => sum + g.monto, 0)
 
-      const totalResto = gastosDB
-        .filter(g => g.tipo === 'GASTO' && g.categoria !== categoriaSeleccionada)
-        .reduce((sum, g) => sum + g.monto, 0)
+        const totalResto = gastosSimulados
+          .filter(g => g.tipo === 'GASTO' && g.categoria !== categoriaSeleccionada)
+          .reduce((sum, g) => sum + g.monto, 0)
 
-      return [
-        {
-          nombre: categoriaSeleccionada,
-          total: totalCategoria,
-          color: categorias.find(c => c.nombre === categoriaSeleccionada)?.color || '#3b82f6'
-        },
-        {
-          nombre: 'Resto',
-          total: totalResto,
-          color: '#e5e7eb' // gris suave
-        }
-      ]
-    })()
-  : categoriasConDatos.filter(c => c.total > 0)
+        return [
+          {
+            nombre: categoriaSeleccionada,
+            total: totalCategoria,
+            color: categorias.find(c => c.nombre === categoriaSeleccionada)?.color || '#3b82f6'
+          },
+          {
+            nombre: 'Resto',
+            total: totalResto,
+            color: '#e5e7eb'
+          }
+        ]
+      })()
+    : categoriasConDatos.filter(c => c.total > 0)
 
-  // Preparar datos para gráfico de barras (tendencias mensuales)
   const datosBarChart = (() => {
     const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
-    const gastosPorMes: any = {}
+    const gastosPorMes: Record<string, { nombre: string; total: number }> = {}
     
     meses.forEach(mes => {
       gastosPorMes[mes] = { nombre: mes, total: 0 }
     })
 
     const gastosAFiltrar = gastosFiltrados.filter(g => g.tipo === 'GASTO')
-    
 
     gastosAFiltrar.forEach(gasto => {
       const fecha = new Date(gasto.fecha)
@@ -143,8 +136,7 @@ const datosPieChart = categoriaSeleccionada
     return Object.values(gastosPorMes)
   })()
 
-  // Preparar transacciones para la tabla
-  const transacciones = gastosFiltrados.map((gasto: any) => {
+  const transacciones = gastosFiltrados.map((gasto) => {
     const categoria = categorias.find((c) => c.nombre === gasto.categoria)
     const esIngreso = gasto.tipo === 'INGRESO'
     
@@ -162,7 +154,6 @@ const datosPieChart = categoriaSeleccionada
     }
   })
 
-  // Abrir modal de edición
   const handleEditarGasto = (gasto: Gasto) => {
     setGastoEditando(gasto)
     setEditFecha(new Date(gasto.fecha).toISOString().split('T')[0])
@@ -173,39 +164,6 @@ const datosPieChart = categoriaSeleccionada
     setModalEditOpen(true)
   }
 
-  // Guardar cambios de edición
-  const handleGuardarEdicion = async () => {
-    if (!gastoEditando) return
-
-    setLoadingEdit(true)
-    try {
-      const response = await fetch(`/api/gastos/${gastoEditando.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tipo: gastoEditando.tipo,
-          fecha: editFecha,
-          monto: parseFloat(editMonto),
-          categoria: editCategoria,
-          descripcion: editDescripcion,
-          metodoPago: editMetodoPago,
-        }),
-      })
-
-      if (!response.ok) throw new Error('Error al actualizar')
-
-      setModalEditOpen(false)
-      setGastoEditando(null)
-      alert('¡Gasto actualizado exitosamente!')
-      // Aquí deberías recargar los gastos desde el contexto
-      window.location.reload()
-    } catch (error) {
-      alert('Error al actualizar el gasto')
-    } finally {
-      setLoadingEdit(false)
-    }
-  }
-
   return (
     <div className="min-h-screen bg-gray-50">
       {/* HEADER */}
@@ -213,7 +171,6 @@ const datosPieChart = categoriaSeleccionada
         <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">Gastos</h1>
 
         <div className="flex flex-wrap justify-center sm:justify-end gap-2 sm:gap-3">
-          {/* Moneda */}
           <div className="inline-flex rounded-lg border border-gray-300 bg-white overflow-hidden">
             {['UYU', 'USD'].map((m) => (
               <button
@@ -228,7 +185,6 @@ const datosPieChart = categoriaSeleccionada
             ))}
           </div>
 
-          {/* IVA */}
           <div className="inline-flex rounded-lg border border-gray-300 bg-white overflow-hidden">
             {['con', 'sin'].map((v) => (
               <button
@@ -243,7 +199,6 @@ const datosPieChart = categoriaSeleccionada
             ))}
           </div>
 
-          {/* Período */}
           <button className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-700 hover:bg-gray-50 text-sm">
             📅 <span>Último Año</span>
           </button>
@@ -253,124 +208,243 @@ const datosPieChart = categoriaSeleccionada
       {/* CONTENIDO PRINCIPAL */}
       <div className="px-4 sm:px-6 lg:px-8 py-6 space-y-6">
         
-        {/* SECCIÓN 1: Categorías */}
-        <div className="bg-white rounded-xl shadow-sm p-5 sm:p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Categorías de Gastos</h2>
-            <button
-              onClick={() => setModalCategoriaOpen(true)}
-              className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-blue-50 text-blue-600 font-bold"
-            >
-              +
-            </button>
-          </div>
-
-          {/* Grid de categorías */}
-          <div className={`grid gap-2 ${mostrarTodasCategorias ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'}`}>
-            <button
-              onClick={() => setCategoriaSeleccionada(null)}
-              className={`flex justify-between items-center px-3 py-3 rounded-lg transition ${
-                categoriaSeleccionada === null ? 'bg-blue-50' : 'hover:bg-gray-50'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-gray-900">Todos los gastos</span>
-                <span className="px-2 py-0.5 bg-gray-200 text-gray-700 rounded-full text-xs font-medium">{gastosDB.length}</span>
+        {/* LAYOUT FLEXIBLE SEGÚN ESTADO DE CATEGORÍAS */}
+        {mostrarTodasCategorias ? (
+          // Cuando está expandido: categorías ocupan todo el ancho
+          <>
+            <div className="bg-white rounded-xl shadow-sm p-5 sm:p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-lg font-semibold text-gray-900">Categorías de Gastos</h2>
+                <button
+                  onClick={() => setModalCategoriaOpen(true)}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-blue-50 text-blue-600 font-bold"
+                >
+                  +
+                </button>
               </div>
-              <span className="text-sm font-semibold text-gray-900">{totalGastos} {moneda}</span>
-            </button>
 
-            {categoriasVisibles.map((cat, idx) => (
+              <div className="grid gap-2 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+                <button
+                  onClick={() => setCategoriaSeleccionada(null)}
+                  className={`flex justify-between items-center px-3 py-3 rounded-lg transition ${
+                    categoriaSeleccionada === null ? 'bg-blue-50' : 'hover:bg-gray-50'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-gray-900">Todos los gastos</span>
+                    <span className="px-2 py-0.5 bg-gray-200 text-gray-700 rounded-full text-xs font-medium">{gastosSimulados.length}</span>
+                  </div>
+                  <span className="text-sm font-semibold text-gray-900">{totalGastos} {moneda}</span>
+                </button>
+
+                {categoriasVisibles.map((cat, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setCategoriaSeleccionada(cat.nombre)}
+                    className={`flex justify-between items-center px-3 py-3 rounded-lg cursor-pointer transition ${
+                      categoriaSeleccionada === cat.nombre ? 'bg-blue-50' : 'hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: cat.color }} />
+                      <span className="text-sm text-gray-700">{cat.nombre}</span>
+                      {cat.cantidad > 0 && (
+                        <span className="px-2 py-0.5 bg-gray-200 text-gray-700 rounded-full text-xs font-medium">
+                          {cat.cantidad}
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-sm text-gray-900">{cat.total}</span>
+                  </button>
+                ))}
+              </div>
+
               <button
-                key={idx}
-                onClick={() => setCategoriaSeleccionada(cat.nombre)}
-                className={`flex justify-between items-center px-3 py-3 rounded-lg cursor-pointer transition ${
-                  categoriaSeleccionada === cat.nombre ? 'bg-blue-50' : 'hover:bg-gray-50'
-                }`}
+                onClick={() => setMostrarTodasCategorias(false)}
+                className="w-full text-center text-sm text-blue-600 hover:text-blue-700 font-medium pt-3"
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: cat.color }} />
-                  <span className="text-sm text-gray-700">{cat.nombre}</span>
-                  {cat.cantidad > 0 && (
-                    <span className="px-2 py-0.5 bg-gray-200 text-gray-700 rounded-full text-xs font-medium">
-                      {cat.cantidad}
-                    </span>
+                Colapsar
+              </button>
+            </div>
+
+            {/* Gráficos en dos columnas cuando categorías están expandidas */}
+            <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
+              <div className="bg-white rounded-xl shadow-sm p-6">
+                <h2 className="text-lg font-semibold text-gray-900 mb-6">
+                  {categoriaSeleccionada ? `Distribución: ${categoriaSeleccionada}` : 'Distribución de Gastos'}
+                </h2>
+                <div style={{ height: '450px' }}>
+                  {datosPieChart.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={datosPieChart}
+                          dataKey="total"
+                          nameKey="nombre"
+                          cx="50%"
+                          cy="50%"
+                          outerRadius={120}
+                          label={(entry) => `${entry.nombre}: ${entry.total}`}
+                        >
+                          {datosPieChart.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip formatter={(value) => `${value} ${moneda}`} />
+                        <Legend />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-gray-400">
+                      Sin datos para mostrar
+                    </div>
                   )}
                 </div>
-                <span className="text-sm text-gray-900">{cat.total}</span>
-              </button>
-            ))}
-          </div>
+              </div>
 
-          <button
-            onClick={() => setMostrarTodasCategorias(!mostrarTodasCategorias)}
-            className="w-full text-center text-sm text-blue-600 hover:text-blue-700 font-medium pt-3"
-          >
-            {mostrarTodasCategorias ? 'Colapsar' : 'Ver más categorías'}
-          </button>
-          <div className="mt-2 border-t border-gray-100"></div>
-        </div>
-
-        {/* SECCIÓN 2: Gráficos */}
-<div
-  className={`grid gap-6 transition-all ${
-    mostrarTodasCategorias ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1 lg:grid-cols-3'
-  }`}
->
-          {/* Distribución */}
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-6">
-              {categoriaSeleccionada ? `Distribución: ${categoriaSeleccionada}` : 'Distribución de Gastos'}
-            </h2>
-            <div style={{ height: mostrarTodasCategorias ? '450px' : '320px' }} className="transition-all duration-300">
-              {datosPieChart.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={datosPieChart}
-                      dataKey="total"
-                      nameKey="nombre"
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={mostrarTodasCategorias ? 120 : 100}
-                      label={(entry) => `${entry.nombre}: ${entry.total}`}
-                    >
-                      {datosPieChart.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(value) => `${value} ${moneda}`} />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="flex items-center justify-center h-full text-gray-400">
-                  Sin datos para mostrar
+              <div className="bg-white rounded-xl shadow-sm p-6">
+                <h2 className="text-lg font-semibold text-gray-900 mb-6">
+                  {categoriaSeleccionada ? `Tendencias: ${categoriaSeleccionada}` : 'Tendencias Mensuales'}
+                </h2>
+                <div style={{ height: '450px' }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={datosBarChart}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="nombre" />
+                      <YAxis />
+                      <Tooltip formatter={(value) => `${value} ${moneda}`} />
+                      <Bar 
+                        dataKey="total" 
+                        fill={categoriaSeleccionada ? categorias.find(c => c.nombre === categoriaSeleccionada)?.color : '#3b82f6'} 
+                        radius={[8, 8, 0, 0]} 
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
                 </div>
-              )}
+              </div>
+            </div>
+          </>
+        ) : (
+          // Cuando está colapsado: categorías a la izquierda, gráficos a la derecha
+          <div className="grid gap-6 grid-cols-1 lg:grid-cols-4">
+            {/* Categorías colapsadas (1 columna) */}
+            <div className="lg:col-span-1">
+              <div className="bg-white rounded-xl shadow-sm p-5 sm:p-6 h-full">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-lg font-semibold text-gray-900">Categorías</h2>
+                  <button
+                    onClick={() => setModalCategoriaOpen(true)}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-blue-50 text-blue-600 font-bold"
+                  >
+                    +
+                  </button>
+                </div>
+
+                <div className="space-y-2">
+                  <button
+                    onClick={() => setCategoriaSeleccionada(null)}
+                    className={`w-full flex justify-between items-center px-3 py-3 rounded-lg transition ${
+                      categoriaSeleccionada === null ? 'bg-blue-50' : 'hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-gray-900">Todos</span>
+                      <span className="px-2 py-0.5 bg-gray-200 text-gray-700 rounded-full text-xs font-medium">{gastosSimulados.length}</span>
+                    </div>
+                    <span className="text-xs font-semibold text-gray-900">{totalGastos}</span>
+                  </button>
+
+                  {categoriasVisibles.map((cat, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setCategoriaSeleccionada(cat.nombre)}
+                      className={`w-full flex justify-between items-center px-3 py-2 rounded-lg cursor-pointer transition ${
+                        categoriaSeleccionada === cat.nombre ? 'bg-blue-50' : 'hover:bg-gray-50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: cat.color }} />
+                        <span className="text-xs text-gray-700 truncate">{cat.nombre}</span>
+                        {cat.cantidad > 0 && (
+                          <span className="px-1.5 py-0.5 bg-gray-200 text-gray-700 rounded-full text-xs font-medium">
+                            {cat.cantidad}
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-xs text-gray-900">{cat.total}</span>
+                    </button>
+                  ))}
+                </div>
+
+                <button
+                  onClick={() => setMostrarTodasCategorias(true)}
+                  className="w-full text-center text-sm text-blue-600 hover:text-blue-700 font-medium pt-3 mt-2 border-t border-gray-100"
+                >
+                  Ver más
+                </button>
+              </div>
+            </div>
+
+            {/* Gráficos (3 columnas) */}
+            <div className="lg:col-span-3 grid gap-6 grid-cols-1 md:grid-cols-2">
+              <div className="bg-white rounded-xl shadow-sm p-6">
+                <h2 className="text-lg font-semibold text-gray-900 mb-6">
+                  {categoriaSeleccionada ? `Distribución: ${categoriaSeleccionada}` : 'Distribución de Gastos'}
+                </h2>
+                <div style={{ height: '320px' }}>
+                  {datosPieChart.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={datosPieChart}
+                          dataKey="total"
+                          nameKey="nombre"
+                          cx="50%"
+                          cy="50%"
+                          outerRadius={100}
+                          label={(entry) => `${entry.nombre}: ${entry.total}`}
+                        >
+                          {datosPieChart.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip formatter={(value) => `${value} ${moneda}`} />
+                        <Legend />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-gray-400">
+                      Sin datos para mostrar
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="bg-white rounded-xl shadow-sm p-6">
+                <h2 className="text-lg font-semibold text-gray-900 mb-6">
+                  {categoriaSeleccionada ? `Tendencias: ${categoriaSeleccionada}` : 'Tendencias Mensuales'}
+                </h2>
+                <div style={{ height: '320px' }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={datosBarChart}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="nombre" />
+                      <YAxis />
+                      <Tooltip formatter={(value) => `${value} ${moneda}`} />
+                      <Bar 
+                        dataKey="total" 
+                        fill={categoriaSeleccionada ? categorias.find(c => c.nombre === categoriaSeleccionada)?.color : '#3b82f6'} 
+                        radius={[8, 8, 0, 0]} 
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
             </div>
           </div>
+        )}
 
-          {/* Tendencias */}
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-6">
-              {categoriaSeleccionada ? `Tendencias: ${categoriaSeleccionada}` : 'Tendencias Mensuales'}
-            </h2>
-            <div style={{ height: mostrarTodasCategorias ? '450px' : '320px' }} className="transition-all duration-300">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={datosBarChart}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="nombre" />
-                  <YAxis />
-                  <Tooltip formatter={(value) => `${value} ${moneda}`} />
-                  <Bar dataKey="total" fill={categoriaSeleccionada ? categorias.find(c => c.nombre === categoriaSeleccionada)?.color : '#3b82f6'} radius={[8, 8, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </div>
-
-        {/* SECCIÓN 3: Tabla */}
+        {/* Tabla de transacciones */}
         <div className="bg-white rounded-xl shadow-sm p-5 sm:p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4 sm:mb-6">
             {categoriaSeleccionada ? `Gastos en ${categoriaSeleccionada}` : 'Gastos e Ingresos Registrados'}
@@ -386,7 +460,7 @@ const datosPieChart = categoriaSeleccionada
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {transacciones.map((t: any) => (
+                {transacciones.map((t) => (
                   <tr key={t.id} className="hover:bg-gray-50">
                     <td className="px-4 sm:px-6 py-3">{t.fecha}</td>
                     <td className="px-4 sm:px-6 py-3">
@@ -419,7 +493,6 @@ const datosPieChart = categoriaSeleccionada
             </table>
           </div>
 
-          {/* Resumen de totales */}
           <div className="mt-6 pt-6 border-t border-gray-200 grid grid-cols-2 gap-4">
             <div className="bg-red-50 rounded-lg p-4">
               <div className="text-sm text-red-700 font-medium mb-1">Total Gastos</div>
@@ -494,7 +567,7 @@ const datosPieChart = categoriaSeleccionada
         </div>
       )}
 
-      {/* MODAL EDITAR GASTO/INGRESO */}
+      {/* MODAL EDITAR */}
       {modalEditOpen && gastoEditando && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm">
           <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full p-6">
@@ -588,33 +661,18 @@ const datosPieChart = categoriaSeleccionada
                 Cancelar
               </button>
               <button
-                onClick={handleGuardarEdicion}
-                disabled={loadingEdit}
-                className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium"
+                onClick={() => {
+                  alert('Cambios guardados (simulación)')
+                  setModalEditOpen(false)
+                }}
+                className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
               >
-                {loadingEdit ? 'Guardando...' : 'Guardar Cambios'}
+                Guardar Cambios
               </button>
             </div>
           </div>
         </div>
       )}
     </div>
-  )
-}
-
-export default function GastosPage() {
-  return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Cargando gastos...</p>
-          </div>
-        </div>
-      }
-    >
-      <GastosContent />
-    </Suspense>
   )
 }
