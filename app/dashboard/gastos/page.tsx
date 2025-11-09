@@ -18,6 +18,16 @@ type Item = {
   precioFinal: number
 }
 
+type Gasto = {
+  id: string
+  tipo: 'GASTO' | 'INGRESO'
+  fecha: string
+  monto: number
+  categoria: string
+  descripcion?: string
+  metodoPago?: string
+}
+
 function GastosContent() {
   const searchParams = useSearchParams()
   const { gastos: gastosDB, isLoading: loadingGastos, addGasto } = useGastos()
@@ -27,18 +37,18 @@ function GastosContent() {
   const [moneda, setMoneda] = useState('UYU')
   const [iva, setIva] = useState('con')
   const [periodo, setPeriodo] = useState('ultimo-ano')
-  const [modalGastoOpen, setModalGastoOpen] = useState(false)
   const [modalCategoriaOpen, setModalCategoriaOpen] = useState(false)
   const [nuevaCategoriaNombre, setNuevaCategoriaNombre] = useState('')
-
-  const [fecha, setFecha] = useState(new Date().toISOString().split('T')[0])
-  const [proveedor, setProveedor] = useState('')
-  const [monedaGasto, setMonedaGasto] = useState('UYU')
-  const [items, setItems] = useState<Item[]>([
-    { id: '1', nombre: '', categoria: '', precio: 0, iva: 0, precioFinal: 0 },
-  ])
-  const [notas, setNotas] = useState('')
-  const [loading, setLoading] = useState(false)
+  
+  // Estados para modal de edición
+  const [modalEditOpen, setModalEditOpen] = useState(false)
+  const [gastoEditando, setGastoEditando] = useState<Gasto | null>(null)
+  const [editFecha, setEditFecha] = useState('')
+  const [editMonto, setEditMonto] = useState('')
+  const [editCategoria, setEditCategoria] = useState('')
+  const [editDescripcion, setEditDescripcion] = useState('')
+  const [editMetodoPago, setEditMetodoPago] = useState('efectivo')
+  const [loadingEdit, setLoadingEdit] = useState(false)
 
   const [categorias, setCategorias] = useState([
     { nombre: 'Alimentación', cantidad: 0, total: 0, color: '#a855f7' },
@@ -62,16 +72,12 @@ function GastosContent() {
     { nombre: 'Sueldos', cantidad: 0, total: 0, color: '#dc2626' },
   ])
 
-  const opcionesIVA = [
-    { value: 0, label: '0%' },
-    { value: 10, label: '10%' },
-    { value: 22, label: '22%' },
-  ]
-
+  // Filtrar gastos según categoría seleccionada
   const gastosFiltrados = categoriaSeleccionada
     ? gastosDB.filter(g => g.categoria === categoriaSeleccionada)
     : gastosDB
 
+  // Calcular datos de categorías
   const categoriasConDatos = categorias.map((cat) => {
     const gastosCategoria = gastosDB.filter((g) => g.tipo === 'GASTO' && g.categoria === cat.nombre)
     return {
@@ -88,7 +94,50 @@ function GastosContent() {
   const totalGastos = gastosDB.filter(g => g.tipo === 'GASTO').reduce((sum, g) => sum + g.monto, 0)
   const totalIngresos = gastosDB.filter(g => g.tipo === 'INGRESO').reduce((sum, g) => sum + g.monto, 0)
 
-  const transacciones = gastosFiltrados.map((gasto) => {
+  // ✅ Preparar datos para gráfico circular (según categoría seleccionada)
+const datosPieChart = categoriaSeleccionada
+  ? (() => {
+      // Si hay categoría seleccionada, agrupar por mes
+      const gastosCat = gastosFiltrados.filter(g => g.tipo === 'GASTO')
+      const porMes: { [key: string]: number } = {}
+      
+      gastosCat.forEach(gasto => {
+        const mes = new Date(gasto.fecha).toLocaleDateString('es-UY', { month: 'short', year: 'numeric' })
+        if (!porMes[mes]) porMes[mes] = 0
+        porMes[mes] += gasto.monto
+      })
+      
+      return Object.entries(porMes).map(([nombre, total]) => ({
+        nombre,
+        total,
+        color: categorias.find(c => c.nombre === categoriaSeleccionada)?.color || '#6b7280'
+      }))
+    })()
+  : categoriasConDatos.filter(c => c.total > 0)
+
+  // Preparar datos para gráfico de barras (tendencias mensuales)
+  const datosBarChart = (() => {
+    const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+    const gastosPorMes: any = {}
+    
+    meses.forEach(mes => {
+      gastosPorMes[mes] = { nombre: mes, total: 0 }
+    })
+
+    const gastosAFiltrar = gastosFiltrados.filter(g => g.tipo === 'GASTO')
+
+    gastosAFiltrar.forEach(gasto => {
+      const fecha = new Date(gasto.fecha)
+      const mesIndex = fecha.getMonth()
+      const mesNombre = meses[mesIndex]
+      gastosPorMes[mesNombre].total += gasto.monto
+    })
+
+    return Object.values(gastosPorMes)
+  })()
+
+  // Preparar transacciones para la tabla
+  const transacciones = gastosFiltrados.map((gasto: any) => {
     const categoria = categorias.find((c) => c.nombre === gasto.categoria)
     const esIngreso = gasto.tipo === 'INGRESO'
     
@@ -102,82 +151,51 @@ function GastosContent() {
       color: categoria?.color || '#6b7280',
       usuario: 'Nacho Rodriguez',
       esIngreso,
+      gastoCompleto: gasto,
     }
   })
 
-  useEffect(() => {
-    const modal = searchParams.get('modal')
-    if (modal === 'gasto') setModalGastoOpen(true)
-  }, [searchParams])
-
-  const handleAgregarItem = () => {
-    const nuevoItem: Item = {
-      id: Date.now().toString(),
-      nombre: '',
-      categoria: '',
-      precio: 0,
-      iva: 0,
-      precioFinal: 0,
-    }
-    setItems([...items, nuevoItem])
+  // Abrir modal de edición
+  const handleEditarGasto = (gasto: Gasto) => {
+    setGastoEditando(gasto)
+    setEditFecha(new Date(gasto.fecha).toISOString().split('T')[0])
+    setEditMonto(gasto.monto.toString())
+    setEditCategoria(gasto.categoria)
+    setEditDescripcion(gasto.descripcion || '')
+    setEditMetodoPago(gasto.metodoPago || 'efectivo')
+    setModalEditOpen(true)
   }
 
-  const handleEliminarItem = (id: string) => {
-    if (items.length > 1) setItems(items.filter((i) => i.id !== id))
-  }
+  // Guardar cambios de edición
+  const handleGuardarEdicion = async () => {
+    if (!gastoEditando) return
 
-  const handleItemChange = (id: string, field: keyof Item, value: any) => {
-    setItems(
-      items.map((item) => {
-        if (item.id === id) {
-          const updated = { ...item, [field]: value }
-          if (field === 'precio' || field === 'iva') {
-            const precio = field === 'precio' ? parseFloat(value) || 0 : updated.precio
-            const ivaVal = field === 'iva' ? parseFloat(value) || 0 : updated.iva
-            updated.precioFinal = precio + (precio * ivaVal) / 100
-          }
-          return updated
-        }
-        return item
-      })
-    )
-  }
-
-  const calcularMontoTotal = () =>
-    items.reduce((sum, i) => sum + i.precioFinal, 0)
-
-  const handleConfirmarGasto = async () => {
-    if (!proveedor) {
-      alert('Por favor ingresá un proveedor')
-      return
-    }
-
-    const itemsValidos = items.filter((i) => i.nombre && i.categoria && i.precio > 0)
-    if (itemsValidos.length === 0) {
-      alert('Agregá al menos un ítem válido')
-      return
-    }
-
-    setLoading(true)
+    setLoadingEdit(true)
     try {
-      for (const item of itemsValidos) {
-        await addGasto({
-          tipo: 'GASTO',
-          monto: item.precioFinal,
-          fecha,
-          descripcion: `${item.nombre} - Proveedor: ${proveedor}${notas ? ` - ${notas}` : ''}`,
-          categoria: item.categoria,
-          metodoPago: 'efectivo',
-        })
-      }
+      const response = await fetch(`/api/gastos/${gastoEditando.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tipo: gastoEditando.tipo,
+          fecha: editFecha,
+          monto: parseFloat(editMonto),
+          categoria: editCategoria,
+          descripcion: editDescripcion,
+          metodoPago: editMetodoPago,
+        }),
+      })
 
-      setModalGastoOpen(false)
-      setProveedor('')
-      setItems([{ id: '1', nombre: '', categoria: '', precio: 0, iva: 0, precioFinal: 0 }])
-      setNotas('')
-      alert('¡Gasto registrado exitosamente!')
+      if (!response.ok) throw new Error('Error al actualizar')
+
+      setModalEditOpen(false)
+      setGastoEditando(null)
+      alert('¡Gasto actualizado exitosamente!')
+      // Aquí deberías recargar los gastos desde el contexto
+      window.location.reload()
+    } catch (error) {
+      alert('Error al actualizar el gasto')
     } finally {
-      setLoading(false)
+      setLoadingEdit(false)
     }
   }
 
@@ -234,7 +252,7 @@ function GastosContent() {
             <h2 className="text-lg font-semibold text-gray-900">Categorías de Gastos</h2>
             <button
               onClick={() => setModalCategoriaOpen(true)}
-              className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-blue-50 text-blue-600"
+              className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-blue-50 text-blue-600 font-bold"
             >
               +
             </button>
@@ -290,46 +308,50 @@ function GastosContent() {
           {/* Distribución */}
           <div className="bg-white rounded-xl shadow-sm p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-6">
-              {categoriaSeleccionada ? `Gastos en ${categoriaSeleccionada}` : 'Distribución de Gastos'}
+              {categoriaSeleccionada ? `Distribución: ${categoriaSeleccionada}` : 'Distribución de Gastos'}
             </h2>
             <div style={{ height: mostrarTodasCategorias ? '400px' : '300px' }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={categoriasConDatos.filter(c => c.total > 0)}
-                    dataKey="total"
-                    nameKey="nombre"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={mostrarTodasCategorias ? 120 : 100}
-                    label={(entry) => `${entry.nombre}: ${entry.total}`}
-                  >
-                    {categoriasConDatos.filter(c => c.total > 0).map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value) => `${value} ${moneda}`} />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
+              {datosPieChart.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={datosPieChart}
+                      dataKey="total"
+                      nameKey="nombre"
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={mostrarTodasCategorias ? 120 : 100}
+                      label={(entry) => `${entry.nombre}: ${entry.total}`}
+                    >
+                      {datosPieChart.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(value) => `${value} ${moneda}`} />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-full text-gray-400">
+                  Sin datos para mostrar
+                </div>
+              )}
             </div>
           </div>
 
           {/* Tendencias */}
           <div className="bg-white rounded-xl shadow-sm p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-6">Tendencias Mensuales</h2>
+            <h2 className="text-lg font-semibold text-gray-900 mb-6">
+              {categoriaSeleccionada ? `Tendencias: ${categoriaSeleccionada}` : 'Tendencias Mensuales'}
+            </h2>
             <div style={{ height: mostrarTodasCategorias ? '400px' : '300px' }}>
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={categoriasConDatos.filter(c => c.total > 0)}>
+                <BarChart data={datosBarChart}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="nombre" angle={-45} textAnchor="end" height={100} />
+                  <XAxis dataKey="nombre" />
                   <YAxis />
                   <Tooltip formatter={(value) => `${value} ${moneda}`} />
-                  <Bar dataKey="total" radius={[8, 8, 0, 0]}>
-                    {categoriasConDatos.filter(c => c.total > 0).map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Bar>
+                  <Bar dataKey="total" fill={categoriaSeleccionada ? categorias.find(c => c.nombre === categoriaSeleccionada)?.color : '#3b82f6'} radius={[8, 8, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -352,8 +374,8 @@ function GastosContent() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {transacciones.map((t, idx) => (
-                  <tr key={idx} className="hover:bg-gray-50">
+                {transacciones.map((t: any) => (
+                  <tr key={t.id} className="hover:bg-gray-50">
                     <td className="px-4 sm:px-6 py-3">{t.fecha}</td>
                     <td className="px-4 sm:px-6 py-3">
                       <div className={`font-semibold ${t.esIngreso ? 'text-green-600' : 'text-red-600'}`}>
@@ -363,7 +385,7 @@ function GastosContent() {
                     </td>
                     <td className="px-4 sm:px-6 py-3">{t.item}</td>
                     <td className="px-4 sm:px-6 py-3">
-                                            <span
+                      <span
                         className="inline-block px-3 py-1 rounded-lg text-xs font-medium"
                         style={{ backgroundColor: `${t.color}15`, color: t.color }}
                       >
@@ -371,7 +393,14 @@ function GastosContent() {
                       </span>
                     </td>
                     <td className="px-4 sm:px-6 py-3">{t.usuario}</td>
-                    <td className="px-4 sm:px-6 py-3 text-right text-gray-400">✏️</td>
+                    <td className="px-4 sm:px-6 py-3 text-right">
+                      <button
+                        onClick={() => handleEditarGasto(t.gastoCompleto)}
+                        className="text-blue-600 hover:text-blue-800 transition"
+                      >
+                        ✏️
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -452,6 +481,111 @@ function GastosContent() {
           </div>
         </div>
       )}
+
+      {/* MODAL EDITAR GASTO/INGRESO */}
+      {modalEditOpen && gastoEditando && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className={`w-12 h-12 rounded-full ${gastoEditando.tipo === 'INGRESO' ? 'bg-green-100' : 'bg-red-100'} flex items-center justify-center text-2xl`}>
+                  {gastoEditando.tipo === 'INGRESO' ? '💰' : '💸'}
+                </div>
+                <h2 className="text-2xl font-bold text-gray-900">
+                  Editar {gastoEditando.tipo === 'INGRESO' ? 'Ingreso' : 'Gasto'}
+                </h2>
+              </div>
+              <button
+                onClick={() => setModalEditOpen(false)}
+                className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Fecha</label>
+                  <input
+                    type="date"
+                    value={editFecha}
+                    onChange={(e) => setEditFecha(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Monto (UYU)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={editMonto}
+                    onChange={(e) => setEditMonto(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Categoría</label>
+                <select
+                  value={editCategoria}
+                  onChange={(e) => setEditCategoria(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                >
+                  {categorias.map((cat) => (
+                    <option key={cat.nombre} value={cat.nombre}>
+                      {cat.nombre}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {gastoEditando.tipo === 'GASTO' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Método de pago</label>
+                  <select
+                    value={editMetodoPago}
+                    onChange={(e) => setEditMetodoPago(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="efectivo">Efectivo</option>
+                    <option value="tarjeta">Tarjeta</option>
+                    <option value="transferencia">Transferencia</option>
+                  </select>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Descripción</label>
+                <textarea
+                  value={editDescripcion}
+                  onChange={(e) => setEditDescripcion(e.target.value)}
+                  rows={3}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setModalEditOpen(false)}
+                className="flex-1 px-4 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleGuardarEdicion}
+                disabled={loadingEdit}
+                className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium"
+              >
+                {loadingEdit ? 'Guardando...' : 'Guardar Cambios'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -472,4 +606,3 @@ export default function GastosPage() {
     </Suspense>
   )
 }
-                       
