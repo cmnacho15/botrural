@@ -40,20 +40,32 @@ export default function NuevoLotePage() {
 
   // ✅ Calcular centro DESPUÉS de cargar los lotes
   useEffect(() => {
-    if (lotesExistentes.length > 0 && lotesExistentes[0].coordenadas?.length > 0) {
-      const coords = lotesExistentes[0].coordenadas
-      const center = coords.reduce(
-        (acc, point) => [acc[0] + point[0], acc[1] + point[1]],
-        [0, 0]
-      ).map(v => v / coords.length) as [number, number]
-      
-      console.log('🎯 Centro calculado del primer potrero:', center)
-      setMapCenter(center)
-    } else if (typeof window !== 'undefined') {
+    if (lotesExistentes.length > 0) {
+      // Combinar todos los puntos de todos los potreros
+      const todosLosPuntos = lotesExistentes
+        .flatMap(l => l.coordenadas || [])
+        .filter(c => c.length === 2)
+
+      if (todosLosPuntos.length > 0) {
+        const center = todosLosPuntos
+          .reduce((acc, p) => [acc[0] + p[0], acc[1] + p[1]], [0, 0])
+          .map(v => v / todosLosPuntos.length) as [number, number]
+
+        console.log('🎯 Centro calculado (promedio de potreros):', center)
+        setMapCenter(center)
+        return
+      }
+    }
+
+    // Si no hay potreros, buscar último centro guardado
+    if (typeof window !== 'undefined') {
       const savedCenter = localStorage.getItem('lastPotreroCenter')
       if (savedCenter) {
         console.log('📍 Usando centro guardado:', savedCenter)
         setMapCenter(JSON.parse(savedCenter))
+      } else {
+        // Centro por defecto (Uruguay)
+        setMapCenter([-32.5228, -55.7658])
       }
     }
   }, [lotesExistentes])
@@ -98,11 +110,10 @@ export default function NuevoLotePage() {
 
       if (response.ok) {
         if (poligono.length > 0) {
-          const center = poligono.reduce(
-            (acc, point) => [acc[0] + point[0], acc[1] + point[1]],
-            [0, 0]
-          ).map(v => v / poligono.length) as [number, number]
-          
+          const center = poligono
+            .reduce((acc, point) => [acc[0] + point[0], acc[1] + point[1]], [0, 0])
+            .map(v => v / poligono.length) as [number, number]
+
           localStorage.setItem('lastPotreroCenter', JSON.stringify(center))
         }
 
@@ -126,27 +137,28 @@ export default function NuevoLotePage() {
     alert(`¡Potrero dibujado! Área: ${areaHectareas.toFixed(2)} ha`)
   }
 
-  const hectareasAMostrar = hectareasCalculadas 
+  const hectareasAMostrar = hectareasCalculadas
     ? hectareasCalculadas.toFixed(2)
     : hectareasManual
 
-  const hayDiferencia = hectareasCalculadas && hectareasManual && 
+  const hayDiferencia =
+    hectareasCalculadas &&
+    hectareasManual &&
     Math.abs(hectareasCalculadas - parseFloat(hectareasManual)) > 0.1
 
-  // ✅ Colores únicos para cada potrero
   const coloresPotrero = [
-    '#ef4444', // Rojo
-    '#f97316', // Naranja
-    '#eab308', // Amarillo
-    '#84cc16', // Lima
-    '#22c55e', // Verde
-    '#14b8a6', // Turquesa
-    '#06b6d4', // Cyan
-    '#3b82f6', // Azul
-    '#8b5cf6', // Morado
-    '#ec4899', // Rosa
-    '#f43f5e', // Rosa fuerte
-    '#a855f7', // Morado claro
+    '#ef4444',
+    '#f97316',
+    '#eab308',
+    '#84cc16',
+    '#22c55e',
+    '#14b8a6',
+    '#06b6d4',
+    '#3b82f6',
+    '#8b5cf6',
+    '#ec4899',
+    '#f43f5e',
+    '#a855f7',
   ]
 
   const potrerosParaMapa = lotesExistentes
@@ -155,7 +167,7 @@ export default function NuevoLotePage() {
       id: lote.id,
       nombre: lote.nombre,
       coordinates: lote.coordenadas,
-      color: coloresPotrero[index % coloresPotrero.length]
+      color: coloresPotrero[index % coloresPotrero.length],
     }))
 
   console.log('🗺️ Potreros para el mapa:', potrerosParaMapa)
@@ -164,7 +176,9 @@ export default function NuevoLotePage() {
   return (
     <div className="min-h-screen bg-gray-50 p-4 sm:p-6 md:p-8 text-gray-900">
       <div className="mb-6 md:mb-8">
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-1">Nuevo Potrero</h1>
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-1">
+          Nuevo Potrero
+        </h1>
         <p className="text-gray-600 text-sm">
           Ingresá los datos del potrero y dibujá su ubicación
         </p>
@@ -184,7 +198,7 @@ export default function NuevoLotePage() {
             <input
               type="text"
               value={nombre}
-              onChange={(e) => setNombre(e.target.value)}
+              onChange={e => setNombre(e.target.value)}
               required
               className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 text-base"
               placeholder="Ej: norte"
@@ -193,12 +207,15 @@ export default function NuevoLotePage() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Hectáreas {hectareasCalculadas ? '(Estimado - será reemplazado por el área del mapa)' : ''}
+              Hectáreas{' '}
+              {hectareasCalculadas
+                ? '(Estimado - será reemplazado por el área del mapa)'
+                : ''}
             </label>
             <input
               type="number"
               value={hectareasManual}
-              onChange={(e) => setHectareasManual(e.target.value)}
+              onChange={e => setHectareasManual(e.target.value)}
               step="0.01"
               required
               className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 text-base"
@@ -207,7 +224,8 @@ export default function NuevoLotePage() {
             {hayDiferencia && (
               <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                 <p className="text-sm text-yellow-800">
-                  ⚠️ Área manual ({hectareasManual} ha) difiere del área calculada ({hectareasCalculadas.toFixed(2)} ha).
+                  ⚠️ Área manual ({hectareasManual} ha) difiere del área calculada (
+                  {hectareasCalculadas.toFixed(2)} ha).
                   <br />
                   <strong>Se usará el área calculada del mapa.</strong>
                 </p>
@@ -222,7 +240,9 @@ export default function NuevoLotePage() {
               disabled={cargandoLotes}
               className="w-full bg-green-600 text-white px-6 py-3.5 rounded-lg hover:bg-green-700 transition text-base font-medium disabled:opacity-50"
             >
-              {cargandoLotes ? '⏳ Cargando mapa...' : '📍 Agregar ubicación en el mapa'}
+              {cargandoLotes
+                ? '⏳ Cargando mapa...'
+                : '📍 Agregar ubicación en el mapa'}
             </button>
           )}
 
@@ -233,7 +253,8 @@ export default function NuevoLotePage() {
               </p>
               {hectareasCalculadas && (
                 <p className="text-green-600 text-sm mt-1">
-                  Área calculada: <strong>{hectareasCalculadas.toFixed(2)} ha</strong>
+                  Área calculada:{' '}
+                  <strong>{hectareasCalculadas.toFixed(2)} ha</strong>
                 </p>
               )}
               <button
@@ -287,7 +308,7 @@ export default function NuevoLotePage() {
               </button>
             </div>
             <div className="flex-1">
-              <MapaPoligono 
+              <MapaPoligono
                 onPolygonComplete={handlePolygonComplete}
                 initialCenter={mapCenter}
                 initialZoom={mapCenter ? 16 : 8}
