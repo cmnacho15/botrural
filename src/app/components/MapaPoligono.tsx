@@ -1,3 +1,4 @@
+//holaaaa//
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
@@ -13,6 +14,12 @@ interface MapaPoligonoProps {
   onPolygonComplete: (coordinates: number[][], areaHectareas: number) => void
   initialCenter?: [number, number]
   initialZoom?: number
+  existingPolygons?: Array<{
+    id: string
+    nombre: string
+    coordinates: number[][]
+    color?: string
+  }>
 }
 
 function calcularAreaPoligono(latlngs: any[]): number {
@@ -39,9 +46,11 @@ export default function MapaPoligono({
   onPolygonComplete,
   initialCenter = [-34.397, -56.165],
   initialZoom = 8,
+  existingPolygons = [],
 }: MapaPoligonoProps) {
   const mapRef = useRef<any>(null)
   const drawnItemsRef = useRef<any>(null)
+  const existingLayersRef = useRef<any>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<any[]>([])
   const [searching, setSearching] = useState(false)
@@ -52,7 +61,7 @@ export default function MapaPoligono({
     if (mapRef.current) return
 
     const map: any = L.map('map')
-map.setView(initialCenter, initialZoom)
+    map.setView(initialCenter, initialZoom)
     mapRef.current = map
 
     // Capa base de mapa
@@ -79,6 +88,39 @@ map.setView(initialCenter, initialZoom)
       }
     ).addTo(map)
 
+    // Capa para potreros existentes (solo visualización)
+    const existingLayers = new L.FeatureGroup()
+    map.addLayer(existingLayers)
+    existingLayersRef.current = existingLayers
+
+    // Dibujar potreros existentes
+    existingPolygons.forEach((potrero) => {
+      if (potrero.coordinates && potrero.coordinates.length > 0) {
+        const polygon = L.polygon(potrero.coordinates, {
+          color: potrero.color || '#10b981',
+          fillColor: potrero.color || '#10b981',
+          fillOpacity: 0.2,
+          weight: 2,
+        })
+        
+        polygon.bindPopup(`
+          <div style="padding: 8px;">
+            <strong style="font-size: 14px;">${potrero.nombre}</strong>
+            <br/>
+            <span style="color: #666; font-size: 12px;">ID: ${potrero.id}</span>
+          </div>
+        `)
+        
+        existingLayers.addLayer(polygon)
+      }
+    })
+
+    // Si hay potreros, ajustar el zoom para verlos todos
+    if (existingPolygons.length > 0 && existingLayers.getLayers().length > 0) {
+      map.fitBounds(existingLayers.getBounds(), { padding: [50, 50] })
+    }
+
+    // Capa para dibujar nuevos potreros
     const drawnItems = new L.FeatureGroup()
     map.addLayer(drawnItems)
     drawnItemsRef.current = drawnItems
@@ -138,7 +180,7 @@ map.setView(initialCenter, initialZoom)
       map.remove()
       mapRef.current = null
     }
-  }, [initialCenter, initialZoom])
+  }, [initialCenter, initialZoom, existingPolygons])
 
   const buscarUbicacion = async () => {
     if (!searchQuery.trim()) return
