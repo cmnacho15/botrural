@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { MapContainer, TileLayer, Polygon, useMapEvents, Marker, useMap } from 'react-leaflet'
+import { MapContainer, TileLayer, Polygon, Polyline, useMapEvents, Marker, useMap, Tooltip } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 
@@ -56,10 +56,15 @@ function FitBounds({ lotes }: { lotes: Lote[] }) {
 
 function DrawPolygon({ onComplete }: { onComplete: (coords: number[][]) => void }) {
   const [points, setPoints] = useState<[number, number][]>([])
+  const [currentPos, setCurrentPos] = useState<[number, number] | null>(null)
 
   useMapEvents({
     click(e) {
       setPoints((prev) => [...prev, [e.latlng.lat, e.latlng.lng]])
+    },
+    mousemove(e) {
+      // Actualizar posición del cursor para mostrar la línea dinámica
+      setCurrentPos([e.latlng.lat, e.latlng.lng])
     },
   })
 
@@ -68,11 +73,12 @@ function DrawPolygon({ onComplete }: { onComplete: (coords: number[][]) => void 
       if (e.key === 'Enter' && points.length >= 3) {
         onComplete(points)
         setPoints([])
+        setCurrentPos(null)
       }
       if (e.key === 'Escape') {
         setPoints([])
+        setCurrentPos(null)
       }
-      // NUEVO: Deshacer último punto con Backspace
       if (e.key === 'Backspace' && points.length > 0) {
         setPoints(prev => prev.slice(0, -1))
       }
@@ -83,9 +89,35 @@ function DrawPolygon({ onComplete }: { onComplete: (coords: number[][]) => void 
 
   return (
     <>
+      {/* Puntos clickeados */}
       {points.map((point, idx) => (
         <Marker key={idx} position={point} />
       ))}
+
+      {/* Línea dinámica desde el último punto hasta el cursor */}
+      {points.length > 0 && currentPos && (
+        <Polyline
+          positions={[points[points.length - 1], currentPos]}
+          pathOptions={{
+            color: '#FFD700',
+            weight: 2,
+            dashArray: '5, 5',
+          }}
+        />
+      )}
+
+      {/* Líneas entre los puntos clickeados */}
+      {points.length >= 2 && (
+        <Polyline
+          positions={points}
+          pathOptions={{
+            color: '#FFD700',
+            weight: 3,
+          }}
+        />
+      )}
+
+      {/* Polígono completo cuando hay 3+ puntos */}
       {points.length >= 3 && (
         <Polygon
           positions={points}
@@ -94,17 +126,6 @@ function DrawPolygon({ onComplete }: { onComplete: (coords: number[][]) => void 
             fillColor: '#FFD700',
             fillOpacity: 0.3,
             weight: 3,
-          }}
-        />
-      )}
-      {points.length >= 2 && points.length < 3 && (
-        <Polygon
-          positions={points}
-          pathOptions={{
-            color: '#FFD700',
-            fillColor: 'transparent',
-            weight: 3,
-            dashArray: '5, 10',
           }}
         />
       )}
@@ -120,6 +141,9 @@ export default function MapaPoligono({
   const [isClient, setIsClient] = useState(false)
   const [lotes, setLotes] = useState<Lote[]>([])
   const [loading, setLoading] = useState(true)
+
+  // Colores para los potreros existentes
+  const colors = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316']
 
   // Cargar potreros existentes
   useEffect(() => {
@@ -150,7 +174,6 @@ export default function MapaPoligono({
     )
   }
 
-  // Determinar el centro del mapa
   const lotesConPoligono = lotes.filter(l => l.poligono && l.poligono.length > 0)
   const mapCenter = lotesConPoligono.length > 0 ? undefined : initialCenter
 
@@ -167,21 +190,26 @@ export default function MapaPoligono({
           attribution='&copy; <a href="https://www.esri.com/">Esri</a>'
         />
         
-        {/* Mostrar potreros existentes */}
-        {!loading && lotesConPoligono.map((lote) => (
-          <Polygon
-            key={lote.id}
-            positions={lote.poligono!.map(p => [p[0], p[1]] as [number, number])}
-            pathOptions={{
-              color: '#22c55e',
-              fillColor: '#22c55e',
-              fillOpacity: 0.2,
-              weight: 2,
-            }}
-          >
-            {/* Tooltip con nombre del potrero */}
-          </Polygon>
-        ))}
+        {/* Mostrar potreros existentes con colores distintos */}
+        {!loading && lotesConPoligono.map((lote, index) => {
+          const color = colors[index % colors.length]
+          return (
+            <Polygon
+              key={lote.id}
+              positions={lote.poligono!.map(p => [p[0], p[1]] as [number, number])}
+              pathOptions={{
+                color: color,
+                fillColor: color,
+                fillOpacity: 0.4,
+                weight: 3,
+              }}
+            >
+              <Tooltip permanent direction="center" className="font-bold">
+                {lote.nombre}
+              </Tooltip>
+            </Polygon>
+          )
+        })}
 
         {/* Ajustar bounds si hay potreros */}
         {lotesConPoligono.length > 0 && <FitBounds lotes={lotes} />}
@@ -210,9 +238,22 @@ export default function MapaPoligono({
           </div>
         </div>
         {lotesConPoligono.length > 0 && (
-          <p className="text-xs text-green-600 mt-2 font-medium">
-            ✓ Mostrando {lotesConPoligono.length} potrero{lotesConPoligono.length > 1 ? 's' : ''} existente{lotesConPoligono.length > 1 ? 's' : ''}
-          </p>
+          <div className="mt-3 pt-3 border-t border-gray-200">
+            <p className="text-xs text-gray-600 font-medium mb-2">
+              Potreros existentes:
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {lotesConPoligono.map((lote, index) => (
+                <div key={lote.id} className="flex items-center gap-1.5">
+                  <div 
+                    className="w-3 h-3 rounded-full" 
+                    style={{ backgroundColor: colors[index % colors.length] }}
+                  />
+                  <span className="text-xs text-gray-700">{lote.nombre}</span>
+                </div>
+              ))}
+            </div>
+          </div>
         )}
       </div>
     </div>
