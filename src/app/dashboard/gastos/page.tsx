@@ -5,8 +5,8 @@ import {
   PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip,
   BarChart, Bar, XAxis, YAxis, CartesianGrid
 } from 'recharts'
-import ModalEditarGasto from '@/components/ModalEditarGasto'
-import ModalEditarIngreso from '@/components/ModalEditarIngreso'
+import ModalEditarGasto from '../../../components/ModalEditarGasto'
+import ModalEditarIngreso from '../../../components/ModalEditarIngreso'
 
 type Gasto = {
   id: string
