@@ -154,6 +154,17 @@ export default function MapaPoligono({
       if (res.ok) {
         const data = await res.json()
         console.log('📦 Potreros cargados:', data.length)
+        console.log('🔍 Estructura de potreros:', data)
+        
+        // Debug: verificar cada potrero
+        data.forEach((lote: Lote) => {
+          console.log(`Potrero "${lote.nombre}":`, {
+            tienePoligono: !!lote.poligono,
+            tipoPoligono: typeof lote.poligono,
+            poligono: lote.poligono
+          })
+        })
+        
         setLotes(data)
       }
     } catch (error) {
