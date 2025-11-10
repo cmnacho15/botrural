@@ -60,18 +60,13 @@ function FiltrosDatos() {
 // ==================== TARJETA DE DATO ====================
 function TarjetaDato({ dato }: { dato: any }) {
   const formatFecha = (fecha: Date) => {
-    const hoy = new Date()
-    const fechaDato = new Date(fecha)
-    const diff = Math.floor((hoy.getTime() - fechaDato.getTime()) / (1000 * 60 * 60 * 24))
-    if (diff === 0) return 'Hoy'
-    if (diff === 1) return 'Ayer'
-    if (diff < 7) return `Hace ${diff} días`
-    return fechaDato.toLocaleDateString('es-UY', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    })
-  }
+  const fechaDato = new Date(fecha)
+  return fechaDato.toLocaleDateString('es-UY', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  })
+}
 
   const colorClasses: Record<string, string> = {
     green: 'bg-green-500',
