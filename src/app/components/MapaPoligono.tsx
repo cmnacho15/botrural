@@ -1,284 +1,253 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { MapContainer, TileLayer, Polygon, Polyline, useMapEvents, Marker, useMap, Tooltip } from 'react-leaflet'
+import { useEffect, useRef, useState } from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import 'leaflet-draw/dist/leaflet.draw.css'
 
-// Fix para los iconos de Leaflet en Next.js
-delete (L.Icon.Default.prototype as any)._getIconUrl
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-})
-
-type Lote = {
-  id: string
-  nombre: string
-  hectareas: number
-  poligono: number[][] | null
+if (typeof window !== 'undefined') {
+  require('leaflet-draw')
 }
 
-type MapaPoligonoProps = {
-  onPolygonComplete: (coordinates: number[][]) => void
+interface MapaPoligonoProps {
+  onPolygonComplete: (coordinates: number[][], areaHectareas: number) => void
   initialCenter?: [number, number]
   initialZoom?: number
 }
 
-// Componente para ajustar el mapa a los bounds de todos los potreros
-function FitBounds({ lotes }: { lotes: Lote[] }) {
-  const map = useMap()
-
-  useEffect(() => {
-    const lotesConPoligono = lotes.filter(l => l.poligono && l.poligono.length > 0)
-    
-    if (lotesConPoligono.length > 0) {
-      const allPoints: [number, number][] = []
-      
-      lotesConPoligono.forEach(lote => {
-        if (lote.poligono) {
-          lote.poligono.forEach(point => {
-            allPoints.push([point[0], point[1]])
-          })
-        }
-      })
-
-      if (allPoints.length > 0) {
-        const bounds = L.latLngBounds(allPoints)
-        map.fitBounds(bounds, { padding: [50, 50] })
-      }
-    }
-  }, [lotes, map])
-
-  return null
+function calcularAreaPoligono(latlngs: any[]): number {
+  const R = 6371000
+  if (latlngs.length < 3) return 0
+  
+  let area = 0
+  const coords = latlngs.map((ll: any) => ({
+    lat: ll.lat * Math.PI / 180,
+    lng: ll.lng * Math.PI / 180
+  }))
+  
+  for (let i = 0; i < coords.length; i++) {
+    const j = (i + 1) % coords.length
+    area += coords[i].lng * coords[j].lat
+    area -= coords[j].lng * coords[i].lat
+  }
+  
+  area = Math.abs(area * R * R / 2)
+  return area
 }
 
-function DrawPolygon({ onComplete }: { onComplete: (coords: number[][]) => void }) {
-  const [points, setPoints] = useState<[number, number][]>([])
-  const [currentPos, setCurrentPos] = useState<[number, number] | null>(null)
-
-  useMapEvents({
-    click(e) {
-      setPoints((prev) => [...prev, [e.latlng.lat, e.latlng.lng]])
-    },
-    mousemove(e) {
-      // Actualizar posición del cursor para mostrar la línea dinámica
-      setCurrentPos([e.latlng.lat, e.latlng.lng])
-    },
-  })
-
-  useEffect(() => {
-    const handleKeyPress = (e: KeyboardEvent) => {
-      if (e.key === 'Enter' && points.length >= 3) {
-        onComplete(points)
-        setPoints([])
-        setCurrentPos(null)
-      }
-      if (e.key === 'Escape') {
-        setPoints([])
-        setCurrentPos(null)
-      }
-      if (e.key === 'Backspace' && points.length > 0) {
-        setPoints(prev => prev.slice(0, -1))
-      }
-    }
-    window.addEventListener('keydown', handleKeyPress)
-    return () => window.removeEventListener('keydown', handleKeyPress)
-  }, [points, onComplete])
-
-  return (
-    <>
-      {/* Puntos clickeados */}
-      {points.map((point, idx) => (
-        <Marker key={idx} position={point} />
-      ))}
-
-      {/* Línea dinámica desde el último punto hasta el cursor */}
-      {points.length > 0 && currentPos && (
-        <Polyline
-          positions={[points[points.length - 1], currentPos]}
-          pathOptions={{
-            color: '#FFD700',
-            weight: 2,
-            dashArray: '5, 5',
-          }}
-        />
-      )}
-
-      {/* Líneas entre los puntos clickeados */}
-      {points.length >= 2 && (
-        <Polyline
-          positions={points}
-          pathOptions={{
-            color: '#FFD700',
-            weight: 3,
-          }}
-        />
-      )}
-
-      {/* Polígono completo cuando hay 3+ puntos */}
-      {points.length >= 3 && (
-        <Polygon
-          positions={points}
-          pathOptions={{
-            color: '#FFD700',
-            fillColor: '#FFD700',
-            fillOpacity: 0.3,
-            weight: 3,
-          }}
-        />
-      )}
-    </>
-  )
-}
-
-export default function MapaPoligono({ 
-  onPolygonComplete, 
-  initialCenter = [-34.9011, -56.1645],
-  initialZoom = 15 
+export default function MapaPoligono({
+  onPolygonComplete,
+  initialCenter = [-34.397, -56.165],
+  initialZoom = 8,
 }: MapaPoligonoProps) {
-  const [isClient, setIsClient] = useState(false)
-  const [lotes, setLotes] = useState<Lote[]>([])
-  const [loading, setLoading] = useState(true)
+  const mapRef = useRef<any>(null)
+  const drawnItemsRef = useRef<any>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchResults, setSearchResults] = useState<any[]>([])
+  const [searching, setSearching] = useState(false)
+  const [areaHectareas, setAreaHectareas] = useState<number | null>(null)
 
-  // Colores para los potreros existentes
-  const colors = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316']
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    if (mapRef.current) return
 
-  // 🔄 Función para cargar/recargar potreros
-  const fetchLotes = async () => {
-    try {
-      const res = await fetch('/api/lotes', {
-        cache: 'no-store' // ✅ Evita caché
-      })
-      if (res.ok) {
-        const data = await res.json()
-        console.log('📦 Potreros cargados:', data.length)
-        console.log('🔍 Estructura de potreros:', data)
-        
-        // Debug: verificar cada potrero
-        data.forEach((lote: Lote) => {
-          console.log(`Potrero "${lote.nombre}":`, {
-            tienePoligono: !!lote.poligono,
-            tipoPoligono: typeof lote.poligono,
-            poligono: lote.poligono
-          })
-        })
-        
-        setLotes(data)
+    const map = (L as any).map('map').setView(initialCenter, initialZoom)
+    mapRef.current = map
+
+    const osmLayer = (L as any).tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors',
+      maxZoom: 19,
+    })
+    osmLayer.addTo(map)
+
+    const satelitalLayer = (L as any).tileLayer(
+      'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      {
+        attribution: '© Esri',
+        maxZoom: 19,
       }
+    )
+
+    (L as any).control.layers(
+      {
+        'Mapa': osmLayer,
+        'Satélite': satelitalLayer
+      }
+    ).addTo(map)
+
+    const drawnItems = new (L as any).FeatureGroup()
+    map.addLayer(drawnItems)
+    drawnItemsRef.current = drawnItems
+
+    const drawControl = new (L.Control as any).Draw({
+      draw: {
+        polygon: {
+          allowIntersection: false,
+          showArea: true,
+          metric: ['ha', 'm'],
+          shapeOptions: {
+            color: '#3b82f6',
+            weight: 3,
+          },
+        },
+        polyline: false,
+        rectangle: false,
+        circle: false,
+        marker: false,
+        circlemarker: false,
+      },
+      edit: {
+        featureGroup: drawnItems,
+        remove: true,
+      },
+    })
+    map.addControl(drawControl)
+
+    const DrawEvent = (L as any).Draw.Event
+
+    map.on(DrawEvent.CREATED, (event: any) => {
+      const layer = event.layer
+      drawnItems.clearLayers()
+      drawnItems.addLayer(layer)
+
+      const latlngs = layer.getLatLngs()[0]
+      const areaM2 = calcularAreaPoligono(latlngs)
+      const areaHa = areaM2 / 10000
+      setAreaHectareas(areaHa)
+    })
+
+    map.on(DrawEvent.EDITED, (event: any) => {
+      const layers = event.layers
+      layers.eachLayer((layer: any) => {
+        const latlngs = layer.getLatLngs()[0]
+        const areaM2 = calcularAreaPoligono(latlngs)
+        const areaHa = areaM2 / 10000
+        setAreaHectareas(areaHa)
+      })
+    })
+
+    map.on(DrawEvent.DELETED, () => {
+      setAreaHectareas(null)
+    })
+
+    return () => {
+      map.remove()
+      mapRef.current = null
+    }
+  }, [initialCenter, initialZoom])
+
+  const buscarUbicacion = async () => {
+    if (!searchQuery.trim()) return
+
+    setSearching(true)
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+          searchQuery
+        )}&countrycodes=uy&limit=5`
+      )
+      const data = await response.json()
+      setSearchResults(data)
     } catch (error) {
-      console.error('Error cargando potreros:', error)
+      console.error('Error buscando ubicación:', error)
+      alert('Error al buscar la ubicación')
     } finally {
-      setLoading(false)
+      setSearching(false)
     }
   }
 
-  // 🚀 Cargar potreros al iniciar
-  useEffect(() => {
-    setIsClient(true)
-    fetchLotes()
-  }, [])
-
-  // ⏱️ Auto-recargar cada 3 segundos para ver cambios nuevos
-  useEffect(() => {
-    const interval = setInterval(() => {
-      console.log('🔄 Recargando potreros...')
-      fetchLotes()
-    }, 3000) // cada 3 segundos
-
-    return () => clearInterval(interval)
-  }, [])
-
-  if (!isClient) {
-    return (
-      <div className="w-full h-full flex items-center justify-center bg-gray-100 rounded-lg">
-        <p className="text-gray-500">Cargando mapa...</p>
-      </div>
-    )
+  const irAUbicacion = (result: any) => {
+    if (mapRef.current) {
+      const lat = parseFloat(result.lat)
+      const lon = parseFloat(result.lon)
+      mapRef.current.setView([lat, lon], 16)
+      setSearchResults([])
+      setSearchQuery('')
+    }
   }
 
-  const lotesConPoligono = lotes.filter(l => l.poligono && l.poligono.length > 0)
-  const mapCenter = lotesConPoligono.length > 0 ? undefined : initialCenter
+  const confirmarPoligono = () => {
+    if (!drawnItemsRef.current || drawnItemsRef.current.getLayers().length === 0) {
+      alert('Primero dibujá el potrero en el mapa')
+      return
+    }
+
+    const layer = drawnItemsRef.current.getLayers()[0]
+    const latlngs = layer.getLatLngs()[0]
+    const coordinates = latlngs.map((ll: any) => [ll.lat, ll.lng])
+
+    if (areaHectareas) {
+      onPolygonComplete(coordinates, areaHectareas)
+    }
+  }
+
+  const cancelar = () => {
+    if (drawnItemsRef.current) {
+      drawnItemsRef.current.clearLayers()
+      setAreaHectareas(null)
+    }
+  }
 
   return (
-    <div className="relative w-full h-full">
-      <MapContainer
-        center={mapCenter}
-        zoom={initialZoom}
-        className="w-full h-full rounded-lg z-0"
-        style={{ height: '100%', width: '100%' }}
-      >
-        <TileLayer
-          url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-          attribution='&copy; <a href="https://www.esri.com/">Esri</a>'
-        />
-        
-        {/* Mostrar potreros existentes con colores distintos */}
-        {!loading && lotesConPoligono.map((lote, index) => {
-          const color = colors[index % colors.length]
-          return (
-            <Polygon
-              key={lote.id}
-              positions={lote.poligono!.map(p => [p[0], p[1]] as [number, number])}
-              pathOptions={{
-                color: color,
-                fillColor: color,
-                fillOpacity: 0.4,
-                weight: 3,
-              }}
+    <div className="relative w-full h-full flex flex-col">
+      <div className="absolute top-4 left-4 right-4 z-[1000] md:left-16 md:right-auto md:w-96">
+        <div className="bg-white rounded-lg shadow-lg p-3">
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && buscarUbicacion()}
+              placeholder="Ej: Salto, Rincón de Valentín..."
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            />
+            <button
+              onClick={buscarUbicacion}
+              disabled={searching}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm font-medium"
             >
-              <Tooltip permanent direction="center" className="font-bold">
-                {lote.nombre}
-              </Tooltip>
-            </Polygon>
-          )
-        })}
+              {searching ? '⏳' : '🔍'}
+            </button>
+          </div>
 
-        {/* Ajustar bounds si hay potreros */}
-        {lotesConPoligono.length > 0 && <FitBounds lotes={lotes} />}
-        
-        {/* Componente para dibujar nuevo potrero */}
-        <DrawPolygon onComplete={onPolygonComplete} />
-      </MapContainer>
-
-      {/* Instrucciones mejoradas */}
-      <div className="absolute bottom-4 left-4 bg-white px-4 py-3 rounded-lg shadow-lg z-[1000] max-w-md">
-        <p className="text-sm text-gray-700 font-medium mb-2">
-          📍 Clickeá en el mapa para dibujar el potrero
-        </p>
-        <div className="flex flex-wrap gap-2 text-xs text-gray-600">
-          <div className="flex items-center gap-1">
-            <kbd className="px-2 py-1 bg-gray-200 rounded font-mono">Enter</kbd>
-            <span>Confirmar</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <kbd className="px-2 py-1 bg-gray-200 rounded font-mono">Esc</kbd>
-            <span>Cancelar</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <kbd className="px-2 py-1 bg-gray-200 rounded font-mono">←</kbd>
-            <span>Deshacer</span>
-          </div>
-        </div>
-        {lotesConPoligono.length > 0 && (
-          <div className="mt-3 pt-3 border-t border-gray-200">
-            <p className="text-xs text-gray-600 font-medium mb-2">
-              Potreros existentes ({lotesConPoligono.length}):
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {lotesConPoligono.map((lote, index) => (
-                <div key={lote.id} className="flex items-center gap-1.5">
-                  <div 
-                    className="w-3 h-3 rounded-full" 
-                    style={{ backgroundColor: colors[index % colors.length] }}
-                  />
-                  <span className="text-xs text-gray-700">{lote.nombre}</span>
-                </div>
+          {searchResults.length > 0 && (
+            <div className="mt-2 max-h-48 overflow-y-auto">
+              {searchResults.map((result, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => irAUbicacion(result)}
+                  className="w-full text-left px-3 py-2 hover:bg-gray-100 rounded text-sm border-b last:border-b-0"
+                >
+                  <div className="font-medium">{result.display_name}</div>
+                </button>
               ))}
             </div>
-          </div>
-        )}
+          )}
+        </div>
+      </div>
+
+      {areaHectareas !== null && (
+        <div className="absolute top-4 right-4 z-[1000] bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg">
+          <div className="text-sm font-medium">Área calculada:</div>
+          <div className="text-xl font-bold">{areaHectareas.toFixed(2)} ha</div>
+        </div>
+      )}
+
+      <div id="map" className="flex-1 w-full h-full" />
+
+      <div className="absolute bottom-4 left-4 right-4 z-[1000] flex flex-col sm:flex-row gap-3">
+        <button
+          onClick={confirmarPoligono}
+          className="flex-1 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 font-medium shadow-lg text-base sm:text-lg"
+        >
+          ✅ Confirmar Potrero
+        </button>
+        <button
+          onClick={cancelar}
+          className="flex-1 bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 font-medium shadow-lg text-base sm:text-lg"
+        >
+          ❌ Deshacer
+        </button>
       </div>
     </div>
   )

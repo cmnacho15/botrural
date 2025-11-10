@@ -13,6 +13,7 @@
     "@prisma/client": "^6.18.0",
     "bcryptjs": "^3.0.3",
     "leaflet": "^1.9.4",
+    "leaflet-geometryutil": "^0.10.3",
     "mapbox-gl": "^3.16.0",
     "next": "16.0.1",
     "next-auth": "^4.24.13",
@@ -25,6 +26,7 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/leaflet": "^1.9.21",
+    "@types/leaflet-draw": "^1.0.13",
     "@types/mapbox-gl": "^3.4.1",
     "@types/node": "^20",
     "@types/react": "^19",
