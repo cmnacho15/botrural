@@ -117,7 +117,7 @@ existingPolygons.forEach((potrero) => {
 
     // Si hay potreros, ajustar el zoom para verlos todos
     if (existingPolygons.length > 0 && existingLayers.getLayers().length > 0) {
-      map.fitBounds(existingLayers.getBounds(), { padding: [50, 50] })
+      map.fitBounds((existingLayers as any).getBounds(), { padding: [50, 50] })
     }
 
     // Capa para dibujar nuevos potreros
