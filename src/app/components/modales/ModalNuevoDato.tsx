@@ -9,7 +9,7 @@ import {
   ModalIngresoInsumos,
   ModalSiembra,
   ModalNacimiento,
-} from '@/src/app/components/modales'
+} from '@/app/components/modales'
 
 type ModalNuevoDatoProps = {
   isOpen: boolean

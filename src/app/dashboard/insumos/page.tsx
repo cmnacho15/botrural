@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic'
 
 
 import { useState, useEffect, Suspense } from 'react'
-import { useInsumos } from '@/src/app/contexts/InsumosContext'
+import { useInsumos } from '@/app/contexts/InsumosContext'
 import { useSearchParams } from 'next/navigation'
 
 type Lote = {

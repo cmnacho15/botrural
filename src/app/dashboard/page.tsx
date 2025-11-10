@@ -1,7 +1,7 @@
 import { getServerSession } from "next-auth"
 export const dynamic = 'force-dynamic'
 
-import { authOptions } from "@/src/app/api/auth/[...nextauth]/route"
+import { authOptions } from "@/app/api/auth/[...nextauth]/route"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 

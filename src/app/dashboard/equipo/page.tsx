@@ -2,7 +2,7 @@
 export const dynamic = 'force-dynamic'
 
 import { useEffect, useState } from 'react'
-import ModalInvitarUsuario from '@/src/app/components/modales/ModalInvitarUsuario'
+import ModalInvitarUsuario from '@/app/components/modales/ModalInvitarUsuario'
 
 type Usuario = {
   id: string

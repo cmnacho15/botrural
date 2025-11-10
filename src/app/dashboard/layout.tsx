@@ -4,10 +4,10 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 import useSWR from 'swr'
-import { DatosProvider, useDatos } from '@/src/app/contexts/DatosContext'
-import { InsumosProvider, useInsumos } from '@/src/app/contexts/InsumosContext'
-import { GastosProvider, useGastos } from '@/src/app/contexts/GastosContext'
-import ModalNuevoDato from '@/src/app/components/modales/ModalNuevoDato'
+import { DatosProvider, useDatos } from '@/app/contexts/DatosContext'
+import { InsumosProvider, useInsumos } from '@/app/contexts/InsumosContext'
+import { GastosProvider, useGastos } from '@/app/contexts/GastosContext'
+import ModalNuevoDato from '@/app/components/modales/ModalNuevoDato'
 
 // 🔄 Hook SWR para traer datos con cache
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
