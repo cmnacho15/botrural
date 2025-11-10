@@ -51,16 +51,19 @@ export default function MapaPoligono({
     if (typeof window === 'undefined') return
     if (mapRef.current) return
 
-    const map = (L as any).map('map').setView(initialCenter, initialZoom)
+    const map: any = L.map('map')
+map.setView(initialCenter, initialZoom)
     mapRef.current = map
 
-    const osmLayer = (L as any).tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    // Capa base de mapa
+    const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap contributors',
       maxZoom: 19,
     })
     osmLayer.addTo(map)
 
-    const satelitalLayer = (L as any).tileLayer(
+    // Capa satelital
+    const satelitalLayer = L.tileLayer(
       'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
       {
         attribution: '© Esri',
@@ -68,14 +71,15 @@ export default function MapaPoligono({
       }
     )
 
-    (L as any).control.layers(
+    // Control de capas
+    L.control.layers(
       {
         'Mapa': osmLayer,
         'Satélite': satelitalLayer
       }
     ).addTo(map)
 
-    const drawnItems = new (L as any).FeatureGroup()
+    const drawnItems = new L.FeatureGroup()
     map.addLayer(drawnItems)
     drawnItemsRef.current = drawnItems
 

@@ -1,32 +1,44 @@
 declare module 'leaflet' {
-  interface TileLayerOptions {
-    attribution?: string
-    maxZoom?: number
-    minZoom?: number
+  interface Map {
+    setView(center: [number, number], zoom: number): this
+    addLayer(layer: any): this
+    addControl(control: any): this
+    on(event: string, handler: (e: any) => void): this
+    remove(): void
   }
 
-  interface LayersControlOptions {
-    collapsed?: boolean
-    position?: string
+  interface Layer {
+    addTo(map: Map): this
+    getLatLngs(): any[]
   }
 
-  function tileLayer(urlTemplate: string, options?: TileLayerOptions): TileLayer
-  
+  interface TileLayer extends Layer {}
+
+  interface FeatureGroupMethods {
+    clearLayers(): this
+    getLayers(): any[]
+    addLayer(layer: any): this
+    eachLayer(fn: (layer: any) => void): void
+  }
+
+  function map(id: string, options?: any): Map  // ← Esto retorna Map, no any
+  function tileLayer(url: string, options?: any): TileLayer
+
+  class FeatureGroup implements FeatureGroupMethods {
+    constructor()
+    clearLayers(): this
+    getLayers(): any[]
+    addLayer(layer: any): this
+    eachLayer(fn: (layer: any) => void): void
+  }
+
   namespace control {
-    function layers(
-      baseLayers?: { [name: string]: Layer },
-      overlays?: { [name: string]: Layer },
-      options?: LayersControlOptions
-    ): Control.Layers
+    function layers(baseLayers?: any, overlays?: any, options?: any): any
   }
 
   namespace Control {
-    class Draw extends Control {
+    class Draw {
       constructor(options?: any)
-    }
-    
-    interface Layers extends Control {
-      addTo(map: Map): this
     }
   }
 
@@ -40,11 +52,6 @@ declare module 'leaflet' {
       EDITSTART: string
       EDITSTOP: string
     }
-  }
-
-  class FeatureGroup extends LayerGroup {
-    clearLayers(): this
-    getLayers(): Layer[]
   }
 }
 
