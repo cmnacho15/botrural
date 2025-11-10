@@ -65,7 +65,7 @@ export async function POST(request: Request) {
 
     // Leer datos del body
     const body = await request.json();
-    const { nombre, hectareas } = body;
+    const { nombre, hectareas, poligono } = body;
 
     if (!nombre || !hectareas) {
       return NextResponse.json(
@@ -74,17 +74,25 @@ export async function POST(request: Request) {
       );
     }
 
-    // Crear el lote
+    // ✅ Validar y guardar el polígono
+    if (!Array.isArray(poligono) || poligono.length < 3) {
+      return NextResponse.json(
+        { error: "El polígono debe tener al menos 3 puntos" },
+        { status: 400 }
+      );
+    }
+
+    // ✅ Guardar el lote con el polígono en formato JSON
     const lote = await prisma.lote.create({
       data: {
         nombre,
         hectareas: parseFloat(hectareas),
-        campoId: usuario.campoId, // ✅ Asociado automáticamente
+        poligono, // Se guarda como JSON directamente
+        campoId: usuario.campoId,
       },
     });
 
-    console.log(`✅ Lote creado: ${nombre} (${hectareas} ha)`);
-
+    console.log(`✅ Lote creado: ${nombre} (${hectareas} ha) con ${poligono.length} puntos`);
     return NextResponse.json(lote, { status: 201 });
   } catch (error) {
     console.error("💥 Error creando lote:", error);
