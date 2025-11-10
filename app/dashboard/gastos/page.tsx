@@ -40,6 +40,11 @@ export default function GastosPage() {
   const [editMetodoPago, setEditMetodoPago] = useState('efectivo')
   const [loadingEdit, setLoadingEdit] = useState(false)
 
+  // ✅ NUEVOS ESTADOS PARA ELIMINAR
+  const [modalDeleteOpen, setModalDeleteOpen] = useState(false)
+  const [gastoAEliminar, setGastoAEliminar] = useState<Gasto | null>(null)
+  const [loadingDelete, setLoadingDelete] = useState(false)
+
   // ✅ NUEVOS ESTADOS PARA DATOS REALES
   const [gastosData, setGastosData] = useState<Gasto[]>([])
   const [loading, setLoading] = useState(true)
@@ -197,12 +202,13 @@ export default function GastosPage() {
       })
 
       if (!response.ok) throw new Error('Error al actualizar')
-      const gastoActualizado = await response.json() // ← AGREGAR: Obtener el gasto actualizado de la respuesta
+      const gastoActualizado = await response.json()
 
-// ✅ AGREGAR: Actualizar solo ese gasto en el array, sin tocar los demás
-setGastosData(prev => 
-  prev.map(g => g.id === gastoActualizado.id ? gastoActualizado : g)
-)
+      // Actualizar solo el gasto editado
+      setGastosData(prev => 
+        prev.map(g => g.id === gastoActualizado.id ? gastoActualizado : g)
+      )
+
       setModalEditOpen(false)
       setGastoEditando(null)
       alert('¡Gasto actualizado exitosamente!')
@@ -212,6 +218,32 @@ setGastosData(prev =>
       alert('Error al actualizar el gasto')
     } finally {
       setLoadingEdit(false)
+    }
+  }
+
+  // ✅ FUNCIÓN PARA ELIMINAR GASTO
+  const handleEliminarGasto = async () => {
+    if (!gastoAEliminar) return
+
+    setLoadingDelete(true)
+    try {
+      const response = await fetch(`/api/gastos/${gastoAEliminar.id}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) throw new Error('Error al eliminar')
+
+      // Eliminar del estado sin recargar
+      setGastosData(prev => prev.filter(g => g.id !== gastoAEliminar.id))
+
+      setModalDeleteOpen(false)
+      setGastoAEliminar(null)
+      alert('¡Gasto eliminado exitosamente!')
+    } catch (error) {
+      console.error('Error al eliminar:', error)
+      alert('Error al eliminar el gasto')
+    } finally {
+      setLoadingDelete(false)
     }
   }
 
@@ -263,7 +295,7 @@ setGastosData(prev =>
           </div>
 
           <button className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-700 hover:bg-gray-50 text-sm">
-            📅 <span>Último Año</span>
+            Último Año
           </button>
         </div>
       </div>
@@ -542,13 +574,27 @@ setGastosData(prev =>
                       </span>
                     </td>
                     <td className="px-4 sm:px-6 py-3">{t.usuario}</td>
+                    {/* BOTONES EDITAR + ELIMINAR */}
                     <td className="px-4 sm:px-6 py-3 text-right">
-                      <button
-                        onClick={() => handleEditarGasto(t.gastoCompleto)}
-                        className="text-blue-600 hover:text-blue-800 transition"
-                      >
-                        ✏️
-                      </button>
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => handleEditarGasto(t.gastoCompleto)}
+                          className="text-blue-600 hover:text-blue-800 transition"
+                          title="Editar"
+                        >
+                          Editar
+                        </button>
+                        <button
+                          onClick={() => {
+                            setGastoAEliminar(t.gastoCompleto)
+                            setModalDeleteOpen(true)
+                          }}
+                          className="text-red-600 hover:text-red-800 transition"
+                          title="Eliminar"
+                        >
+                          Eliminar
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -637,7 +683,7 @@ setGastosData(prev =>
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
                 <div className={`w-12 h-12 rounded-full ${gastoEditando.tipo === 'INGRESO' ? 'bg-green-100' : 'bg-red-100'} flex items-center justify-center text-2xl`}>
-                  {gastoEditando.tipo === 'INGRESO' ? '💰' : '💸'}
+                  {gastoEditando.tipo === 'INGRESO' ? 'Ingreso' : 'Gasto'}
                 </div>
                 <h2 className="text-2xl font-bold text-gray-900">
                   Editar {gastoEditando.tipo === 'INGRESO' ? 'Ingreso' : 'Gasto'}
@@ -729,6 +775,56 @@ setGastosData(prev =>
                 className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
               >
                 {loadingEdit ? 'Guardando...' : 'Guardar Cambios'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL ELIMINAR */}
+      {modalDeleteOpen && gastoAEliminar && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center text-2xl">
+                  Advertencia
+                </div>
+                <h2 className="text-xl font-bold text-gray-900">
+                  Eliminar {gastoAEliminar.tipo === 'INGRESO' ? 'Ingreso' : 'Gasto'}
+                </h2>
+              </div>
+              <button
+                onClick={() => setModalDeleteOpen(false)}
+                className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
+              >
+                ✕
+              </button>
+            </div>
+
+            <p className="text-gray-600 mb-6">
+              ¿Estás seguro que querés eliminar este {gastoAEliminar.tipo === 'INGRESO' ? 'ingreso' : 'gasto'}?
+              <br />
+              <span className="font-semibold text-gray-900">
+                {gastoAEliminar.descripcion || `${gastoAEliminar.categoria} - $${gastoAEliminar.monto}`}
+              </span>
+              <br />
+              <span className="text-sm text-red-600">Esta acción no se puede deshacer.</span>
+            </p>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setModalDeleteOpen(false)}
+                className="flex-1 px-4 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleEliminarGasto}
+                disabled={loadingDelete}
+                className="flex-1 px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+              >
+                {loadingDelete ? 'Eliminando...' : 'Eliminar'}
               </button>
             </div>
           </div>
