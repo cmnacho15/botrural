@@ -94,26 +94,26 @@ export default function MapaPoligono({
     existingLayersRef.current = existingLayers
 
     // Dibujar potreros existentes
-    existingPolygons.forEach((potrero) => {
-      if (potrero.coordinates && potrero.coordinates.length > 0) {
-        const polygon = L.polygon(potrero.coordinates, {
-          color: potrero.color || '#10b981',
-          fillColor: potrero.color || '#10b981',
-          fillOpacity: 0.2,
-          weight: 2,
-        })
-        
-        polygon.bindPopup(`
-          <div style="padding: 8px;">
-            <strong style="font-size: 14px;">${potrero.nombre}</strong>
-            <br/>
-            <span style="color: #666; font-size: 12px;">ID: ${potrero.id}</span>
-          </div>
-        `)
-        
-        existingLayers.addLayer(polygon)
-      }
+existingPolygons.forEach((potrero) => {
+  if (potrero.coordinates && potrero.coordinates.length > 0) {
+    const polygon = (L as any).polygon(potrero.coordinates, {
+      color: potrero.color || '#10b981',
+      fillColor: potrero.color || '#10b981',
+      fillOpacity: 0.2,
+      weight: 2,
     })
+    
+    polygon.bindPopup(`
+      <div style="padding: 8px;">
+        <strong style="font-size: 14px;">${potrero.nombre}</strong>
+        <br/>
+        <span style="color: #666; font-size: 12px;">ID: ${potrero.id}</span>
+      </div>
+    `)
+    
+    existingLayers.addLayer(polygon)
+  }
+})
 
     // Si hay potreros, ajustar el zoom para verlos todos
     if (existingPolygons.length > 0 && existingLayers.getLayers().length > 0) {
