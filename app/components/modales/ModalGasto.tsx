@@ -41,24 +41,31 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
   }
 
   const handleItemChange = (id: string, field: keyof ItemGasto, value: any) => {
-    setItems((prev) =>
-      prev.map((item) => {
-        if (item.id !== id) return item
+  setItems((prev) =>
+    prev.map((item) => {
+      if (item.id !== id) return item
 
-        const updated = { ...item, [field]: value }
+      // ✅ Crear copia del item
+      let updated = { ...item }
 
-        // Recalcular precio final si cambia precio o IVA
-        if (field === 'precio' || field === 'iva') {
-          updated.precioFinal = calcularPrecioFinal(
-            field === 'precio' ? parseFloat(value) || 0 : updated.precio,
-            field === 'iva' ? parseFloat(value) || 0 : updated.iva
-          )
-        }
+      // ✅ Asignar el valor según el campo
+      if (field === 'precio') {
+        const numValue = parseFloat(value)
+        updated.precio = isNaN(numValue) ? 0 : numValue
+        updated.precioFinal = calcularPrecioFinal(updated.precio, updated.iva)
+      } else if (field === 'iva') {
+        const numValue = parseFloat(value)
+        updated.iva = isNaN(numValue) ? 0 : numValue
+        updated.precioFinal = calcularPrecioFinal(updated.precio, updated.iva)
+      } else {
+        // Para campos de texto (item, categoria)
+        updated = { ...updated, [field]: value }
+      }
 
-        return updated
-      })
-    )
-  }
+      return updated
+    })
+  )
+}
 
   const agregarItem = () => {
     setItems((prev) => [
@@ -231,7 +238,7 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
                     type="number"
                     step="0.01"
                     value={item.precio || ''}
-                    onChange={(e) => handleItemChange(item.id, 'precio', e.target.value)}
+                    onChange={(e) => handleItemChange(item.id, 'precio', e.target.value)}  // ✅ Sin parseFloat
                     placeholder="0.00"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                     required
@@ -242,7 +249,7 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
                   <label className="block text-xs text-gray-600 mb-1">IVA</label>
                   <select
                     value={item.iva}
-                    onChange={(e) => handleItemChange(item.id, 'iva', e.target.value)}
+                    onChange={(e) => handleItemChange(item.id, 'iva', e.target.value)}  // ✅ Sin parseFloat
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="0">Sin IVA</option>
