@@ -12,6 +12,7 @@ type ModalEditarGastoProps = {
     categoria: string
     descripcion?: string
     metodoPago?: string
+    iva?: number // ✅ agregado
   }
   onClose: () => void
   onSuccess: () => void
@@ -34,33 +35,30 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
   const [notas, setNotas] = useState('')
   const [loading, setLoading] = useState(false)
 
-  // Parsear la descripción para extraer item, proveedor y notas
-  useEffect(() => {
-    if (gasto.descripcion) {
-      const partes = gasto.descripcion.split(' - ')
-      if (partes.length > 1) {
-        setProveedor(partes[1] || '')
-      }
-      if (partes.length > 2) {
-        setNotas(partes[2] || '')
-      }
-    }
-  }, [gasto.descripcion])
+  // ✅ Determinar el IVA inicial según el gasto original
+  const ivaInicial = gasto.iva !== undefined ? gasto.iva : 22
 
   const [items, setItems] = useState<ItemGasto[]>([
     {
       id: '1',
       item: gasto.descripcion?.split(' - ')[0] || '',
       categoria: gasto.categoria,
-      precio: gasto.monto / 1.22, // Aproximado, asumiendo 22% IVA
-      iva: 22,
+      iva: ivaInicial,
+      precio: gasto.monto / (1 + ivaInicial / 100),
       precioFinal: gasto.monto,
     },
   ])
 
-  const calcularPrecioFinal = (precio: number, iva: number) => {
-    return precio + (precio * iva) / 100
-  }
+  // Parsear descripción para proveedor y notas
+  useEffect(() => {
+    if (gasto.descripcion) {
+      const partes = gasto.descripcion.split(' - ')
+      if (partes.length > 1) setProveedor(partes[1] || '')
+      if (partes.length > 2) setNotas(partes[2] || '')
+    }
+  }, [gasto.descripcion])
+
+  const calcularPrecioFinal = (precio: number, iva: number) => precio + (precio * iva) / 100
 
   const handleItemChange = (id: string, field: keyof ItemGasto, value: any) => {
     setItems((prev) =>
@@ -86,25 +84,6 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
     )
   }
 
-  const agregarItem = () => {
-    setItems((prev) => [
-      ...prev,
-      {
-        id: Date.now().toString(),
-        item: '',
-        categoria: CATEGORIAS_GASTOS[0],
-        precio: 0,
-        iva: 0,
-        precioFinal: 0,
-      },
-    ])
-  }
-
-  const eliminarItem = (id: string) => {
-    if (items.length === 1) return
-    setItems((prev) => prev.filter((item) => item.id !== id))
-  }
-
   const montoTotal = items.reduce((sum, item) => sum + item.precioFinal, 0)
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -116,21 +95,20 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
     }
 
     setLoading(true)
-
     try {
-      // Actualizar solo el primer item (editando el gasto existente)
       const item = items[0]
-      
+
       const response = await fetch(`/api/gastos/${gasto.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           tipo: 'GASTO',
-          fecha: fecha,
+          fecha,
           descripcion: `${item.item}${proveedor ? ` - ${proveedor}` : ''}${notas ? ` - ${notas}` : ''}`,
           categoria: item.categoria,
           monto: item.precioFinal,
           metodoPago,
+          iva: item.iva, // ✅ se guarda el IVA real
         }),
       })
 
@@ -150,9 +128,7 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
     <form onSubmit={handleSubmit} className="p-6 max-h-[90vh] overflow-y-auto">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center text-2xl">
-            💸
-          </div>
+          <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center text-2xl">💸</div>
           <h2 className="text-2xl font-bold text-gray-900">Editar Gasto</h2>
         </div>
         <button
@@ -220,12 +196,10 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
         </div>
       </div>
 
-      {/* ITEMS */}
+      {/* ITEM PRINCIPAL */}
       <div className="mb-6">
         <div className="bg-blue-50 rounded-lg p-3 mb-3 flex items-center gap-2">
-          <span className="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center font-bold">
-            1
-          </span>
+          <span className="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center font-bold">1</span>
           <h3 className="font-semibold text-gray-900">Item</h3>
         </div>
 

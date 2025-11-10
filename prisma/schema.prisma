@@ -165,6 +165,7 @@ model Gasto {
   descripcion String?
   categoria   String
   metodoPago  String?
+  iva         Float? 
   campoId     String
   loteId      String?
   createdAt   DateTime @default(now())

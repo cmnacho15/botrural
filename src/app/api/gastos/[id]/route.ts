@@ -9,37 +9,42 @@ export async function PUT(
   context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const params = await context.params // ← CAMBIO AQUÍ
+    const params = await context.params // ← necesario en Next 14 App Router
     
     const session = await getServerSession(authOptions)
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
     }
 
+    // Buscar usuario autenticado
     const usuario = await prisma.user.findUnique({
       where: { id: session.user.id },
     })
 
     if (!usuario?.campoId) {
-      return NextResponse.json({ error: 'Usuario sin campo asignado' }, { status: 400 })
+      return NextResponse.json(
+        { error: 'Usuario sin campo asignado' },
+        { status: 400 }
+      )
     }
 
     // ✅ Verificar que el gasto pertenece al mismo campo
-    const gastoExistente = await prisma.gasto.findUnique({ 
-      where: { id: params.id } 
+    const gastoExistente = await prisma.gasto.findUnique({
+      where: { id: params.id },
     })
 
     if (!gastoExistente || gastoExistente.campoId !== usuario.campoId) {
       return NextResponse.json(
-        { error: 'No autorizado para editar este gasto' }, 
+        { error: 'No autorizado para editar este gasto' },
         { status: 403 }
       )
     }
 
+    // ✅ Parsear el body del request
     const body = await request.json()
-    const { tipo, monto, fecha, descripcion, categoria, metodoPago } = body
+    const { tipo, monto, fecha, descripcion, categoria, metodoPago, iva } = body
 
-    // Actualizar el gasto
+    // ✅ Actualizar el gasto incluyendo el campo IVA
     const gastoActualizado = await prisma.gasto.update({
       where: { id: params.id },
       data: {
@@ -49,6 +54,7 @@ export async function PUT(
         descripcion,
         categoria,
         metodoPago,
+        iva: iva ? parseFloat(iva) : null, // ✅ Guarda o limpia el IVA
       },
       include: { lote: true },
     })
@@ -56,7 +62,10 @@ export async function PUT(
     return NextResponse.json(gastoActualizado)
   } catch (error) {
     console.error('💥 Error actualizando gasto:', error)
-    return NextResponse.json({ error: 'Error actualizando gasto' }, { status: 500 })
+    return NextResponse.json(
+      { error: 'Error actualizando gasto' },
+      { status: 500 }
+    )
   }
 }
 
@@ -66,8 +75,8 @@ export async function DELETE(
   context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const params = await context.params // ← CAMBIO AQUÍ
-    
+    const params = await context.params
+
     const session = await getServerSession(authOptions)
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
@@ -78,17 +87,20 @@ export async function DELETE(
     })
 
     if (!usuario?.campoId) {
-      return NextResponse.json({ error: 'Usuario sin campo asignado' }, { status: 400 })
+      return NextResponse.json(
+        { error: 'Usuario sin campo asignado' },
+        { status: 400 }
+      )
     }
 
     // ✅ Verificar que el gasto pertenece al mismo campo
-    const gasto = await prisma.gasto.findUnique({ 
-      where: { id: params.id } 
+    const gasto = await prisma.gasto.findUnique({
+      where: { id: params.id },
     })
 
     if (!gasto || gasto.campoId !== usuario.campoId) {
       return NextResponse.json(
-        { error: 'No autorizado para eliminar este gasto' }, 
+        { error: 'No autorizado para eliminar este gasto' },
         { status: 403 }
       )
     }
@@ -98,6 +110,9 @@ export async function DELETE(
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('💥 Error eliminando gasto:', error)
-    return NextResponse.json({ error: 'Error eliminando gasto' }, { status: 500 })
+    return NextResponse.json(
+      { error: 'Error eliminando gasto' },
+      { status: 500 }
+    )
   }
 }

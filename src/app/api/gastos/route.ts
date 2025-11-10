@@ -74,6 +74,7 @@ export async function POST(request: Request) {
         descripcion,
         categoria,
         metodoPago,
+        iva: iva ? parseFloat(iva) : null, // ✅ guarda el IVA si viene
         campoId: usuario.campoId, // ✅ asociar al campo del usuario
         loteId: loteId || null,
       },
