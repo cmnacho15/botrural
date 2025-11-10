@@ -120,6 +120,7 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
           categoria: item.categoria,
           monto: item.precioFinal,
           metodoPago,
+          iva: item.iva,
         }),
       })
 

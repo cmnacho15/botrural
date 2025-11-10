@@ -39,6 +39,7 @@ export async function POST(request: Request) {
       metodoPago,
       intensidad,
       notas,
+      iva,
     } = body;
 
     console.log("📥 Creando evento:", { tipo, descripcion });
@@ -77,6 +78,7 @@ export async function POST(request: Request) {
               descripcion: descripcion || `Gasto en ${categoria}`,
               categoria: categoria || "Otros",
               metodoPago: metodoPago || null,
+              iva: iva !== undefined ? parseFloat(String(iva)) : null,
               campoId: usuario.campoId,
               loteId: loteId || null,
             },
