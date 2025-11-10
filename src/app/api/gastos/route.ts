@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma'
+import { prisma } from '@/lib/prisma' // HOLA
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
@@ -32,13 +32,13 @@ export async function GET(request: Request) {
     if (categoria) where.categoria = categoria
 
     const gastos = await prisma.gasto.findMany({
-  where: { campoId: usuario.campoId },
-  include: { lote: { select: { nombre: true } } },
-  orderBy: [
-    { fecha: 'desc' },
-    { createdAt: 'desc' }  // ✅ Ordenar también por fecha de creación
-  ]
-})
+      where,
+      include: { lote: { select: { nombre: true } } },
+      orderBy: [
+        { fecha: 'desc' },
+        { createdAt: 'desc' }, // ✅ Ordenar también por fecha de creación
+      ],
+    })
 
     return NextResponse.json(gastos)
   } catch (error) {
@@ -64,7 +64,8 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { tipo, monto, fecha, descripcion, categoria, metodoPago, loteId } = body
+    // ✅ Incluimos iva aquí para evitar error
+    const { tipo, monto, fecha, descripcion, categoria, metodoPago, loteId, iva } = body
 
     const gasto = await prisma.gasto.create({
       data: {
@@ -115,7 +116,10 @@ export async function DELETE(request: Request) {
     const gasto = await prisma.gasto.findUnique({ where: { id } })
 
     if (!gasto || gasto.campoId !== usuario.campoId) {
-      return NextResponse.json({ error: 'No autorizado para eliminar este gasto' }, { status: 403 })
+      return NextResponse.json(
+        { error: 'No autorizado para eliminar este gasto' },
+        { status: 403 }
+      )
     }
 
     await prisma.gasto.delete({ where: { id } })
