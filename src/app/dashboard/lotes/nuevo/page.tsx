@@ -31,30 +31,32 @@ export default function NuevoLotePage() {
   const [hectareasCalculadas, setHectareasCalculadas] = useState<number | null>(null)
   const [lotesExistentes, setLotesExistentes] = useState<LoteExistente[]>([])
   const [cargandoLotes, setCargandoLotes] = useState(true)
-
-  // ✅ Calcular centro desde el primer potrero si existe
-  let initialCenter: [number, number] | undefined = undefined
-
-  if (lotesExistentes.length > 0 && lotesExistentes[0].coordenadas?.length > 0) {
-    // Calcular centro del primer potrero
-    const coords = lotesExistentes[0].coordenadas
-    const center = coords.reduce(
-      (acc, point) => [acc[0] + point[0], acc[1] + point[1]],
-      [0, 0]
-    ).map(v => v / coords.length) as [number, number]
-    initialCenter = center
-  } else if (typeof window !== 'undefined') {
-    // Si no hay potreros, usar el centro guardado
-    const savedCenter = localStorage.getItem('lastPotreroCenter')
-    if (savedCenter) {
-      initialCenter = JSON.parse(savedCenter)
-    }
-  }
+  const [mapCenter, setMapCenter] = useState<[number, number] | undefined>(undefined)
 
   // Cargar potreros existentes al montar el componente
   useEffect(() => {
     cargarLotesExistentes()
   }, [])
+
+  // ✅ Calcular centro DESPUÉS de cargar los lotes
+  useEffect(() => {
+    if (lotesExistentes.length > 0 && lotesExistentes[0].coordenadas?.length > 0) {
+      const coords = lotesExistentes[0].coordenadas
+      const center = coords.reduce(
+        (acc, point) => [acc[0] + point[0], acc[1] + point[1]],
+        [0, 0]
+      ).map(v => v / coords.length) as [number, number]
+      
+      console.log('🎯 Centro calculado del primer potrero:', center)
+      setMapCenter(center)
+    } else if (typeof window !== 'undefined') {
+      const savedCenter = localStorage.getItem('lastPotreroCenter')
+      if (savedCenter) {
+        console.log('📍 Usando centro guardado:', savedCenter)
+        setMapCenter(JSON.parse(savedCenter))
+      }
+    }
+  }, [lotesExistentes])
 
   async function cargarLotesExistentes() {
     try {
@@ -82,7 +84,6 @@ export default function NuevoLotePage() {
     setLoading(true)
 
     try {
-      // 🎯 Usar el área calculada del mapa, no la manual
       const hectareasFinales = hectareasCalculadas || parseFloat(hectareasManual)
 
       const response = await fetch('/api/lotes', {
@@ -125,7 +126,6 @@ export default function NuevoLotePage() {
     alert(`¡Potrero dibujado! Área: ${areaHectareas.toFixed(2)} ha`)
   }
 
-  // Determinar qué hectáreas mostrar
   const hectareasAMostrar = hectareasCalculadas 
     ? hectareasCalculadas.toFixed(2)
     : hectareasManual
@@ -133,17 +133,33 @@ export default function NuevoLotePage() {
   const hayDiferencia = hectareasCalculadas && hectareasManual && 
     Math.abs(hectareasCalculadas - parseFloat(hectareasManual)) > 0.1
 
-  // ✅ Preparar potreros existentes para el mapa con color rojo brillante
+  // ✅ Colores únicos para cada potrero
+  const coloresPotrero = [
+    '#ef4444', // Rojo
+    '#f97316', // Naranja
+    '#eab308', // Amarillo
+    '#84cc16', // Lima
+    '#22c55e', // Verde
+    '#14b8a6', // Turquesa
+    '#06b6d4', // Cyan
+    '#3b82f6', // Azul
+    '#8b5cf6', // Morado
+    '#ec4899', // Rosa
+    '#f43f5e', // Rosa fuerte
+    '#a855f7', // Morado claro
+  ]
+
   const potrerosParaMapa = lotesExistentes
     .filter(lote => lote.coordenadas && lote.coordenadas.length > 0)
-    .map(lote => ({
+    .map((lote, index) => ({
       id: lote.id,
       nombre: lote.nombre,
       coordinates: lote.coordenadas,
-      color: '#ef4444' // Rojo brillante para distinguir mejor
+      color: coloresPotrero[index % coloresPotrero.length]
     }))
 
   console.log('🗺️ Potreros para el mapa:', potrerosParaMapa)
+  console.log('📍 Centro del mapa:', mapCenter)
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 sm:p-6 md:p-8 text-gray-900">
@@ -154,7 +170,7 @@ export default function NuevoLotePage() {
         </p>
         {potrerosParaMapa.length > 0 && (
           <p className="text-blue-600 text-sm mt-1">
-            ℹ️ Los {potrerosParaMapa.length} potreros existentes se mostrarán en el mapa en rojo
+            ℹ️ Los {potrerosParaMapa.length} potreros existentes se mostrarán en el mapa con su nombre
           </p>
         )}
       </div>
@@ -199,7 +215,6 @@ export default function NuevoLotePage() {
             )}
           </div>
 
-          {/* Botón para abrir mapa */}
           {!poligono && (
             <button
               type="button"
@@ -250,7 +265,6 @@ export default function NuevoLotePage() {
         </form>
       </div>
 
-      {/* Modal del mapa - Pantalla completa en móvil */}
       {showMap && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-0 md:p-4">
           <div className="bg-white w-full h-full md:rounded-xl md:w-full md:max-w-5xl md:h-[85vh] flex flex-col">
@@ -261,7 +275,7 @@ export default function NuevoLotePage() {
                 </h2>
                 {potrerosParaMapa.length > 0 && (
                   <p className="text-xs text-gray-500 mt-0.5">
-                    Los potreros existentes aparecen en rojo
+                    Los potreros existentes aparecen con su nombre y color
                   </p>
                 )}
               </div>
@@ -275,8 +289,8 @@ export default function NuevoLotePage() {
             <div className="flex-1">
               <MapaPoligono 
                 onPolygonComplete={handlePolygonComplete}
-                initialCenter={initialCenter}
-                initialZoom={initialCenter ? 16 : 8}
+                initialCenter={mapCenter}
+                initialZoom={mapCenter ? 16 : 8}
                 existingPolygons={potrerosParaMapa}
               />
             </div>
