@@ -145,25 +145,38 @@ export default function MapaPoligono({
   // Colores para los potreros existentes
   const colors = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316']
 
-  // Cargar potreros existentes
+  // 🔄 Función para cargar/recargar potreros
+  const fetchLotes = async () => {
+    try {
+      const res = await fetch('/api/lotes', {
+        cache: 'no-store' // ✅ Evita caché
+      })
+      if (res.ok) {
+        const data = await res.json()
+        console.log('📦 Potreros cargados:', data.length)
+        setLotes(data)
+      }
+    } catch (error) {
+      console.error('Error cargando potreros:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // 🚀 Cargar potreros al iniciar
   useEffect(() => {
     setIsClient(true)
-    
-    const fetchLotes = async () => {
-      try {
-        const res = await fetch('/api/lotes')
-        if (res.ok) {
-          const data = await res.json()
-          setLotes(data)
-        }
-      } catch (error) {
-        console.error('Error cargando potreros:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
     fetchLotes()
+  }, [])
+
+  // ⏱️ Auto-recargar cada 3 segundos para ver cambios nuevos
+  useEffect(() => {
+    const interval = setInterval(() => {
+      console.log('🔄 Recargando potreros...')
+      fetchLotes()
+    }, 3000) // cada 3 segundos
+
+    return () => clearInterval(interval)
   }, [])
 
   if (!isClient) {
@@ -240,7 +253,7 @@ export default function MapaPoligono({
         {lotesConPoligono.length > 0 && (
           <div className="mt-3 pt-3 border-t border-gray-200">
             <p className="text-xs text-gray-600 font-medium mb-2">
-              Potreros existentes:
+              Potreros existentes ({lotesConPoligono.length}):
             </p>
             <div className="flex flex-wrap gap-2">
               {lotesConPoligono.map((lote, index) => (
