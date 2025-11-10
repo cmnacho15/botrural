@@ -197,11 +197,16 @@ export default function GastosPage() {
       })
 
       if (!response.ok) throw new Error('Error al actualizar')
+      const gastoActualizado = await response.json() // ← AGREGAR: Obtener el gasto actualizado de la respuesta
 
+// ✅ AGREGAR: Actualizar solo ese gasto en el array, sin tocar los demás
+setGastosData(prev => 
+  prev.map(g => g.id === gastoActualizado.id ? gastoActualizado : g)
+)
       setModalEditOpen(false)
       setGastoEditando(null)
       alert('¡Gasto actualizado exitosamente!')
-      await fetchGastos() // ✅ Refrescar datos en vez de reload
+      
     } catch (error) {
       console.error('Error al actualizar:', error)
       alert('Error al actualizar el gasto')
