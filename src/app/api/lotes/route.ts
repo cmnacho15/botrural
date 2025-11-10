@@ -33,7 +33,13 @@ export async function GET() {
       orderBy: { createdAt: "desc" },
     });
 
-    return NextResponse.json(lotes, { status: 200 });
+    // ✅ MAPEAR poligono a coordenadas
+    const lotesFormateados = lotes.map(lote => ({
+      ...lote,
+      coordenadas: lote.poligono || [] // El poligono ya es un array de coordenadas
+    }));
+
+    return NextResponse.json(lotesFormateados, { status: 200 });
   } catch (error) {
     console.error("💥 Error obteniendo lotes:", error);
     return NextResponse.json(
@@ -102,7 +108,6 @@ export async function POST(request: Request) {
     );
   }
 }
-
 
 // 🗑️ DELETE - Eliminar lote por ID
 export async function DELETE(request: Request) {
