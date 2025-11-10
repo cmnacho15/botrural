@@ -32,10 +32,13 @@ export async function GET(request: Request) {
     if (categoria) where.categoria = categoria
 
     const gastos = await prisma.gasto.findMany({
-      where,
-      include: { lote: true },
-      orderBy: { fecha: 'desc' },
-    })
+  where: { campoId: usuario.campoId },
+  include: { lote: { select: { nombre: true } } },
+  orderBy: [
+    { fecha: 'desc' },
+    { createdAt: 'desc' }  // ✅ Ordenar también por fecha de creación
+  ]
+})
 
     return NextResponse.json(gastos)
   } catch (error) {

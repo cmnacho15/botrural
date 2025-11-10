@@ -89,43 +89,52 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
   const montoTotal = items.reduce((sum, item) => sum + item.precioFinal, 0)
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  e.preventDefault()
 
-    if (items.some((item) => !item.item || item.precio <= 0)) {
-      alert('Completá todos los ítems con nombre y precio válido')
-      return
-    }
-
-    setLoading(true)
-
-    try {
-      // Crear un gasto por cada ítem
-      for (const item of items) {
-        const response = await fetch('/api/eventos', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            tipo: 'GASTO',
-            fecha,
-            descripcion: `${item.item}${proveedor ? ` - ${proveedor}` : ''}${notas ? ` - ${notas}` : ''}`,
-            categoria: item.categoria,
-            monto: item.precioFinal,
-            metodoPago,
-          }),
-        })
-
-        if (!response.ok) throw new Error('Error al guardar')
-      }
-
-      onSuccess()
-      onClose()
-    } catch (error) {
-      console.error('Error:', error)
-      alert('Error al guardar los gastos')
-    } finally {
-      setLoading(false)
-    }
+  if (items.some((item) => !item.item || item.precio <= 0)) {
+    alert('Completá todos los ítems con nombre y precio válido')
+    return
   }
+
+  setLoading(true)
+
+  try {
+    // ✅ Crear timestamp base para todos los items
+    const baseDate = new Date(fecha)
+    
+    // Crear un gasto por cada ítem con timestamp incrementado
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i]
+      
+      // ✅ Agregar segundos para mantener orden
+      const fechaConHora = new Date(baseDate)
+      fechaConHora.setSeconds(i)
+      
+      const response = await fetch('/api/eventos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tipo: 'GASTO',
+          fecha: fechaConHora.toISOString(), // ✅ Fecha con hora
+          descripcion: `${item.item}${proveedor ? ` - ${proveedor}` : ''}${notas ? ` - ${notas}` : ''}`,
+          categoria: item.categoria,
+          monto: item.precioFinal,
+          metodoPago,
+        }),
+      })
+
+      if (!response.ok) throw new Error('Error al guardar')
+    }
+
+    onSuccess()
+    onClose()
+  } catch (error) {
+    console.error('Error:', error)
+    alert('Error al guardar los gastos')
+  } finally {
+    setLoading(false)
+  }
+}
 
   return (
     <form onSubmit={handleSubmit} className="p-6 max-h-[90vh] overflow-y-auto">
