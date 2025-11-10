@@ -1,20 +1,71 @@
-import { prisma } from '@/lib/prisma'
-export const dynamic = 'force-dynamic'
+'use client'
 
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 
-export default async function LotesPage() {
-  // 🧠 Leemos los lotes reales desde la base de datos
-  const lotes = await prisma.lote.findMany({
-    include: {
-      campo: true,
-      cultivos: true,
-      animalesLote: true,
-    },
-    orderBy: { createdAt: 'desc' },
-  })
+interface Lote {
+  id: string
+  nombre: string
+  hectareas: number
+  cultivos: Array<{ tipoCultivo: string }>
+  animalesLote: Array<{ cantidad: number; categoria: string }>
+}
+
+export default function LotesPage() {
+  const [lotes, setLotes] = useState<Lote[]>([])
+  const [loading, setLoading] = useState(true)
+
+  // Cargar lotes al montar el componente
+  useEffect(() => {
+    cargarLotes()
+  }, [])
+
+  async function cargarLotes() {
+    try {
+      const response = await fetch('/api/lotes')
+      if (response.ok) {
+        const data = await response.json()
+        setLotes(data)
+      }
+    } catch (error) {
+      console.error('Error cargando lotes:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function eliminarLote(id: string, nombre: string) {
+    if (!confirm(`¿Estás seguro de eliminar el potrero "${nombre}"?`)) {
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/lotes?id=${id}`, {
+        method: 'DELETE',
+      })
+
+      if (response.ok) {
+        // Actualizar la lista de lotes sin recargar la página
+        setLotes(lotes.filter((lote) => lote.id !== id))
+        alert('Potrero eliminado correctamente')
+      } else {
+        alert('Error al eliminar el potrero')
+      }
+    } catch (error) {
+      console.error('Error eliminando lote:', error)
+      alert('Error al eliminar el potrero')
+    }
+  }
 
   const hayLotes = lotes.length > 0
+
+  if (loading) {
+    return (
+      <div className="bg-gray-50 min-h-screen p-4 sm:p-6 md:p-8 flex items-center justify-center">
+        <p className="text-gray-600">Cargando potreros...</p>
+      </div>
+    )
+  }
 
   return (
     <div className="bg-gray-50 min-h-screen p-4 sm:p-6 md:p-8 text-gray-900">
@@ -140,13 +191,23 @@ export default async function LotesPage() {
 
                     <td className="px-6 py-4 text-right">
                       <div className="flex justify-end gap-3">
-                        <button className="text-gray-400 hover:text-gray-600 transition">
+                        <button 
+                          className="text-gray-400 hover:text-gray-600 transition"
+                          title="Ver detalles"
+                        >
                           🔗
                         </button>
-                        <button className="text-gray-400 hover:text-gray-600 transition">
+                        <button 
+                          className="text-gray-400 hover:text-gray-600 transition"
+                          title="Editar"
+                        >
                           ✏️
                         </button>
-                        <button className="text-gray-400 hover:text-red-600 transition">
+                        <button
+                          onClick={() => eliminarLote(lote.id, lote.nombre)}
+                          className="text-gray-400 hover:text-red-600 transition"
+                          title="Eliminar"
+                        >
                           🗑️
                         </button>
                       </div>

@@ -102,3 +102,59 @@ export async function POST(request: Request) {
     );
   }
 }
+
+
+// 🗑️ DELETE - Eliminar lote por ID
+export async function DELETE(request: Request) {
+  try {
+    // 🔐 Verificar sesión
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+    }
+
+    // Obtener el ID del lote desde los parámetros de la URL
+    const { searchParams } = new URL(request.url);
+    const loteId = searchParams.get('id');
+
+    if (!loteId) {
+      return NextResponse.json(
+        { error: "ID del lote es requerido" },
+        { status: 400 }
+      );
+    }
+
+    // Verificar que el lote pertenezca al campo del usuario
+    const usuario = await prisma.user.findUnique({
+      where: { id: session.user.id },
+    });
+
+    const lote = await prisma.lote.findUnique({
+      where: { id: loteId },
+    });
+
+    if (!lote || lote.campoId !== usuario?.campoId) {
+      return NextResponse.json(
+        { error: "Lote no encontrado o no autorizado" },
+        { status: 404 }
+      );
+    }
+
+    // Eliminar el lote
+    await prisma.lote.delete({
+      where: { id: loteId },
+    });
+
+    console.log(`🗑️ Lote eliminado: ${lote.nombre}`);
+    return NextResponse.json(
+      { message: "Lote eliminado correctamente" },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("💥 Error eliminando lote:", error);
+    return NextResponse.json(
+      { error: "Error eliminando el lote" },
+      { status: 500 }
+    );
+  }
+}
