@@ -1,4 +1,4 @@
-'use client'
+'use client' // HOLAAAAAAAAAA
 
 import { useState, useEffect } from 'react'
 import {
@@ -644,7 +644,7 @@ export default function GastosPage() {
               />
             ) : (
               <ModalEditarIngreso
-                ingreso={gastoEditando}
+                gasto={gastoEditando}
                 onClose={() => {
                   setModalEditOpen(false)
                   setGastoEditando(null)
