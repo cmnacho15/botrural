@@ -30,7 +30,8 @@ export default function GastosPage() {
   const [iva, setIva] = useState('con')
   const [modalCategoriaOpen, setModalCategoriaOpen] = useState(false)
   const [nuevaCategoriaNombre, setNuevaCategoriaNombre] = useState('')
-  
+
+  // Estados para Editar
   const [modalEditOpen, setModalEditOpen] = useState(false)
   const [gastoEditando, setGastoEditando] = useState<Gasto | null>(null)
   const [editFecha, setEditFecha] = useState('')
@@ -40,12 +41,12 @@ export default function GastosPage() {
   const [editMetodoPago, setEditMetodoPago] = useState('efectivo')
   const [loadingEdit, setLoadingEdit] = useState(false)
 
-  // ✅ NUEVOS ESTADOS PARA ELIMINAR
+  // Estados para Eliminar
   const [modalDeleteOpen, setModalDeleteOpen] = useState(false)
   const [gastoAEliminar, setGastoAEliminar] = useState<Gasto | null>(null)
   const [loadingDelete, setLoadingDelete] = useState(false)
 
-  // ✅ NUEVOS ESTADOS PARA DATOS REALES
+  // Datos reales
   const [gastosData, setGastosData] = useState<Gasto[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -71,7 +72,7 @@ export default function GastosPage() {
     { nombre: 'Sueldos', cantidad: 0, total: 0, color: '#dc2626' },
   ])
 
-  // ✅ FETCH DE DATOS REALES
+  // Fetch de gastos
   const fetchGastos = async () => {
     try {
       setLoading(true)
@@ -173,6 +174,7 @@ export default function GastosPage() {
     }
   })
 
+  // EDITAR
   const handleEditarGasto = (gasto: Gasto) => {
     setGastoEditando(gasto)
     setEditFecha(new Date(gasto.fecha).toISOString().split('T')[0])
@@ -204,7 +206,6 @@ export default function GastosPage() {
       if (!response.ok) throw new Error('Error al actualizar')
       const gastoActualizado = await response.json()
 
-      // Actualizar solo el gasto editado
       setGastosData(prev => 
         prev.map(g => g.id === gastoActualizado.id ? gastoActualizado : g)
       )
@@ -212,7 +213,6 @@ export default function GastosPage() {
       setModalEditOpen(false)
       setGastoEditando(null)
       alert('¡Gasto actualizado exitosamente!')
-      
     } catch (error) {
       console.error('Error al actualizar:', error)
       alert('Error al actualizar el gasto')
@@ -221,7 +221,7 @@ export default function GastosPage() {
     }
   }
 
-  // ✅ FUNCIÓN PARA ELIMINAR GASTO
+  // ELIMINAR
   const handleEliminarGasto = async () => {
     if (!gastoAEliminar) return
 
@@ -233,7 +233,6 @@ export default function GastosPage() {
 
       if (!response.ok) throw new Error('Error al eliminar')
 
-      // Eliminar del estado sin recargar
       setGastosData(prev => prev.filter(g => g.id !== gastoAEliminar.id))
 
       setModalDeleteOpen(false)
@@ -247,7 +246,7 @@ export default function GastosPage() {
     }
   }
 
-  // ✅ LOADING STATE
+  // LOADING
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -300,12 +299,10 @@ export default function GastosPage() {
         </div>
       </div>
 
-      {/* CONTENIDO PRINCIPAL */}
+      {/* CONTENIDO */}
       <div className="px-4 sm:px-6 lg:px-8 py-6 space-y-6">
         
-        {/* LAYOUT FLEXIBLE SEGÚN ESTADO DE CATEGORÍAS */}
         {mostrarTodasCategorias ? (
-          // Cuando está expandido: categorías ocupan todo el ancho
           <>
             <div className="bg-white rounded-xl shadow-sm p-5 sm:p-6">
               <div className="flex justify-between items-center mb-4">
@@ -362,7 +359,6 @@ export default function GastosPage() {
               </button>
             </div>
 
-            {/* Gráficos en dos columnas cuando categorías están expandidas */}
             <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
               <div className="bg-white rounded-xl shadow-sm p-6">
                 <h2 className="text-lg font-semibold text-gray-900 mb-6">
@@ -420,9 +416,7 @@ export default function GastosPage() {
             </div>
           </>
         ) : (
-          // Cuando está colapsado: categorías a la izquierda, gráficos a la derecha
           <div className="grid gap-6 grid-cols-1 lg:grid-cols-4">
-            {/* Categorías colapsadas (1 columna) */}
             <div className="lg:col-span-1">
               <div className="bg-white rounded-xl shadow-sm p-5 sm:p-6 h-full">
                 <div className="flex justify-between items-center mb-4">
@@ -480,7 +474,6 @@ export default function GastosPage() {
               </div>
             </div>
 
-            {/* Gráficos (3 columnas) */}
             <div className="lg:col-span-3 grid gap-6 grid-cols-1 md:grid-cols-2">
               <div className="bg-white rounded-xl shadow-sm p-6">
                 <h2 className="text-lg font-semibold text-gray-900 mb-6">
@@ -539,7 +532,7 @@ export default function GastosPage() {
           </div>
         )}
 
-        {/* Tabla de transacciones */}
+        {/* TABLA */}
         <div className="bg-white rounded-xl shadow-sm p-5 sm:p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4 sm:mb-6">
             {categoriaSeleccionada ? `Gastos en ${categoriaSeleccionada}` : 'Gastos e Ingresos Registrados'}
@@ -574,12 +567,11 @@ export default function GastosPage() {
                       </span>
                     </td>
                     <td className="px-4 sm:px-6 py-3">{t.usuario}</td>
-                    {/* BOTONES EDITAR + ELIMINAR */}
                     <td className="px-4 sm:px-6 py-3 text-right">
-                      <div className="flex items-center justify-end gap-2">
+                      <div className="flex items-center justify-end gap-3">
                         <button
                           onClick={() => handleEditarGasto(t.gastoCompleto)}
-                          className="text-blue-600 hover:text-blue-800 transition"
+                          className="text-blue-600 hover:text-blue-800 transition text-sm font-medium"
                           title="Editar"
                         >
                           Editar
@@ -589,7 +581,7 @@ export default function GastosPage() {
                             setGastoAEliminar(t.gastoCompleto)
                             setModalDeleteOpen(true)
                           }}
-                          className="text-red-600 hover:text-red-800 transition"
+                          className="text-red-600 hover:text-red-800 transition text-sm font-medium"
                           title="Eliminar"
                         >
                           Eliminar
@@ -617,15 +609,17 @@ export default function GastosPage() {
 
       {/* MODAL NUEVA CATEGORÍA */}
       {modalCategoriaOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-lg font-semibold text-gray-900">Nueva categoría de gastos</h2>
               <button
                 onClick={() => setModalCategoriaOpen(false)}
-                className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
+                className="text-gray-400 hover:text-gray-600 transition"
               >
-                ✕
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
               </button>
             </div>
 
@@ -640,7 +634,7 @@ export default function GastosPage() {
                   maxLength={120}
                   value={nuevaCategoriaNombre}
                   onChange={(e) => setNuevaCategoriaNombre(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none transition"
                 />
                 <p className="text-xs text-gray-400 mt-1">
                   {nuevaCategoriaNombre.length}/120
@@ -663,10 +657,10 @@ export default function GastosPage() {
                   setModalCategoriaOpen(false)
                 }}
                 disabled={nuevaCategoriaNombre.trim() === ''}
-                className={`px-6 py-3 rounded-lg text-white font-medium transition ${
+                className={`px-6 py-3 rounded-xl text-white font-medium transition ${
                   nuevaCategoriaNombre.trim() === ''
                     ? 'bg-gray-300 cursor-not-allowed'
-                    : 'bg-blue-600 hover:bg-blue-700'
+                    : 'bg-blue-600 hover:bg-blue-700 shadow-sm'
                 }`}
               >
                 Confirmar
@@ -676,13 +670,17 @@ export default function GastosPage() {
         </div>
       )}
 
-      {/* MODAL EDITAR */}
+      {/* MODAL EDITAR - ESTILO PROFESIONAL */}
       {modalEditOpen && gastoEditando && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full p-6">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full p-8 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
-                <div className={`w-12 h-12 rounded-full ${gastoEditando.tipo === 'INGRESO' ? 'bg-green-100' : 'bg-red-100'} flex items-center justify-center text-2xl`}>
+                <div className={`w-14 h-14 rounded-full flex items-center justify-center text-2xl font-bold
+                  ${gastoEditando.tipo === 'INGRESO' 
+                    ? 'bg-green-100 text-green-700' 
+                    : 'bg-red-100 text-red-700'
+                  }`}>
                   {gastoEditando.tipo === 'INGRESO' ? 'Ingreso' : 'Gasto'}
                 </div>
                 <h2 className="text-2xl font-bold text-gray-900">
@@ -691,32 +689,35 @@ export default function GastosPage() {
               </div>
               <button
                 onClick={() => setModalEditOpen(false)}
-                className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
+                className="text-gray-400 hover:text-gray-600 transition"
               >
-                ✕
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
               </button>
             </div>
 
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Fecha</label>
                   <input
                     type="date"
                     value={editFecha}
                     onChange={(e) => setEditFecha(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Monto (UYU)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Monto ({moneda})</label>
                   <input
                     type="number"
                     step="0.01"
                     value={editMonto}
                     onChange={(e) => setEditMonto(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                    placeholder="0.00"
                   />
                 </div>
               </div>
@@ -726,7 +727,7 @@ export default function GastosPage() {
                 <select
                   value={editCategoria}
                   onChange={(e) => setEditCategoria(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
                 >
                   {categorias.map((cat) => (
                     <option key={cat.nombre} value={cat.nombre}>
@@ -742,7 +743,7 @@ export default function GastosPage() {
                   <select
                     value={editMetodoPago}
                     onChange={(e) => setEditMetodoPago(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
                   >
                     <option value="efectivo">Efectivo</option>
                     <option value="tarjeta">Tarjeta</option>
@@ -757,22 +758,23 @@ export default function GastosPage() {
                   value={editDescripcion}
                   onChange={(e) => setEditDescripcion(e.target.value)}
                   rows={3}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition resize-none"
+                  placeholder="Opcional..."
                 />
               </div>
             </div>
 
-            <div className="flex gap-3 mt-6">
+            <div className="flex gap-3 mt-8">
               <button
                 onClick={() => setModalEditOpen(false)}
-                className="flex-1 px-4 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium"
+                className="flex-1 px-6 py-3 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 font-medium transition"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleGuardarEdicion}
                 disabled={loadingEdit}
-                className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition shadow-sm"
               >
                 {loadingEdit ? 'Guardando...' : 'Guardar Cambios'}
               </button>
@@ -781,14 +783,16 @@ export default function GastosPage() {
         </div>
       )}
 
-      {/* MODAL ELIMINAR */}
+      {/* MODAL ELIMINAR - ESTILO PROFESIONAL */}
       {modalDeleteOpen && gastoAEliminar && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-8">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center text-2xl">
-                  Advertencia
+                <div className="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center">
+                  <svg className="w-7 h-7 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
                 </div>
                 <h2 className="text-xl font-bold text-gray-900">
                   Eliminar {gastoAEliminar.tipo === 'INGRESO' ? 'Ingreso' : 'Gasto'}
@@ -796,33 +800,39 @@ export default function GastosPage() {
               </div>
               <button
                 onClick={() => setModalDeleteOpen(false)}
-                className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
+                className="text-gray-400 hover:text-gray-600 transition"
               >
-                ✕
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
               </button>
             </div>
 
-            <p className="text-gray-600 mb-6">
-              ¿Estás seguro que querés eliminar este {gastoAEliminar.tipo === 'INGRESO' ? 'ingreso' : 'gasto'}?
-              <br />
-              <span className="font-semibold text-gray-900">
+            <div className="mb-6">
+              <p className="text-gray-600 mb-3">
+                ¿Estás seguro que querés eliminar este <span className="font-medium">
+                  {gastoAEliminar.tipo === 'INGRESO' ? 'ingreso' : 'gasto'}
+                </span>?
+              </p>
+              <p className="font-semibold text-gray-900 mb-1">
                 {gastoAEliminar.descripcion || `${gastoAEliminar.categoria} - $${gastoAEliminar.monto}`}
-              </span>
-              <br />
-              <span className="text-sm text-red-600">Esta acción no se puede deshacer.</span>
-            </p>
+              </p>
+              <p className="text-sm text-red-600 font-medium">
+                Esta acción no se puede deshacer.
+              </p>
+            </div>
 
             <div className="flex gap-3">
               <button
                 onClick={() => setModalDeleteOpen(false)}
-                className="flex-1 px-4 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium"
+                className="flex-1 px-6 py-3 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 font-medium transition"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleEliminarGasto}
                 disabled={loadingDelete}
-                className="flex-1 px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                className="flex-1 px-6 py-3 bg-red-600 text-white rounded-xl hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition shadow-sm"
               >
                 {loadingDelete ? 'Eliminando...' : 'Eliminar'}
               </button>
