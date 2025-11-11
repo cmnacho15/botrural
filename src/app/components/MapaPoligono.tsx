@@ -1,4 +1,3 @@
-//holaaaa//
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
@@ -55,10 +54,28 @@ export default function MapaPoligono({
   const [searchResults, setSearchResults] = useState<any[]>([])
   const [searching, setSearching] = useState(false)
   const [areaHectareas, setAreaHectareas] = useState<number | null>(null)
+  const [isReady, setIsReady] = useState(false)
+
+  // ✅ Esperar a que initialCenter esté listo
+  useEffect(() => {
+    console.log('📍 initialCenter recibido:', initialCenter)
+    console.log('🗺️ existingPolygons:', existingPolygons.length)
+    
+    if (initialCenter || existingPolygons.length > 0) {
+      console.log('✅ Mapa listo para renderizar')
+      setIsReady(true)
+    }
+  }, [initialCenter, existingPolygons])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
     if (mapRef.current) return
+    if (!isReady) {
+      console.log('⏳ Esperando a que el mapa esté listo...')
+      return
+    }
+
+    console.log('🗺️ Creando mapa con centro:', initialCenter, 'zoom:', initialZoom)
 
     const map: any = L.map('map')
     map.setView(initialCenter, initialZoom)
@@ -93,30 +110,56 @@ export default function MapaPoligono({
     map.addLayer(existingLayers)
     existingLayersRef.current = existingLayers
 
-    // Dibujar potreros existentes
-existingPolygons.forEach((potrero) => {
-  if (potrero.coordinates && potrero.coordinates.length > 0) {
-    const polygon = (L as any).polygon(potrero.coordinates, {
-      color: potrero.color || '#10b981',
-      fillColor: potrero.color || '#10b981',
-      fillOpacity: 0.2,
-      weight: 2,
+    // ✅ Dibujar potreros existentes con nombres visibles
+    existingPolygons.forEach((potrero) => {
+      if (potrero.coordinates && potrero.coordinates.length > 0) {
+        const polygon = (L as any).polygon(potrero.coordinates, {
+          color: potrero.color || '#10b981',
+          fillColor: potrero.color || '#10b981',
+          fillOpacity: 0.3,
+          weight: 3,
+        })
+        
+        polygon.bindPopup(`
+          <div style="padding: 8px;">
+            <strong style="font-size: 14px; color: ${potrero.color};">${potrero.nombre}</strong>
+            <br/>
+            <span style="color: #666; font-size: 12px;">Potrero existente</span>
+          </div>
+        `)
+        
+        existingLayers.addLayer(polygon)
+
+        // ✅ AGREGAR LABEL CON EL NOMBRE EN EL CENTRO DEL POLÍGONO
+        const bounds = (polygon as any).getBounds()
+        const center = bounds.getCenter()
+        
+        const label = (L as any).marker(center, {
+          icon: (L as any).divIcon({
+            className: 'potrero-label',
+            html: `<div style="
+              background: white;
+              padding: 4px 8px;
+              border-radius: 4px;
+              border: 2px solid ${potrero.color || '#10b981'};
+              font-weight: bold;
+              font-size: 13px;
+              color: ${potrero.color || '#10b981'};
+              white-space: nowrap;
+              box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+              pointer-events: none;
+            ">${potrero.nombre}</div>`,
+            iconSize: null,
+          }),
+        })
+        
+        existingLayers.addLayer(label)
+      }
     })
-    
-    polygon.bindPopup(`
-      <div style="padding: 8px;">
-        <strong style="font-size: 14px;">${potrero.nombre}</strong>
-        <br/>
-        <span style="color: #666; font-size: 12px;">ID: ${potrero.id}</span>
-      </div>
-    `)
-    
-    existingLayers.addLayer(polygon)
-  }
-})
 
     // Si hay potreros, ajustar el zoom para verlos todos
     if (existingPolygons.length > 0 && existingLayers.getLayers().length > 0) {
+      console.log('🎯 Ajustando zoom para ver todos los potreros')
       map.fitBounds((existingLayers as any).getBounds(), { padding: [50, 50] })
     }
 
@@ -180,7 +223,7 @@ existingPolygons.forEach((potrero) => {
       map.remove()
       mapRef.current = null
     }
-  }, [initialCenter, initialZoom, existingPolygons])
+  }, [isReady, initialCenter, initialZoom, existingPolygons])
 
   const buscarUbicacion = async () => {
     if (!searchQuery.trim()) return
@@ -232,6 +275,18 @@ existingPolygons.forEach((potrero) => {
       drawnItemsRef.current.clearLayers()
       setAreaHectareas(null)
     }
+  }
+
+  // ✅ Mostrar loading mientras espera
+  if (!isReady) {
+    return (
+      <div className="w-full h-full flex items-center justify-center bg-gray-100">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Cargando mapa...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
