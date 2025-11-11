@@ -82,20 +82,28 @@ export default function MapaPoligono({
     mapRef.current = map
 
     // Capa base de mapa
-    const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors',
-      maxZoom: 19,
-    })
-    osmLayer.addTo(map)
+const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© OpenStreetMap contributors',
+  maxZoom: 19,
+})
 
-    // Capa satelital
-    const satelitalLayer = L.tileLayer(
-      'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-      {
-        attribution: '© Esri',
-        maxZoom: 19,
-      }
-    )
+// Capa satelital (ahora predeterminada)
+const satelitalLayer = L.tileLayer(
+  'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+  {
+    attribution: '© Esri',
+    maxZoom: 19,
+  }
+)
+satelitalLayer.addTo(map) // 👈 esta es la diferencia: ahora se agrega esta por defecto
+
+// Control de capas
+L.control.layers(
+  {
+    'Mapa': osmLayer,
+    'Satélite': satelitalLayer
+  }
+).addTo(map)
 
     // Control de capas
     L.control.layers(
