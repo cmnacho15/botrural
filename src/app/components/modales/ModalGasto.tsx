@@ -148,13 +148,14 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
           body: JSON.stringify({
             tipo: 'GASTO',
             fecha: fechaConHora.toISOString(),
-            descripcion: `${item.item}${proveedor ? ` - ${proveedor}` : ''}${notas ? ` - ${notas}` : ''}`,
+            descripcion: `${item.item}${notas ? ` - ${notas}` : ''}`, // ✅ Sin proveedor aquí
             categoria: item.categoria,
             monto: item.precioFinal,
             metodoPago: esPlazo ? 'Plazo' : 'Contado',
             iva: item.iva,
             diasPlazo: esPlazo ? diasPlazo : null,
             pagado: esPlazo ? pagado : true,
+            proveedor: proveedor.trim() || null, // ✅ Proveedor como campo separado
           }),
         })
 

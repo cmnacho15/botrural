@@ -40,9 +40,10 @@ export async function POST(request: Request) {
       intensidad,
       notas,
       iva,
-      comprador, // ← NUEVO
-      diasPlazo, // ← NUEVO
-      pagado,    // ← NUEVO (opcional, se puede calcular)
+      comprador,
+      diasPlazo,
+      pagado,
+      proveedor, // ✅ AGREGADO
     } = body;
 
     console.log("Creando evento:", { tipo, descripcion });
@@ -55,6 +56,7 @@ export async function POST(request: Request) {
         fecha: fecha ? new Date(fecha) : new Date(),
         cantidad: cantidad ? parseInt(cantidad) : null,
         categoria: categoria || null,
+        monto: monto ? parseFloat(monto) : null, // ✅ AGREGADO
         loteId: loteId || null,
         usuarioId: session.user.id,
         campoId: usuario.campoId,
@@ -72,6 +74,19 @@ export async function POST(request: Request) {
 
       // GASTO
       case "GASTO":
+        // ✅ Actualizar el evento con los campos de gasto
+        await prisma.evento.update({
+          where: { id: evento.id },
+          data: {
+            proveedor: proveedor || null,
+            metodoPago: metodoPago || "Contado",
+            iva: iva !== undefined ? parseFloat(String(iva)) : null,
+            diasPlazo: metodoPago === "Plazo" ? parseInt(diasPlazo || "0") : null,
+            pagado: metodoPago === "Contado" ? true : (pagado ?? false),
+          },
+        });
+
+        // ✅ Crear registro en tabla Gasto (para reportes financieros detallados)
         if (monto && parseFloat(monto) > 0) {
           await prisma.gasto.create({
             data: {
@@ -82,6 +97,9 @@ export async function POST(request: Request) {
               categoria: categoria || "Otros",
               metodoPago: metodoPago || null,
               iva: iva !== undefined ? parseFloat(String(iva)) : null,
+              proveedor: proveedor || null,
+              diasPlazo: metodoPago === "Plazo" ? parseInt(diasPlazo || "0") : null,
+              pagado: metodoPago === "Contado" ? true : (pagado ?? false),
               campoId: usuario.campoId,
               loteId: loteId || null,
             },

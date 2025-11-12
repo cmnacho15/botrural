@@ -18,39 +18,31 @@ export async function GET() {
       return NextResponse.json([], { status: 200 })
     }
 
-    // Obtener todos los eventos de tipo GASTO con descripción
+    // ✅ Obtener proveedores directamente del campo "proveedor"
     const gastos = await prisma.evento.findMany({
       where: {
         campoId: usuario.campoId,
         tipo: 'GASTO',
-        descripcion: {
+        proveedor: {
           not: null
         }
       },
       select: {
-        descripcion: true
-      }
+        proveedor: true
+      },
+      distinct: ['proveedor'], // ✅ Obtener solo valores únicos
     })
 
-    // Extraer proveedores de las descripciones
-    // Formato: "Item - Proveedor - Notas"
+    // ✅ Extraer y limpiar proveedores
     const proveedores = gastos
-      .map(g => {
-        if (!g.descripcion) return null
-        const partes = g.descripcion.split(' - ')
-        // El proveedor está en la segunda posición
-        return partes.length >= 2 ? partes[1].trim() : null
-      })
-      .filter((p): p is string => p !== null && p !== '')
+      .map(g => g.proveedor?.trim())
+      .filter((p): p is string => !!p && p.length > 0)
 
-    // Devolver lista única de proveedores
-    const proveedoresUnicos = Array.from(new Set(proveedores))
+    console.log('✅ Proveedores encontrados:', proveedores) // Debug
 
-    console.log('Proveedores encontrados:', proveedoresUnicos) // Debug
-
-    return NextResponse.json(proveedoresUnicos)
+    return NextResponse.json(proveedores)
   } catch (error) {
-    console.error('Error obteniendo proveedores:', error)
+    console.error('❌ Error obteniendo proveedores:', error)
     return NextResponse.json({ error: 'Error obteniendo proveedores' }, { status: 500 })
   }
 }

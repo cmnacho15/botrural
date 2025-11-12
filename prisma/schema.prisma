@@ -126,15 +126,16 @@ model Evento {
   campoId     String
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
+  comprador   String?
+  pagado      Boolean    @default(false)
+  diasPlazo   Int?
+  metodoPago  String?    @default("Contado")
+  proveedor   String?
+  iva         Float?
+  monto       Float?
   campo       Campo      @relation(fields: [campoId], references: [id], onDelete: Cascade)
   lote        Lote?      @relation(fields: [loteId], references: [id])
   usuario     User       @relation(fields: [usuarioId], references: [id])
-
-  // 🟢 NUEVOS CAMPOS para ingresos a plazo
-  comprador   String?
-  metodoPago  String?  @default("Contado")
-  diasPlazo   Int?
-  pagado      Boolean  @default(false)
 }
 
 model Insumo {
@@ -164,7 +165,7 @@ model MovimientoInsumo {
 }
 
 model Gasto {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   tipo        String
   monto       Float
   fecha       DateTime
@@ -172,18 +173,17 @@ model Gasto {
   categoria   String
   campoId     String
   loteId      String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
   iva         Float?
   proveedor   String?
   metodoPago  String?
   diasPlazo   Int?
-  pagado      Boolean? @default(false)
-  fechaPago   DateTime?         // ✅ opcional
-  campo       Campo    @relation(fields: [campoId], references: [id], onDelete: Cascade)
-  lote        Lote?    @relation(fields: [loteId], references: [id])
+  pagado      Boolean?  @default(false)
+  fechaPago   DateTime?
+  campo       Campo     @relation(fields: [campoId], references: [id], onDelete: Cascade)
+  lote        Lote?     @relation(fields: [loteId], references: [id])
 }
-
 
 model Invitation {
   id          String    @id @default(dbgenerated("gen_random_uuid()"))
