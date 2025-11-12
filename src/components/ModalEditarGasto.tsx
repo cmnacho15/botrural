@@ -74,9 +74,20 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
     setLoading(true)
     try {
       const res = await fetch(`/api/gastos/${gasto.id}`, {
-        method: 'PATCH',
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pagado: true }),
+        body: JSON.stringify({
+          tipo: gasto.tipo,
+          fecha: gasto.fecha,
+          descripcion: gasto.descripcion,
+          categoria: gasto.categoria,
+          monto: gasto.monto,
+          metodoPago: gasto.metodoPago,
+          iva: gasto.iva,
+          diasPlazo: gasto.diasPlazo,
+          proveedor: gasto.proveedor,
+          pagado: true,
+        }),
       })
 
       if (!res.ok) throw new Error('Error al marcar como pagado')
