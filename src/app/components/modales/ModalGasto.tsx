@@ -208,7 +208,7 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
           <div className="relative">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Proveedor {proveedoresPrevios.length > 0 && (
-                <span className="text-xs text-gray-500">({proveedoresPrevios.length} guardados)</span>
+                <span className="text-xs text-blue-600 font-semibold">({proveedoresPrevios.length} guardados)</span>
               )}
             </label>
             <input
@@ -218,28 +218,60 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
                 setProveedor(e.target.value)
                 setMostrarSugerencias(true)
               }}
-              onFocus={() => setMostrarSugerencias(true)}
-              onBlur={() => setTimeout(() => setMostrarSugerencias(false), 200)}
+              onFocus={() => {
+                console.log('Focus en proveedor') // Debug
+                setMostrarSugerencias(true)
+              }}
+              onBlur={() => {
+                console.log('Blur en proveedor') // Debug
+                setTimeout(() => setMostrarSugerencias(false), 300)
+              }}
               placeholder="Ej: AgroSalto, Barraca del Campo..."
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
             />
             
-            {/* SUGERENCIAS DROPDOWN */}
-            {mostrarSugerencias && proveedor && proveedoresFiltrados.length > 0 && (
-              <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+            {/* DEBUG INFO */}
+            {proveedoresPrevios.length > 0 && (
+              <p className="text-xs text-gray-500 mt-1">
+                💡 Empezá a escribir para ver sugerencias (hay {proveedoresPrevios.length} guardados)
+              </p>
+            )}
+            
+            {/* SUGERENCIAS DROPDOWN - CON MEJOR Z-INDEX */}
+            {mostrarSugerencias && proveedoresFiltrados.length > 0 && (
+              <div 
+                className="absolute z-[9999] w-full mt-1 bg-white border-2 border-blue-500 rounded-lg shadow-2xl max-h-60 overflow-y-auto"
+                style={{ boxShadow: '0 10px 40px rgba(0,0,0,0.3)' }}
+              >
+                <div className="p-2 bg-blue-50 border-b border-blue-200">
+                  <p className="text-xs font-semibold text-blue-700">
+                    {proveedoresFiltrados.length} {proveedoresFiltrados.length === 1 ? 'resultado' : 'resultados'}
+                  </p>
+                </div>
                 {proveedoresFiltrados.map((p, idx) => (
                   <button
                     key={idx}
                     type="button"
-                    onClick={() => {
+                    onMouseDown={(e) => {
+                      e.preventDefault() // Evita que se active el onBlur
+                      console.log('Seleccionado:', p) // Debug
                       setProveedor(p)
                       setMostrarSugerencias(false)
                     }}
-                    className="w-full text-left px-3 py-2 hover:bg-blue-50 text-sm text-gray-700 border-b last:border-b-0"
+                    className="w-full text-left px-4 py-3 hover:bg-blue-100 text-sm text-gray-900 border-b last:border-b-0 transition-colors font-medium"
                   >
-                    {p}
+                    📦 {p}
                   </button>
                 ))}
+              </div>
+            )}
+
+            {/* MENSAJE SI NO ENCUENTRA COINCIDENCIAS */}
+            {mostrarSugerencias && proveedor && proveedoresFiltrados.length === 0 && proveedoresPrevios.length > 0 && (
+              <div className="absolute z-[9999] w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg p-3">
+                <p className="text-sm text-gray-600">
+                  ❌ No se encontró "{proveedor}". Se guardará como nuevo proveedor.
+                </p>
               </div>
             )}
 
