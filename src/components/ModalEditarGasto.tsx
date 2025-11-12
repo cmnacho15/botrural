@@ -12,7 +12,8 @@ type ModalEditarGastoProps = {
     categoria: string
     descripcion?: string
     metodoPago?: string
-    iva?: number // ✅ agregado
+    iva?: number
+    pagado?: boolean
   }
   onClose: () => void
   onSuccess: () => void
@@ -30,12 +31,13 @@ type ItemGasto = {
 export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEditarGastoProps) {
   const [fecha, setFecha] = useState(new Date(gasto.fecha).toISOString().split('T')[0])
   const [proveedor, setProveedor] = useState('')
+  const [proveedores, setProveedores] = useState<string[]>([])
   const [moneda, setMoneda] = useState('UYU')
   const [metodoPago, setMetodoPago] = useState(gasto.metodoPago || METODOS_PAGO[0])
   const [notas, setNotas] = useState('')
   const [loading, setLoading] = useState(false)
+  const [pagado, setPagado] = useState<boolean>(gasto.pagado ?? (gasto.metodoPago === 'Contado'))
 
-  // ✅ Determinar el IVA inicial según el gasto original
   const ivaInicial = gasto.iva !== undefined ? gasto.iva : 22
 
   const [items, setItems] = useState<ItemGasto[]>([
@@ -49,7 +51,7 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
     },
   ])
 
-  // Parsear descripción para proveedor y notas
+  // Parsear descripción
   useEffect(() => {
     if (gasto.descripcion) {
       const partes = gasto.descripcion.split(' - ')
@@ -57,6 +59,22 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
       if (partes.length > 2) setNotas(partes[2] || '')
     }
   }, [gasto.descripcion])
+
+  // Cargar proveedores previos
+  useEffect(() => {
+    const fetchProveedores = async () => {
+      try {
+        const res = await fetch('/api/proveedores')
+        if (res.ok) {
+          const data = await res.json()
+          setProveedores(data.map((p: any) => p.nombre).filter(Boolean))
+        }
+      } catch (err) {
+        console.warn('No se pudieron cargar proveedores previos.')
+      }
+    }
+    fetchProveedores()
+  }, [])
 
   const calcularPrecioFinal = (precio: number, iva: number) => precio + (precio * iva) / 100
 
@@ -86,6 +104,7 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
 
   const montoTotal = items.reduce((sum, item) => sum + item.precioFinal, 0)
 
+  // Guardar cambios completos
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -108,7 +127,8 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
           categoria: item.categoria,
           monto: item.precioFinal,
           metodoPago,
-          iva: item.iva, // ✅ se guarda el IVA real
+          iva: item.iva,
+          pagado, // ← siempre se envía el estado actual
         }),
       })
 
@@ -124,21 +144,57 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
     }
   }
 
+  // NUEVO: Marcar como pagado SIN editar todo
+  const handleMarcarPagado = async () => {
+    if (!confirm('¿Confirmás que este gasto ya fue pagado?')) return
+
+    try {
+      const res = await fetch(`/api/gastos/${gasto.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pagado: true }),
+      })
+
+      if (!res.ok) {
+        const error = await res.text()
+        throw new Error(error || 'Error al marcar como pagado')
+      }
+
+      alert('Gasto marcado como pagado correctamente')
+      onSuccess()
+      onClose()
+    } catch (err) {
+      console.error(err)
+      alert('Error al marcar como pagado')
+    }
+  }
+
   return (
     <form onSubmit={handleSubmit} className="p-6 max-h-[90vh] overflow-y-auto">
+      {/* HEADER */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center text-2xl">💸</div>
+          <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center text-2xl">Money</div>
           <h2 className="text-2xl font-bold text-gray-900">Editar Gasto</h2>
         </div>
-        <button
-          type="button"
-          onClick={onClose}
-          className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
-        >
-          ✕
-        </button>
+        <button type="button" onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">X</button>
       </div>
+
+      {/* BOTÓN PARA MARCAR COMO PAGADO */}
+      {gasto.metodoPago === 'Plazo' && !gasto.pagado && (
+        <div className="mb-4 p-3 bg-yellow-50 border border-yellow-300 rounded-lg flex justify-between items-center">
+          <span className="text-yellow-800 font-medium">
+            Este gasto está pendiente de pago.
+          </span>
+          <button
+            type="button"
+            onClick={handleMarcarPagado}
+            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium"
+          >
+            Registrar pago
+          </button>
+        </div>
+      )}
 
       {/* INFORMACIÓN BÁSICA */}
       <div className="mb-6 p-4 bg-gray-50 rounded-lg">
@@ -156,15 +212,22 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
             />
           </div>
 
+          {/* PROVEEDOR CON AUTOCOMPLETADO */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Proveedor</label>
             <input
+              list="proveedores"
               type="text"
               value={proveedor}
               onChange={(e) => setProveedor(e.target.value)}
               placeholder="Nombre del proveedor"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
             />
+            <datalist id="proveedores">
+              {proveedores.map((p) => (
+                <option key={p} value={p} />
+              ))}
+            </datalist>
           </div>
 
           <div>
@@ -179,6 +242,7 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
             </select>
           </div>
 
+          {/* MÉTODO DE PAGO + CHECKBOX */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Método de Pago</label>
             <select
@@ -187,11 +251,22 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
             >
               {METODOS_PAGO.map((metodo) => (
-                <option key={metodo} value={metodo}>
-                  {metodo}
-                </option>
+                <option key={metodo} value={metodo}>{metodo}</option>
               ))}
             </select>
+
+            {/* Mostrar checkbox solo si es a plazo */}
+            {metodoPago === 'Plazo' && (
+              <div className="mt-3 flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={pagado}
+                  onChange={(e) => setPagado(e.target.checked)}
+                  className="text-green-600"
+                />
+                <label className="text-sm text-gray-700">Marcar como pagado</label>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -220,9 +295,7 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
               className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
             >
               {CATEGORIAS_GASTOS.map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat}
-                </option>
+                <option key={cat} value={cat}>{cat}</option>
               ))}
             </select>
           </div>
@@ -258,7 +331,7 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
               <label className="block text-xs text-gray-600 mb-1">Precio Final</label>
               <input
                 type="text"
-                value={items[0].precioFinal.toFixed(2)}
+                value={items[0].precioFinal.toLocaleString('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 readOnly
                 className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-lg text-gray-700 font-semibold"
               />
@@ -270,7 +343,9 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
       {/* MONTO TOTAL */}
       <div className="mb-6 p-4 bg-gray-100 rounded-lg flex justify-between items-center">
         <span className="font-semibold text-gray-900">Monto Total</span>
-        <span className="text-2xl font-bold text-blue-600">{montoTotal.toFixed(2)}</span>
+        <span className="text-2xl font-bold text-blue-600">
+          {montoTotal.toLocaleString('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        </span>
       </div>
 
       {/* NOTAS */}

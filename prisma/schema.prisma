@@ -179,9 +179,11 @@ model Gasto {
   metodoPago  String?
   diasPlazo   Int?
   pagado      Boolean? @default(false)
+  fechaPago   DateTime?         // ✅ opcional
   campo       Campo    @relation(fields: [campoId], references: [id], onDelete: Cascade)
   lote        Lote?    @relation(fields: [loteId], references: [id])
 }
+
 
 model Invitation {
   id          String    @id @default(dbgenerated("gen_random_uuid()"))

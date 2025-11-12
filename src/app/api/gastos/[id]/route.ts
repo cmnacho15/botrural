@@ -3,32 +3,28 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 
-// ✅ PUT - Actualizar gasto
+// ✅ PUT - Actualizar gasto (incluye marcar como pagado)
 export async function PUT(
   request: Request,
   context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const params = await context.params // ← necesario en Next 14 App Router
-    
+    const params = await context.params // necesario en App Router
     const session = await getServerSession(authOptions)
+
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
     }
 
-    // Buscar usuario autenticado
     const usuario = await prisma.user.findUnique({
       where: { id: session.user.id },
     })
 
     if (!usuario?.campoId) {
-      return NextResponse.json(
-        { error: 'Usuario sin campo asignado' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Usuario sin campo asignado' }, { status: 400 })
     }
 
-    // ✅ Verificar que el gasto pertenece al mismo campo
+    // Verificar que el gasto pertenece al mismo campo
     const gastoExistente = await prisma.gasto.findUnique({
       where: { id: params.id },
     })
@@ -40,32 +36,48 @@ export async function PUT(
       )
     }
 
-    // ✅ Parsear el body del request
+    // Parsear el body del request
     const body = await request.json()
-    const { tipo, monto, fecha, descripcion, categoria, metodoPago, iva } = body
+    const {
+      tipo,
+      monto,
+      fecha,
+      descripcion,
+      categoria,
+      metodoPago,
+      iva,
+      pagado,       // 👈 nuevo campo
+      diasPlazo,    // 👈 nuevo campo (por si se actualiza)
+    } = body
 
-    // ✅ Actualizar el gasto incluyendo el campo IVA
+    // Nueva lógica: si se marca como pagado ahora, actualizar fechaPago
+    const dataUpdate: any = {
+      tipo,
+      monto: parseFloat(monto),
+      fecha: new Date(fecha),
+      descripcion,
+      categoria,
+      metodoPago,
+      iva: iva !== undefined ? parseFloat(String(iva)) : null,
+      diasPlazo: diasPlazo ? parseInt(diasPlazo) : gastoExistente.diasPlazo,
+      pagado: pagado ?? gastoExistente.pagado,
+    }
+
+    // Si antes no estaba pagado y ahora sí → registrar fechaPago
+    if (!gastoExistente.pagado && pagado === true) {
+      dataUpdate.fechaPago = new Date()
+    }
+
     const gastoActualizado = await prisma.gasto.update({
       where: { id: params.id },
-      data: {
-        tipo,
-        monto: parseFloat(monto),
-        fecha: new Date(fecha),
-        descripcion,
-        categoria,
-        metodoPago,
-        iva: iva ? parseFloat(iva) : null, // ✅ Guarda o limpia el IVA
-      },
+      data: dataUpdate,
       include: { lote: true },
     })
 
     return NextResponse.json(gastoActualizado)
   } catch (error) {
     console.error('💥 Error actualizando gasto:', error)
-    return NextResponse.json(
-      { error: 'Error actualizando gasto' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Error actualizando gasto' }, { status: 500 })
   }
 }
 
@@ -76,8 +88,8 @@ export async function DELETE(
 ) {
   try {
     const params = await context.params
-
     const session = await getServerSession(authOptions)
+
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
     }
@@ -87,13 +99,10 @@ export async function DELETE(
     })
 
     if (!usuario?.campoId) {
-      return NextResponse.json(
-        { error: 'Usuario sin campo asignado' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Usuario sin campo asignado' }, { status: 400 })
     }
 
-    // ✅ Verificar que el gasto pertenece al mismo campo
+    // Verificar que el gasto pertenece al mismo campo
     const gasto = await prisma.gasto.findUnique({
       where: { id: params.id },
     })
@@ -106,13 +115,9 @@ export async function DELETE(
     }
 
     await prisma.gasto.delete({ where: { id: params.id } })
-
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('💥 Error eliminando gasto:', error)
-    return NextResponse.json(
-      { error: 'Error eliminando gasto' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Error eliminando gasto' }, { status: 500 })
   }
 }
