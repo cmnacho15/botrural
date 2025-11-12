@@ -23,20 +23,19 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const tipo = searchParams.get('tipo')
     const categoria = searchParams.get('categoria')
-    const proveedor = searchParams.get('proveedor') // 👈 para filtrar por proveedor
+    const proveedor = searchParams.get('proveedor')
+    const comprador = searchParams.get('comprador')
 
     const where: any = { campoId: usuario.campoId }
     if (tipo) where.tipo = tipo
     if (categoria) where.categoria = categoria
     if (proveedor) where.proveedor = proveedor.toLowerCase().trim()
+    if (comprador) where.comprador = comprador.toLowerCase().trim()
 
     const gastos = await prisma.gasto.findMany({
       where,
       include: { lote: { select: { nombre: true } } },
-      orderBy: [
-        { fecha: 'desc' },
-        { createdAt: 'desc' },
-      ],
+      orderBy: [{ fecha: 'desc' }, { createdAt: 'desc' }],
     })
 
     return NextResponse.json(gastos)
@@ -46,7 +45,7 @@ export async function GET(request: Request) {
   }
 }
 
-// ✅ POST - Crear nuevo gasto asociado al campo del usuario
+// ✅ POST - Crear nuevo gasto o ingreso
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions)
@@ -70,16 +69,23 @@ export async function POST(request: Request) {
       descripcion,
       categoria,
       proveedor,
+      comprador, // ✅ NUEVO CAMPO
       metodoPago,
       iva,
       diasPlazo,
       pagado,
-      loteId
+      loteId,
     } = body
 
-    // ✅ Normalizar el proveedor (baja duplicados y limpia texto)
+    // ✅ Normalizar proveedor y comprador
     const proveedorNormalizado = proveedor ? proveedor.trim().toLowerCase() : null
+    const compradorNormalizado = comprador ? comprador.trim().toLowerCase() : null
 
+    // ✅ Si es contado → marcar pagado automáticamente y setear fechaPago
+    const esPagado = pagado ?? (metodoPago === 'Contado' ? true : false)
+    const fechaPago = esPagado ? new Date() : null
+
+    // ✅ Crear gasto o ingreso según tipo
     const gasto = await prisma.gasto.create({
       data: {
         tipo,
@@ -87,10 +93,12 @@ export async function POST(request: Request) {
         fecha: new Date(fecha),
         descripcion,
         categoria,
-        proveedor: proveedorNormalizado,
+        proveedor: tipo === 'GASTO' ? proveedorNormalizado : null,
+        comprador: tipo === 'INGRESO' ? compradorNormalizado : null,
         metodoPago: metodoPago || 'Contado',
         diasPlazo: diasPlazo ? parseInt(diasPlazo) : null,
-        pagado: pagado ?? (metodoPago === 'Contado' ? true : false),
+        pagado: esPagado,
+        fechaPago,
         iva: iva ? parseFloat(iva) : null,
         campoId: usuario.campoId,
         loteId: loteId || null,
@@ -129,7 +137,6 @@ export async function DELETE(request: Request) {
     }
 
     const gasto = await prisma.gasto.findUnique({ where: { id } })
-
     if (!gasto || gasto.campoId !== usuario.campoId) {
       return NextResponse.json(
         { error: 'No autorizado para eliminar este gasto' },

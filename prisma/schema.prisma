@@ -171,18 +171,23 @@ model Gasto {
   fecha       DateTime
   descripcion String?
   categoria   String
-  campoId     String
-  loteId      String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  iva         Float?
   proveedor   String?
+  comprador   String?   // ✅ AGREGAR ESTA LÍNEA
   metodoPago  String?
   diasPlazo   Int?
-  pagado      Boolean?  @default(false)
+  pagado      Boolean   @default(true)
   fechaPago   DateTime?
-  campo       Campo     @relation(fields: [campoId], references: [id], onDelete: Cascade)
+  iva         Float?
+  loteId      String?
   lote        Lote?     @relation(fields: [loteId], references: [id])
+  campoId     String
+  campo       Campo     @relation(fields: [campoId], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([campoId])
+  @@index([fecha])
+  @@index([tipo])
 }
 
 model Invitation {

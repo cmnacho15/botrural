@@ -11,6 +11,7 @@ type ModalEditarIngresoProps = {
     categoria: string
     descripcion?: string
     iva?: number
+    comprador?: string // ✅ AGREGAR
   }
   onClose: () => void
   onSuccess: () => void
@@ -26,7 +27,7 @@ type ItemIngreso = {
 
 export default function ModalEditarIngreso({ gasto, onClose, onSuccess }: ModalEditarIngresoProps) {
   const [fecha, setFecha] = useState(new Date(gasto.fecha).toISOString().split('T')[0])
-  const [comprador, setComprador] = useState('')
+  const [comprador, setComprador] = useState(gasto.comprador || '') // ✅ Cargar desde campo comprador
   const [moneda, setMoneda] = useState('UYU')
   const [notas, setNotas] = useState('')
   const [loading, setLoading] = useState(false)
@@ -35,10 +36,7 @@ export default function ModalEditarIngreso({ gasto, onClose, onSuccess }: ModalE
     if (gasto.descripcion) {
       const partes = gasto.descripcion.split(' - ')
       if (partes.length > 1) {
-        setComprador(partes[1] || '')
-      }
-      if (partes.length > 2) {
-        setNotas(partes[2] || '')
+        setNotas(partes[1] || '')
       }
     }
   }, [gasto.descripcion])
@@ -103,9 +101,13 @@ export default function ModalEditarIngreso({ gasto, onClose, onSuccess }: ModalE
           tipo: 'INGRESO',
           fecha: fecha,
           descripcion: `${item.item}${comprador ? ` - ${comprador}` : ''}${notas ? ` - ${notas}` : ''}`,
-          categoria: gasto.categoria, // ✅ Usar la categoría original
+          categoria: gasto.categoria,
           monto: item.precioFinal,
-          iva: item.iva, // ✅ Incluir IVA
+          iva: item.iva,
+          metodoPago: 'Contado',
+          pagado: true,
+          diasPlazo: null,
+          proveedor: null, // ✅ Ingresos NO tienen proveedor
         }),
       })
 
@@ -127,7 +129,7 @@ export default function ModalEditarIngreso({ gasto, onClose, onSuccess }: ModalE
   }
 
   return (
-    <form onSubmit={handleSubmit} className="p-6 max-h-[90vh] overflow-y-auto">
+    <div className="p-6 max-h-[90vh] overflow-y-auto">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center text-2xl">
@@ -271,13 +273,14 @@ export default function ModalEditarIngreso({ gasto, onClose, onSuccess }: ModalE
           Cancelar
         </button>
         <button
-          type="submit"
+          type="button"
+          onClick={handleSubmit}
           disabled={loading}
           className="flex-1 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition shadow-sm"
         >
           {loading ? '⏳ Guardando...' : '✓ Guardar Cambios'}
         </button>
       </div>
-    </form>
+    </div>
   )
 }

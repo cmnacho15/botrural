@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 
-// ✅ PUT - Actualizar gasto (incluye marcar como pagado)
+// ✅ PUT - Actualizar gasto o ingreso (incluye marcar como pagado)
 export async function PUT(
   request: Request,
   context: { params: Promise<{ id: string }> }
@@ -36,7 +36,7 @@ export async function PUT(
       )
     }
 
-    // Parsear el body del request
+    // ✅ Parsear el body del request
     const body = await request.json()
     const {
       tipo,
@@ -46,12 +46,13 @@ export async function PUT(
       categoria,
       metodoPago,
       iva,
-      pagado,       // 👈 nuevo campo
-      diasPlazo,    // 👈 nuevo campo (por si se actualiza)
-      proveedor,
+      pagado,
+      diasPlazo,
+      proveedor, // 👈 Para GASTOS
+      comprador, // 👈 Para INGRESOS
     } = body
 
-    // Nueva lógica: si se marca como pagado ahora, actualizar fechaPago
+    // ✅ Construir objeto de actualización
     const dataUpdate: any = {
       tipo,
       monto: parseFloat(monto),
@@ -62,10 +63,31 @@ export async function PUT(
       iva: iva !== undefined ? parseFloat(String(iva)) : null,
       diasPlazo: diasPlazo ? parseInt(diasPlazo) : gastoExistente.diasPlazo,
       pagado: pagado ?? gastoExistente.pagado,
-      proveedor: proveedor !== undefined ? (proveedor ? proveedor.trim().toLowerCase() : null) : gastoExistente.proveedor,
     }
 
-    // Si antes no estaba pagado y ahora sí → registrar fechaPago
+    // ✅ Si es GASTO → actualizar proveedor y limpiar comprador
+    if (tipo === 'GASTO') {
+      dataUpdate.proveedor =
+        proveedor !== undefined
+          ? proveedor
+            ? proveedor.trim().toLowerCase()
+            : null
+          : gastoExistente.proveedor
+      dataUpdate.comprador = null
+    }
+
+    // ✅ Si es INGRESO → actualizar comprador y limpiar proveedor
+    if (tipo === 'INGRESO') {
+      dataUpdate.comprador =
+        comprador !== undefined
+          ? comprador
+            ? comprador.trim().toLowerCase()
+            : null
+          : gastoExistente.comprador
+      dataUpdate.proveedor = null
+    }
+
+    // ✅ Si antes no estaba pagado y ahora sí → registrar fechaPago
     if (!gastoExistente.pagado && pagado === true) {
       dataUpdate.fechaPago = new Date()
     }
@@ -104,7 +126,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Usuario sin campo asignado' }, { status: 400 })
     }
 
-    // Verificar que el gasto pertenece al mismo campo
+    // ✅ Verificar que el gasto pertenece al mismo campo
     const gasto = await prisma.gasto.findUnique({
       where: { id: params.id },
     })
