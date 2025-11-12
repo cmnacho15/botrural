@@ -48,6 +48,7 @@ export async function PUT(
       iva,
       pagado,       // 👈 nuevo campo
       diasPlazo,    // 👈 nuevo campo (por si se actualiza)
+      proveedor,
     } = body
 
     // Nueva lógica: si se marca como pagado ahora, actualizar fechaPago
@@ -61,6 +62,7 @@ export async function PUT(
       iva: iva !== undefined ? parseFloat(String(iva)) : null,
       diasPlazo: diasPlazo ? parseInt(diasPlazo) : gastoExistente.diasPlazo,
       pagado: pagado ?? gastoExistente.pagado,
+      proveedor: proveedor !== undefined ? (proveedor ? proveedor.trim().toLowerCase() : null) : gastoExistente.proveedor,
     }
 
     // Si antes no estaba pagado y ahora sí → registrar fechaPago
