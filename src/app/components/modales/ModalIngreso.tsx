@@ -20,17 +20,13 @@ export default function ModalIngreso({ onClose, onSuccess }: ModalIngresoProps) 
   const [fecha, setFecha] = useState(new Date().toISOString().split('T')[0])
   const [comprador, setComprador] = useState('')
   const [moneda, setMoneda] = useState('UYU')
+  const [metodoPago, setMetodoPago] = useState<'Contado' | 'Plazo'>('Contado')
+  const [diasPlazo, setDiasPlazo] = useState<number>(0)
   const [notas, setNotas] = useState('')
   const [loading, setLoading] = useState(false)
 
   const [items, setItems] = useState<ItemIngreso[]>([
-    {
-      id: '1',
-      item: '',
-      precio: 0,
-      iva: 0,
-      precioFinal: 0,
-    },
+    { id: '1', item: '', precio: 0, iva: 0, precioFinal: 0 },
   ])
 
   const calcularPrecioFinal = (precio: number, iva: number) => {
@@ -41,7 +37,6 @@ export default function ModalIngreso({ onClose, onSuccess }: ModalIngresoProps) 
     setItems((prev) =>
       prev.map((item) => {
         if (item.id !== id) return item
-
         let updated = { ...item }
 
         if (field === 'precio') {
@@ -55,7 +50,6 @@ export default function ModalIngreso({ onClose, onSuccess }: ModalIngresoProps) 
         } else {
           updated = { ...updated, [field]: value }
         }
-
         return updated
       })
     )
@@ -64,13 +58,7 @@ export default function ModalIngreso({ onClose, onSuccess }: ModalIngresoProps) 
   const agregarItem = () => {
     setItems((prev) => [
       ...prev,
-      {
-        id: Date.now().toString(),
-        item: '',
-        precio: 0,
-        iva: 0,
-        precioFinal: 0,
-      },
+      { id: Date.now().toString(), item: '', precio: 0, iva: 0, precioFinal: 0 },
     ])
   }
 
@@ -89,26 +77,34 @@ export default function ModalIngreso({ onClose, onSuccess }: ModalIngresoProps) 
       return
     }
 
+    if (metodoPago === 'Plazo' && diasPlazo < 1) {
+      alert('Ingresá una cantidad de días válida para el plazo')
+      return
+    }
+
     setLoading(true)
 
     try {
       const baseDate = new Date(fecha)
-      
+
       for (let i = 0; i < items.length; i++) {
         const item = items[i]
-        
         const fechaConHora = new Date(baseDate)
         fechaConHora.setSeconds(i)
-        
-        const response = await fetch('/api/eventos', {
+
+        const response = await fetch('/api/ingresos', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             tipo: 'INGRESO',
             fecha: fechaConHora.toISOString(),
             descripcion: `${item.item}${comprador ? ` - ${comprador}` : ''}${notas ? ` - ${notas}` : ''}`,
-            categoria: 'Otros', // Categoría fija para ingresos
+            categoria: 'Otros',
             monto: item.precioFinal,
+            comprador,
+            metodoPago,
+            diasPlazo: metodoPago === 'Plazo' ? diasPlazo : null,
+            pagado: metodoPago === 'Contado' ? true : false,
           }),
         })
 
@@ -118,7 +114,7 @@ export default function ModalIngreso({ onClose, onSuccess }: ModalIngresoProps) 
       onSuccess()
       onClose()
     } catch (error) {
-      console.error('Error:', error)
+      console.error('💥 Error:', error)
       alert('Error al guardar los ingresos')
     } finally {
       setLoading(false)
@@ -127,6 +123,7 @@ export default function ModalIngreso({ onClose, onSuccess }: ModalIngresoProps) 
 
   return (
     <form onSubmit={handleSubmit} className="p-6 max-h-[90vh] overflow-y-auto">
+      {/* HEADER */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center text-2xl">
@@ -182,6 +179,46 @@ export default function ModalIngreso({ onClose, onSuccess }: ModalIngresoProps) 
             </select>
           </div>
         </div>
+
+        {/* CONDICIÓN DE PAGO */}
+        <div className="mt-4 p-4 bg-white rounded-lg border border-gray-200">
+          <h3 className="font-semibold text-gray-900 mb-3">Condición de Pago</h3>
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <label className="flex items-center gap-2 text-sm text-gray-700">
+                <input
+                  type="radio"
+                  checked={metodoPago === 'Contado'}
+                  onChange={() => setMetodoPago('Contado')}
+                  className="text-green-600"
+                />
+                Contado
+              </label>
+              <label className="flex items-center gap-2 text-sm text-gray-700">
+                <input
+                  type="radio"
+                  checked={metodoPago === 'Plazo'}
+                  onChange={() => setMetodoPago('Plazo')}
+                  className="text-green-600"
+                />
+                A plazo
+              </label>
+            </div>
+
+            {metodoPago === 'Plazo' && (
+              <div className="flex gap-3 items-center">
+                <label className="text-sm text-gray-700">Plazo (días):</label>
+                <input
+                  type="number"
+                  min={1}
+                  value={diasPlazo}
+                  onChange={(e) => setDiasPlazo(parseInt(e.target.value) || 0)}
+                  className="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                />
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* ITEMS */}
@@ -195,7 +232,10 @@ export default function ModalIngreso({ onClose, onSuccess }: ModalIngresoProps) 
 
         <div className="space-y-3">
           {items.map((item) => (
-            <div key={item.id} className="border-l-4 border-green-500 pl-4 py-3 bg-gray-50 rounded-r-lg relative">
+            <div
+              key={item.id}
+              className="border-l-4 border-green-500 pl-4 py-3 bg-gray-50 rounded-r-lg relative"
+            >
               {items.length > 1 && (
                 <button
                   type="button"

@@ -1,4 +1,4 @@
-'use client' // HOLAAAAAAAAAA
+'use client'
 
 import { useState, useEffect } from 'react'
 import {
@@ -16,6 +16,7 @@ type Gasto = {
   categoria: string
   descripcion?: string
   metodoPago?: string
+  pagado?: boolean
 }
 
 type Categoria = {
@@ -32,6 +33,7 @@ export default function GastosPage() {
   const [iva, setIva] = useState('con')
   const [modalCategoriaOpen, setModalCategoriaOpen] = useState(false)
   const [nuevaCategoriaNombre, setNuevaCategoriaNombre] = useState('')
+  const [proveedorFiltro, setProveedorFiltro] = useState('')
 
   // Estados para Editar
   const [modalEditOpen, setModalEditOpen] = useState(false)
@@ -87,9 +89,13 @@ export default function GastosPage() {
     fetchGastos()
   }, [])
 
-  const gastosFiltrados = categoriaSeleccionada
-    ? gastosData.filter(g => g.categoria === categoriaSeleccionada)
-    : gastosData
+  const gastosFiltrados = gastosData.filter((g) => {
+    const coincideCategoria = categoriaSeleccionada ? g.categoria === categoriaSeleccionada : true
+    const coincideProveedor = proveedorFiltro
+      ? g.descripcion?.toLowerCase().includes(proveedorFiltro.toLowerCase())
+      : true
+    return coincideCategoria && coincideProveedor
+  })
 
   const categoriasConDatos = categorias.map((cat) => {
     const gastosCategoria = gastosData.filter((g) => g.tipo === 'GASTO' && g.categoria === cat.nombre)
@@ -216,41 +222,63 @@ export default function GastosPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* HEADER */}
-      <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
-        <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">Gastos</h1>
+      <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0 mb-4">
+          <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">Gastos</h1>
 
-        <div className="flex flex-wrap justify-center sm:justify-end gap-2 sm:gap-3">
-          <div className="inline-flex rounded-lg border border-gray-300 bg-white overflow-hidden">
-            {['UYU', 'USD'].map((m) => (
-              <button
-                key={m}
-                onClick={() => setMoneda(m)}
-                className={`px-4 py-2 text-sm font-medium ${
-                  moneda === m ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                {m}
-              </button>
-            ))}
+          <div className="flex flex-wrap justify-center sm:justify-end gap-2 sm:gap-3">
+            <div className="inline-flex rounded-lg border border-gray-300 bg-white overflow-hidden">
+              {['UYU', 'USD'].map((m) => (
+                <button
+                  key={m}
+                  onClick={() => setMoneda(m)}
+                  className={`px-4 py-2 text-sm font-medium ${
+                    moneda === m ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  {m}
+                </button>
+              ))}
+            </div>
+
+            <div className="inline-flex rounded-lg border border-gray-300 bg-white overflow-hidden">
+              {['con', 'sin'].map((v) => (
+                <button
+                  key={v}
+                  onClick={() => setIva(v)}
+                  className={`px-4 py-2 text-sm font-medium ${
+                    iva === v ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  {v === 'con' ? 'Con IVA' : 'Sin IVA'}
+                </button>
+              ))}
+            </div>
+
+            <button className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-700 hover:bg-gray-50 text-sm">
+              Último Año
+            </button>
           </div>
+        </div>
 
-          <div className="inline-flex rounded-lg border border-gray-300 bg-white overflow-hidden">
-            {['con', 'sin'].map((v) => (
-              <button
-                key={v}
-                onClick={() => setIva(v)}
-                className={`px-4 py-2 text-sm font-medium ${
-                  iva === v ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                {v === 'con' ? 'Con IVA' : 'Sin IVA'}
-              </button>
-            ))}
-          </div>
-
-          <button className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-700 hover:bg-gray-50 text-sm">
-            Último Año
-          </button>
+        {/* FILTRO POR PROVEEDOR */}
+        <div className="bg-gray-50 rounded-lg border border-gray-200 p-3 flex flex-col sm:flex-row gap-3 sm:items-center">
+          <label className="text-sm font-medium text-gray-700">Filtrar por proveedor:</label>
+          <input
+            type="text"
+            value={proveedorFiltro}
+            onChange={(e) => setProveedorFiltro(e.target.value)}
+            placeholder="Ej: AgroSalto, Barraca Sur..."
+            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+          />
+          {proveedorFiltro && (
+            <button
+              onClick={() => setProveedorFiltro('')}
+              className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+            >
+              Limpiar
+            </button>
+          )}
         </div>
       </div>
 
@@ -493,6 +521,43 @@ export default function GastosPage() {
             {categoriaSeleccionada ? `Gastos en ${categoriaSeleccionada}` : 'Gastos e Ingresos Registrados'}
           </h2>
 
+          {/* RESUMEN DE PROVEEDORES */}
+          {gastosData.some(g => g.metodoPago === 'Plazo') && (
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-5">
+              <h3 className="text-sm font-semibold text-gray-800 mb-2">
+                Estado de pagos por proveedor:
+              </h3>
+              <ul className="space-y-1 text-sm">
+                {Object.entries(
+                  gastosData
+                    .filter(g => g.metodoPago === 'Plazo')
+                    .reduce((acc: Record<string, { total: number; pagado: boolean }>, g) => {
+                      const prov = g.descripcion?.split(' - ')[1] || 'Sin proveedor'
+                      const esPagado = !!g.pagado
+                      if (!acc[prov]) acc[prov] = { total: 0, pagado: esPagado }
+                      acc[prov].total += g.monto
+                      if (!esPagado) acc[prov].pagado = false
+                      return acc
+                    }, {})
+                ).map(([prov, data]) => (
+                  <li
+                    key={prov}
+                    className={`flex justify-between font-medium ${
+                      data.pagado
+                        ? 'text-green-700 bg-green-50 border border-green-200 rounded-md px-2 py-1'
+                        : 'text-yellow-800 bg-yellow-50 border border-yellow-200 rounded-md px-2 py-1'
+                    }`}
+                  >
+                    <span>{prov}</span>
+                    <span className="font-semibold">
+                      {data.pagado ? '✓ Pagado' : `${data.total.toFixed(2)} ${moneda} pendientes`}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
               <thead>
@@ -503,49 +568,106 @@ export default function GastosPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {transacciones.map((t) => (
-                  <tr key={t.id} className="hover:bg-gray-50">
-                    <td className="px-4 sm:px-6 py-3">{t.fecha}</td>
-                    <td className="px-4 sm:px-6 py-3">
-                      <div className={`font-semibold ${t.esIngreso ? 'text-green-600' : 'text-red-600'}`}>
-                        {t.esIngreso ? '+' : '-'}{t.monto}
-                      </div>
-                      <div className="text-xs text-gray-500">{moneda}</div>
-                    </td>
-                    <td className="px-4 sm:px-6 py-3">{t.item}</td>
-                    <td className="px-4 sm:px-6 py-3">
-                      <span
-                        className="inline-block px-3 py-1 rounded-lg text-xs font-medium"
-                        style={{ backgroundColor: `${t.color}15`, color: t.color }}
-                      >
-                        {t.categoria}
-                      </span>
-                    </td>
-                    <td className="px-4 sm:px-6 py-3">{t.usuario}</td>
-                    <td className="px-4 sm:px-6 py-3 text-right">
-                      <div className="flex items-center justify-end gap-3">
-                        <button
-                          onClick={() => handleEditarGasto(t.gastoCompleto)}
-                          className="text-blue-600 hover:text-blue-800 transition text-sm font-medium"
-                          title="Editar"
-                        >
-                          Editar
-                        </button>
-                        <button
-                          onClick={() => {
-                            setGastoAEliminar(t.gastoCompleto)
-                            setModalDeleteOpen(true)
-                          }}
-                          className="text-red-600 hover:text-red-800 transition text-sm font-medium"
-                          title="Eliminar"
-                        >
-                          Eliminar
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
+  {transacciones.map((t) => {
+    const esGasto = t.tipo === 'GASTO'
+    const esIngreso = t.tipo === 'INGRESO'
+    const pagado = t.gastoCompleto?.pagado
+    const metodoPago = t.gastoCompleto?.metodoPago
+
+    return (
+      <tr
+        key={t.id}
+        className={`hover:bg-gray-50 transition ${
+          esGasto && !pagado && metodoPago === 'Plazo'
+            ? 'bg-yellow-50' // gastos pendientes a plazo
+            : ''
+        }`}
+      >
+        {/* FECHA */}
+        <td className="px-4 sm:px-6 py-3">{t.fecha}</td>
+
+        {/* MONTO */}
+        <td className="px-4 sm:px-6 py-3">
+          <div
+            className={`font-semibold ${
+              esIngreso
+                ? 'text-green-600'
+                : esGasto
+                ? 'text-red-600'
+                : 'text-gray-600'
+            }`}
+          >
+            {esIngreso ? '+' : '-'}
+            {t.monto}
+          </div>
+          <div className="text-xs text-gray-500">{moneda}</div>
+        </td>
+
+        {/* ÍTEM */}
+        <td className="px-4 sm:px-6 py-3">{t.item}</td>
+
+        {/* CATEGORÍA */}
+        <td className="px-4 sm:px-6 py-3">
+          <span
+            className="inline-block px-3 py-1 rounded-lg text-xs font-medium"
+            style={{ backgroundColor: `${t.color}15`, color: t.color }}
+          >
+            {t.categoria}
+          </span>
+        </td>
+
+        {/* USUARIO */}
+        <td className="px-4 sm:px-6 py-3">{t.usuario}</td>
+
+        {/* ESTADO DE PAGO */}
+        {esGasto && (
+          <td className="px-4 sm:px-6 py-3 text-sm">
+            {pagado ? (
+              <span className="inline-flex items-center gap-1 text-green-700 bg-green-50 border border-green-200 px-2 py-1 rounded-md">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                Pagado
+              </span>
+            ) : metodoPago === 'Plazo' ? (
+              <span className="inline-flex items-center gap-1 text-yellow-700 bg-yellow-50 border border-yellow-200 px-2 py-1 rounded-md">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3" />
+                </svg>
+                Pendiente
+              </span>
+            ) : (
+              <span className="text-gray-500">—</span>
+            )}
+          </td>
+        )}
+
+        {/* ACCIONES */}
+        <td className="px-4 sm:px-6 py-3 text-right">
+          <div className="flex items-center justify-end gap-3">
+            <button
+              onClick={() => handleEditarGasto(t.gastoCompleto)}
+              className="text-blue-600 hover:text-blue-800 transition text-sm font-medium"
+              title="Editar"
+            >
+              Editar
+            </button>
+            <button
+              onClick={() => {
+                setGastoAEliminar(t.gastoCompleto)
+                setModalDeleteOpen(true)
+              }}
+              className="text-red-600 hover:text-red-800 transition text-sm font-medium"
+              title="Eliminar"
+            >
+              Eliminar
+            </button>
+          </div>
+        </td>
+      </tr>
+    )
+  })}
+</tbody>
             </table>
           </div>
 
@@ -692,7 +814,7 @@ export default function GastosPage() {
                 </span>?
               </p>
               <p className="font-semibold text-gray-900 mb-1">
-                {gastoAEliminar.descripcion || `${gastoAEliminar.categoria} - $${gastoAEliminar.monto}`}
+                {gastoAEliminar.descripcion || `${gastoAEliminar.categoria} - ${gastoAEliminar.monto}`}
               </p>
               <p className="text-sm text-red-600 font-medium">
                 Esta acción no se puede deshacer.

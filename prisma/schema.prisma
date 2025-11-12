@@ -129,6 +129,12 @@ model Evento {
   campo       Campo      @relation(fields: [campoId], references: [id], onDelete: Cascade)
   lote        Lote?      @relation(fields: [loteId], references: [id])
   usuario     User       @relation(fields: [usuarioId], references: [id])
+
+  // 🟢 NUEVOS CAMPOS para ingresos a plazo
+  comprador   String?
+  metodoPago  String?  @default("Contado")
+  diasPlazo   Int?
+  pagado      Boolean  @default(false)
 }
 
 model Insumo {
