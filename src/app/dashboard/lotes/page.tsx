@@ -167,7 +167,7 @@ export default function LotesPage() {
                           {lote.nombre}
                         </div>
                         <div className="text-sm text-gray-500">
-                          {lote.hectareas} has
+                          {Number(lote.hectareas).toLocaleString('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} has
                         </div>
                       </div>
                     </td>
