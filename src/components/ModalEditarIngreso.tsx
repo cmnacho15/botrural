@@ -3,13 +3,14 @@
 import { useState, useEffect } from 'react'
 
 type ModalEditarIngresoProps = {
-  gasto: {  // ← CAMBIADO DE "ingreso" A "gasto"
+  gasto: {
     id: string
     tipo: 'GASTO' | 'INGRESO'
     fecha: string
     monto: number
     categoria: string
     descripcion?: string
+    iva?: number
   }
   onClose: () => void
   onSuccess: () => void
@@ -23,16 +24,16 @@ type ItemIngreso = {
   precioFinal: number
 }
 
-export default function ModalEditarIngreso({ gasto, onClose, onSuccess }: ModalEditarIngresoProps) {  // ← CAMBIADO
-  const [fecha, setFecha] = useState(new Date(gasto.fecha).toISOString().split('T')[0])  // ← CAMBIADO
+export default function ModalEditarIngreso({ gasto, onClose, onSuccess }: ModalEditarIngresoProps) {
+  const [fecha, setFecha] = useState(new Date(gasto.fecha).toISOString().split('T')[0])
   const [comprador, setComprador] = useState('')
   const [moneda, setMoneda] = useState('UYU')
   const [notas, setNotas] = useState('')
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    if (gasto.descripcion) {  // ← CAMBIADO
-      const partes = gasto.descripcion.split(' - ')  // ← CAMBIADO
+    if (gasto.descripcion) {
+      const partes = gasto.descripcion.split(' - ')
       if (partes.length > 1) {
         setComprador(partes[1] || '')
       }
@@ -40,15 +41,15 @@ export default function ModalEditarIngreso({ gasto, onClose, onSuccess }: ModalE
         setNotas(partes[2] || '')
       }
     }
-  }, [gasto.descripcion])  // ← CAMBIADO
+  }, [gasto.descripcion])
 
   const [items, setItems] = useState<ItemIngreso[]>([
     {
       id: '1',
-      item: gasto.descripcion?.split(' - ')[0] || '',  // ← CAMBIADO
-      precio: gasto.monto / 1.22,  // ← CAMBIADO
-      iva: 22,
-      precioFinal: gasto.monto,  // ← CAMBIADO
+      item: gasto.descripcion?.split(' - ')[0] || '',
+      precio: gasto.monto / (1 + (gasto.iva || 22) / 100),
+      iva: gasto.iva || 22,
+      precioFinal: gasto.monto,
     },
   ])
 
@@ -86,7 +87,7 @@ export default function ModalEditarIngreso({ gasto, onClose, onSuccess }: ModalE
     e.preventDefault()
 
     if (items.some((item) => !item.item || item.precio <= 0)) {
-      alert('Completá todos los ítems con nombre y precio válido')
+      alert('❌ Completá todos los ítems con nombre y precio válido')
       return
     }
 
@@ -95,25 +96,31 @@ export default function ModalEditarIngreso({ gasto, onClose, onSuccess }: ModalE
     try {
       const item = items[0]
       
-      const response = await fetch(`/api/gastos/${gasto.id}`, {  // ← CAMBIADO
+      const response = await fetch(`/api/gastos/${gasto.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           tipo: 'INGRESO',
           fecha: fecha,
           descripcion: `${item.item}${comprador ? ` - ${comprador}` : ''}${notas ? ` - ${notas}` : ''}`,
-          categoria: 'Otros',
+          categoria: gasto.categoria, // ✅ Usar la categoría original
           monto: item.precioFinal,
+          iva: item.iva, // ✅ Incluir IVA
         }),
       })
 
-      if (!response.ok) throw new Error('Error al actualizar')
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null)
+        console.error('Error response:', errorData)
+        throw new Error(errorData?.error || 'Error al actualizar')
+      }
 
+      alert('✅ Ingreso actualizado correctamente')
       onSuccess()
       onClose()
     } catch (error) {
       console.error('Error:', error)
-      alert('Error al actualizar el ingreso')
+      alert(`❌ Error al actualizar el ingreso: ${error instanceof Error ? error.message : 'Error desconocido'}`)
     } finally {
       setLoading(false)
     }
@@ -131,23 +138,26 @@ export default function ModalEditarIngreso({ gasto, onClose, onSuccess }: ModalE
         <button
           type="button"
           onClick={onClose}
-          className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
+          className="text-gray-400 hover:text-gray-600 text-2xl leading-none transition"
         >
           ✕
         </button>
       </div>
 
-      <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-        <h3 className="font-semibold text-gray-900 mb-3">Información Básica</h3>
+      <div className="mb-6 p-5 bg-gray-50 rounded-xl border border-gray-200">
+        <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <span className="w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center text-xs">1</span>
+          Información Básica
+        </h3>
 
-        <div className="space-y-3">
+        <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Fecha</label>
             <input
               type="date"
               value={fecha}
               onChange={(e) => setFecha(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition"
               required
             />
           </div>
@@ -158,8 +168,8 @@ export default function ModalEditarIngreso({ gasto, onClose, onSuccess }: ModalE
               type="text"
               value={comprador}
               onChange={(e) => setComprador(e.target.value)}
-              placeholder="Nombre del comprador"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+              placeholder="Nombre del comprador (opcional)"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition"
             />
           </div>
 
@@ -168,55 +178,54 @@ export default function ModalEditarIngreso({ gasto, onClose, onSuccess }: ModalE
             <select
               value={moneda}
               onChange={(e) => setMoneda(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition"
             >
-              <option value="UYU">UYU</option>
-              <option value="USD">USD</option>
+              <option value="UYU">🇺🇾 UYU - Pesos Uruguayos</option>
+              <option value="USD">🇺🇸 USD - Dólares</option>
             </select>
           </div>
         </div>
       </div>
 
-      <div className="mb-6">
-        <div className="bg-green-50 rounded-lg p-3 mb-3 flex items-center gap-2">
-          <span className="w-8 h-8 bg-green-500 text-white rounded-full flex items-center justify-center font-bold">
-            1
-          </span>
-          <h3 className="font-semibold text-gray-900">Item</h3>
-        </div>
+      <div className="mb-6 p-5 bg-gray-50 rounded-xl border border-gray-200">
+        <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <span className="w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center text-xs">2</span>
+          Detalles del Ingreso
+        </h3>
 
-        <div className="border-l-4 border-green-500 pl-4 py-3 bg-gray-50 rounded-r-lg">
-          <div className="mb-3">
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Descripción del ítem</label>
             <input
               type="text"
               value={items[0].item}
               onChange={(e) => handleItemChange(items[0].id, 'item', e.target.value)}
-              placeholder="Item"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+              placeholder="Ej: Venta de terneros, Cosecha de soja..."
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition"
               required
             />
           </div>
 
-          <div className="grid grid-cols-3 gap-3 items-center">
+          <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="block text-xs text-gray-600 mb-1">Precio</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Precio Base</label>
               <input
                 type="number"
                 step="0.01"
                 value={items[0].precio || ''}
                 onChange={(e) => handleItemChange(items[0].id, 'precio', e.target.value)}
                 placeholder="0.00"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-xs text-gray-600 mb-1">IVA</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">IVA (%)</label>
               <select
                 value={items[0].iva}
                 onChange={(e) => handleItemChange(items[0].id, 'iva', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition"
               >
                 <option value="0">Sin IVA</option>
                 <option value="10">10%</option>
@@ -225,31 +234,31 @@ export default function ModalEditarIngreso({ gasto, onClose, onSuccess }: ModalE
             </div>
 
             <div>
-              <label className="block text-xs text-gray-600 mb-1">Precio Final</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Total</label>
               <input
                 type="text"
                 value={items[0].precioFinal.toFixed(2)}
                 readOnly
-                className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-lg text-gray-700 font-semibold"
+                className="w-full px-3 py-2 bg-green-50 border border-green-300 rounded-lg text-green-900 font-bold"
               />
             </div>
           </div>
         </div>
       </div>
 
-      <div className="mb-6 p-4 bg-gray-100 rounded-lg flex justify-between items-center">
-        <span className="font-semibold text-gray-900">Monto Total</span>
-        <span className="text-2xl font-bold text-green-600">{montoTotal.toFixed(2)}</span>
+      <div className="mb-6 p-4 bg-green-50 border-2 border-green-500 rounded-xl flex justify-between items-center">
+        <span className="font-semibold text-gray-900 text-lg">💰 Monto Total</span>
+        <span className="text-3xl font-bold text-green-600">${montoTotal.toFixed(2)}</span>
       </div>
 
       <div className="mb-6">
-        <label className="block text-sm font-medium text-gray-700 mb-2">Notas</label>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Notas adicionales</label>
         <textarea
           value={notas}
           onChange={(e) => setNotas(e.target.value)}
-          placeholder="Notas adicionales..."
+          placeholder="Información adicional sobre este ingreso..."
           rows={3}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition resize-none"
         />
       </div>
 
@@ -257,16 +266,16 @@ export default function ModalEditarIngreso({ gasto, onClose, onSuccess }: ModalE
         <button
           type="button"
           onClick={onClose}
-          className="flex-1 px-4 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium"
+          className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium transition"
         >
           Cancelar
         </button>
         <button
           type="submit"
           disabled={loading}
-          className="flex-1 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 font-medium"
+          className="flex-1 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition shadow-sm"
         >
-          {loading ? 'Guardando...' : 'Guardar Cambios'}
+          {loading ? '⏳ Guardando...' : '✓ Guardar Cambios'}
         </button>
       </div>
     </form>
