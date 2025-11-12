@@ -14,140 +14,64 @@ type ModalEditarGastoProps = {
     metodoPago?: string
     iva?: number
     pagado?: boolean
+    diasPlazo?: number
+    proveedor?: string
   }
   onClose: () => void
   onSuccess: () => void
 }
 
-type ItemGasto = {
-  id: string
-  item: string
-  categoria: string
-  precio: number
-  iva: number
-  precioFinal: number
-}
-
 export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEditarGastoProps) {
   const [fecha, setFecha] = useState(new Date(gasto.fecha).toISOString().split('T')[0])
-  const [proveedor, setProveedor] = useState('')
+  const [proveedor, setProveedor] = useState(gasto.proveedor || '')
   const [proveedores, setProveedores] = useState<string[]>([])
-  const [moneda, setMoneda] = useState('UYU')
-  const [metodoPago, setMetodoPago] = useState(gasto.metodoPago || METODOS_PAGO[0])
+  const [mostrarSugerencias, setMostrarSugerencias] = useState(false)
+  const [categoria, setCategoria] = useState(gasto.categoria)
+  const [metodoPago, setMetodoPago] = useState(gasto.metodoPago || 'Contado')
+  const [diasPlazo, setDiasPlazo] = useState(gasto.diasPlazo || 0)
   const [notas, setNotas] = useState('')
   const [loading, setLoading] = useState(false)
-  const [pagado, setPagado] = useState<boolean>(gasto.pagado ?? (gasto.metodoPago === 'Contado'))
-
-  const ivaInicial = gasto.iva !== undefined ? gasto.iva : 22
-
-  const [items, setItems] = useState<ItemGasto[]>([
-    {
-      id: '1',
-      item: gasto.descripcion?.split(' - ')[0] || '',
-      categoria: gasto.categoria,
-      iva: ivaInicial,
-      precio: gasto.monto / (1 + ivaInicial / 100),
-      precioFinal: gasto.monto,
-    },
-  ])
+  const [pagado, setPagado] = useState(gasto.pagado ?? true)
+  const [iva, setIva] = useState(gasto.iva || 22)
+  const [precioBase, setPrecioBase] = useState(gasto.monto / (1 + (gasto.iva || 22) / 100))
+  const [item, setItem] = useState('')
 
   // Parsear descripción
   useEffect(() => {
     if (gasto.descripcion) {
       const partes = gasto.descripcion.split(' - ')
-      if (partes.length > 1) setProveedor(partes[1] || '')
-      if (partes.length > 2) setNotas(partes[2] || '')
+      setItem(partes[0] || '')
+      if (partes.length > 1) setNotas(partes[1] || '')
     }
   }, [gasto.descripcion])
 
-  // Cargar proveedores previos
+  // Cargar proveedores
   useEffect(() => {
     const fetchProveedores = async () => {
       try {
         const res = await fetch('/api/proveedores')
         if (res.ok) {
           const data = await res.json()
-          setProveedores(data.map((p: any) => p.nombre).filter(Boolean))
+          setProveedores(data.filter(Boolean))
         }
       } catch (err) {
-        console.warn('No se pudieron cargar proveedores previos.')
+        console.warn('No se pudieron cargar proveedores')
       }
     }
     fetchProveedores()
   }, [])
 
-  const calcularPrecioFinal = (precio: number, iva: number) => precio + (precio * iva) / 100
+  const precioFinal = precioBase + (precioBase * iva) / 100
 
-  const handleItemChange = (id: string, field: keyof ItemGasto, value: any) => {
-    setItems((prev) =>
-      prev.map((item) => {
-        if (item.id !== id) return item
+  const proveedoresFiltrados = proveedores.filter(p =>
+    p.toLowerCase().includes(proveedor.toLowerCase())
+  )
 
-        let updated = { ...item }
-
-        if (field === 'precio') {
-          const numValue = parseFloat(value)
-          updated.precio = isNaN(numValue) ? 0 : numValue
-          updated.precioFinal = calcularPrecioFinal(updated.precio, updated.iva)
-        } else if (field === 'iva') {
-          const numValue = parseFloat(value)
-          updated.iva = isNaN(numValue) ? 0 : numValue
-          updated.precioFinal = calcularPrecioFinal(updated.precio, updated.iva)
-        } else {
-          updated = { ...updated, [field]: value }
-        }
-
-        return updated
-      })
-    )
-  }
-
-  const montoTotal = items.reduce((sum, item) => sum + item.precioFinal, 0)
-
-  // Guardar cambios completos
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-
-    if (items.some((item) => !item.item || item.precio <= 0)) {
-      alert('Completá todos los ítems con nombre y precio válido')
-      return
-    }
+  // 🟢 MARCAR COMO PAGADO (sin editar nada más)
+  const handleMarcarPagado = async () => {
+    if (!confirm('¿Confirmar que este gasto ya fue pagado?')) return
 
     setLoading(true)
-    try {
-      const item = items[0]
-
-      const response = await fetch(`/api/gastos/${gasto.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tipo: 'GASTO',
-          fecha,
-          descripcion: `${item.item}${proveedor ? ` - ${proveedor}` : ''}${notas ? ` - ${notas}` : ''}`,
-          categoria: item.categoria,
-          monto: item.precioFinal,
-          metodoPago,
-          iva: item.iva,
-          pagado, // ← siempre se envía el estado actual
-        }),
-      })
-
-      if (!response.ok) throw new Error('Error al actualizar')
-
-      onSuccess()
-      onClose()
-    } catch (error) {
-      console.error('Error:', error)
-      alert('Error al actualizar el gasto')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // NUEVO: Marcar como pagado SIN editar todo
-  const handleMarcarPagado = async () => {
-    if (!confirm('¿Confirmás que este gasto ya fue pagado?')) return
-
     try {
       const res = await fetch(`/api/gastos/${gasto.id}`, {
         method: 'PATCH',
@@ -155,171 +79,239 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
         body: JSON.stringify({ pagado: true }),
       })
 
-      if (!res.ok) {
-        const error = await res.text()
-        throw new Error(error || 'Error al marcar como pagado')
-      }
+      if (!res.ok) throw new Error('Error al marcar como pagado')
 
-      alert('Gasto marcado como pagado correctamente')
+      alert('✅ Gasto marcado como pagado')
       onSuccess()
       onClose()
     } catch (err) {
       console.error(err)
-      alert('Error al marcar como pagado')
+      alert('❌ Error al marcar como pagado')
+    } finally {
+      setLoading(false)
     }
   }
+
+  // 🟢 GUARDAR CAMBIOS COMPLETOS
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    if (!item.trim() || precioBase <= 0) {
+      alert('❌ Completá el nombre del ítem y un precio válido')
+      return
+    }
+
+    if (metodoPago === 'Plazo' && diasPlazo < 1) {
+      alert('❌ Ingresá una cantidad de días válida para pago a plazo')
+      return
+    }
+
+    setLoading(true)
+    try {
+      const response = await fetch(`/api/gastos/${gasto.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tipo: 'GASTO',
+          fecha,
+          descripcion: `${item.trim()}${notas ? ` - ${notas}` : ''}`,
+          categoria,
+          monto: precioFinal,
+          metodoPago,
+          iva,
+          diasPlazo: metodoPago === 'Plazo' ? diasPlazo : null,
+          pagado: metodoPago === 'Contado' ? true : pagado,
+          proveedor: proveedor.trim() || null,
+        }),
+      })
+
+      if (!response.ok) throw new Error('Error al actualizar')
+
+      alert('✅ Gasto actualizado correctamente')
+      onSuccess()
+      onClose()
+    } catch (error) {
+      console.error('Error:', error)
+      alert('❌ Error al actualizar el gasto')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const esPlazoYPendiente = metodoPago === 'Plazo' && !pagado
 
   return (
     <form onSubmit={handleSubmit} className="p-6 max-h-[90vh] overflow-y-auto">
       {/* HEADER */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center text-2xl">Money</div>
+          <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-2xl">
+            ✏️
+          </div>
           <h2 className="text-2xl font-bold text-gray-900">Editar Gasto</h2>
         </div>
-        <button type="button" onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">X</button>
+        <button
+          type="button"
+          onClick={onClose}
+          className="text-gray-400 hover:text-gray-600 text-2xl leading-none transition"
+        >
+          ✕
+        </button>
       </div>
 
-      {/* BOTÓN PARA MARCAR COMO PAGADO */}
-      {gasto.metodoPago === 'Plazo' && !gasto.pagado && (
-        <div className="mb-4 p-3 bg-yellow-50 border border-yellow-300 rounded-lg flex justify-between items-center">
-          <span className="text-yellow-800 font-medium">
-            Este gasto está pendiente de pago.
-          </span>
-          <button
-            type="button"
-            onClick={handleMarcarPagado}
-            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium"
-          >
-            Registrar pago
-          </button>
+      {/* ALERTA DE PAGO PENDIENTE */}
+      {esPlazoYPendiente && (
+        <div className="mb-6 p-4 bg-yellow-50 border-2 border-yellow-400 rounded-xl">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 bg-yellow-400 rounded-full flex items-center justify-center flex-shrink-0">
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <h3 className="font-bold text-yellow-900 mb-1">Pago Pendiente</h3>
+              <p className="text-sm text-yellow-800 mb-3">
+                Este gasto está pendiente de pago. Podés marcarlo como pagado sin editar nada más.
+              </p>
+              <button
+                type="button"
+                onClick={handleMarcarPagado}
+                disabled={loading}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 font-medium transition shadow-sm"
+              >
+                {loading ? '⏳ Marcando...' : '✓ Marcar como Pagado'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
       {/* INFORMACIÓN BÁSICA */}
-      <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-        <h3 className="font-semibold text-gray-900 mb-3">Información Básica</h3>
+      <div className="mb-6 p-5 bg-gray-50 rounded-xl border border-gray-200">
+        <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <span className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs">1</span>
+          Información Básica
+        </h3>
 
-        <div className="space-y-3">
+        <div className="space-y-4">
+          {/* FECHA */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Fecha</label>
             <input
               type="date"
               value={fecha}
               onChange={(e) => setFecha(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
               required
             />
           </div>
 
           {/* PROVEEDOR CON AUTOCOMPLETADO */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Proveedor</label>
+          <div className="relative">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Proveedor {proveedores.length > 0 && (
+                <span className="text-xs text-blue-600 font-semibold">
+                  ({proveedores.length} guardados)
+                </span>
+              )}
+            </label>
             <input
-              list="proveedores"
               type="text"
               value={proveedor}
-              onChange={(e) => setProveedor(e.target.value)}
-              placeholder="Nombre del proveedor"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              onChange={(e) => {
+                setProveedor(e.target.value)
+                setMostrarSugerencias(true)
+              }}
+              onFocus={() => setMostrarSugerencias(true)}
+              onBlur={() => setTimeout(() => setMostrarSugerencias(false), 200)}
+              placeholder="Ej: AgroSalto, Barraca del Campo..."
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
             />
-            <datalist id="proveedores">
-              {proveedores.map((p) => (
-                <option key={p} value={p} />
-              ))}
-            </datalist>
-          </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Moneda</label>
-            <select
-              value={moneda}
-              onChange={(e) => setMoneda(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="UYU">UYU</option>
-              <option value="USD">USD</option>
-            </select>
-          </div>
-
-          {/* MÉTODO DE PAGO + CHECKBOX */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Método de Pago</label>
-            <select
-              value={metodoPago}
-              onChange={(e) => setMetodoPago(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-            >
-              {METODOS_PAGO.map((metodo) => (
-                <option key={metodo} value={metodo}>{metodo}</option>
-              ))}
-            </select>
-
-            {/* Mostrar checkbox solo si es a plazo */}
-            {metodoPago === 'Plazo' && (
-              <div className="mt-3 flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={pagado}
-                  onChange={(e) => setPagado(e.target.checked)}
-                  className="text-green-600"
-                />
-                <label className="text-sm text-gray-700">Marcar como pagado</label>
+            {/* SUGERENCIAS */}
+            {mostrarSugerencias && proveedoresFiltrados.length > 0 && (
+              <div className="absolute z-50 w-full mt-1 bg-white border-2 border-blue-500 rounded-lg shadow-2xl max-h-48 overflow-y-auto">
+                <div className="p-2 bg-blue-50 border-b border-blue-200 sticky top-0">
+                  <p className="text-xs font-semibold text-blue-700">
+                    {proveedoresFiltrados.length} resultados
+                  </p>
+                </div>
+                {proveedoresFiltrados.map((p, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onMouseDown={(e) => {
+                      e.preventDefault()
+                      setProveedor(p)
+                      setMostrarSugerencias(false)
+                    }}
+                    className="w-full text-left px-4 py-3 hover:bg-blue-100 text-sm text-gray-900 border-b last:border-b-0 transition font-medium"
+                  >
+                    📦 {p}
+                  </button>
+                ))}
               </div>
             )}
           </div>
-        </div>
-      </div>
 
-      {/* ITEM PRINCIPAL */}
-      <div className="mb-6">
-        <div className="bg-blue-50 rounded-lg p-3 mb-3 flex items-center gap-2">
-          <span className="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center font-bold">1</span>
-          <h3 className="font-semibold text-gray-900">Item</h3>
-        </div>
-
-        <div className="border-l-4 border-blue-500 pl-4 py-3 bg-gray-50 rounded-r-lg">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-            <input
-              type="text"
-              value={items[0].item}
-              onChange={(e) => handleItemChange(items[0].id, 'item', e.target.value)}
-              placeholder="Item"
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-              required
-            />
-
+          {/* CATEGORÍA */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
             <select
-              value={items[0].categoria}
-              onChange={(e) => handleItemChange(items[0].id, 'categoria', e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              value={categoria}
+              onChange={(e) => setCategoria(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
             >
               {CATEGORIAS_GASTOS.map((cat) => (
                 <option key={cat} value={cat}>{cat}</option>
               ))}
             </select>
           </div>
+        </div>
+      </div>
 
-          <div className="grid grid-cols-3 gap-3 items-center">
+      {/* DETALLES DEL GASTO */}
+      <div className="mb-6 p-5 bg-gray-50 rounded-xl border border-gray-200">
+        <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <span className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs">2</span>
+          Detalles del Gasto
+        </h3>
+
+        <div className="space-y-4">
+          {/* ITEM */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Descripción del ítem</label>
+            <input
+              type="text"
+              value={item}
+              onChange={(e) => setItem(e.target.value)}
+              placeholder="Ej: Fertilizante NPK 20kg"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+              required
+            />
+          </div>
+
+          {/* PRECIO + IVA + TOTAL */}
+          <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="block text-xs text-gray-600 mb-1">Precio</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Precio Base</label>
               <input
                 type="number"
                 step="0.01"
-                value={items[0].precio || ''}
-                onChange={(e) => handleItemChange(items[0].id, 'precio', e.target.value)}
+                value={precioBase || ''}
+                onChange={(e) => setPrecioBase(parseFloat(e.target.value) || 0)}
                 placeholder="0.00"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-xs text-gray-600 mb-1">IVA</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">IVA (%)</label>
               <select
-                value={items[0].iva}
-                onChange={(e) => handleItemChange(items[0].id, 'iva', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                value={iva}
+                onChange={(e) => setIva(parseFloat(e.target.value))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
               >
                 <option value="0">Sin IVA</option>
                 <option value="10">10%</option>
@@ -328,35 +320,94 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
             </div>
 
             <div>
-              <label className="block text-xs text-gray-600 mb-1">Precio Final</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Total</label>
               <input
                 type="text"
-                value={items[0].precioFinal.toLocaleString('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                value={precioFinal.toFixed(2)}
                 readOnly
-                className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-lg text-gray-700 font-semibold"
+                className="w-full px-3 py-2 bg-blue-50 border border-blue-300 rounded-lg text-blue-900 font-bold"
               />
             </div>
           </div>
         </div>
       </div>
 
-      {/* MONTO TOTAL */}
-      <div className="mb-6 p-4 bg-gray-100 rounded-lg flex justify-between items-center">
-        <span className="font-semibold text-gray-900">Monto Total</span>
-        <span className="text-2xl font-bold text-blue-600">
-          {montoTotal.toLocaleString('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-        </span>
+      {/* CONDICIONES DE PAGO */}
+      <div className="mb-6 p-5 bg-gray-50 rounded-xl border border-gray-200">
+        <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <span className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs">3</span>
+          Condiciones de Pago
+        </h3>
+
+        <div className="space-y-4">
+          {/* MÉTODO DE PAGO */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Método de Pago</label>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setMetodoPago('Contado')}
+                className={`flex-1 px-4 py-3 rounded-lg border-2 font-medium transition ${
+                  metodoPago === 'Contado'
+                    ? 'bg-blue-50 border-blue-500 text-blue-700'
+                    : 'bg-white border-gray-300 text-gray-700 hover:border-gray-400'
+                }`}
+              >
+                💵 Contado
+              </button>
+              <button
+                type="button"
+                onClick={() => setMetodoPago('Plazo')}
+                className={`flex-1 px-4 py-3 rounded-lg border-2 font-medium transition ${
+                  metodoPago === 'Plazo'
+                    ? 'bg-blue-50 border-blue-500 text-blue-700'
+                    : 'bg-white border-gray-300 text-gray-700 hover:border-gray-400'
+                }`}
+              >
+                📅 Plazo
+              </button>
+            </div>
+          </div>
+
+          {/* PLAZO + CHECKBOX PAGADO */}
+          {metodoPago === 'Plazo' && (
+            <div className="space-y-3 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <div className="flex items-center gap-3">
+                <label className="text-sm font-medium text-gray-700">Días de plazo:</label>
+                <input
+                  type="number"
+                  min={1}
+                  value={diasPlazo}
+                  onChange={(e) => setDiasPlazo(parseInt(e.target.value) || 0)}
+                  className="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 transition"
+                />
+              </div>
+
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={pagado}
+                  onChange={(e) => setPagado(e.target.checked)}
+                  className="w-4 h-4 text-green-600 focus:ring-2 focus:ring-green-500"
+                />
+                <label className="text-sm font-medium text-gray-700">
+                  Marcar como pagado
+                </label>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* NOTAS */}
       <div className="mb-6">
-        <label className="block text-sm font-medium text-gray-700 mb-2">Notas</label>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Notas adicionales</label>
         <textarea
           value={notas}
           onChange={(e) => setNotas(e.target.value)}
-          placeholder="Notas adicionales..."
+          placeholder="Información adicional sobre este gasto..."
           rows={3}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition resize-none"
         />
       </div>
 
@@ -365,16 +416,16 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
         <button
           type="button"
           onClick={onClose}
-          className="flex-1 px-4 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium"
+          className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium transition"
         >
           Cancelar
         </button>
         <button
           type="submit"
           disabled={loading}
-          className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium"
+          className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition shadow-sm"
         >
-          {loading ? 'Guardando...' : 'Guardar Cambios'}
+          {loading ? '⏳ Guardando...' : '✓ Guardar Cambios'}
         </button>
       </div>
     </form>
