@@ -22,7 +22,7 @@ export async function GET() {
       return NextResponse.json([], { status: 200 });
     }
 
-    // Traer lotes asociados al campo del usuario
+    // Traer lotes asociados al campo del usuario con cultivos y animales
     const lotes = await prisma.lote.findMany({
       where: { campoId: usuario.campoId },
       include: {
@@ -33,10 +33,10 @@ export async function GET() {
       orderBy: { createdAt: "desc" },
     });
 
-    // ✅ MAPEAR poligono a coordenadas
-    const lotesFormateados = lotes.map(lote => ({
+    // ✅ MAPEAR poligono a coordenadas (para el mapa)
+    const lotesFormateados = lotes.map((lote) => ({
       ...lote,
-      coordenadas: lote.poligono || [] // El poligono ya es un array de coordenadas
+      coordenadas: lote.poligono || [],
     }));
 
     return NextResponse.json(lotesFormateados, { status: 200 });
@@ -69,9 +69,9 @@ export async function POST(request: Request) {
       );
     }
 
-    // Leer datos del body
+    // 📦 Leer datos del body
     const body = await request.json();
-    const { nombre, hectareas, poligono } = body;
+    const { nombre, hectareas, poligono, cultivos = [], animales = [] } = body;
 
     if (!nombre || !hectareas) {
       return NextResponse.json(
@@ -80,7 +80,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // ✅ Validar y guardar el polígono
+    // ✅ Validar polígono
     if (!Array.isArray(poligono) || poligono.length < 3) {
       return NextResponse.json(
         { error: "El polígono debe tener al menos 3 puntos" },
@@ -88,17 +88,41 @@ export async function POST(request: Request) {
       );
     }
 
-    // ✅ Guardar el lote con el polígono en formato JSON
+    // ✅ Crear el lote con cultivos y animales relacionados
     const lote = await prisma.lote.create({
       data: {
         nombre,
         hectareas: parseFloat(hectareas),
-        poligono, // Se guarda como JSON directamente
+        poligono, // JSON con coordenadas
         campoId: usuario.campoId,
+
+        // ✨ NUEVO: crear cultivos en la misma transacción
+        cultivos: {
+          create: cultivos.map((c: any) => ({
+            tipoCultivo: c.tipoCultivo,
+            fechaSiembra: new Date(c.fechaSiembra),
+            hectareas: parseFloat(c.hectareas),
+          })),
+        },
+
+        // ✨ NUEVO: crear animales asociados
+        animalesLote: {
+          create: animales.map((a: any) => ({
+            categoria: a.categoria,
+            cantidad: parseInt(a.cantidad),
+            fechaIngreso: new Date(),
+          })),
+        },
+      },
+      include: {
+        cultivos: true,
+        animalesLote: true,
       },
     });
 
-    console.log(`✅ Lote creado: ${nombre} (${hectareas} ha) con ${poligono.length} puntos`);
+    console.log(
+      `✅ Lote creado: ${nombre} con ${cultivos.length} cultivos y ${animales.length} animales`
+    );
     return NextResponse.json(lote, { status: 201 });
   } catch (error) {
     console.error("💥 Error creando lote:", error);
@@ -118,9 +142,8 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
     }
 
-    // Obtener el ID del lote desde los parámetros de la URL
     const { searchParams } = new URL(request.url);
-    const loteId = searchParams.get('id');
+    const loteId = searchParams.get("id");
 
     if (!loteId) {
       return NextResponse.json(
@@ -129,7 +152,6 @@ export async function DELETE(request: Request) {
       );
     }
 
-    // Verificar que el lote pertenezca al campo del usuario
     const usuario = await prisma.user.findUnique({
       where: { id: session.user.id },
     });
@@ -145,10 +167,7 @@ export async function DELETE(request: Request) {
       );
     }
 
-    // Eliminar el lote
-    await prisma.lote.delete({
-      where: { id: loteId },
-    });
+    await prisma.lote.delete({ where: { id: loteId } });
 
     console.log(`🗑️ Lote eliminado: ${lote.nombre}`);
     return NextResponse.json(
