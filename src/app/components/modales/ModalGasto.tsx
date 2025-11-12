@@ -26,7 +26,7 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
   const [notas, setNotas] = useState('')
   const [loading, setLoading] = useState(false)
 
-  // NUEVOS ESTADOS PARA PAGO A PLAZO
+  // PAGO A PLAZO
   const [esPlazo, setEsPlazo] = useState(false)
   const [diasPlazo, setDiasPlazo] = useState(0)
   const [pagado, setPagado] = useState(false)
@@ -42,20 +42,22 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
     },
   ])
 
-  // 🧩 Traer proveedores previos desde /api/proveedores
+  // CARGAR PROVEEDORES DESDE EL BACKEND
   useEffect(() => {
-    const fetchProveedores = async () => {
+    const cargarProveedores = async () => {
       try {
         const res = await fetch('/api/proveedores')
         if (res.ok) {
           const data = await res.json()
-          setProveedoresPrevios(data || [])
+          // Filtrar nulos y duplicados
+          const unicos = Array.from(new Set(data.filter((p: string | null) => p && p.trim() !== '')))
+          setProveedoresPrevios(unicos)
         }
       } catch (err) {
         console.error('Error cargando proveedores:', err)
       }
     }
-    fetchProveedores()
+    cargarProveedores()
   }, [])
 
   const calcularPrecioFinal = (precio: number, iva: number) => precio + (precio * iva) / 100
@@ -105,7 +107,6 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
 
   const montoTotal = items.reduce((sum, item) => sum + item.precioFinal, 0)
 
-  // 💾 Guardar gasto
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -163,42 +164,55 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
       {/* HEADER */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center text-2xl">💸</div>
+          <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center text-2xl">Money</div>
           <h2 className="text-2xl font-bold text-gray-900">Nuevo Gasto</h2>
         </div>
-        <button type="button" onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">✕</button>
+        <button type="button" onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">X</button>
       </div>
 
       {/* INFORMACIÓN BÁSICA */}
       <div className="mb-6 p-4 bg-gray-50 rounded-lg">
         <h3 className="font-semibold text-gray-900 mb-3">Información Básica</h3>
+
         <div className="space-y-3">
+          {/* FECHA */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Fecha</label>
-            <input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" required />
+            <input
+              type="date"
+              value={fecha}
+              onChange={(e) => setFecha(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              required
+            />
           </div>
 
-          {/* AUTOCOMPLETADO DE PROVEEDOR */}
+          {/* PROVEEDOR CON AUTOCOMPLETADO */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Proveedor</label>
             <input
               type="text"
-              list="listaProveedores"
+              list="proveedores-list"
               value={proveedor}
               onChange={(e) => setProveedor(e.target.value)}
               placeholder="Nombre del proveedor"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
             />
-            <datalist id="listaProveedores">
-              {proveedoresPrevios.map((prov) => (
-                <option key={prov} value={prov} />
+            <datalist id="proveedores-list">
+              {proveedoresPrevios.map((p, idx) => (
+                <option key={idx} value={p} />
               ))}
             </datalist>
           </div>
 
+          {/* MONEDA */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Moneda</label>
-            <select value={moneda} onChange={(e) => setMoneda(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+            <select
+              value={moneda}
+              onChange={(e) => setMoneda(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            >
               <option value="UYU">UYU</option>
               <option value="USD">USD</option>
             </select>
@@ -260,7 +274,7 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
             <div key={item.id} className="border-l-4 border-blue-500 pl-4 py-3 bg-gray-50 rounded-r-lg relative">
               {items.length > 1 && (
                 <button type="button" onClick={() => eliminarItem(item.id)} className="absolute top-2 right-2 text-red-600 hover:text-red-800">
-                  🗑️
+                  Trash
                 </button>
               )}
 
@@ -339,7 +353,7 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
       {/* MONTO TOTAL */}
       <div className="mb-6 p-4 bg-gray-100 rounded-lg flex justify-between items-center">
         <span className="font-semibold text-gray-900">Monto Total</span>
-        <span className="text-2xl font-bold text-blue-600">{montoTotal.toFixed(2)}</span>
+        <span className="text-2xl font-bold text-blue-600">{montoTotal.toLocaleString('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
       </div>
 
       {/* NOTAS */}
@@ -356,7 +370,9 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
 
       {/* BOTONES */}
       <div className="flex gap-3">
-        <button type="button" onClick={onClose} className="flex-1 px-4 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium">Cancelar</button>
+        <button type="button" onClick={onClose} className="flex-1 px-4 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium">
+          Cancelar
+        </button>
         <button type="submit" disabled={loading} className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium">
           {loading ? 'Guardando...' : 'Confirmar'}
         </button>
