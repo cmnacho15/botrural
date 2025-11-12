@@ -21,6 +21,7 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
   const [fecha, setFecha] = useState(new Date().toISOString().split('T')[0])
   const [proveedor, setProveedor] = useState('')
   const [proveedoresPrevios, setProveedoresPrevios] = useState<string[]>([])
+  const [mostrarSugerencias, setMostrarSugerencias] = useState(false)
   const [moneda, setMoneda] = useState('UYU')
   const [metodoPago, setMetodoPago] = useState(METODOS_PAGO[0])
   const [notas, setNotas] = useState('')
@@ -44,29 +45,32 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
 
   // CARGAR PROVEEDORES DESDE EL BACKEND
   useEffect(() => {
-  const cargarProveedores = async () => {
-    try {
-      const res = await fetch('/api/proveedores')
-      if (res.ok) {
-        const data = await res.json()
+    const cargarProveedores = async () => {
+      try {
+        const res = await fetch('/api/proveedores')
+        if (res.ok) {
+          const data = await res.json()
+          console.log('Proveedores cargados:', data) // Debug
 
-        // 💡 Limpiar y normalizar los nombres (evitar duplicados y null)
-        const unicos: string[] = Array.from(
-  new Set(
-    (data as string[])
-      .filter((p) => typeof p === 'string' && p.trim() !== '')
-      .map((p) => p.trim().toLowerCase())
-  )
-)
+          // Filtrar y limpiar proveedores
+          const proveedoresLimpios = data
+            .filter((p: any) => p && typeof p === 'string' && p.trim() !== '')
+            .map((p: string) => p.trim())
+          
+          // Eliminar duplicados (case-insensitive pero mantener original)
+          const unicos = Array.from(new Set(proveedoresLimpios.map((p: string) => p.toLowerCase())))
+            .map(lower => proveedoresLimpios.find((p: string) => p.toLowerCase() === lower))
+            .filter(Boolean) as string[]
 
-setProveedoresPrevios(unicos)
+          console.log('Proveedores únicos:', unicos) // Debug
+          setProveedoresPrevios(unicos)
+        }
+      } catch (err) {
+        console.error('Error cargando proveedores:', err)
       }
-    } catch (err) {
-      console.error('Error cargando proveedores:', err)
     }
-  }
-  cargarProveedores()
-}, [])
+    cargarProveedores()
+  }, [])
 
   const calcularPrecioFinal = (precio: number, iva: number) => precio + (precio * iva) / 100
 
@@ -167,15 +171,20 @@ setProveedoresPrevios(unicos)
     }
   }
 
+  // Filtrar proveedores según lo que el usuario escribe
+  const proveedoresFiltrados = proveedoresPrevios.filter(p =>
+    p.toLowerCase().includes(proveedor.toLowerCase())
+  )
+
   return (
     <form onSubmit={handleSubmit} className="p-6 max-h-[90vh] overflow-y-auto">
       {/* HEADER */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center text-2xl">Money</div>
+          <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center text-2xl">💰</div>
           <h2 className="text-2xl font-bold text-gray-900">Nuevo Gasto</h2>
         </div>
-        <button type="button" onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">X</button>
+        <button type="button" onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">✕</button>
       </div>
 
       {/* INFORMACIÓN BÁSICA */}
@@ -195,22 +204,51 @@ setProveedoresPrevios(unicos)
             />
           </div>
 
-          {/* PROVEEDOR CON AUTOCOMPLETADO */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Proveedor</label>
+          {/* PROVEEDOR CON AUTOCOMPLETADO MEJORADO */}
+          <div className="relative">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Proveedor {proveedoresPrevios.length > 0 && (
+                <span className="text-xs text-gray-500">({proveedoresPrevios.length} guardados)</span>
+              )}
+            </label>
             <input
               type="text"
-              list="proveedores-list"
               value={proveedor}
-              onChange={(e) => setProveedor(e.target.value)}
-              placeholder="Nombre del proveedor"
+              onChange={(e) => {
+                setProveedor(e.target.value)
+                setMostrarSugerencias(true)
+              }}
+              onFocus={() => setMostrarSugerencias(true)}
+              onBlur={() => setTimeout(() => setMostrarSugerencias(false), 200)}
+              placeholder="Ej: AgroSalto, Barraca del Campo..."
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
             />
-            <datalist id="proveedores-list">
-              {proveedoresPrevios.map((p, idx) => (
-                <option key={idx} value={p} />
-              ))}
-            </datalist>
+            
+            {/* SUGERENCIAS DROPDOWN */}
+            {mostrarSugerencias && proveedor && proveedoresFiltrados.length > 0 && (
+              <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                {proveedoresFiltrados.map((p, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => {
+                      setProveedor(p)
+                      setMostrarSugerencias(false)
+                    }}
+                    className="w-full text-left px-3 py-2 hover:bg-blue-50 text-sm text-gray-700 border-b last:border-b-0"
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* MENSAJE SI NO HAY PROVEEDORES */}
+            {proveedoresPrevios.length === 0 && (
+              <p className="text-xs text-gray-500 mt-1">
+                ℹ️ Ingresá un proveedor nuevo. Se guardará automáticamente para futuros gastos.
+              </p>
+            )}
           </div>
 
           {/* MONEDA */}
@@ -221,8 +259,8 @@ setProveedoresPrevios(unicos)
               onChange={(e) => setMoneda(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
             >
-              <option value="UYU">UYU</option>
-              <option value="USD">USD</option>
+              <option value="UYU">UYU (Pesos Uruguayos)</option>
+              <option value="USD">USD (Dólares)</option>
             </select>
           </div>
         </div>
@@ -282,7 +320,7 @@ setProveedoresPrevios(unicos)
             <div key={item.id} className="border-l-4 border-blue-500 pl-4 py-3 bg-gray-50 rounded-r-lg relative">
               {items.length > 1 && (
                 <button type="button" onClick={() => eliminarItem(item.id)} className="absolute top-2 right-2 text-red-600 hover:text-red-800">
-                  Trash
+                  🗑️
                 </button>
               )}
 
@@ -361,7 +399,7 @@ setProveedoresPrevios(unicos)
       {/* MONTO TOTAL */}
       <div className="mb-6 p-4 bg-gray-100 rounded-lg flex justify-between items-center">
         <span className="font-semibold text-gray-900">Monto Total</span>
-        <span className="text-2xl font-bold text-blue-600">{montoTotal.toLocaleString('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+        <span className="text-2xl font-bold text-blue-600">{montoTotal.toLocaleString('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {moneda}</span>
       </div>
 
       {/* NOTAS */}
