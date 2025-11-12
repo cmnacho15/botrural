@@ -44,21 +44,29 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
 
   // CARGAR PROVEEDORES DESDE EL BACKEND
   useEffect(() => {
-    const cargarProveedores = async () => {
-      try {
-        const res = await fetch('/api/proveedores')
-        if (res.ok) {
-          const data = await res.json()
-          // Filtrar nulos y duplicados
-          const unicos = Array.from(new Set(data.filter((p: string | null) => p && p.trim() !== '')))
-          setProveedoresPrevios(unicos)
-        }
-      } catch (err) {
-        console.error('Error cargando proveedores:', err)
+  const cargarProveedores = async () => {
+    try {
+      const res = await fetch('/api/proveedores')
+      if (res.ok) {
+        const data = await res.json()
+
+        // 💡 Limpiar y normalizar los nombres (evitar duplicados y null)
+        const unicos: string[] = Array.from(
+  new Set(
+    (data as string[])
+      .filter((p) => typeof p === 'string' && p.trim() !== '')
+      .map((p) => p.trim().toLowerCase())
+  )
+)
+
+setProveedoresPrevios(unicos)
       }
+    } catch (err) {
+      console.error('Error cargando proveedores:', err)
     }
-    cargarProveedores()
-  }, [])
+  }
+  cargarProveedores()
+}, [])
 
   const calcularPrecioFinal = (precio: number, iva: number) => precio + (precio * iva) / 100
 
