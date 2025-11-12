@@ -72,13 +72,18 @@ export async function PUT(
     console.log(`✅ Lote actualizado: ${loteActualizado.nombre}`);
     return NextResponse.json(loteActualizado, { status: 200 });
   } catch (error) {
-    console.error("💥 Error actualizando lote:", error);
-    return NextResponse.json(
-      { error: "Error actualizando el lote" },
-      { status: 500 }
-    );
-  }
+  console.error("💥 Error actualizando lote:", error);
+  return NextResponse.json(
+    { 
+      error: "Error actualizando el lote", 
+      details: (error as Error).message, // 👈 Agrega este detalle
+      stack: (error as Error).stack       // 👈 Y esto también
+    },
+    { status: 500 }
+  );
 }
+}
+
 
 // 🗑️ DELETE - Eliminar lote específico (opcional)
 export async function DELETE(
