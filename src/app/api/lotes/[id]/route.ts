@@ -9,6 +9,8 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
+    const { id } = params;
+
     // 🔐 Verificar sesión
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
@@ -22,7 +24,7 @@ export async function PUT(
 
     // Buscar lote
     const lote = await prisma.lote.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!lote || lote.campoId !== usuario?.campoId) {
@@ -34,33 +36,51 @@ export async function PUT(
 
     // 📦 Leer datos del body
     const body = await request.json();
-    const { nombre, hectareas, cultivos = [], animales = [] } = body;
+    const { nombre, hectareas, poligono, cultivos = [], animales = [] } = body; // 🔴 CAMBIO 1
 
-    // 🧠 Actualizar lote + reemplazar cultivos y animales
+    console.log("📥 Body recibido para actualizar:", body);
+
+    // ✅ Validar datos básicos
+    if (!nombre || isNaN(parseFloat(hectareas))) {
+      return NextResponse.json(
+        { error: "Nombre o hectáreas inválidas" },
+        { status: 400 }
+      );
+    }
+
+    // ✅ Filtrar cultivos válidos (evita errores por NaN o fechas vacías)
+    const cultivosValidos = cultivos
+      .filter((c: any) => c.tipoCultivo && c.fechaSiembra && c.hectareas)
+      .map((c: any) => ({
+        tipoCultivo: c.tipoCultivo,
+        fechaSiembra: new Date(c.fechaSiembra),
+        hectareas: parseFloat(c.hectareas),
+      }));
+
+    // ✅ Filtrar animales válidos
+    const animalesValidos = animales
+      .filter((a: any) => a.categoria && a.cantidad)
+      .map((a: any) => ({
+        categoria: a.categoria,
+        cantidad: parseInt(a.cantidad),
+        fechaIngreso: new Date(),
+      }));
+
+    // 🧠 Actualizar lote
     const loteActualizado = await prisma.lote.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         nombre,
         hectareas: parseFloat(hectareas),
+        ...(poligono && { poligono }), // 🔴 CAMBIO 2
 
-        // 🔄 Reemplazar todos los cultivos
         cultivos: {
-          deleteMany: {}, // elimina todos los anteriores
-          create: cultivos.map((c: any) => ({
-            tipoCultivo: c.tipoCultivo,
-            fechaSiembra: new Date(c.fechaSiembra),
-            hectareas: parseFloat(c.hectareas),
-          })),
+          deleteMany: {},
+          create: cultivosValidos,
         },
-
-        // 🔄 Reemplazar todos los animales
         animalesLote: {
           deleteMany: {},
-          create: animales.map((a: any) => ({
-            categoria: a.categoria,
-            cantidad: parseInt(a.cantidad),
-            fechaIngreso: new Date(),
-          })),
+          create: animalesValidos,
         },
       },
       include: {
@@ -72,25 +92,26 @@ export async function PUT(
     console.log(`✅ Lote actualizado: ${loteActualizado.nombre}`);
     return NextResponse.json(loteActualizado, { status: 200 });
   } catch (error) {
-  console.error("💥 Error actualizando lote:", error);
-  return NextResponse.json(
-    { 
-      error: "Error actualizando el lote", 
-      details: (error as Error).message, // 👈 Agrega este detalle
-      stack: (error as Error).stack       // 👈 Y esto también
-    },
-    { status: 500 }
-  );
-}
+    console.error("💥 Error actualizando lote:", error);
+    return NextResponse.json(
+      {
+        error: "Error actualizando el lote",
+        details: (error as Error).message,
+        stack: (error as Error).stack,
+      },
+      { status: 500 }
+    );
+  }
 }
 
-
-// 🗑️ DELETE - Eliminar lote específico (opcional)
+// 🗑️ DELETE - Eliminar lote específico
 export async function DELETE(
   request: Request,
   { params }: { params: { id: string } }
 ) {
   try {
+    const { id } = params;
+
     // 🔐 Verificar sesión
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
@@ -102,7 +123,7 @@ export async function DELETE(
     });
 
     const lote = await prisma.lote.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!lote || lote.campoId !== usuario?.campoId) {
@@ -112,19 +133,22 @@ export async function DELETE(
       );
     }
 
-    // ❗ Eliminar cultivos y animales antes del lote (por seguridad)
-    await prisma.cultivo.deleteMany({ where: { loteId: params.id } });
-    await prisma.animalLote.deleteMany({ where: { loteId: params.id } });
+    // 🧹 Eliminar cultivos y animales antes
+    await prisma.cultivo.deleteMany({ where: { loteId: id } });
+    await prisma.animalLote.deleteMany({ where: { loteId: id } });
 
     // 🗑️ Eliminar lote
-    await prisma.lote.delete({ where: { id: params.id } });
+    await prisma.lote.delete({ where: { id } });
 
     console.log(`🗑️ Lote eliminado: ${lote.nombre}`);
     return NextResponse.json({ message: "Lote eliminado correctamente" });
   } catch (error) {
     console.error("💥 Error eliminando lote:", error);
     return NextResponse.json(
-      { error: "Error eliminando el lote" },
+      {
+        error: "Error eliminando el lote",
+        details: (error as Error).message,
+      },
       { status: 500 }
     );
   }
