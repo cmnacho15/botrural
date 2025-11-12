@@ -11,7 +11,10 @@ type ModalEditarIngresoProps = {
     categoria: string
     descripcion?: string
     iva?: number
-    comprador?: string // ✅ AGREGAR
+    comprador?: string
+    metodoPago?: string
+    pagado?: boolean
+    diasPlazo?: number
   }
   onClose: () => void
   onSuccess: () => void
@@ -27,8 +30,13 @@ type ItemIngreso = {
 
 export default function ModalEditarIngreso({ gasto, onClose, onSuccess }: ModalEditarIngresoProps) {
   const [fecha, setFecha] = useState(new Date(gasto.fecha).toISOString().split('T')[0])
-  const [comprador, setComprador] = useState(gasto.comprador || '') // ✅ Cargar desde campo comprador
+  const [comprador, setComprador] = useState(gasto.comprador || '')
   const [moneda, setMoneda] = useState('UYU')
+  const [metodoPago, setMetodoPago] = useState<'Contado' | 'Plazo'>(
+    gasto.metodoPago === 'Plazo' ? 'Plazo' : 'Contado'
+  )
+  const [diasPlazo, setDiasPlazo] = useState<number>(gasto.diasPlazo || 0)
+  const [pagado, setPagado] = useState(gasto.pagado ?? true)
   const [notas, setNotas] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -36,7 +44,7 @@ export default function ModalEditarIngreso({ gasto, onClose, onSuccess }: ModalE
     if (gasto.descripcion) {
       const partes = gasto.descripcion.split(' - ')
       if (partes.length > 1) {
-        setNotas(partes[1] || '')
+        setNotas(partes.slice(1).join(' - ') || '')
       }
     }
   }, [gasto.descripcion])
@@ -89,25 +97,30 @@ export default function ModalEditarIngreso({ gasto, onClose, onSuccess }: ModalE
       return
     }
 
+    if (metodoPago === 'Plazo' && diasPlazo < 1) {
+      alert('❌ Ingresá una cantidad de días válida para el plazo')
+      return
+    }
+
     setLoading(true)
 
     try {
       const item = items[0]
       
-      const response = await fetch(`/api/gastos/${gasto.id}`, {
+      // ✅ CAMBIO: Usar /api/ingresos/[id] en lugar de /api/gastos/[id]
+      const response = await fetch(`/api/ingresos/${gasto.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          tipo: 'INGRESO',
           fecha: fecha,
-          descripcion: `${item.item}${comprador ? ` - ${comprador}` : ''}${notas ? ` - ${notas}` : ''}`,
+          descripcion: `${item.item}${notas ? ` - ${notas}` : ''}`,
           categoria: gasto.categoria,
           monto: item.precioFinal,
           iva: item.iva,
-          metodoPago: 'Contado',
-          pagado: true,
-          diasPlazo: null,
-          proveedor: null, // ✅ Ingresos NO tienen proveedor
+          comprador: comprador ? comprador.trim() : null,
+          metodoPago,
+          diasPlazo: metodoPago === 'Plazo' ? diasPlazo : null,
+          pagado: metodoPago === 'Contado' ? true : pagado,
         }),
       })
 
@@ -185,6 +198,65 @@ export default function ModalEditarIngreso({ gasto, onClose, onSuccess }: ModalE
               <option value="UYU">🇺🇾 UYU - Pesos Uruguayos</option>
               <option value="USD">🇺🇸 USD - Dólares</option>
             </select>
+          </div>
+        </div>
+
+        {/* CONDICIÓN DE PAGO */}
+        <div className="mt-4 p-4 bg-white rounded-lg border border-gray-200">
+          <h3 className="font-semibold text-gray-900 mb-3">Condición de Pago</h3>
+          <div className="space-y-3">
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setMetodoPago('Contado')}
+                className={`flex-1 px-4 py-3 rounded-lg border-2 font-medium transition ${
+                  metodoPago === 'Contado'
+                    ? 'bg-green-50 border-green-500 text-green-700'
+                    : 'bg-white border-gray-300 text-gray-700 hover:border-gray-400'
+                }`}
+              >
+                💵 Contado
+              </button>
+              <button
+                type="button"
+                onClick={() => setMetodoPago('Plazo')}
+                className={`flex-1 px-4 py-3 rounded-lg border-2 font-medium transition ${
+                  metodoPago === 'Plazo'
+                    ? 'bg-green-50 border-green-500 text-green-700'
+                    : 'bg-white border-gray-300 text-gray-700 hover:border-gray-400'
+                }`}
+              >
+                📅 Plazo
+              </button>
+            </div>
+
+            {metodoPago === 'Plazo' && (
+              <div className="space-y-3">
+                <div className="flex gap-3 items-center p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <label className="text-sm font-medium text-gray-700">Días de plazo:</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={diasPlazo}
+                    onChange={(e) => setDiasPlazo(parseInt(e.target.value) || 0)}
+                    className="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 transition"
+                  />
+                </div>
+
+                <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <input
+                    type="checkbox"
+                    id="pagado"
+                    checked={pagado}
+                    onChange={(e) => setPagado(e.target.checked)}
+                    className="w-5 h-5 text-green-600 rounded focus:ring-2 focus:ring-green-500"
+                  />
+                  <label htmlFor="pagado" className="text-sm font-medium text-gray-700">
+                    ✅ Marcar como pagado
+                  </label>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

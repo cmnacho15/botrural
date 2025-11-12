@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { METODOS_PAGO } from '@/lib/constants'
 
 type ModalIngresoProps = {
   onClose: () => void
@@ -26,7 +25,7 @@ export default function ModalIngreso({ onClose, onSuccess }: ModalIngresoProps) 
   const [loading, setLoading] = useState(false)
 
   const [items, setItems] = useState<ItemIngreso[]>([
-    { id: '1', item: '', precio: 0, iva: 0, precioFinal: 0 },
+    { id: '1', item: '', precio: 0, iva: 22, precioFinal: 0 },
   ])
 
   const calcularPrecioFinal = (precio: number, iva: number) => {
@@ -58,7 +57,7 @@ export default function ModalIngreso({ onClose, onSuccess }: ModalIngresoProps) 
   const agregarItem = () => {
     setItems((prev) => [
       ...prev,
-      { id: Date.now().toString(), item: '', precio: 0, iva: 0, precioFinal: 0 },
+      { id: Date.now().toString(), item: '', precio: 0, iva: 22, precioFinal: 0 },
     ])
   }
 
@@ -73,12 +72,12 @@ export default function ModalIngreso({ onClose, onSuccess }: ModalIngresoProps) 
     e.preventDefault()
 
     if (items.some((item) => !item.item || item.precio <= 0)) {
-      alert('Completá todos los ítems con nombre y precio válido')
+      alert('❌ Completá todos los ítems con nombre y precio válido')
       return
     }
 
     if (metodoPago === 'Plazo' && diasPlazo < 1) {
-      alert('Ingresá una cantidad de días válida para el plazo')
+      alert('❌ Ingresá una cantidad de días válida para el plazo')
       return
     }
 
@@ -92,66 +91,75 @@ export default function ModalIngreso({ onClose, onSuccess }: ModalIngresoProps) 
         const fechaConHora = new Date(baseDate)
         fechaConHora.setSeconds(i)
 
+        // ✅ CAMBIO: Usar /api/ingresos en lugar de /api/gastos
         const response = await fetch('/api/ingresos', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            tipo: 'INGRESO',
             fecha: fechaConHora.toISOString(),
-            descripcion: `${item.item}${comprador ? ` - ${comprador}` : ''}${notas ? ` - ${notas}` : ''}`,
+            descripcion: `${item.item}${notas ? ` - ${notas}` : ''}`,
             categoria: 'Otros',
             monto: item.precioFinal,
-            comprador,
+            iva: item.iva,
+            comprador: comprador ? comprador.trim() : null,
             metodoPago,
             diasPlazo: metodoPago === 'Plazo' ? diasPlazo : null,
             pagado: metodoPago === 'Contado' ? true : false,
           }),
         })
 
-        if (!response.ok) throw new Error('Error al guardar')
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => null)
+          console.error('Error response:', errorData)
+          throw new Error(errorData?.error || 'Error al guardar')
+        }
       }
 
+      alert('✅ Ingresos guardados correctamente')
       onSuccess()
       onClose()
     } catch (error) {
       console.error('💥 Error:', error)
-      alert('Error al guardar los ingresos')
+      alert(`❌ Error al guardar los ingresos: ${error instanceof Error ? error.message : 'Error desconocido'}`)
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <form onSubmit={handleSubmit} className="p-6 max-h-[90vh] overflow-y-auto">
+    <div className="p-6 max-h-[90vh] overflow-y-auto">
       {/* HEADER */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center text-2xl">
             💰
           </div>
-          <h2 className="text-2xl font-bold text-gray-900">Ingreso</h2>
+          <h2 className="text-2xl font-bold text-gray-900">Nuevo Ingreso</h2>
         </div>
         <button
           type="button"
           onClick={onClose}
-          className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
+          className="text-gray-400 hover:text-gray-600 text-2xl leading-none transition"
         >
           ✕
         </button>
       </div>
 
       {/* INFORMACIÓN BÁSICA */}
-      <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-        <h3 className="font-semibold text-gray-900 mb-3">Información Básica</h3>
+      <div className="mb-6 p-5 bg-gray-50 rounded-xl border border-gray-200">
+        <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <span className="w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center text-xs">1</span>
+          Información Básica
+        </h3>
 
-        <div className="space-y-3">
+        <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Fecha</label>
             <input
               type="date"
               value={fecha}
               onChange={(e) => setFecha(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition"
               required
             />
           </div>
@@ -162,8 +170,8 @@ export default function ModalIngreso({ onClose, onSuccess }: ModalIngresoProps) 
               type="text"
               value={comprador}
               onChange={(e) => setComprador(e.target.value)}
-              placeholder="Nombre del comprador"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+              placeholder="Nombre del comprador (opcional)"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition"
             />
           </div>
 
@@ -172,10 +180,10 @@ export default function ModalIngreso({ onClose, onSuccess }: ModalIngresoProps) 
             <select
               value={moneda}
               onChange={(e) => setMoneda(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition"
             >
-              <option value="UYU">UYU</option>
-              <option value="USD">USD</option>
+              <option value="UYU">🇺🇾 UYU - Pesos Uruguayos</option>
+              <option value="USD">🇺🇸 USD - Dólares</option>
             </select>
           </div>
         </div>
@@ -184,36 +192,40 @@ export default function ModalIngreso({ onClose, onSuccess }: ModalIngresoProps) 
         <div className="mt-4 p-4 bg-white rounded-lg border border-gray-200">
           <h3 className="font-semibold text-gray-900 mb-3">Condición de Pago</h3>
           <div className="space-y-3">
-            <div className="flex items-center gap-3">
-              <label className="flex items-center gap-2 text-sm text-gray-700">
-                <input
-                  type="radio"
-                  checked={metodoPago === 'Contado'}
-                  onChange={() => setMetodoPago('Contado')}
-                  className="text-green-600"
-                />
-                Contado
-              </label>
-              <label className="flex items-center gap-2 text-sm text-gray-700">
-                <input
-                  type="radio"
-                  checked={metodoPago === 'Plazo'}
-                  onChange={() => setMetodoPago('Plazo')}
-                  className="text-green-600"
-                />
-                A plazo
-              </label>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setMetodoPago('Contado')}
+                className={`flex-1 px-4 py-3 rounded-lg border-2 font-medium transition ${
+                  metodoPago === 'Contado'
+                    ? 'bg-green-50 border-green-500 text-green-700'
+                    : 'bg-white border-gray-300 text-gray-700 hover:border-gray-400'
+                }`}
+              >
+                💵 Contado
+              </button>
+              <button
+                type="button"
+                onClick={() => setMetodoPago('Plazo')}
+                className={`flex-1 px-4 py-3 rounded-lg border-2 font-medium transition ${
+                  metodoPago === 'Plazo'
+                    ? 'bg-green-50 border-green-500 text-green-700'
+                    : 'bg-white border-gray-300 text-gray-700 hover:border-gray-400'
+                }`}
+              >
+                📅 Plazo
+              </button>
             </div>
 
             {metodoPago === 'Plazo' && (
-              <div className="flex gap-3 items-center">
-                <label className="text-sm text-gray-700">Plazo (días):</label>
+              <div className="flex gap-3 items-center p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <label className="text-sm font-medium text-gray-700">Días de plazo:</label>
                 <input
                   type="number"
                   min={1}
                   value={diasPlazo}
                   onChange={(e) => setDiasPlazo(parseInt(e.target.value) || 0)}
-                  className="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                  className="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 transition"
                 />
               </div>
             )}
@@ -222,61 +234,63 @@ export default function ModalIngreso({ onClose, onSuccess }: ModalIngresoProps) 
       </div>
 
       {/* ITEMS */}
-      <div className="mb-6">
-        <div className="bg-green-50 rounded-lg p-3 mb-3 flex items-center gap-2">
-          <span className="w-8 h-8 bg-green-500 text-white rounded-full flex items-center justify-center font-bold">
-            {items.length}
-          </span>
-          <h3 className="font-semibold text-gray-900">Items</h3>
+      <div className="mb-6 p-5 bg-gray-50 rounded-xl border border-gray-200">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+            <span className="w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center text-xs">2</span>
+            Items ({items.length})
+          </h3>
         </div>
 
         <div className="space-y-3">
-          {items.map((item) => (
+          {items.map((item, idx) => (
             <div
               key={item.id}
-              className="border-l-4 border-green-500 pl-4 py-3 bg-gray-50 rounded-r-lg relative"
+              className="border-l-4 border-green-500 pl-4 py-3 bg-white rounded-r-lg relative"
             >
               {items.length > 1 && (
                 <button
                   type="button"
                   onClick={() => eliminarItem(item.id)}
-                  className="absolute top-2 right-2 text-red-600 hover:text-red-800"
+                  className="absolute top-2 right-2 text-red-600 hover:text-red-800 transition"
+                  title="Eliminar item"
                 >
                   🗑️
                 </button>
               )}
 
               <div className="mb-3">
+                <label className="block text-xs text-gray-600 mb-1">Item #{idx + 1}</label>
                 <input
                   type="text"
                   value={item.item}
                   onChange={(e) => handleItemChange(item.id, 'item', e.target.value)}
-                  placeholder="Item"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                  placeholder="Ej: Venta de terneros, Cosecha de soja..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 transition"
                   required
                 />
               </div>
 
-              <div className="grid grid-cols-3 gap-3 items-center">
+              <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-xs text-gray-600 mb-1">Precio</label>
+                  <label className="block text-xs text-gray-600 mb-1">Precio Base</label>
                   <input
                     type="number"
                     step="0.01"
                     value={item.precio || ''}
                     onChange={(e) => handleItemChange(item.id, 'precio', e.target.value)}
                     placeholder="0.00"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 transition"
                     required
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs text-gray-600 mb-1">IVA</label>
+                  <label className="block text-xs text-gray-600 mb-1">IVA (%)</label>
                   <select
                     value={item.iva}
                     onChange={(e) => handleItemChange(item.id, 'iva', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 transition"
                   >
                     <option value="0">Sin IVA</option>
                     <option value="10">10%</option>
@@ -285,12 +299,12 @@ export default function ModalIngreso({ onClose, onSuccess }: ModalIngresoProps) 
                 </div>
 
                 <div>
-                  <label className="block text-xs text-gray-600 mb-1">Precio Final</label>
+                  <label className="block text-xs text-gray-600 mb-1">Total</label>
                   <input
                     type="text"
                     value={item.precioFinal.toFixed(2)}
                     readOnly
-                    className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-lg text-gray-700 font-semibold"
+                    className="w-full px-3 py-2 bg-green-50 border border-green-300 rounded-lg text-green-900 font-bold"
                   />
                 </div>
               </div>
@@ -301,7 +315,7 @@ export default function ModalIngreso({ onClose, onSuccess }: ModalIngresoProps) 
         <button
           type="button"
           onClick={agregarItem}
-          className="mt-3 flex items-center gap-2 text-green-600 hover:text-green-700 font-medium"
+          className="mt-3 flex items-center gap-2 text-green-600 hover:text-green-700 font-medium transition"
         >
           <span className="w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center text-sm">
             +
@@ -311,20 +325,20 @@ export default function ModalIngreso({ onClose, onSuccess }: ModalIngresoProps) 
       </div>
 
       {/* MONTO TOTAL */}
-      <div className="mb-6 p-4 bg-gray-100 rounded-lg flex justify-between items-center">
-        <span className="font-semibold text-gray-900">Monto Total</span>
-        <span className="text-2xl font-bold text-green-600">{montoTotal.toFixed(2)}</span>
+      <div className="mb-6 p-4 bg-green-50 border-2 border-green-500 rounded-xl flex justify-between items-center">
+        <span className="font-semibold text-gray-900 text-lg">💰 Monto Total</span>
+        <span className="text-3xl font-bold text-green-600">${montoTotal.toFixed(2)}</span>
       </div>
 
       {/* NOTAS */}
       <div className="mb-6">
-        <label className="block text-sm font-medium text-gray-700 mb-2">Notas</label>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Notas adicionales</label>
         <textarea
           value={notas}
           onChange={(e) => setNotas(e.target.value)}
-          placeholder="Notas adicionales..."
+          placeholder="Información adicional sobre estos ingresos..."
           rows={3}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition resize-none"
         />
       </div>
 
@@ -333,18 +347,19 @@ export default function ModalIngreso({ onClose, onSuccess }: ModalIngresoProps) 
         <button
           type="button"
           onClick={onClose}
-          className="flex-1 px-4 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium"
+          className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium transition"
         >
           Cancelar
         </button>
         <button
-          type="submit"
+          type="button"
+          onClick={handleSubmit}
           disabled={loading}
-          className="flex-1 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 font-medium"
+          className="flex-1 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition shadow-sm"
         >
-          {loading ? 'Guardando...' : 'Confirmar'}
+          {loading ? '⏳ Guardando...' : '✓ Confirmar Ingresos'}
         </button>
       </div>
-    </form>
+    </div>
   )
 }
