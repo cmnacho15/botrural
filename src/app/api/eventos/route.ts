@@ -40,10 +40,10 @@ export async function POST(request: Request) {
       intensidad,
       notas,
       iva,
-      comprador,
+      comprador, // ✅ AGREGADO
       diasPlazo,
       pagado,
-      proveedor, // ✅ AGREGADO
+      proveedor,
     } = body;
 
     console.log("Creando evento:", { tipo, descripcion });
@@ -56,7 +56,7 @@ export async function POST(request: Request) {
         fecha: fecha ? new Date(fecha) : new Date(),
         cantidad: cantidad ? parseInt(cantidad) : null,
         categoria: categoria || null,
-        monto: monto ? parseFloat(monto) : null, // ✅ AGREGADO
+        monto: monto ? parseFloat(monto) : null,
         loteId: loteId || null,
         usuarioId: session.user.id,
         campoId: usuario.campoId,
@@ -95,9 +95,10 @@ export async function POST(request: Request) {
               fecha: fecha ? new Date(fecha) : new Date(),
               descripcion: descripcion || `Gasto en ${categoria}`,
               categoria: categoria || "Otros",
-              metodoPago: metodoPago || null,
+              metodoPago: metodoPago || "Contado",
               iva: iva !== undefined ? parseFloat(String(iva)) : null,
-              proveedor: proveedor || null,
+              proveedor: proveedor ? proveedor.trim().toLowerCase() : null, // ✅ Normalizar
+              comprador: null, // ✅ AGREGADO: Los gastos NO tienen comprador
               diasPlazo: metodoPago === "Plazo" ? parseInt(diasPlazo || "0") : null,
               pagado: metodoPago === "Contado" ? true : (pagado ?? false),
               campoId: usuario.campoId,
@@ -127,6 +128,28 @@ export async function POST(request: Request) {
             }
           }
           console.log("Animales restados del lote (venta)");
+        }
+
+        // ✅ Si es una venta con monto, crear ingreso en tabla Gasto
+        if (monto && parseFloat(monto) > 0) {
+          await prisma.gasto.create({
+            data: {
+              tipo: "INGRESO",
+              monto: parseFloat(monto),
+              fecha: fecha ? new Date(fecha) : new Date(),
+              descripcion: descripcion || `Venta de ${categoria}`,
+              categoria: categoria || "Otros",
+              metodoPago: metodoPago || "Contado",
+              iva: iva !== undefined ? parseFloat(String(iva)) : null,
+              comprador: comprador ? comprador.trim().toLowerCase() : null, // ✅ AGREGADO
+              proveedor: null, // ✅ AGREGADO: Los ingresos NO tienen proveedor
+              diasPlazo: metodoPago === "Plazo" ? parseInt(diasPlazo || "0") : null,
+              pagado: metodoPago === "Contado" ? true : (pagado ?? false),
+              campoId: usuario.campoId,
+              loteId: loteId || null,
+            },
+          });
+          console.log("Ingreso por venta registrado correctamente");
         }
         break;
 
@@ -199,7 +222,12 @@ export async function POST(request: Request) {
               fecha: fecha ? new Date(fecha) : new Date(),
               descripcion: `Compra de ${insumoIngreso.nombre}`,
               categoria: "Insumos",
-              metodoPago: metodoPago || null,
+              metodoPago: metodoPago || "Contado",
+              iva: iva !== undefined ? parseFloat(String(iva)) : null,
+              proveedor: proveedor ? proveedor.trim().toLowerCase() : null, // ✅ AGREGADO
+              comprador: null, // ✅ AGREGADO: Los gastos NO tienen comprador
+              diasPlazo: metodoPago === "Plazo" ? parseInt(diasPlazo || "0") : null,
+              pagado: metodoPago === "Contado" ? true : (pagado ?? false),
               campoId: usuario.campoId,
               loteId: loteId || null,
             },
@@ -231,6 +259,28 @@ export async function POST(request: Request) {
             where: { loteId, tipoCultivo, lote: { campoId: usuario.campoId } },
           });
           console.log("Cultivo eliminado tras cosecha");
+        }
+
+        // ✅ Si es una cosecha con monto (venta), crear ingreso
+        if (monto && parseFloat(monto) > 0) {
+          await prisma.gasto.create({
+            data: {
+              tipo: "INGRESO",
+              monto: parseFloat(monto),
+              fecha: fecha ? new Date(fecha) : new Date(),
+              descripcion: descripcion || `Cosecha de ${tipoCultivo}`,
+              categoria: categoria || "Cosecha",
+              metodoPago: metodoPago || "Contado",
+              iva: iva !== undefined ? parseFloat(String(iva)) : null,
+              comprador: comprador ? comprador.trim().toLowerCase() : null, // ✅ AGREGADO
+              proveedor: null, // ✅ AGREGADO: Los ingresos NO tienen proveedor
+              diasPlazo: metodoPago === "Plazo" ? parseInt(diasPlazo || "0") : null,
+              pagado: metodoPago === "Contado" ? true : (pagado ?? false),
+              campoId: usuario.campoId,
+              loteId: loteId || null,
+            },
+          });
+          console.log("Ingreso por cosecha registrado correctamente");
         }
         break;
 
@@ -277,9 +327,9 @@ export async function POST(request: Request) {
         }
         break;
 
-      // INGRESO (Venta)
+      // INGRESO (genérico)
       case "INGRESO":
-        // Guardar campos de venta con comprador y pago
+        // Guardar campos de ingreso con comprador y pago
         await prisma.evento.update({
           where: { id: evento.id },
           data: {
@@ -289,6 +339,28 @@ export async function POST(request: Request) {
             pagado: metodoPago === "Contado" ? true : (pagado ?? false),
           },
         });
+
+        // ✅ Crear registro en tabla Gasto con tipo INGRESO
+        if (monto && parseFloat(monto) > 0) {
+          await prisma.gasto.create({
+            data: {
+              tipo: "INGRESO",
+              monto: parseFloat(monto),
+              fecha: fecha ? new Date(fecha) : new Date(),
+              descripcion: descripcion || "Ingreso",
+              categoria: categoria || "Otros",
+              metodoPago: metodoPago || "Contado",
+              iva: iva !== undefined ? parseFloat(String(iva)) : null,
+              comprador: comprador ? comprador.trim().toLowerCase() : null, // ✅ AGREGADO
+              proveedor: null, // ✅ AGREGADO: Los ingresos NO tienen proveedor
+              diasPlazo: metodoPago === "Plazo" ? parseInt(diasPlazo || "0") : null,
+              pagado: metodoPago === "Contado" ? true : (pagado ?? false),
+              campoId: usuario.campoId,
+              loteId: loteId || null,
+            },
+          });
+          console.log("Ingreso registrado correctamente");
+        }
         console.log("Ingreso registrado con condición de pago");
         break;
 
