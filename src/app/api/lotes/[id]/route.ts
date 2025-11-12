@@ -4,80 +4,132 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 // 📝 PUT - Actualizar lote con cultivos y animales
-export async function PUT(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+export async function PUT(request: Request, { params }: { params: { id: string } }) {
+  console.log("🚀 PUT /api/lotes/[id] INICIADO");
+
   try {
+    console.log("📌 Params recibidos:", params);
+
     const { id } = params;
 
-    // 🔐 Verificar sesión
+    // 🔐 Sesión
     const session = await getServerSession(authOptions);
+    console.log("👤 Sesión:", session);
+
     if (!session?.user?.id) {
+      console.log("❌ Usuario NO autenticado");
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
     }
 
-    // Buscar usuario
+    // Usuario
     const usuario = await prisma.user.findUnique({
       where: { id: session.user.id },
     });
+    console.log("👤 Usuario encontrado:", usuario);
 
-    // Buscar lote
+    // Lote
     const lote = await prisma.lote.findUnique({
       where: { id },
     });
+    console.log("🌾 Lote encontrado:", lote);
 
-    if (!lote || lote.campoId !== usuario?.campoId) {
+    if (!lote) {
+      console.log("❌ Lote NO existe:", id);
+      return NextResponse.json({ error: "Lote no encontrado" }, { status: 404 });
+    }
+
+    if (lote.campoId !== usuario?.campoId) {
+      console.log("⛔ Lote NO pertenece al usuario");
+      return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+    }
+
+    // Leer body
+    const rawBody = await request.text();
+    console.log("📨 RAW BODY:", rawBody);
+
+    let body: any;
+    try {
+      body = JSON.parse(rawBody);
+    } catch (err) {
+      console.log("❌ NO SE PUDO PARSEAR JSON:", err);
       return NextResponse.json(
-        { error: "Lote no encontrado o no autorizado" },
-        { status: 404 }
+        { error: "Body inválido", rawBody },
+        { status: 400 }
       );
     }
 
-    // 📦 Leer datos del body
-    const body = await request.json();
-    const { nombre, hectareas, poligono, cultivos = [], animales = [] } = body; // 🔴 CAMBIO 1
+    console.log("📥 Body parseado:", body);
 
-    console.log("📥 Body recibido para actualizar:", body);
+    const { nombre, hectareas, poligono, cultivos = [], animales = [] } = body;
 
-    // ✅ Validar datos básicos
+    console.log("🧪 Datos principales:", {
+      nombre,
+      hectareas,
+      poligono,
+      cultivos,
+      animales,
+    });
+
+    // Validaciones
+    if (!nombre) console.log("⚠️ nombre está vacío!");
+    if (!hectareas) console.log("⚠️ hectareas está vacío!");
+
     if (!nombre || isNaN(parseFloat(hectareas))) {
+      console.log("❌ Validación falló:", { nombre, hectareas });
       return NextResponse.json(
         { error: "Nombre o hectáreas inválidas" },
         { status: 400 }
       );
     }
 
-    // ✅ Filtrar cultivos válidos (evita errores por NaN o fechas vacías)
+    // Cultivos
+    console.log("🌱 Procesando cultivos...");
     const cultivosValidos = cultivos
-      .filter((c: any) => c.tipoCultivo && c.fechaSiembra && c.hectareas)
+      .filter((c: any) => {
+        const valido = c.tipoCultivo && c.fechaSiembra && c.hectareas;
+        if (!valido) console.log("⚠️ Cultivo inválido descartado:", c);
+        return valido;
+      })
       .map((c: any) => ({
         tipoCultivo: c.tipoCultivo,
         fechaSiembra: new Date(c.fechaSiembra),
         hectareas: parseFloat(c.hectareas),
       }));
 
-    // ✅ Filtrar animales válidos
+    console.log("🌿 Cultivos válidos:", cultivosValidos);
+
+    // Animales
+    console.log("🐄 Procesando animales...");
     const animalesValidos = animales
-      .filter((a: any) => a.categoria && a.cantidad)
+      .filter((a: any) => {
+        const valido = a.categoria && a.cantidad;
+        if (!valido) console.log("⚠️ Animal inválido descartado:", a);
+        return valido;
+      })
       .map((a: any) => ({
         categoria: a.categoria,
         cantidad: parseInt(a.cantidad),
         fechaIngreso: new Date(),
       }));
 
-    // 🧠 Actualizar lote
+    console.log("🐮 Animales válidos:", animalesValidos);
+
+    // PRISMA UPDATE
+    console.log("📡 Enviando actualización a Prisma...");
+
     const loteActualizado = await prisma.lote.update({
       where: { id },
       data: {
         nombre,
         hectareas: parseFloat(hectareas),
-        ...(poligono && { poligono }), // 🔴 CAMBIO 2
+
+        ...(poligono && { poligono }),
 
         cultivos: {
           deleteMany: {},
           create: cultivosValidos,
         },
+
         animalesLote: {
           deleteMany: {},
           create: animalesValidos,
@@ -89,30 +141,31 @@ export async function PUT(
       },
     });
 
-    console.log(`✅ Lote actualizado: ${loteActualizado.nombre}`);
+    console.log("✅ PRISMA respondió OK:", loteActualizado);
+
     return NextResponse.json(loteActualizado, { status: 200 });
-  } catch (error) {
-    console.error("💥 Error actualizando lote:", error);
+  } catch (error: any) {
+    console.log("💥 ERROR DETECTADO PUT /api/lotes/[id]");
+    console.log("🟥 Mensaje:", error.message);
+    console.log("🟥 Stack:", error.stack);
+
     return NextResponse.json(
       {
         error: "Error actualizando el lote",
-        details: (error as Error).message,
-        stack: (error as Error).stack,
+        message: error.message,
+        stack: error.stack,
       },
       { status: 500 }
     );
   }
 }
 
-// 🗑️ DELETE - Eliminar lote específico
-export async function DELETE(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+// 🗑️ DELETE (igual que antes)
+export async function DELETE(request: Request, { params }: { params: { id: string } }) {
   try {
+    console.log("🚀 DELETE /api/lotes/[id] INICIADO");
     const { id } = params;
 
-    // 🔐 Verificar sesión
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
@@ -122,34 +175,21 @@ export async function DELETE(
       where: { id: session.user.id },
     });
 
-    const lote = await prisma.lote.findUnique({
-      where: { id },
-    });
+    const lote = await prisma.lote.findUnique({ where: { id } });
+    console.log("📌 Lote encontrado:", lote);
 
     if (!lote || lote.campoId !== usuario?.campoId) {
-      return NextResponse.json(
-        { error: "Lote no encontrado o no autorizado" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "No autorizado o no existe" }, { status: 404 });
     }
 
-    // 🧹 Eliminar cultivos y animales antes
     await prisma.cultivo.deleteMany({ where: { loteId: id } });
     await prisma.animalLote.deleteMany({ where: { loteId: id } });
-
-    // 🗑️ Eliminar lote
     await prisma.lote.delete({ where: { id } });
 
-    console.log(`🗑️ Lote eliminado: ${lote.nombre}`);
-    return NextResponse.json({ message: "Lote eliminado correctamente" });
-  } catch (error) {
-    console.error("💥 Error eliminando lote:", error);
-    return NextResponse.json(
-      {
-        error: "Error eliminando el lote",
-        details: (error as Error).message,
-      },
-      { status: 500 }
-    );
+    console.log("🗑️ Lote eliminado OK");
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    console.log("💥 ERROR DELETE /api/lotes/[id]", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
