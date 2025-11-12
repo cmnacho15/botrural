@@ -25,6 +25,11 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
   const [notas, setNotas] = useState('')
   const [loading, setLoading] = useState(false)
 
+  // NUEVOS ESTADOS PARA PAGO A PLAZO
+  const [esPlazo, setEsPlazo] = useState(false)
+  const [diasPlazo, setDiasPlazo] = useState(0)
+  const [pagado, setPagado] = useState(false)
+
   const [items, setItems] = useState<ItemGasto[]>([
     {
       id: '1',
@@ -41,31 +46,28 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
   }
 
   const handleItemChange = (id: string, field: keyof ItemGasto, value: any) => {
-  setItems((prev) =>
-    prev.map((item) => {
-      if (item.id !== id) return item
+    setItems((prev) =>
+      prev.map((item) => {
+        if (item.id !== id) return item
 
-      // ✅ Crear copia del item
-      let updated = { ...item }
+        let updated = { ...item }
 
-      // ✅ Asignar el valor según el campo
-      if (field === 'precio') {
-        const numValue = parseFloat(value)
-        updated.precio = isNaN(numValue) ? 0 : numValue
-        updated.precioFinal = calcularPrecioFinal(updated.precio, updated.iva)
-      } else if (field === 'iva') {
-        const numValue = parseFloat(value)
-        updated.iva = isNaN(numValue) ? 0 : numValue
-        updated.precioFinal = calcularPrecioFinal(updated.precio, updated.iva)
-      } else {
-        // Para campos de texto (item, categoria)
-        updated = { ...updated, [field]: value }
-      }
+        if (field === 'precio') {
+          const numValue = parseFloat(value)
+          updated.precio = isNaN(numValue) ? 0 : numValue
+          updated.precioFinal = calcularPrecioFinal(updated.precio, updated.iva)
+        } else if (field === 'iva') {
+          const numValue = parseFloat(value)
+          updated.iva = isNaN(numValue) ? 0 : numValue
+          updated.precioFinal = calcularPrecioFinal(updated.precio, updated.iva)
+        } else {
+          updated = { ...updated, [field]: value }
+        }
 
-      return updated
-    })
-  )
-}
+        return updated
+      })
+    )
+  }
 
   const agregarItem = () => {
     setItems((prev) => [
@@ -89,53 +91,57 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
   const montoTotal = items.reduce((sum, item) => sum + item.precioFinal, 0)
 
   const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault()
+    e.preventDefault()
 
-  if (items.some((item) => !item.item || item.precio <= 0)) {
-    alert('Completá todos los ítems con nombre y precio válido')
-    return
-  }
-
-  setLoading(true)
-
-  try {
-    // ✅ Crear timestamp base para todos los items
-    const baseDate = new Date(fecha)
-    
-    // Crear un gasto por cada ítem con timestamp incrementado
-    for (let i = 0; i < items.length; i++) {
-      const item = items[i]
-      
-      // ✅ Agregar segundos para mantener orden
-      const fechaConHora = new Date(baseDate)
-      fechaConHora.setSeconds(i)
-      
-      const response = await fetch('/api/eventos', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tipo: 'GASTO',
-          fecha: fechaConHora.toISOString(), // ✅ Fecha con hora
-          descripcion: `${item.item}${proveedor ? ` - ${proveedor}` : ''}${notas ? ` - ${notas}` : ''}`,
-          categoria: item.categoria,
-          monto: item.precioFinal,
-          metodoPago,
-          iva: item.iva,
-        }),
-      })
-
-      if (!response.ok) throw new Error('Error al guardar')
+    if (items.some((item) => !item.item || item.precio <= 0)) {
+      alert('Completá todos los ítems con nombre y precio válido')
+      return
     }
 
-    onSuccess()
-    onClose()
-  } catch (error) {
-    console.error('Error:', error)
-    alert('Error al guardar los gastos')
-  } finally {
-    setLoading(false)
+    if (esPlazo && diasPlazo < 1) {
+      alert('Si es pago a plazo, ingresá una cantidad de días válida')
+      return
+    }
+
+    setLoading(true)
+
+    try {
+      const baseDate = new Date(fecha)
+
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i]
+        const fechaConHora = new Date(baseDate)
+        fechaConHora.setSeconds(i)
+
+        const response = await fetch('/api/eventos', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tipo: 'GASTO',
+            fecha: fechaConHora.toISOString(),
+            descripcion: `${item.item}${proveedor ? ` - ${proveedor}` : ''}${notas ? ` - ${notas}` : ''}`,
+            categoria: item.categoria,
+            monto: item.precioFinal,
+            metodoPago: esPlazo ? 'Plazo' : 'Contado', // ← Actualizado
+            iva: item.iva,
+            // ← NUEVOS CAMPOS
+            diasPlazo: esPlazo ? diasPlazo : null,
+            pagado: esPlazo ? pagado : true, // Si es contado, siempre pagado
+          }),
+        })
+
+        if (!response.ok) throw new Error('Error al guardar')
+      }
+
+      onSuccess()
+      onClose()
+    } catch (error) {
+      console.error('Error:', error)
+      alert('Error al guardar los gastos')
+    } finally {
+      setLoading(false)
+    }
   }
-}
 
   return (
     <form onSubmit={handleSubmit} className="p-6 max-h-[90vh] overflow-y-auto">
@@ -194,6 +200,58 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
             </select>
           </div>
         </div>
+
+        {/* OPCIÓN DE PAGO */}
+        <div className="mt-4 p-4 bg-white rounded-lg border border-gray-200">
+          <h3 className="font-semibold text-gray-900 mb-3">Condición de Pago</h3>
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <label className="flex items-center gap-2 text-sm text-gray-700">
+                <input
+                  type="radio"
+                  checked={!esPlazo}
+                  onChange={() => setEsPlazo(false)}
+                  className="text-blue-600"
+                />
+                Pago contado
+              </label>
+              <label className="flex items-center gap-2 text-sm text-gray-700">
+                <input
+                  type="radio"
+                  checked={esPlazo}
+                  onChange={() => setEsPlazo(true)}
+                  className="text-blue-600"
+                />
+                Pago a plazo
+              </label>
+            </div>
+
+            {esPlazo && (
+              <div className="flex gap-3 items-center">
+                <label className="text-sm text-gray-700">Plazo (días):</label>
+                <input
+                  type="number"
+                  min={1}
+                  value={diasPlazo}
+onChange={(e) => setDiasPlazo(parseInt(e.target.value) || 0)}
+className="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+/>
+              </div>
+            )}
+
+            {esPlazo && (
+              <div className="flex items-center gap-2 mt-2">
+                <input
+                  type="checkbox"
+                  checked={pagado}
+                  onChange={(e) => setPagado(e.target.checked)}
+                  className="text-blue-600"
+                />
+                <label className="text-sm text-gray-700">Marcar como pagado</label>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* ITEMS */}
@@ -248,7 +306,7 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
                     type="number"
                     step="0.01"
                     value={item.precio || ''}
-                    onChange={(e) => handleItemChange(item.id, 'precio', e.target.value)}  // ✅ Sin parseFloat
+                    onChange={(e) => handleItemChange(item.id, 'precio', e.target.value)}
                     placeholder="0.00"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                     required
@@ -259,7 +317,7 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
                   <label className="block text-xs text-gray-600 mb-1">IVA</label>
                   <select
                     value={item.iva}
-                    onChange={(e) => handleItemChange(item.id, 'iva', e.target.value)}  // ✅ Sin parseFloat
+                    onChange={(e) => handleItemChange(item.id, 'iva', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="0">Sin IVA</option>

@@ -1,9 +1,9 @@
-import { prisma } from '@/lib/prisma' // HOLA
+import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 
-// ✅ GET - Obtener gastos del campo del usuario autenticado
+// ✅ GET - Obtener gastos del usuario autenticado
 export async function GET(request: Request) {
   try {
     const session = await getServerSession(authOptions)
@@ -11,7 +11,6 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
     }
 
-    // Buscar usuario con su campo
     const usuario = await prisma.user.findUnique({
       where: { id: session.user.id },
       include: { campo: true },
@@ -21,22 +20,22 @@ export async function GET(request: Request) {
       return NextResponse.json([], { status: 200 })
     }
 
-    // Leer filtros de query params
     const { searchParams } = new URL(request.url)
     const tipo = searchParams.get('tipo')
     const categoria = searchParams.get('categoria')
+    const proveedor = searchParams.get('proveedor') // 👈 para filtrar por proveedor
 
-    // ✅ Filtrar por campoId del usuario
     const where: any = { campoId: usuario.campoId }
     if (tipo) where.tipo = tipo
     if (categoria) where.categoria = categoria
+    if (proveedor) where.proveedor = proveedor
 
     const gastos = await prisma.gasto.findMany({
       where,
       include: { lote: { select: { nombre: true } } },
       orderBy: [
         { fecha: 'desc' },
-        { createdAt: 'desc' }, // ✅ Ordenar también por fecha de creación
+        { createdAt: 'desc' },
       ],
     })
 
@@ -64,23 +63,25 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    // ✅ Incluimos iva aquí para evitar error
-    const { tipo, monto, fecha, descripcion, categoria, metodoPago, loteId, iva } = body
+const { tipo, monto, fecha, descripcion, categoria, proveedor, metodoPago, iva, diasPlazo, pagado, loteId } = body
 
-    const gasto = await prisma.gasto.create({
-      data: {
-        tipo,
-        monto: parseFloat(monto),
-        fecha: new Date(fecha),
-        descripcion,
-        categoria,
-        metodoPago,
-        iva: iva ? parseFloat(iva) : null, // ✅ guarda el IVA si viene
-        campoId: usuario.campoId, // ✅ asociar al campo del usuario
-        loteId: loteId || null,
-      },
-      include: { lote: true },
-    })
+const gasto = await prisma.gasto.create({
+  data: {
+    tipo,
+    monto: parseFloat(monto),
+    fecha: new Date(fecha),
+    descripcion,
+    categoria,
+    proveedor: proveedor || null,
+    metodoPago: metodoPago || 'Contado',
+    diasPlazo: diasPlazo ? parseInt(diasPlazo) : null,
+    pagado: pagado ?? (metodoPago === 'Contado' ? true : false),
+    iva: iva ? parseFloat(iva) : null,
+    campoId: usuario.campoId,
+    loteId: loteId || null,
+  },
+  include: { lote: true },
+})
 
     return NextResponse.json(gasto, { status: 201 })
   } catch (error) {
@@ -89,7 +90,7 @@ export async function POST(request: Request) {
   }
 }
 
-// ✅ DELETE - Eliminar gasto solo si pertenece al campo del usuario autenticado
+// ✅ DELETE - Eliminar gasto solo si pertenece al campo del usuario
 export async function DELETE(request: Request) {
   try {
     const session = await getServerSession(authOptions)
@@ -112,7 +113,6 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'ID requerido' }, { status: 400 })
     }
 
-    // ✅ Verificar que el gasto pertenece al mismo campo
     const gasto = await prisma.gasto.findUnique({ where: { id } })
 
     if (!gasto || gasto.campoId !== usuario.campoId) {
@@ -123,7 +123,6 @@ export async function DELETE(request: Request) {
     }
 
     await prisma.gasto.delete({ where: { id } })
-
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('💥 Error eliminando gasto:', error)

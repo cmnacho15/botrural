@@ -16,11 +16,11 @@ model User {
   campoId               String?
   createdAt             DateTime     @default(now())
   updatedAt             DateTime     @updatedAt
+  lastMessageAt         DateTime?    @db.Timestamp(6)
+  onboardingCompletedAt DateTime?    @db.Timestamp(6)
+  onboardingStartedAt   DateTime?    @db.Timestamp(6)
   telefono              String?      @unique
   whatsappState         String?      @default("IDLE")
-  lastMessageAt         DateTime?    @db.Timestamp(6)
-  onboardingStartedAt   DateTime?    @db.Timestamp(6)
-  onboardingCompletedAt DateTime?    @db.Timestamp(6)
   accounts              Account[]
   eventos               Evento[]
   createdInvitations    Invitation[] @relation("CreatedInvitations")
@@ -164,12 +164,15 @@ model Gasto {
   fecha       DateTime
   descripcion String?
   categoria   String
-  metodoPago  String?
-  iva         Float? 
   campoId     String
   loteId      String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  iva         Float?
+  proveedor   String?
+  metodoPago  String?
+  diasPlazo   Int?
+  pagado      Boolean? @default(false)
   campo       Campo    @relation(fields: [campoId], references: [id], onDelete: Cascade)
   lote        Lote?    @relation(fields: [loteId], references: [id])
 }
@@ -202,8 +205,7 @@ enum TipoEvento {
   COMPRA
   TRASLADO
   MORTANDAD
-  CONSUMO           // ← Este queda para consumo de animales
-  GASTO             // ← AGREGAR ESTE para gastos de dinero
+  CONSUMO
   ABORTO
   DESTETE
   TACTO
@@ -220,4 +222,5 @@ enum TipoEvento {
   HELADA
   USO_INSUMO
   INGRESO_INSUMO
+  GASTO
 }
