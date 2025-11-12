@@ -105,13 +105,7 @@ L.control.layers(
   }
 ).addTo(map)
 
-    // Control de capas
-    L.control.layers(
-      {
-        'Mapa': osmLayer,
-        'Satélite': satelitalLayer
-      }
-    ).addTo(map)
+    
 
     // Capa para potreros existentes (solo visualización)
     const existingLayers = new L.FeatureGroup()
@@ -167,9 +161,10 @@ L.control.layers(
 
     // Si hay potreros, ajustar el zoom para verlos todos
     if (existingPolygons.length > 0 && existingLayers.getLayers().length > 0) {
-      console.log('🎯 Ajustando zoom para ver todos los potreros')
-      map.fitBounds((existingLayers as any).getBounds(), { padding: [50, 50] })
-    }
+  console.log('🎯 Ajustando zoom con menor acercamiento')
+  const bounds = (existingLayers as any).getBounds()
+  map.fitBounds(bounds, { padding: [100, 100], maxZoom: 16 }) // 🔽 Menos zoom
+}
 
     // Capa para dibujar nuevos potreros
     const drawnItems = new L.FeatureGroup()
