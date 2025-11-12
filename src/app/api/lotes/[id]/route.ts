@@ -4,13 +4,13 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 // 📝 PUT - Actualizar lote con cultivos y animales
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
-  console.log("🚀 PUT /api/lotes/[id] INICIADO");
-
+export async function PUT(
+  request: Request,
+  context: { params: Promise<{ id: string }> } // ✅ CORRECTO para Next.js 15
+) {
   try {
-    console.log("📌 Params recibidos:", params);
+    const { id } = await context.params; // ✅ Ahora sí obtienes el id
 
-    const { id } = params;
 
     // 🔐 Sesión
     const session = await getServerSession(authOptions);
