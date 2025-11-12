@@ -15,7 +15,6 @@ export default function LotesPage() {
   const [lotes, setLotes] = useState<Lote[]>([])
   const [loading, setLoading] = useState(true)
 
-  // Cargar lotes al montar el componente
   useEffect(() => {
     cargarLotes()
   }, [])
@@ -35,17 +34,11 @@ export default function LotesPage() {
   }
 
   async function eliminarLote(id: string, nombre: string) {
-    if (!confirm(`¿Estás seguro de eliminar el potrero "${nombre}"?`)) {
-      return
-    }
+    if (!confirm(`¿Estás seguro de eliminar el potrero "${nombre}"?`)) return
 
     try {
-      const response = await fetch(`/api/lotes?id=${id}`, {
-        method: 'DELETE',
-      })
-
+      const response = await fetch(`/api/lotes?id=${id}`, { method: 'DELETE' })
       if (response.ok) {
-        // Actualizar la lista de lotes sin recargar la página
         setLotes(lotes.filter((lote) => lote.id !== id))
         alert('Potrero eliminado correctamente')
       } else {
@@ -167,7 +160,11 @@ export default function LotesPage() {
                           {lote.nombre}
                         </div>
                         <div className="text-sm text-gray-500">
-                          {Number(lote.hectareas).toLocaleString('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} has
+                          {Number(lote.hectareas).toLocaleString('es-UY', {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}{' '}
+                          has
                         </div>
                       </div>
                     </td>
@@ -191,18 +188,22 @@ export default function LotesPage() {
 
                     <td className="px-6 py-4 text-right">
                       <div className="flex justify-end gap-3">
-                        <button 
+                        <button
                           className="text-gray-400 hover:text-gray-600 transition"
                           title="Ver detalles"
                         >
                           🔗
                         </button>
-                        <button 
+
+                        {/* ✅ BOTÓN DE EDICIÓN ACTUALIZADO */}
+                        <Link
+                          href={`/dashboard/lotes/${lote.id}/editar`}
                           className="text-gray-400 hover:text-gray-600 transition"
                           title="Editar"
                         >
                           ✏️
-                        </button>
+                        </Link>
+
                         <button
                           onClick={() => eliminarLote(lote.id, lote.nombre)}
                           className="text-gray-400 hover:text-red-600 transition"
