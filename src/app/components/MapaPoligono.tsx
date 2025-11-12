@@ -141,7 +141,7 @@ export default function MapaPoligono({
 
     // Ajustar zoom si hay polígonos
     if (existingPolygons.length > 0 && existingLayers.getLayers().length > 0) {
-      const bounds = existingLayers.getBounds()
+      const bounds = (existingLayers as any).getBounds()
       map.fitBounds(bounds, { padding: [100, 100], maxZoom: 16 })
     }
 
