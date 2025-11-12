@@ -8,41 +8,41 @@ datasource db {
 }
 
 model User {
-  id                    String       @id @default(cuid())
-  email                 String?      @unique
+  id                    String    @id @default(cuid())
+  email                 String?   @unique
   name                  String?
   password              String?
-  role                  Role         @default(USUARIO)
+  role                  Role      @default(USUARIO)
   campoId               String?
-  createdAt             DateTime     @default(now())
-  updatedAt             DateTime     @updatedAt
-  lastMessageAt         DateTime?    @db.Timestamp(6)
-  onboardingCompletedAt DateTime?    @db.Timestamp(6)
-  onboardingStartedAt   DateTime?    @db.Timestamp(6)
-  telefono              String?      @unique
-  whatsappState         String?      @default("IDLE")
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  lastMessageAt         DateTime? @db.Timestamp(6)
+  onboardingCompletedAt DateTime? @db.Timestamp(6)
+  onboardingStartedAt   DateTime? @db.Timestamp(6)
+  telefono              String?   @unique
+  whatsappState         String?   @default("IDLE")
   accounts              Account[]
   eventos               Evento[]
   createdInvitations    Invitation[] @relation("CreatedInvitations")
   usedInvitations       Invitation[] @relation("UsedInvitations")
   sessions              Session[]
-  campo                 Campo?       @relation(fields: [campoId], references: [id])
+  campo                 Campo?    @relation(fields: [campoId], references: [id])
 }
 
 model Account {
-  id                String  @id @default(cuid())
-  userId            String
-  type              String
-  provider          String
-  providerAccountId String
-  refresh_token     String?
-  access_token      String?
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String?
-  session_state     String?
-  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                 String  @id @default(cuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String?
+  access_token       String?
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String?
+  session_state      String?
+  user               User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
 }
@@ -57,38 +57,38 @@ model Session {
 
 model VerificationToken {
   identifier String
-  token      String   @unique
+  token      String    @unique
   expires    DateTime
 
   @@unique([identifier, token])
 }
 
 model Campo {
-  id          String       @id @default(cuid())
-  nombre      String
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  eventos     Evento[]
-  gastos      Gasto[]
-  insumos     Insumo[]
+  id         String     @id @default(cuid())
+  nombre     String
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  eventos    Evento[]
+  gastos     Gasto[]
+  insumos    Insumo[]
   invitations Invitation[]
-  lotes       Lote[]
-  usuarios    User[]
+  lotes      Lote[]
+  usuarios   User[]
 }
 
 model Lote {
-  id                String             @id @default(cuid())
-  nombre            String
-  hectareas         Float
-  poligono          Json?
-  campoId           String
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
-  animalesLote      AnimalLote[]
-  cultivos          Cultivo[]
-  eventos           Evento[]
-  gastos            Gasto[]
-  campo             Campo              @relation(fields: [campoId], references: [id], onDelete: Cascade)
+  id               String           @id @default(cuid())
+  nombre           String
+  hectareas        Float
+  poligono         Json?
+  campoId          String
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  animalesLote     AnimalLote[]
+  cultivos         Cultivo[]
+  eventos          Evento[]
+  gastos           Gasto[]
+  campo            Campo            @relation(fields: [campoId], references: [id], onDelete: Cascade)
   movimientosInsumo MovimientoInsumo[]
 }
 
@@ -112,41 +112,46 @@ model AnimalLote {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   lote         Lote     @relation(fields: [loteId], references: [id], onDelete: Cascade)
+  eventos      Evento[]
 }
 
 model Evento {
-  id          String     @id @default(cuid())
-  tipo        TipoEvento
-  descripcion String
-  fecha       DateTime
-  cantidad    Int?
-  categoria   String?
-  loteId      String?
-  usuarioId   String
-  campoId     String
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-  comprador   String?
-  pagado      Boolean    @default(false)
-  diasPlazo   Int?
-  metodoPago  String?    @default("Contado")
-  proveedor   String?
-  iva         Float?
-  monto       Float?
-  campo       Campo      @relation(fields: [campoId], references: [id], onDelete: Cascade)
-  lote        Lote?      @relation(fields: [loteId], references: [id])
-  usuario     User       @relation(fields: [usuarioId], references: [id])
+  id              String     @id @default(cuid())
+  tipo            TipoEvento
+  descripcion     String
+  fecha           DateTime
+  cantidad        Int?
+  categoria       String?
+  loteId          String?
+  usuarioId       String
+  campoId         String
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  comprador       String?
+  pagado          Boolean    @default(false)
+  diasPlazo       Int?
+  metodoPago      String?    @default("Contado")
+  proveedor       String?
+  iva             Float?
+  monto           Float?
+  animalLoteId    String?
+  cantidadVendida Int?
+  animalLote      AnimalLote? @relation(fields: [animalLoteId], references: [id])
+
+  campo           Campo       @relation(fields: [campoId], references: [id], onDelete: Cascade)
+  lote            Lote?       @relation(fields: [loteId], references: [id])
+  usuario         User        @relation(fields: [usuarioId], references: [id])
 }
 
 model Insumo {
-  id          String             @id @default(cuid())
-  nombre      String
-  unidad      String
-  campoId     String
-  createdAt   DateTime           @default(now())
-  updatedAt   DateTime           @updatedAt
-  stock       Float              @default(0)
-  campo       Campo              @relation(fields: [campoId], references: [id], onDelete: Cascade)
+  id        String   @id @default(cuid())
+  nombre    String
+  unidad    String
+  campoId   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  stock     Float    @default(0)
+  campo     Campo    @relation(fields: [campoId], references: [id], onDelete: Cascade)
   movimientos MovimientoInsumo[]
 }
 
@@ -165,25 +170,29 @@ model MovimientoInsumo {
 }
 
 model Gasto {
-  id          String    @id @default(cuid())
-  tipo        String
-  monto       Float
-  fecha       DateTime
-  descripcion String?
-  categoria   String
-  proveedor   String?
-  comprador   String?   // ✅ AGREGAR ESTA LÍNEA
-  metodoPago  String?
-  diasPlazo   Int?
-  pagado      Boolean   @default(true)
-  fechaPago   DateTime?
-  iva         Float?
-  loteId      String?
-  lote        Lote?     @relation(fields: [loteId], references: [id])
-  campoId     String
-  campo       Campo     @relation(fields: [campoId], references: [id])
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id              String    @id @default(cuid())
+  tipo            String
+  monto           Float
+  fecha           DateTime
+  descripcion     String?
+  categoria       String
+  proveedor       String?
+  comprador       String?
+  metodoPago      String?
+  diasPlazo       Int?
+  pagado          Boolean   @default(true)
+  fechaPago       DateTime?
+  iva             Float?
+  loteId          String?
+  lote            Lote?     @relation(fields: [loteId], references: [id])
+  campoId         String
+  campo           Campo     @relation(fields: [campoId], references: [id])
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // ✅ NUEVOS CAMPOS AGREGADOS
+  animalLoteId    String?
+  cantidadVendida Int?
 
   @@index([campoId])
   @@index([fecha])

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 type ModalIngresoProps = {
   onClose: () => void
@@ -13,6 +13,9 @@ type ItemIngreso = {
   precio: number
   iva: number
   precioFinal: number
+  tipoItem: 'manual' | 'animal'
+  animalLoteId?: string
+  cantidad?: number
 }
 
 export default function ModalIngreso({ onClose, onSuccess }: ModalIngresoProps) {
@@ -24,9 +27,36 @@ export default function ModalIngreso({ onClose, onSuccess }: ModalIngresoProps) 
   const [notas, setNotas] = useState('')
   const [loading, setLoading] = useState(false)
 
+  // ✅ Nuevos estados
+  const [lotes, setLotes] = useState<any[]>([])
+  const [animalesDisponibles, setAnimalesDisponibles] = useState<any[]>([])
+
   const [items, setItems] = useState<ItemIngreso[]>([
-    { id: '1', item: '', precio: 0, iva: 22, precioFinal: 0 },
+    { id: '1', item: '', precio: 0, iva: 22, precioFinal: 0, tipoItem: 'manual' },
   ])
+
+  // ✅ Cargar lotes y animales
+  useEffect(() => {
+    const cargarDatos = async () => {
+      try {
+        const res = await fetch('/api/lotes')
+        const data = await res.json()
+        setLotes(data)
+
+        const todosAnimales = data.flatMap((lote: any) =>
+          lote.animalesLote.map((animal: any) => ({
+            ...animal,
+            loteNombre: lote.nombre,
+            loteId: lote.id,
+          }))
+        )
+        setAnimalesDisponibles(todosAnimales)
+      } catch (error) {
+        console.error('Error cargando datos:', error)
+      }
+    }
+    cargarDatos()
+  }, [])
 
   const calcularPrecioFinal = (precio: number, iva: number) => {
     return precio + (precio * iva) / 100
@@ -57,7 +87,14 @@ export default function ModalIngreso({ onClose, onSuccess }: ModalIngresoProps) 
   const agregarItem = () => {
     setItems((prev) => [
       ...prev,
-      { id: Date.now().toString(), item: '', precio: 0, iva: 22, precioFinal: 0 },
+      {
+        id: Date.now().toString(),
+        item: '',
+        precio: 0,
+        iva: 22,
+        precioFinal: 0,
+        tipoItem: 'manual',
+      },
     ])
   }
 
@@ -91,7 +128,6 @@ export default function ModalIngreso({ onClose, onSuccess }: ModalIngresoProps) 
         const fechaConHora = new Date(baseDate)
         fechaConHora.setSeconds(i)
 
-        // ✅ CAMBIO: Usar /api/ingresos en lugar de /api/gastos
         const response = await fetch('/api/ingresos', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -105,6 +141,9 @@ export default function ModalIngreso({ onClose, onSuccess }: ModalIngresoProps) 
             metodoPago,
             diasPlazo: metodoPago === 'Plazo' ? diasPlazo : null,
             pagado: metodoPago === 'Contado' ? true : false,
+            // ✅ nuevos campos
+            animalLoteId: item.tipoItem === 'animal' ? item.animalLoteId : null,
+            cantidadVendida: item.tipoItem === 'animal' ? item.cantidad : null,
           }),
         })
 
@@ -120,7 +159,11 @@ export default function ModalIngreso({ onClose, onSuccess }: ModalIngresoProps) 
       onClose()
     } catch (error) {
       console.error('💥 Error:', error)
-      alert(`❌ Error al guardar los ingresos: ${error instanceof Error ? error.message : 'Error desconocido'}`)
+      alert(
+        `❌ Error al guardar los ingresos: ${
+          error instanceof Error ? error.message : 'Error desconocido'
+        }`
+      )
     } finally {
       setLoading(false)
     }
@@ -148,13 +191,17 @@ export default function ModalIngreso({ onClose, onSuccess }: ModalIngresoProps) 
       {/* INFORMACIÓN BÁSICA */}
       <div className="mb-6 p-5 bg-gray-50 rounded-xl border border-gray-200">
         <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-          <span className="w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center text-xs">1</span>
+          <span className="w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center text-xs">
+            1
+          </span>
           Información Básica
         </h3>
 
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Fecha</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Fecha
+            </label>
             <input
               type="date"
               value={fecha}
@@ -165,7 +212,9 @@ export default function ModalIngreso({ onClose, onSuccess }: ModalIngresoProps) 
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Comprador</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Comprador
+            </label>
             <input
               type="text"
               value={comprador}
@@ -176,7 +225,9 @@ export default function ModalIngreso({ onClose, onSuccess }: ModalIngresoProps) 
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Moneda</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Moneda
+            </label>
             <select
               value={moneda}
               onChange={(e) => setMoneda(e.target.value)}
@@ -187,130 +238,171 @@ export default function ModalIngreso({ onClose, onSuccess }: ModalIngresoProps) 
             </select>
           </div>
         </div>
-
-        {/* CONDICIÓN DE PAGO */}
-        <div className="mt-4 p-4 bg-white rounded-lg border border-gray-200">
-          <h3 className="font-semibold text-gray-900 mb-3">Condición de Pago</h3>
-          <div className="space-y-3">
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={() => setMetodoPago('Contado')}
-                className={`flex-1 px-4 py-3 rounded-lg border-2 font-medium transition ${
-                  metodoPago === 'Contado'
-                    ? 'bg-green-50 border-green-500 text-green-700'
-                    : 'bg-white border-gray-300 text-gray-700 hover:border-gray-400'
-                }`}
-              >
-                💵 Contado
-              </button>
-              <button
-                type="button"
-                onClick={() => setMetodoPago('Plazo')}
-                className={`flex-1 px-4 py-3 rounded-lg border-2 font-medium transition ${
-                  metodoPago === 'Plazo'
-                    ? 'bg-green-50 border-green-500 text-green-700'
-                    : 'bg-white border-gray-300 text-gray-700 hover:border-gray-400'
-                }`}
-              >
-                📅 Plazo
-              </button>
-            </div>
-
-            {metodoPago === 'Plazo' && (
-              <div className="flex gap-3 items-center p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <label className="text-sm font-medium text-gray-700">Días de plazo:</label>
-                <input
-                  type="number"
-                  min={1}
-                  value={diasPlazo}
-                  onChange={(e) => setDiasPlazo(parseInt(e.target.value) || 0)}
-                  className="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 transition"
-                />
-              </div>
-            )}
-          </div>
-        </div>
       </div>
 
       {/* ITEMS */}
       <div className="mb-6 p-5 bg-gray-50 rounded-xl border border-gray-200">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-            <span className="w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center text-xs">2</span>
-            Items ({items.length})
-          </h3>
-        </div>
+        <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <span className="w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center text-xs">
+            2
+          </span>
+          Items ({items.length})
+        </h3>
 
-        <div className="space-y-3">
-          {items.map((item, idx) => (
-            <div
-              key={item.id}
-              className="border-l-4 border-green-500 pl-4 py-3 bg-white rounded-r-lg relative"
-            >
-              {items.length > 1 && (
+        {items.map((item, idx) => (
+          <div
+            key={item.id}
+            className="border-l-4 border-green-500 pl-4 py-3 bg-white rounded-r-lg mb-3 relative"
+          >
+            {items.length > 1 && (
+              <button
+                type="button"
+                onClick={() => eliminarItem(item.id)}
+                className="absolute top-2 right-2 text-red-600 hover:text-red-800 transition"
+              >
+                🗑️
+              </button>
+            )}
+
+            {/* Tipo de Item */}
+            <div className="mb-3">
+              <label className="block text-xs text-gray-600 mb-1">
+                Tipo de Item
+              </label>
+              <div className="flex gap-2">
                 <button
                   type="button"
-                  onClick={() => eliminarItem(item.id)}
-                  className="absolute top-2 right-2 text-red-600 hover:text-red-800 transition"
-                  title="Eliminar item"
+                  onClick={() => handleItemChange(item.id, 'tipoItem', 'manual')}
+                  className={`flex-1 px-3 py-2 rounded-lg border-2 text-sm transition ${
+                    item.tipoItem === 'manual'
+                      ? 'bg-green-50 border-green-500 text-green-700'
+                      : 'bg-white border-gray-300 text-gray-700'
+                  }`}
                 >
-                  🗑️
+                  ✍️ Manual
                 </button>
-              )}
+                <button
+                  type="button"
+                  onClick={() => handleItemChange(item.id, 'tipoItem', 'animal')}
+                  className={`flex-1 px-3 py-2 rounded-lg border-2 text-sm transition ${
+                    item.tipoItem === 'animal'
+                      ? 'bg-green-50 border-green-500 text-green-700'
+                      : 'bg-white border-gray-300 text-gray-700'
+                  }`}
+                >
+                  🐄 Animal
+                </button>
+              </div>
+            </div>
 
-              <div className="mb-3">
-                <label className="block text-xs text-gray-600 mb-1">Item #{idx + 1}</label>
+            {/* Descripción o selección de animal */}
+            <div className="mb-3">
+              <label className="block text-xs text-gray-600 mb-1">
+                {item.tipoItem === 'animal'
+                  ? 'Seleccionar Animal'
+                  : `Item #${idx + 1}`}
+              </label>
+              {item.tipoItem === 'manual' ? (
                 <input
                   type="text"
                   value={item.item}
                   onChange={(e) => handleItemChange(item.id, 'item', e.target.value)}
-                  placeholder="Ej: Venta de terneros, Cosecha de soja..."
+                  placeholder="Ej: Cosecha de soja..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 transition"
+                  required
+                />
+              ) : (
+                <select
+                  value={item.animalLoteId || ''}
+                  onChange={(e) => {
+                    const animalSeleccionado = animalesDisponibles.find(
+                      (a) => a.id === e.target.value
+                    )
+                    handleItemChange(item.id, 'animalLoteId', e.target.value)
+                    if (animalSeleccionado) {
+                      handleItemChange(
+                        item.id,
+                        'item',
+                        `${animalSeleccionado.categoria} - Lote ${animalSeleccionado.loteNombre}`
+                      )
+                    }
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 transition"
+                  required
+                >
+                  <option value="">Seleccionar animal...</option>
+                  {animalesDisponibles.map((animal) => (
+                    <option key={animal.id} value={animal.id}>
+                      {animal.categoria} ({animal.cantidad} disp.) - Lote{' '}
+                      {animal.loteNombre}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+
+            {/* Cantidad a vender si es animal */}
+            {item.tipoItem === 'animal' && (
+              <div className="mb-3">
+                <label className="block text-xs text-gray-600 mb-1">
+                  Cantidad a vender
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  value={item.cantidad || ''}
+                  onChange={(e) =>
+                    handleItemChange(item.id, 'cantidad', parseInt(e.target.value))
+                  }
+                  placeholder="Cantidad"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 transition"
+                  required
+                />
+              </div>
+            )}
+
+            {/* Precio / IVA / Total */}
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className="block text-xs text-gray-600 mb-1">
+                  Precio Base
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={item.precio || ''}
+                  onChange={(e) => handleItemChange(item.id, 'precio', e.target.value)}
+                  placeholder="0.00"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 transition"
                   required
                 />
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-xs text-gray-600 mb-1">Precio Base</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={item.precio || ''}
-                    onChange={(e) => handleItemChange(item.id, 'precio', e.target.value)}
-                    placeholder="0.00"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 transition"
-                    required
-                  />
-                </div>
+              <div>
+                <label className="block text-xs text-gray-600 mb-1">IVA (%)</label>
+                <select
+                  value={item.iva}
+                  onChange={(e) => handleItemChange(item.id, 'iva', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 transition"
+                >
+                  <option value="0">Sin IVA</option>
+                  <option value="10">10%</option>
+                  <option value="22">22%</option>
+                </select>
+              </div>
 
-                <div>
-                  <label className="block text-xs text-gray-600 mb-1">IVA (%)</label>
-                  <select
-                    value={item.iva}
-                    onChange={(e) => handleItemChange(item.id, 'iva', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 transition"
-                  >
-                    <option value="0">Sin IVA</option>
-                    <option value="10">10%</option>
-                    <option value="22">22%</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs text-gray-600 mb-1">Total</label>
-                  <input
-                    type="text"
-                    value={item.precioFinal.toFixed(2)}
-                    readOnly
-                    className="w-full px-3 py-2 bg-green-50 border border-green-300 rounded-lg text-green-900 font-bold"
-                  />
-                </div>
+              <div>
+                <label className="block text-xs text-gray-600 mb-1">Total</label>
+                <input
+                  type="text"
+                  value={item.precioFinal.toFixed(2)}
+                  readOnly
+                  className="w-full px-3 py-2 bg-green-50 border border-green-300 rounded-lg text-green-900 font-bold"
+                />
               </div>
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
 
         <button
           type="button"
@@ -324,22 +416,12 @@ export default function ModalIngreso({ onClose, onSuccess }: ModalIngresoProps) 
         </button>
       </div>
 
-      {/* MONTO TOTAL */}
+      {/* TOTAL */}
       <div className="mb-6 p-4 bg-green-50 border-2 border-green-500 rounded-xl flex justify-between items-center">
         <span className="font-semibold text-gray-900 text-lg">💰 Monto Total</span>
-        <span className="text-3xl font-bold text-green-600">${montoTotal.toFixed(2)}</span>
-      </div>
-
-      {/* NOTAS */}
-      <div className="mb-6">
-        <label className="block text-sm font-medium text-gray-700 mb-2">Notas adicionales</label>
-        <textarea
-          value={notas}
-          onChange={(e) => setNotas(e.target.value)}
-          placeholder="Información adicional sobre estos ingresos..."
-          rows={3}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition resize-none"
-        />
+        <span className="text-3xl font-bold text-green-600">
+          ${montoTotal.toFixed(2)}
+        </span>
       </div>
 
       {/* BOTONES */}
@@ -355,7 +437,7 @@ export default function ModalIngreso({ onClose, onSuccess }: ModalIngresoProps) 
           type="button"
           onClick={handleSubmit}
           disabled={loading}
-          className="flex-1 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition shadow-sm"
+          className="flex-1 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 font-medium transition shadow-sm"
         >
           {loading ? '⏳ Guardando...' : '✓ Confirmar Ingresos'}
         </button>

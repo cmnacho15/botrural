@@ -24,30 +24,31 @@ export async function GET(request: Request) {
     const categoria = searchParams.get('categoria')
     const comprador = searchParams.get('comprador')
 
-    const where: any = { 
+    const where: any = {
       campoId: usuario.campoId,
-      tipo: 'INGRESO' // ✅ Solo ingresos
+      tipo: 'INGRESO',
     }
+
     if (categoria) where.categoria = categoria
     if (comprador) where.comprador = comprador.toLowerCase().trim()
 
     const ingresos = await prisma.gasto.findMany({
       where,
       include: { lote: { select: { nombre: true } } },
-      orderBy: [
-        { fecha: 'desc' },
-        { createdAt: 'desc' },
-      ],
+      orderBy: [{ fecha: 'desc' }, { createdAt: 'desc' }],
     })
 
     return NextResponse.json(ingresos)
   } catch (error) {
     console.error('💥 Error obteniendo ingresos:', error)
-    return NextResponse.json({ error: 'Error obteniendo ingresos' }, { status: 500 })
+    return NextResponse.json(
+      { error: 'Error obteniendo ingresos' },
+      { status: 500 }
+    )
   }
 }
 
-/// ✅ POST - Crear nuevo INGRESO
+// ✅ POST - Crear nuevo INGRESO
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions)
@@ -60,11 +61,14 @@ export async function POST(request: Request) {
     })
 
     if (!usuario?.campoId) {
-      return NextResponse.json({ error: 'El usuario no tiene un campo asignado' }, { status: 400 })
+      return NextResponse.json(
+        { error: 'El usuario no tiene un campo asignado' },
+        { status: 400 }
+      )
     }
 
     const body = await request.json()
-    console.log('📥 Body recibido:', body) // ✅ AGREGAR ESTE LOG
+    console.log('📥 Body recibido:', body)
 
     const {
       monto,
@@ -76,43 +80,90 @@ export async function POST(request: Request) {
       iva,
       diasPlazo,
       pagado,
-      loteId
+      loteId,
+      animalLoteId, // ✅ NUEVO
+      cantidadVendida, // ✅ NUEVO
     } = body
 
-    const compradorNormalizado = comprador ? comprador.trim().toLowerCase() : null
+    // ✅ VALIDAR SI ES VENTA DE ANIMAL
+    if (animalLoteId && cantidadVendida) {
+      const animalLote = await prisma.animalLote.findUnique({
+        where: { id: animalLoteId },
+      })
 
-    const dataToCreate = {
-      tipo: 'INGRESO',
-      monto: parseFloat(monto),
-      fecha: new Date(fecha),
-      descripcion,
-      categoria: categoria || 'Otros',
-      comprador: compradorNormalizado,
-      proveedor: null,
-      metodoPago: metodoPago || 'Contado',
-      diasPlazo: diasPlazo ? parseInt(diasPlazo) : null,
-      pagado: pagado ?? (metodoPago === 'Contado' ? true : false),
-      iva: iva ? parseFloat(iva) : null,
-      campoId: usuario.campoId,
-      loteId: loteId || null,
+      if (!animalLote) {
+        return NextResponse.json(
+          { error: 'Animal no encontrado' },
+          { status: 404 }
+        )
+      }
+
+      if (animalLote.cantidad < cantidadVendida) {
+        return NextResponse.json(
+          {
+            error: `Stock insuficiente. Disponible: ${animalLote.cantidad}, Solicitado: ${cantidadVendida}`,
+          },
+          { status: 400 }
+        )
+      }
+
+      // ✅ ACTUALIZAR STOCK
+      await prisma.animalLote.update({
+        where: { id: animalLoteId },
+        data: {
+          cantidad: animalLote.cantidad - cantidadVendida,
+        },
+      })
+
+      console.log(
+        `✅ Stock actualizado: ${animalLote.categoria} - Nuevo stock: ${
+          animalLote.cantidad - cantidadVendida
+        }`
+      )
     }
 
-    console.log('📤 Data a crear:', dataToCreate) // ✅ AGREGAR ESTE LOG
+    const compradorNormalizado = comprador
+      ? comprador.trim().toLowerCase()
+      : null
+
+    const dataToCreate = {
+  tipo: 'INGRESO',
+  monto: parseFloat(monto),
+  fecha: new Date(fecha),
+  descripcion,
+  categoria: categoria || 'Otros',
+  comprador: compradorNormalizado,
+  proveedor: null,
+  metodoPago: metodoPago || 'Contado',
+  diasPlazo: diasPlazo ? parseInt(diasPlazo) : null,
+  pagado: pagado ?? (metodoPago === 'Contado' ? true : false),
+  iva: iva ? parseFloat(iva) : null,
+  campoId: usuario.campoId,
+  loteId: loteId || null,
+  // ✅ AGREGAR ESTAS 2 LÍNEAS:
+  animalLoteId: animalLoteId || null,
+  cantidadVendida: cantidadVendida || null,
+}
+
+    console.log('📤 Data a crear:', dataToCreate)
 
     const ingreso = await prisma.gasto.create({
       data: dataToCreate,
       include: { lote: true },
     })
 
-    console.log('✅ Ingreso creado:', ingreso.id) // ✅ AGREGAR ESTE LOG
+    console.log('✅ Ingreso creado:', ingreso.id)
 
     return NextResponse.json(ingreso, { status: 201 })
   } catch (error) {
-    console.error('💥 Error completo:', error) // ✅ MEJORAR ESTE LOG
-    console.error('💥 Stack trace:', (error as Error).stack) // ✅ AGREGAR STACK TRACE
-    return NextResponse.json({ 
-      error: 'Error creando ingreso',
-      details: (error as Error).message // ✅ AGREGAR DETALLES
-    }, { status: 500 })
+    console.error('💥 Error completo:', error)
+    console.error('💥 Stack trace:', (error as Error).stack)
+    return NextResponse.json(
+      {
+        error: 'Error creando ingreso',
+        details: (error as Error).message,
+      },
+      { status: 500 }
+    )
   }
 }
