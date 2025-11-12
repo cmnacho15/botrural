@@ -28,7 +28,7 @@ export async function GET(request: Request) {
     const where: any = { campoId: usuario.campoId }
     if (tipo) where.tipo = tipo
     if (categoria) where.categoria = categoria
-    if (proveedor) where.proveedor = proveedor
+    if (proveedor) where.proveedor = proveedor.toLowerCase().trim()
 
     const gastos = await prisma.gasto.findMany({
       where,
@@ -63,25 +63,40 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-const { tipo, monto, fecha, descripcion, categoria, proveedor, metodoPago, iva, diasPlazo, pagado, loteId } = body
+    const {
+      tipo,
+      monto,
+      fecha,
+      descripcion,
+      categoria,
+      proveedor,
+      metodoPago,
+      iva,
+      diasPlazo,
+      pagado,
+      loteId
+    } = body
 
-const gasto = await prisma.gasto.create({
-  data: {
-    tipo,
-    monto: parseFloat(monto),
-    fecha: new Date(fecha),
-    descripcion,
-    categoria,
-    proveedor: proveedor || null,
-    metodoPago: metodoPago || 'Contado',
-    diasPlazo: diasPlazo ? parseInt(diasPlazo) : null,
-    pagado: pagado ?? (metodoPago === 'Contado' ? true : false),
-    iva: iva ? parseFloat(iva) : null,
-    campoId: usuario.campoId,
-    loteId: loteId || null,
-  },
-  include: { lote: true },
-})
+    // ✅ Normalizar el proveedor (baja duplicados y limpia texto)
+    const proveedorNormalizado = proveedor ? proveedor.trim().toLowerCase() : null
+
+    const gasto = await prisma.gasto.create({
+      data: {
+        tipo,
+        monto: parseFloat(monto),
+        fecha: new Date(fecha),
+        descripcion,
+        categoria,
+        proveedor: proveedorNormalizado,
+        metodoPago: metodoPago || 'Contado',
+        diasPlazo: diasPlazo ? parseInt(diasPlazo) : null,
+        pagado: pagado ?? (metodoPago === 'Contado' ? true : false),
+        iva: iva ? parseFloat(iva) : null,
+        campoId: usuario.campoId,
+        loteId: loteId || null,
+      },
+      include: { lote: true },
+    })
 
     return NextResponse.json(gasto, { status: 201 })
   } catch (error) {

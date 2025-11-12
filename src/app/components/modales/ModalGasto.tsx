@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { CATEGORIAS_GASTOS, METODOS_PAGO } from '@/lib/constants'
 
 type ModalGastoProps = {
@@ -20,6 +20,7 @@ type ItemGasto = {
 export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
   const [fecha, setFecha] = useState(new Date().toISOString().split('T')[0])
   const [proveedor, setProveedor] = useState('')
+  const [proveedoresPrevios, setProveedoresPrevios] = useState<string[]>([])
   const [moneda, setMoneda] = useState('UYU')
   const [metodoPago, setMetodoPago] = useState(METODOS_PAGO[0])
   const [notas, setNotas] = useState('')
@@ -41,9 +42,23 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
     },
   ])
 
-  const calcularPrecioFinal = (precio: number, iva: number) => {
-    return precio + (precio * iva) / 100
-  }
+  // 🧩 Traer proveedores previos desde /api/proveedores
+  useEffect(() => {
+    const fetchProveedores = async () => {
+      try {
+        const res = await fetch('/api/proveedores')
+        if (res.ok) {
+          const data = await res.json()
+          setProveedoresPrevios(data || [])
+        }
+      } catch (err) {
+        console.error('Error cargando proveedores:', err)
+      }
+    }
+    fetchProveedores()
+  }, [])
+
+  const calcularPrecioFinal = (precio: number, iva: number) => precio + (precio * iva) / 100
 
   const handleItemChange = (id: string, field: keyof ItemGasto, value: any) => {
     setItems((prev) =>
@@ -90,6 +105,7 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
 
   const montoTotal = items.reduce((sum, item) => sum + item.precioFinal, 0)
 
+  // 💾 Guardar gasto
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -122,11 +138,10 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
             descripcion: `${item.item}${proveedor ? ` - ${proveedor}` : ''}${notas ? ` - ${notas}` : ''}`,
             categoria: item.categoria,
             monto: item.precioFinal,
-            metodoPago: esPlazo ? 'Plazo' : 'Contado', // ← Actualizado
+            metodoPago: esPlazo ? 'Plazo' : 'Contado',
             iva: item.iva,
-            // ← NUEVOS CAMPOS
             diasPlazo: esPlazo ? diasPlazo : null,
-            pagado: esPlazo ? pagado : true, // Si es contado, siempre pagado
+            pagado: esPlazo ? pagado : true,
           }),
         })
 
@@ -145,110 +160,89 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
 
   return (
     <form onSubmit={handleSubmit} className="p-6 max-h-[90vh] overflow-y-auto">
+      {/* HEADER */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center text-2xl">
-            💸
-          </div>
-          <h2 className="text-2xl font-bold text-gray-900">Gasto</h2>
+          <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center text-2xl">💸</div>
+          <h2 className="text-2xl font-bold text-gray-900">Nuevo Gasto</h2>
         </div>
-        <button
-          type="button"
-          onClick={onClose}
-          className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
-        >
-          ✕
-        </button>
+        <button type="button" onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">✕</button>
       </div>
 
       {/* INFORMACIÓN BÁSICA */}
       <div className="mb-6 p-4 bg-gray-50 rounded-lg">
         <h3 className="font-semibold text-gray-900 mb-3">Información Básica</h3>
-
         <div className="space-y-3">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Fecha</label>
-            <input
-              type="date"
-              value={fecha}
-              onChange={(e) => setFecha(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-              required
-            />
+            <input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" required />
           </div>
 
+          {/* AUTOCOMPLETADO DE PROVEEDOR */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Proveedor</label>
             <input
               type="text"
+              list="listaProveedores"
               value={proveedor}
               onChange={(e) => setProveedor(e.target.value)}
               placeholder="Nombre del proveedor"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
             />
+            <datalist id="listaProveedores">
+              {proveedoresPrevios.map((prov) => (
+                <option key={prov} value={prov} />
+              ))}
+            </datalist>
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Moneda</label>
-            <select
-              value={moneda}
-              onChange={(e) => setMoneda(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-            >
+            <select value={moneda} onChange={(e) => setMoneda(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
               <option value="UYU">UYU</option>
               <option value="USD">USD</option>
             </select>
           </div>
         </div>
 
-        {/* OPCIÓN DE PAGO */}
+        {/* CONDICIÓN DE PAGO */}
         <div className="mt-4 p-4 bg-white rounded-lg border border-gray-200">
           <h3 className="font-semibold text-gray-900 mb-3">Condición de Pago</h3>
           <div className="space-y-3">
             <div className="flex items-center gap-3">
               <label className="flex items-center gap-2 text-sm text-gray-700">
-                <input
-                  type="radio"
-                  checked={!esPlazo}
-                  onChange={() => setEsPlazo(false)}
-                  className="text-blue-600"
-                />
+                <input type="radio" checked={!esPlazo} onChange={() => setEsPlazo(false)} className="text-blue-600" />
                 Pago contado
               </label>
               <label className="flex items-center gap-2 text-sm text-gray-700">
-                <input
-                  type="radio"
-                  checked={esPlazo}
-                  onChange={() => setEsPlazo(true)}
-                  className="text-blue-600"
-                />
+                <input type="radio" checked={esPlazo} onChange={() => setEsPlazo(true)} className="text-blue-600" />
                 Pago a plazo
               </label>
             </div>
 
             {esPlazo && (
-              <div className="flex gap-3 items-center">
-                <label className="text-sm text-gray-700">Plazo (días):</label>
-                <input
-                  type="number"
-                  min={1}
-                  value={diasPlazo}
-onChange={(e) => setDiasPlazo(parseInt(e.target.value) || 0)}
-className="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-/>
-              </div>
-            )}
+              <>
+                <div className="flex gap-3 items-center">
+                  <label className="text-sm text-gray-700">Plazo (días):</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={diasPlazo}
+                    onChange={(e) => setDiasPlazo(parseInt(e.target.value) || 0)}
+                    className="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
 
-            {esPlazo && (
-              <div className="flex items-center gap-2 mt-2">
-                <input
-                  type="checkbox"
-                  checked={pagado}
-                  onChange={(e) => setPagado(e.target.checked)}
-                  className="text-blue-600"
-                />
-                <label className="text-sm text-gray-700">Marcar como pagado</label>
-              </div>
+                <div className="flex items-center gap-2 mt-2">
+                  <input
+                    type="checkbox"
+                    checked={pagado}
+                    onChange={(e) => setPagado(e.target.checked)}
+                    className="text-blue-600"
+                  />
+                  <label className="text-sm text-gray-700">Marcar como pagado</label>
+                </div>
+              </>
             )}
           </div>
         </div>
@@ -257,21 +251,15 @@ className="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:r
       {/* ITEMS */}
       <div className="mb-6">
         <div className="bg-blue-50 rounded-lg p-3 mb-3 flex items-center gap-2">
-          <span className="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center font-bold">
-            {items.length}
-          </span>
+          <span className="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center font-bold">{items.length}</span>
           <h3 className="font-semibold text-gray-900">Items</h3>
         </div>
 
         <div className="space-y-3">
-          {items.map((item, index) => (
+          {items.map((item) => (
             <div key={item.id} className="border-l-4 border-blue-500 pl-4 py-3 bg-gray-50 rounded-r-lg relative">
               {items.length > 1 && (
-                <button
-                  type="button"
-                  onClick={() => eliminarItem(item.id)}
-                  className="absolute top-2 right-2 text-red-600 hover:text-red-800"
-                >
+                <button type="button" onClick={() => eliminarItem(item.id)} className="absolute top-2 right-2 text-red-600 hover:text-red-800">
                   🗑️
                 </button>
               )}
@@ -292,9 +280,7 @@ className="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:r
                   className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 >
                   {CATEGORIAS_GASTOS.map((cat) => (
-                    <option key={cat} value={cat}>
-                      {cat}
-                    </option>
+                    <option key={cat} value={cat}>{cat}</option>
                   ))}
                 </select>
               </div>
@@ -345,9 +331,7 @@ className="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:r
           onClick={agregarItem}
           className="mt-3 flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium"
         >
-          <span className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm">
-            +
-          </span>
+          <span className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm">+</span>
           Agregar Otro Item
         </button>
       </div>
@@ -372,18 +356,8 @@ className="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:r
 
       {/* BOTONES */}
       <div className="flex gap-3">
-        <button
-          type="button"
-          onClick={onClose}
-          className="flex-1 px-4 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium"
-        >
-          Cancelar
-        </button>
-        <button
-          type="submit"
-          disabled={loading}
-          className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium"
-        >
+        <button type="button" onClick={onClose} className="flex-1 px-4 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium">Cancelar</button>
+        <button type="submit" disabled={loading} className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium">
           {loading ? 'Guardando...' : 'Confirmar'}
         </button>
       </div>
