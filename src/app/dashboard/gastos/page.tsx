@@ -17,6 +17,7 @@ type Gasto = {
   descripcion?: string
   metodoPago?: string
   pagado?: boolean
+  proveedor?: string
 }
 
 type Categoria = {
@@ -34,6 +35,10 @@ export default function GastosPage() {
   const [modalCategoriaOpen, setModalCategoriaOpen] = useState(false)
   const [nuevaCategoriaNombre, setNuevaCategoriaNombre] = useState('')
   const [proveedorFiltro, setProveedorFiltro] = useState('')
+
+  // NUEVOS ESTADOS
+  const [proveedoresCargados, setProveedoresCargados] = useState<string[]>([])
+  const [mostrarMenuProveedor, setMostrarMenuProveedor] = useState(false)
 
   // Estados para Editar
   const [modalEditOpen, setModalEditOpen] = useState(false)
@@ -89,10 +94,26 @@ export default function GastosPage() {
     fetchGastos()
   }, [])
 
+  // NUEVO useEffect: Cargar proveedores
+  useEffect(() => {
+    const fetchProveedores = async () => {
+      try {
+        const res = await fetch('/api/proveedores')
+        if (res.ok) {
+          const data = await res.json()
+          setProveedoresCargados(data.filter(Boolean))
+        }
+      } catch (err) {
+        console.warn('Error al cargar proveedores')
+      }
+    }
+    fetchProveedores()
+  }, [])
+
   const gastosFiltrados = gastosData.filter((g) => {
     const coincideCategoria = categoriaSeleccionada ? g.categoria === categoriaSeleccionada : true
     const coincideProveedor = proveedorFiltro
-      ? g.descripcion?.toLowerCase().includes(proveedorFiltro.toLowerCase())
+      ? g.proveedor === proveedorFiltro
       : true
     return coincideCategoria && coincideProveedor
   })
@@ -112,6 +133,29 @@ export default function GastosPage() {
 
   const totalGastos = gastosData.filter(g => g.tipo === 'GASTO').reduce((sum, g) => sum + g.monto, 0)
   const totalIngresos = gastosData.filter(g => g.tipo === 'INGRESO').reduce((sum, g) => sum + g.monto, 0)
+
+  // NUEVOS CÁLCULOS: Estado de pagos por proveedor
+  const estadoPagosPorProveedor = gastosData
+    .filter(g => g.tipo === 'GASTO' && g.metodoPago === 'Plazo' && g.proveedor)
+    .reduce((acc: Record<string, { total: number; pagado: number; pendiente: number }>, g) => {
+      const prov = g.proveedor || 'Sin proveedor'
+      if (!acc[prov]) {
+        acc[prov] = { total: 0, pagado: 0, pendiente: 0 }
+      }
+      acc[prov].total += g.monto
+      if (g.pagado) {
+        acc[prov].pagado += g.monto
+      } else {
+        acc[prov].pendiente += g.monto
+      }
+      return acc
+    }, {})
+
+  const proveedoresConPendientes = Object.entries(estadoPagosPorProveedor)
+    .filter(([_, data]) => data.pendiente > 0)
+    .sort((a, b) => b[1].pendiente - a[1].pendiente)
+
+  const totalPendiente = proveedoresConPendientes.reduce((sum, [_, data]) => sum + data.pendiente, 0)
 
   const datosPieChart = categoriaSeleccionada
     ? (() => {
@@ -260,25 +304,229 @@ export default function GastosPage() {
             </button>
           </div>
         </div>
+      </div>
 
-        {/* FILTRO POR PROVEEDOR */}
-        <div className="bg-gray-50 rounded-lg border border-gray-200 p-3 flex flex-col sm:flex-row gap-3 sm:items-center">
-          <label className="text-sm font-medium text-gray-700">Filtrar por proveedor:</label>
-          <input
-            type="text"
-            value={proveedorFiltro}
-            onChange={(e) => setProveedorFiltro(e.target.value)}
-            placeholder="Ej: AgroSalto, Barraca Sur..."
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
-          />
-          {proveedorFiltro && (
-            <button
-              onClick={() => setProveedorFiltro('')}
-              className="text-sm text-blue-600 hover:text-blue-800 font-medium"
-            >
-              Limpiar
-            </button>
-          )}
+      {/* SECCIÓN DE FILTROS Y ALERTAS */}
+      <div className="px-4 sm:px-6 lg:px-8 py-4 space-y-4">
+        
+        {/* ALERTAS DE PAGOS PENDIENTES */}
+        {proveedoresConPendientes.length > 0 && (
+          <div className="bg-gradient-to-r from-yellow-50 to-orange-50 border-2 border-yellow-400 rounded-2xl shadow-lg overflow-hidden">
+            <div className="p-5">
+              <div className="flex items-start gap-4">
+                {/* Icono de advertencia */}
+                <div className="flex-shrink-0">
+                  <div className="w-12 h-12 bg-yellow-400 rounded-full flex items-center justify-center shadow-md">
+                    <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                </div>
+
+                {/* Contenido */}
+                <div className="flex-1">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-lg font-bold text-gray-900">
+  ⚠️ Pagos Pendientes
+</h3>
+                    <span className="px-4 py-1.5 bg-yellow-600 text-white rounded-full text-sm font-bold shadow-sm">
+                      {totalPendiente.toFixed(2)} {moneda}
+                    </span>
+                  </div>
+
+                  <p className="text-sm text-gray-700 mb-4">
+                    Tenés <span className="font-bold text-yellow-800">{proveedoresConPendientes.length}</span> {proveedoresConPendientes.length === 1 ? 'proveedor' : 'proveedores'} con pagos pendientes
+                  </p>
+
+                  {/* Lista de proveedores con pendientes */}
+                  <div className="space-y-2">
+                    {proveedoresConPendientes.map(([proveedor, data]) => (
+                      <div
+                        key={proveedor}
+                        className="bg-white rounded-xl border border-yellow-300 p-3 hover:shadow-md transition-all"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3 flex-1">
+                            <div className="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center">
+                              <span className="text-lg">📦</span>
+                            </div>
+                            <div>
+                              <h4 className="font-semibold text-gray-900">{proveedor}</h4>
+                              <p className="text-xs text-gray-600">
+                                Total: {data.total.toFixed(2)} {moneda} | 
+                                Pagado: <span className="text-green-600 font-medium">{data.pagado.toFixed(2)}</span> | 
+                                Pendiente: <span className="text-red-600 font-bold">{data.pendiente.toFixed(2)}</span>
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Botón para filtrar por este proveedor */}
+                          <button
+                            onClick={() => {
+                              setProveedorFiltro(proveedor)
+                              window.scrollTo({ top: 0, behavior: 'smooth' })
+                            }}
+                            className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium shadow-sm"
+                          >
+                            Ver gastos
+                          </button>
+                        </div>
+
+                        {/* Barra de progreso */}
+                        <div className="mt-3 bg-gray-200 rounded-full h-2 overflow-hidden">
+                          <div
+                            className="h-full bg-gradient-to-r from-green-500 to-green-600 rounded-full transition-all duration-500"
+                            style={{ width: `${(data.pagado / data.total) * 100}%` }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* BARRA DE FILTROS */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4">
+          <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+            
+            {/* Label */}
+            <div className="flex items-center gap-2">
+              <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+              </svg>
+              <span className="text-sm font-semibold text-gray-700">Filtrar gastos:</span>
+            </div>
+
+            {/* Dropdown de proveedores */}
+            <div className="relative flex-1 min-w-[250px]">
+              <button
+                onClick={() => setMostrarMenuProveedor(!mostrarMenuProveedor)}
+                className="w-full flex items-center justify-between px-4 py-2.5 bg-gray-50 border-2 border-gray-300 rounded-xl hover:border-blue-400 hover:bg-blue-50 transition-all group"
+              >
+                <div className="flex items-center gap-2">
+                  {proveedorFiltro ? (
+                    <>
+                      <span className="text-sm font-medium text-gray-900">📦 {proveedorFiltro}</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-sm text-gray-500">Seleccionar proveedor...</span>
+                    </>
+                  )}
+                </div>
+                <svg
+                  className={`w-5 h-5 text-gray-400 group-hover:text-blue-600 transition-transform ${
+                    mostrarMenuProveedor ? 'rotate-180' : ''
+                  }`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              {/* Menú desplegable */}
+              {mostrarMenuProveedor && (
+                <div className="absolute z-50 w-full mt-2 bg-white border-2 border-blue-500 rounded-xl shadow-2xl max-h-64 overflow-y-auto">
+                  {/* Opción "Todos" */}
+                  <button
+                    onClick={() => {
+                      setProveedorFiltro('')
+                      setMostrarMenuProveedor(false)
+                    }}
+                    className={`w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors border-b ${
+                      !proveedorFiltro ? 'bg-blue-50 font-semibold text-blue-700' : 'text-gray-700'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">🌐</span>
+                      <span className="text-sm">Todos los proveedores</span>
+                    </div>
+                  </button>
+
+                  {/* Separador */}
+                  {proveedoresCargados.length > 0 && (
+                    <div className="px-4 py-2 bg-gray-50 border-b">
+                      <p className="text-xs font-semibold text-gray-600">
+                        {proveedoresCargados.length} {proveedoresCargados.length === 1 ? 'proveedor' : 'proveedores'}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Lista de proveedores */}
+                  {proveedoresCargados.length > 0 ? (
+                    proveedoresCargados.map((prov) => {
+                      const tienePendientes = estadoPagosPorProveedor[prov]?.pendiente > 0
+                      const gastosTotales = gastosData.filter(g => g.proveedor === prov).length
+
+                      return (
+                        <button
+                          key={prov}
+                          onClick={() => {
+                            setProveedorFiltro(prov)
+                            setMostrarMenuProveedor(false)
+                          }}
+                          className={`w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors border-b last:border-b-0 ${
+                            proveedorFiltro === prov ? 'bg-blue-50' : ''
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="text-lg">📦</span>
+                              <span className={`text-sm ${
+                                proveedorFiltro === prov ? 'font-semibold text-blue-700' : 'text-gray-700'
+                              }`}>
+                                {prov}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {tienePendientes && (
+                                <span className="px-2 py-0.5 bg-yellow-100 text-yellow-700 text-xs rounded-full font-medium">
+  ⚠️ Pendiente
+</span>
+                              )}
+                              <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full font-medium">
+                                {gastosTotales}
+                              </span>
+                            </div>
+                          </div>
+                        </button>
+                      )
+                    })
+                  ) : (
+                    <div className="px-4 py-8 text-center text-gray-500">
+                      <p className="text-sm">No hay proveedores registrados</p>
+                      <p className="text-xs text-gray-400 mt-1">Creá tu primer gasto para agregar proveedores</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Botón limpiar filtro */}
+            {proveedorFiltro && (
+              <button
+                onClick={() => setProveedorFiltro('')}
+                className="px-4 py-2.5 bg-red-100 text-red-700 rounded-xl hover:bg-red-200 transition-colors text-sm font-medium flex items-center gap-2 shadow-sm"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                Limpiar
+              </button>
+            )}
+
+            {/* Badge de filtro activo */}
+            {proveedorFiltro && (
+              <div className="px-3 py-2 bg-blue-100 text-blue-700 rounded-xl text-sm font-medium">
+                Filtrando: <span className="font-bold">{gastosFiltrados.length}</span> {gastosFiltrados.length === 1 ? 'resultado' : 'resultados'}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -521,43 +769,6 @@ export default function GastosPage() {
             {categoriaSeleccionada ? `Gastos en ${categoriaSeleccionada}` : 'Gastos e Ingresos Registrados'}
           </h2>
 
-          {/* RESUMEN DE PROVEEDORES */}
-          {gastosData.some(g => g.metodoPago === 'Plazo') && (
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-5">
-              <h3 className="text-sm font-semibold text-gray-800 mb-2">
-                Estado de pagos por proveedor:
-              </h3>
-              <ul className="space-y-1 text-sm">
-                {Object.entries(
-                  gastosData
-                    .filter(g => g.metodoPago === 'Plazo')
-                    .reduce((acc: Record<string, { total: number; pagado: boolean }>, g) => {
-                      const prov = g.descripcion?.split(' - ')[1] || 'Sin proveedor'
-                      const esPagado = !!g.pagado
-                      if (!acc[prov]) acc[prov] = { total: 0, pagado: esPagado }
-                      acc[prov].total += g.monto
-                      if (!esPagado) acc[prov].pagado = false
-                      return acc
-                    }, {})
-                ).map(([prov, data]) => (
-                  <li
-                    key={prov}
-                    className={`flex justify-between font-medium ${
-                      data.pagado
-                        ? 'text-green-700 bg-green-50 border border-green-200 rounded-md px-2 py-1'
-                        : 'text-yellow-800 bg-yellow-50 border border-yellow-200 rounded-md px-2 py-1'
-                    }`}
-                  >
-                    <span>{prov}</span>
-                    <span className="font-semibold">
-                      {data.pagado ? '✓ Pagado' : `${data.total.toFixed(2)} ${moneda} pendientes`}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
               <thead>
@@ -568,106 +779,106 @@ export default function GastosPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-  {transacciones.map((t) => {
-    const esGasto = t.tipo === 'GASTO'
-    const esIngreso = t.tipo === 'INGRESO'
-    const pagado = t.gastoCompleto?.pagado
-    const metodoPago = t.gastoCompleto?.metodoPago
+                {transacciones.map((t) => {
+                  const esGasto = t.tipo === 'GASTO'
+                  const esIngreso = t.tipo === 'INGRESO'
+                  const pagado = t.gastoCompleto?.pagado
+                  const metodoPago = t.gastoCompleto?.metodoPago
 
-    return (
-      <tr
-        key={t.id}
-        className={`hover:bg-gray-50 transition ${
-          esGasto && !pagado && metodoPago === 'Plazo'
-            ? 'bg-yellow-50' // gastos pendientes a plazo
-            : ''
-        }`}
-      >
-        {/* FECHA */}
-        <td className="px-4 sm:px-6 py-3">{t.fecha}</td>
+                  return (
+                    <tr
+                      key={t.id}
+                      className={`hover:bg-gray-50 transition ${
+                        esGasto && !pagado && metodoPago === 'Plazo'
+                          ? 'bg-yellow-50'
+                          : ''
+                      }`}
+                    >
+                      {/* FECHA */}
+                      <td className="px-4 sm:px-6 py-3">{t.fecha}</td>
 
-        {/* MONTO */}
-        <td className="px-4 sm:px-6 py-3">
-          <div
-            className={`font-semibold ${
-              esIngreso
-                ? 'text-green-600'
-                : esGasto
-                ? 'text-red-600'
-                : 'text-gray-600'
-            }`}
-          >
-            {esIngreso ? '+' : '-'}
-            {t.monto}
-          </div>
-          <div className="text-xs text-gray-500">{moneda}</div>
-        </td>
+                      {/* MONTO */}
+                      <td className="px-4 sm:px-6 py-3">
+                        <div
+                          className={`font-semibold ${
+                            esIngreso
+                              ? 'text-green-600'
+                              : esGasto
+                              ? 'text-red-600'
+                              : 'text-gray-600'
+                          }`}
+                        >
+                          {esIngreso ? '+' : '-'}
+                          {t.monto}
+                        </div>
+                        <div className="text-xs text-gray-500">{moneda}</div>
+                      </td>
 
-        {/* ÍTEM */}
-        <td className="px-4 sm:px-6 py-3">{t.item}</td>
+                      {/* ÍTEM */}
+                      <td className="px-4 sm:px-6 py-3">{t.item}</td>
 
-        {/* CATEGORÍA */}
-        <td className="px-4 sm:px-6 py-3">
-          <span
-            className="inline-block px-3 py-1 rounded-lg text-xs font-medium"
-            style={{ backgroundColor: `${t.color}15`, color: t.color }}
-          >
-            {t.categoria}
-          </span>
-        </td>
+                      {/* CATEGORÍA */}
+                      <td className="px-4 sm:px-6 py-3">
+                        <span
+                          className="inline-block px-3 py-1 rounded-lg text-xs font-medium"
+                          style={{ backgroundColor: `${t.color}15`, color: t.color }}
+                        >
+                          {t.categoria}
+                        </span>
+                      </td>
 
-        {/* USUARIO */}
-        <td className="px-4 sm:px-6 py-3">{t.usuario}</td>
+                      {/* USUARIO */}
+                      <td className="px-4 sm:px-6 py-3">{t.usuario}</td>
 
-        {/* ESTADO DE PAGO */}
-        {esGasto && (
-          <td className="px-4 sm:px-6 py-3 text-sm">
-            {pagado ? (
-              <span className="inline-flex items-center gap-1 text-green-700 bg-green-50 border border-green-200 px-2 py-1 rounded-md">
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                Pagado
-              </span>
-            ) : metodoPago === 'Plazo' ? (
-              <span className="inline-flex items-center gap-1 text-yellow-700 bg-yellow-50 border border-yellow-200 px-2 py-1 rounded-md">
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3" />
-                </svg>
-                Pendiente
-              </span>
-            ) : (
-              <span className="text-gray-500">—</span>
-            )}
-          </td>
-        )}
+                      {/* ESTADO DE PAGO */}
+                      {esGasto && (
+                        <td className="px-4 sm:px-6 py-3 text-sm">
+                          {pagado ? (
+                            <span className="inline-flex items-center gap-1 text-green-700 bg-green-50 border border-green-200 px-2 py-1 rounded-md">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              </svg>
+                              Pagado
+                            </span>
+                          ) : metodoPago === 'Plazo' ? (
+                            <span className="inline-flex items-center gap-1 text-yellow-700 bg-yellow-50 border border-yellow-200 px-2 py-1 rounded-md">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3" />
+                              </svg>
+                              Pendiente
+                            </span>
+                          ) : (
+                            <span className="text-gray-500">—</span>
+                          )}
+                        </td>
+                      )}
 
-        {/* ACCIONES */}
-        <td className="px-4 sm:px-6 py-3 text-right">
-          <div className="flex items-center justify-end gap-3">
-            <button
-              onClick={() => handleEditarGasto(t.gastoCompleto)}
-              className="text-blue-600 hover:text-blue-800 transition text-sm font-medium"
-              title="Editar"
-            >
-              Editar
-            </button>
-            <button
-              onClick={() => {
-                setGastoAEliminar(t.gastoCompleto)
-                setModalDeleteOpen(true)
-              }}
-              className="text-red-600 hover:text-red-800 transition text-sm font-medium"
-              title="Eliminar"
-            >
-              Eliminar
-            </button>
-          </div>
-        </td>
-      </tr>
-    )
-  })}
-</tbody>
+                      {/* ACCIONES */}
+                      <td className="px-4 sm:px-6 py-3 text-right">
+                        <div className="flex items-center justify-end gap-3">
+                          <button
+                            onClick={() => handleEditarGasto(t.gastoCompleto)}
+                            className="text-blue-600 hover:text-blue-800 transition text-sm font-medium"
+                            title="Editar"
+                          >
+                            Editar
+                          </button>
+                          <button
+                            onClick={() => {
+                              setGastoAEliminar(t.gastoCompleto)
+                              setModalDeleteOpen(true)
+                            }}
+                            className="text-red-600 hover:text-red-800 transition text-sm font-medium"
+                            title="Eliminar"
+                          >
+                            Eliminar
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
             </table>
           </div>
 
