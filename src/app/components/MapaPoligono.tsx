@@ -111,15 +111,45 @@ existingPolygons.forEach((potrero) => {
       weight: 3,
     })
 
+    // Construir información de animales
+    let animalesInfo = ''
+    if (potrero.info?.animales && potrero.info.animales.length > 0) {
+      const totalAnimales = potrero.info.animales.reduce((sum: number, a: any) => sum + a.cantidad, 0)
+      const categorias = potrero.info.animales.map((a: any) => a.categoria).join(', ')
+      animalesInfo = `
+        <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #e5e7eb;">
+          <span style="color: #666; font-size: 12px;">
+            🐄 ${totalAnimales} animales<br/>
+            <span style="color: #999; font-size: 11px;">${categorias}</span>
+          </span>
+        </div>
+      `
+    }
+
+    // Construir información de cultivos
+    let cultivosInfo = ''
+    if (potrero.info?.cultivos && potrero.info.cultivos.length > 0) {
+      const cultivos = potrero.info.cultivos.map((c: any) => `${c.tipoCultivo} (${c.hectareas} ha)`).join(', ')
+      cultivosInfo = `
+        <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #e5e7eb;">
+          <span style="color: #666; font-size: 12px;">
+            🌾 ${cultivos}
+          </span>
+        </div>
+      `
+    }
+
     // Popup al hacer click
     polygon.bindPopup(`
-      <div style="padding: 8px;">
-        <strong style="font-size: 14px; color: ${potrero.color || '#10b981'};">
+      <div style="padding: 8px; min-width: 200px;">
+        <strong style="font-size: 16px; color: ${potrero.color || '#10b981'};">
           ${potrero.nombre}
         </strong><br/>
-        <span style="color: #666; font-size: 12px;">
-          Potrero existente
+        <span style="color: #999; font-size: 12px;">
+          ${potrero.info?.hectareas?.toFixed(2) || '0'} ha
         </span>
+        ${cultivosInfo}
+        ${animalesInfo}
       </div>
     `)
 
