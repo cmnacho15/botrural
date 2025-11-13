@@ -787,13 +787,15 @@ export default function GastosPage() {
 
                   return (
                     <tr
-                      key={t.id}
-                      className={`hover:bg-gray-50 transition ${
-                        esGasto && !pagado && metodoPago === 'Plazo'
-                          ? 'bg-yellow-50'
-                          : ''
-                      }`}
-                    >
+  key={t.id}
+  className={`hover:bg-gray-50 transition ${
+    !pagado && metodoPago === 'Plazo'
+      ? esGasto 
+        ? 'bg-yellow-50' 
+        : 'bg-blue-50'
+      : ''
+  }`}
+>
                       {/* FECHA */}
                       <td className="px-4 sm:px-6 py-3">{t.fecha}</td>
 
