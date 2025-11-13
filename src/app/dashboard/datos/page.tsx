@@ -4,7 +4,42 @@ export const dynamic = 'force-dynamic'
 import { DatosProvider, useDatos } from '@/app/contexts/DatosContext'
 import { useState } from 'react'
 
-// ==================== FILTROS ====================
+/* ==================== FUNCIONES AUXILIARES ==================== */
+function obtenerIcono(tipo: string): string {
+  const iconos: Record<string, string> = {
+    LLUVIA: '🌧️',
+    HELADA: '❄️',
+    GASTO: '💸',
+    INGRESO: '💰',
+    VENTA: '🐄',
+    USO_INSUMO: '🧪',
+    INGRESO_INSUMO: '📦',
+    SIEMBRA: '🌱',
+    COSECHA: '🌾',
+    NACIMIENTO: '🐮',
+    MORTANDAD: '💀',
+  }
+  return iconos[tipo] || '📊'
+}
+
+function obtenerColor(tipo: string): string {
+  const colores: Record<string, string> = {
+    LLUVIA: 'blue',
+    HELADA: 'cyan',
+    GASTO: 'red',
+    INGRESO: 'green',
+    VENTA: 'green',
+    USO_INSUMO: 'orange',
+    INGRESO_INSUMO: 'purple',
+    SIEMBRA: 'lime',
+    COSECHA: 'yellow',
+    NACIMIENTO: 'pink',
+    MORTANDAD: 'gray',
+  }
+  return colores[tipo] || 'gray'
+}
+
+/* ==================== FILTROS ==================== */
 function FiltrosDatos() {
   const { filtros, setFiltros } = useDatos()
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState('todos')
@@ -57,16 +92,16 @@ function FiltrosDatos() {
   )
 }
 
-// ==================== TARJETA DE DATO ====================
+/* ==================== TARJETA DE DATO ==================== */
 function TarjetaDato({ dato }: { dato: any }) {
   const formatFecha = (fecha: Date) => {
-  const fechaDato = new Date(fecha)
-  return fechaDato.toLocaleDateString('es-UY', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric'
-  })
-}
+    const fechaDato = new Date(fecha)
+    return fechaDato.toLocaleDateString('es-UY', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    })
+  }
 
   const colorClasses: Record<string, string> = {
     green: 'bg-green-500',
@@ -84,78 +119,88 @@ function TarjetaDato({ dato }: { dato: any }) {
     brown: 'bg-orange-800',
   }
 
-  // ==================== renderDetalles actualizado ====================
   const renderDetalles = () => {
     const detalles = []
 
-    // 💵 MONTO — SIEMPRE se muestra si existe
-    if (dato.detalles?.monto !== undefined && dato.detalles?.monto !== null) {
+    /* 💵 MONTO */
+    if (dato.monto !== undefined && dato.monto !== null) {
+      const esIngreso =
+        dato.tipo === 'INGRESO' ||
+        dato.tipo === 'VENTA' ||
+        dato.tipo === 'COSECHA'
+
       detalles.push(
         <span
           key="monto"
-          className="bg-red-100 text-red-700 px-3 py-1 rounded-full text-sm font-semibold"
+          className={`${
+            esIngreso ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+          } px-3 py-1 rounded-full text-sm font-semibold`}
         >
-          💵 -${dato.detalles.monto.toLocaleString('es-UY')}
+          💵 {esIngreso ? '+' : '-'}${dato.monto.toLocaleString('es-UY')}
         </span>
       )
     }
 
-    // 📊 CANTIDAD — siempre se muestra si hay
-    if (dato.detalles?.cantidad) {
+    /* 📊 CANTIDAD */
+    if (dato.cantidad) {
       detalles.push(
         <span
           key="cantidad"
-          className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-medium"
+          className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm"
         >
-          📊 {dato.detalles.cantidad} {dato.detalles.unidad || ''}
+          📊 {dato.cantidad} {dato.unidad || ''}
         </span>
       )
     }
 
-    // 🏷️ Categoría de gasto
-    if (dato.detalles?.categoriaGasto) {
+    /* 🏪 Proveedor (solo para gastos) */
+    if (dato.proveedor && dato.tipo === 'GASTO') {
       detalles.push(
         <span
-          key="catGasto"
-          className="bg-red-100 text-red-700 px-3 py-1 rounded-full text-sm font-medium"
+          key="proveedor"
+          className="bg-red-100 text-red-700 px-3 py-1 rounded-full text-sm"
         >
-          🏷️ {dato.detalles.categoriaGasto}
+          🏪 {dato.proveedor}
         </span>
       )
     }
 
-    // 💳 Método de pago
-    if (dato.detalles?.metodoPago) {
+    /* 🤝 Comprador (solo ingresos) */
+    if (dato.comprador && dato.tipo === 'INGRESO') {
+      detalles.push(
+        <span
+          key="comprador"
+          className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm"
+        >
+          🤝 {dato.comprador}
+        </span>
+      )
+    }
+
+    /* 💳 Método de pago */
+    if (dato.metodoPago) {
       detalles.push(
         <span
           key="metodo"
-          className="bg-red-100 text-red-700 px-3 py-1 rounded-full text-sm"
+          className={`${
+            dato.tipo === 'INGRESO'
+              ? 'bg-green-100 text-green-700'
+              : 'bg-red-100 text-red-700'
+          } px-3 py-1 rounded-full text-sm`}
         >
-          💳 {dato.detalles.metodoPago}
+          💳 {dato.metodoPago}
         </span>
       )
     }
 
-    // 📦 Insumo
-    if (dato.detalles?.insumo) {
+    /* 🧪 Insumo */
+    if (dato.insumo) {
       detalles.push(
         <span
           key="insumo"
           className="bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-sm"
         >
-          📦 {dato.detalles.insumo}
-        </span>
-      )
-    }
-
-    // 🐄 Categoría animal
-    if (dato.detalles?.categoriaAnimal) {
-      detalles.push(
-        <span
-          key="catAnimal"
-          className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm"
-        >
-          🐄 {dato.detalles.categoriaAnimal}
+          📦 {dato.insumo}
         </span>
       )
     }
@@ -166,16 +211,17 @@ function TarjetaDato({ dato }: { dato: any }) {
   return (
     <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 border border-gray-100">
       <div className="flex items-start gap-4">
-        {/* Icono */}
+
+        {/* Ícono actual */}
         <div
           className={`${
-            colorClasses[dato.color] || 'bg-gray-500'
+            colorClasses[obtenerColor(dato.tipo)] || 'bg-gray-500'
           } w-12 h-12 rounded-full flex items-center justify-center text-2xl flex-shrink-0`}
         >
-          {dato.icono}
+          {obtenerIcono(dato.tipo)}
         </div>
 
-        {/* Contenido */}
+        {/* CONTENIDO */}
         <div className="flex-1 min-w-0">
           <div className="flex justify-between items-start mb-2">
             <div>
@@ -188,10 +234,10 @@ function TarjetaDato({ dato }: { dato: any }) {
 
           <p className="text-gray-700 text-sm mb-3">{dato.descripcion}</p>
 
-          {/* Detalles */}
-          <div className="flex flex-wrap gap-2 mb-2">{renderDetalles()}</div>
+          <div className="flex flex-wrap gap-2 mb-2">
+            {renderDetalles()}
+          </div>
 
-          {/* Metadatos */}
           <div className="flex flex-wrap gap-2 text-xs text-gray-500">
             {dato.usuario && (
               <span className="bg-gray-100 px-2 py-1 rounded">👤 {dato.usuario}</span>
@@ -211,7 +257,7 @@ function TarjetaDato({ dato }: { dato: any }) {
   )
 }
 
-// ==================== LISTA Y PÁGINA ====================
+/* ==================== LISTA ==================== */
 function ListaDatos() {
   const { datos, loading, error } = useDatos()
 
@@ -253,6 +299,7 @@ function ListaDatos() {
           {datos.length} {datos.length === 1 ? 'registro' : 'registros'}
         </h2>
       </div>
+
       {datos.map((dato) => (
         <TarjetaDato key={dato.id} dato={dato} />
       ))}
@@ -260,6 +307,7 @@ function ListaDatos() {
   )
 }
 
+/* ==================== PÁGINA ==================== */
 export default function DatosPage() {
   return (
     <DatosProvider>
