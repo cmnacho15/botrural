@@ -9,8 +9,8 @@ interface Lote {
   hectareas: number
   cultivos: Array<{ 
     tipoCultivo: string
-    hectareas: number  // 👈 AGREGAR
-    fechaSiembra: string  // 👈 AGREGAR (opcional pero recomendado)
+    hectareas: number
+    fechaSiembra: string
   }>
   animalesLote: Array<{ 
     cantidad: number
@@ -26,11 +26,27 @@ export default function LotesPage() {
     cargarLotes()
   }, [])
 
+  // ==========================================
+  // 🚀 CARGAR LOTES + LOGS
+  // ==========================================
+
   async function cargarLotes() {
     try {
       const response = await fetch('/api/lotes')
       if (response.ok) {
         const data = await response.json()
+
+        // 🔥 LOGS NUEVOS PARA DEBUG
+        console.log('📊 DATOS COMPLETOS:', JSON.stringify(data, null, 2))
+        console.log(
+          '🌾 Cultivos por lote:',
+          data.map((l: any) => ({
+            nombre: l.nombre,
+            cultivos: l.cultivos,
+            animales: l.animalesLote,
+          }))
+        )
+
         setLotes(data)
       }
     } catch (error) {
@@ -69,6 +85,7 @@ export default function LotesPage() {
 
   return (
     <div className="bg-gray-50 min-h-screen p-4 sm:p-6 md:p-8 text-gray-900">
+
       {/* HEADER */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8 gap-6">
         <div className="text-center md:text-left space-y-1">
@@ -99,6 +116,7 @@ export default function LotesPage() {
 
       {/* CONTENIDO */}
       <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
+
         {!hayLotes ? (
           // 🔹 Vista vacía
           <div className="p-10 text-center">
@@ -158,39 +176,47 @@ export default function LotesPage() {
                   </th>
                 </tr>
               </thead>
+
               <tbody className="bg-white divide-y divide-gray-100">
                 {lotes.map((lote) => (
                   <tr key={lote.id} className="hover:bg-gray-50 transition">
+
+                    {/* NOMBRE Y HAS */}
                     <td className="px-6 py-4">
-                      <div>
-                        <div className="font-medium text-gray-900">
-                          {lote.nombre}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          {Number(lote.hectareas).toLocaleString('es-UY', {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}{' '}
-                          has
-                        </div>
+                      <div className="font-medium text-gray-900">
+                        {lote.nombre}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {Number(lote.hectareas).toLocaleString('es-UY', {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}{' '}
+                        has
                       </div>
                     </td>
 
+                    {/* CULTIVOS */}
                     <td className="px-6 py-4 text-sm text-gray-700">
-  {lote.cultivos && lote.cultivos.length > 0 ? (
-    <div>
-      <span className="font-medium">
-        {lote.cultivos.map((c) => c.tipoCultivo).join(', ')}
-      </span>
-      <div className="text-xs text-gray-500">
-        {lote.cultivos.reduce((sum, c) => sum + c.hectareas, 0).toFixed(1)} ha total
-      </div>
-    </div>
-  ) : (
-    <span className="text-gray-400 italic">Sin cultivos</span>
-  )}
-</td>
+                      {lote.cultivos?.length > 0 ? (
+                        <div>
+                          <span className="font-medium">
+                            {lote.cultivos.map((c) => c.tipoCultivo).join(', ')}
+                          </span>
+                          <div className="text-xs text-gray-500">
+                            {lote.cultivos
+                              .reduce((sum, c) => sum + c.hectareas, 0)
+                              .toFixed(1)}{' '}
+                            ha total
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="text-gray-400 italic">
+                          Sin cultivos
+                        </span>
+                      )}
+                    </td>
 
+                    {/* ANIMALES */}
                     <td className="px-6 py-4 text-sm text-gray-700">
                       {lote.animalesLote.length
                         ? `${lote.animalesLote.reduce(
@@ -199,19 +225,16 @@ export default function LotesPage() {
                           )} (${lote.animalesLote
                             .map((a) => a.categoria)
                             .join(', ')})`
-                        : '0 días de descanso'}
+                        : 'Sin animales'}
                     </td>
 
+                    {/* ACCIONES */}
                     <td className="px-6 py-4 text-right">
                       <div className="flex justify-end gap-3">
-                        <button
-                          className="text-gray-400 hover:text-gray-600 transition"
-                          title="Ver detalles"
-                        >
+                        <button className="text-gray-400 hover:text-gray-600 transition" title="Ver detalles">
                           🔗
                         </button>
 
-                        {/* ✅ BOTÓN DE EDICIÓN ACTUALIZADO */}
                         <Link
                           href={`/dashboard/lotes/${lote.id}/editar`}
                           className="text-gray-400 hover:text-gray-600 transition"
@@ -229,13 +252,17 @@ export default function LotesPage() {
                         </button>
                       </div>
                     </td>
+
                   </tr>
                 ))}
               </tbody>
+
             </table>
           </div>
         )}
+
       </div>
+
     </div>
   )
 }
