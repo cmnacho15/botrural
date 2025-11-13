@@ -7,8 +7,15 @@ interface Lote {
   id: string
   nombre: string
   hectareas: number
-  cultivos: Array<{ tipoCultivo: string }>
-  animalesLote: Array<{ cantidad: number; categoria: string }>
+  cultivos: Array<{ 
+    tipoCultivo: string
+    hectareas: number  // 👈 AGREGAR
+    fechaSiembra: string  // 👈 AGREGAR (opcional pero recomendado)
+  }>
+  animalesLote: Array<{ 
+    cantidad: number
+    categoria: string 
+  }>
 }
 
 export default function LotesPage() {
@@ -170,10 +177,19 @@ export default function LotesPage() {
                     </td>
 
                     <td className="px-6 py-4 text-sm text-gray-700">
-                      {lote.cultivos.length
-                        ? lote.cultivos.map((c) => c.tipoCultivo).join(', ')
-                        : '-'}
-                    </td>
+  {lote.cultivos && lote.cultivos.length > 0 ? (
+    <div>
+      <span className="font-medium">
+        {lote.cultivos.map((c) => c.tipoCultivo).join(', ')}
+      </span>
+      <div className="text-xs text-gray-500">
+        {lote.cultivos.reduce((sum, c) => sum + c.hectareas, 0).toFixed(1)} ha total
+      </div>
+    </div>
+  ) : (
+    <span className="text-gray-400 italic">Sin cultivos</span>
+  )}
+</td>
 
                     <td className="px-6 py-4 text-sm text-gray-700">
                       {lote.animalesLote.length
