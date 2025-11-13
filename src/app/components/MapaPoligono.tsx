@@ -59,7 +59,23 @@ function crearHeatmapNDVI(
   const { matriz, width, height, bbox } = ndviData
   const [west, south, east, north] = bbox
 
-  const heatPoints: [number, number, number][] = []
+  // ✅ Crear canvas para dibujar el heatmap
+  const canvas = document.createElement('canvas')
+  canvas.width = width
+  canvas.height = height
+  const ctx = canvas.getContext('2d')!
+
+  // ✅ Función para obtener color según NDVI
+  function getColorNDVI(ndvi: number): string {
+    if (ndvi < 0.2) return 'rgba(139, 69, 19, 0.7)'      // Marrón
+    if (ndvi < 0.3) return 'rgba(218, 165, 32, 0.7)'     // Dorado
+    if (ndvi < 0.4) return 'rgba(255, 255, 0, 0.7)'      // Amarillo
+    if (ndvi < 0.5) return 'rgba(173, 255, 47, 0.7)'     // Verde amarillento
+    if (ndvi < 0.6) return 'rgba(124, 252, 0, 0.7)'      // Verde lima
+    if (ndvi < 0.7) return 'rgba(50, 205, 50, 0.7)'      // Verde medio
+    if (ndvi < 0.8) return 'rgba(34, 139, 34, 0.7)'      // Verde bosque
+    return 'rgba(0, 100, 0, 0.7)'                        // Verde oscuro
+  }
 
   // ✅ Función para verificar si un punto está dentro del polígono
   function puntoEnPoligono(lat: number, lng: number, coords: number[][]): boolean {
@@ -76,44 +92,40 @@ function crearHeatmapNDVI(
     return dentro
   }
 
+  // ✅ Dibujar píxeles en el canvas
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const value = matriz[y][x]
       
-      if (value !== -999 && !isNaN(value)) {
+      if (value !== -999 && !isNaN(value) && value >= -1 && value <= 1) {
         const lng = west + (x / width) * (east - west)
         const lat = north - (y / height) * (north - south)
         
-        // ✅ Verificar si está REALMENTE dentro del polígono
+        // Solo dibujar si está dentro del polígono
         if (puntoEnPoligono(lat, lng, poligonoCoords)) {
-          const intensity = (value + 1) / 2
-          heatPoints.push([lat, lng, intensity])
+          const color = getColorNDVI(value)
+          ctx.fillStyle = color
+          ctx.fillRect(x, y, 1, 1)
         }
       }
     }
   }
 
-  if (heatPoints.length === 0) return null
+  // ✅ Aplicar blur para suavizar (esto es lo que da el efecto difuminado)
+  ctx.filter = 'blur(2px)'
+  ctx.drawImage(canvas, 0, 0)
 
-  // ✅ Parámetros más agresivos para contener el heatmap
-  const heatLayer = (L as any).heatLayer(heatPoints, {
-    radius: 6,        // Más pequeño
-    blur: 8,          // Menos difuminado
-    maxZoom: 18,
-    max: 1.0,
-    gradient: {
-      0.0: '#8B4513',
-      0.2: '#DAA520',
-      0.3: '#FFFF00',
-      0.4: '#ADFF2F',
-      0.5: '#7CFC00',
-      0.6: '#32CD32',
-      0.7: '#228B22',
-      0.8: '#006400'
+  // ✅ Crear ImageOverlay de Leaflet
+  const imageOverlay = (L as any).imageOverlay(
+    canvas.toDataURL(),
+    [[south, west], [north, east]],
+    {
+      opacity: 0.7,
+      interactive: false
     }
-  })
+  )
 
-  return heatLayer
+  return imageOverlay
 }
 
 export default function MapaPoligono({
