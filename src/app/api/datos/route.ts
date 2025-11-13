@@ -63,7 +63,11 @@ const iconoPorTipo: Record<string, string> = {
 // ==============================================
 export async function GET(request: Request) {
   try {
+    console.log('🚀 GET /api/datos INICIADO');
+
     const session = await getServerSession(authOptions)
+    console.log('👤 Sesión:', session?.user?.id);
+
     if (!session?.user?.id) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 })
     }
@@ -71,6 +75,8 @@ export async function GET(request: Request) {
     const usuario = await prisma.user.findUnique({
       where: { id: session.user.id },
     })
+
+    console.log('👤 Usuario encontrado:', usuario);
 
     if (!usuario?.campoId) {
       return NextResponse.json(
@@ -85,37 +91,43 @@ export async function GET(request: Request) {
     const fechaHasta = searchParams.get("fechaHasta")
     const busqueda = searchParams.get("busqueda")
 
+    console.log('🔍 Filtros:', { categoria, fechaDesde, fechaHasta, busqueda });
+
     // ==============================
     // 1️⃣ Obtener datos base
     // ==============================
-    const [eventos, gastos, movimientosInsumos] = await Promise.all([
-      prisma.evento.findMany({
-        where: {
-          campoId: usuario.campoId,
-          tipo: { not: "GASTO" },
-        },
-        include: {
-          usuario: { select: { name: true } },
-          lote: { select: { nombre: true } },
-        },
-        orderBy: { fecha: "desc" },
-      }),
+    console.log('📊 Consultando eventos...');
+    const eventos = await prisma.evento.findMany({
+      where: {
+        campoId: usuario.campoId,
+        tipo: { not: "GASTO" },
+      },
+      include: {
+        usuario: { select: { name: true } },
+        lote: { select: { nombre: true } },
+      },
+      orderBy: { fecha: "desc" },
+    });
+    console.log('✅ Eventos encontrados:', eventos.length);
 
-      prisma.gasto.findMany({
-        where: { campoId: usuario.campoId },
-        include: { lote: { select: { nombre: true } } },
-        orderBy: { fecha: "desc" },
-      }),
+    console.log('💸 Consultando gastos...');
+    const gastos = await prisma.gasto.findMany({
+      where: { campoId: usuario.campoId },
+      include: { lote: { select: { nombre: true } } },
+      orderBy: { fecha: "desc" },
+    });
+    console.log('✅ Gastos encontrados:', gastos.length);
 
-      prisma.movimientoInsumo.findMany({
-        where: { insumo: { campoId: usuario.campoId } },
-        include: {
-          insumo: { select: { nombre: true, unidad: true } },
-          lote: { select: { nombre: true } },
-        },
-        orderBy: { fecha: "desc" },
-      }),
-    ])
+    console.log('📦 Consultando movimientos de insumos...');
+    const movimientosInsumos = await prisma.movimientoInsumo.findMany({
+      where: { insumo: { campoId: usuario.campoId } },
+      include: {
+        insumo: { select: { nombre: true, unidad: true } },
+        lote: { select: { nombre: true } },
+      },
+      orderBy: { fecha: "desc" },
+    });
+    console.log('✅ Movimientos encontrados:', movimientosInsumos.length);
 
     // ==============================
     // 2️⃣ Unificar todos los datos
@@ -188,7 +200,7 @@ export async function GET(request: Request) {
       })
     })
 
-    // ✅ ORDENAR: primero por fecha del modal, luego por creación
+    // ORDENAR
     datosUnificados.sort((a, b) => {
       const fechaA = new Date(a.fecha).getTime()
       const fechaB = new Date(b.fecha).getTime()
@@ -228,11 +240,19 @@ export async function GET(request: Request) {
       )
     }
 
+    console.log('✅ Total datos unificados:', datosUnificados.length);
+    console.log('✅ Total datos filtrados:', datosFiltrados.length);
+
     return NextResponse.json(datosFiltrados)
+
   } catch (error) {
-    console.error("💥 Error al obtener datos:", error)
+    console.error("💥 ERROR COMPLETO en /api/datos:", error)
+    console.error("Stack:", (error as Error).stack)
     return NextResponse.json(
-      { error: "Error al obtener datos" },
+      {
+        error: "Error al obtener datos",
+        message: (error as Error).message,
+      },
       { status: 500 }
     )
   }
