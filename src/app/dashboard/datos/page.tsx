@@ -122,8 +122,10 @@ function TarjetaDato({ dato }: { dato: any }) {
   const renderDetalles = () => {
     const detalles = []
 
+    console.log('🔍 Dato completo:', dato) // DEBUG
+
     /* 💵 MONTO - Solo para movimientos de DINERO */
-    if (dato.monto !== undefined && dato.monto !== null) {
+    if (dato.monto !== undefined && dato.monto !== null && dato.monto !== 0) {
       // ✅ INGRESO de dinero (verde con +)
       const esIngresoDinero = dato.tipo === 'INGRESO' || dato.tipo === 'VENTA' || dato.tipo === 'COSECHA'
       
@@ -134,7 +136,7 @@ function TarjetaDato({ dato }: { dato: any }) {
             esIngresoDinero ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
           } px-3 py-1 rounded-full text-sm font-semibold`}
         >
-          💵 {esIngresoDinero ? '+' : '-'}${dato.monto.toLocaleString('es-UY')}
+          💵 {esIngresoDinero ? '+' : '-'}${Number(dato.monto).toLocaleString('es-UY')}
         </span>
       )
     }
@@ -152,7 +154,7 @@ function TarjetaDato({ dato }: { dato: any }) {
     }
 
     /* 🏪 Proveedor (solo para GASTOS e INGRESO_INSUMO) */
-    if (dato.proveedor && (dato.tipo === 'GASTO' || dato.tipo === 'INGRESO_INSUMO')) {
+    if (dato.proveedor) {
       detalles.push(
         <span
           key="proveedor"
@@ -164,7 +166,7 @@ function TarjetaDato({ dato }: { dato: any }) {
     }
 
     /* 🤝 Comprador (solo para INGRESOS de dinero) */
-    if (dato.comprador && dato.tipo === 'INGRESO') {
+    if (dato.comprador) {
       detalles.push(
         <span
           key="comprador"
@@ -176,17 +178,34 @@ function TarjetaDato({ dato }: { dato: any }) {
     }
 
     /* 💳 Método de pago (solo movimientos de dinero) */
-    if (dato.metodoPago && (dato.tipo === 'INGRESO' || dato.tipo === 'GASTO')) {
+    if (dato.metodoPago) {
+      const esIngreso = dato.tipo === 'INGRESO' || dato.tipo === 'VENTA' || dato.tipo === 'COSECHA'
       detalles.push(
         <span
           key="metodo"
           className={`${
-            dato.tipo === 'INGRESO'
+            esIngreso
               ? 'bg-green-100 text-green-700'
               : 'bg-red-100 text-red-700'
           } px-3 py-1 rounded-full text-sm`}
         >
           💳 {dato.metodoPago}
+        </span>
+      )
+    }
+
+    /* ⏱️ Estado de pago */
+    if (dato.pagado !== undefined && dato.metodoPago) {
+      detalles.push(
+        <span
+          key="pagado"
+          className={`${
+            dato.pagado
+              ? 'bg-green-100 text-green-700'
+              : 'bg-yellow-100 text-yellow-700'
+          } px-3 py-1 rounded-full text-sm`}
+        >
+          {dato.pagado ? '✅ Pagado' : '⏳ Pendiente'}
         </span>
       )
     }
