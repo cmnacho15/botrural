@@ -22,12 +22,15 @@ export default function ModalIngreso({ onClose, onSuccess }: ModalIngresoProps) 
   const [fecha, setFecha] = useState(new Date().toISOString().split('T')[0])
   const [comprador, setComprador] = useState('')
   const [moneda, setMoneda] = useState('UYU')
+  
+  // ✅ NUEVO: Estados para condición de pago
   const [metodoPago, setMetodoPago] = useState<'Contado' | 'Plazo'>('Contado')
   const [diasPlazo, setDiasPlazo] = useState<number>(0)
+  const [pagado, setPagado] = useState(true) // Por defecto true si es contado
+  
   const [notas, setNotas] = useState('')
   const [loading, setLoading] = useState(false)
 
-  // ✅ Nuevos estados
   const [lotes, setLotes] = useState<any[]>([])
   const [animalesDisponibles, setAnimalesDisponibles] = useState<any[]>([])
 
@@ -35,7 +38,16 @@ export default function ModalIngreso({ onClose, onSuccess }: ModalIngresoProps) 
     { id: '1', item: '', precio: 0, iva: 22, precioFinal: 0, tipoItem: 'manual' },
   ])
 
-  // ✅ Cargar lotes y animales
+  // ✅ Cuando cambia a "Contado", marcar como pagado automáticamente
+  useEffect(() => {
+    if (metodoPago === 'Contado') {
+      setPagado(true)
+      setDiasPlazo(0)
+    } else {
+      setPagado(false)
+    }
+  }, [metodoPago])
+
   useEffect(() => {
     const cargarDatos = async () => {
       try {
@@ -140,8 +152,7 @@ export default function ModalIngreso({ onClose, onSuccess }: ModalIngresoProps) 
             comprador: comprador ? comprador.trim() : null,
             metodoPago,
             diasPlazo: metodoPago === 'Plazo' ? diasPlazo : null,
-            pagado: metodoPago === 'Contado' ? true : false,
-            // ✅ nuevos campos
+            pagado: metodoPago === 'Contado' ? true : pagado,
             animalLoteId: item.tipoItem === 'animal' ? item.animalLoteId : null,
             cantidadVendida: item.tipoItem === 'animal' ? item.cantidad : null,
           }),
@@ -236,6 +247,68 @@ export default function ModalIngreso({ onClose, onSuccess }: ModalIngresoProps) 
               <option value="UYU">🇺🇾 UYU - Pesos Uruguayos</option>
               <option value="USD">🇺🇸 USD - Dólares</option>
             </select>
+          </div>
+        </div>
+
+        {/* ✅ NUEVO: CONDICIÓN DE PAGO */}
+        <div className="mt-4 p-4 bg-white rounded-lg border border-gray-200">
+          <h3 className="font-semibold text-gray-900 mb-3">Condición de Pago</h3>
+          <div className="space-y-3">
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setMetodoPago('Contado')}
+                className={`flex-1 px-4 py-3 rounded-lg border-2 font-medium transition ${
+                  metodoPago === 'Contado'
+                    ? 'bg-green-50 border-green-500 text-green-700'
+                    : 'bg-white border-gray-300 text-gray-700 hover:border-gray-400'
+                }`}
+              >
+                💵 Contado
+              </button>
+              <button
+                type="button"
+                onClick={() => setMetodoPago('Plazo')}
+                className={`flex-1 px-4 py-3 rounded-lg border-2 font-medium transition ${
+                  metodoPago === 'Plazo'
+                    ? 'bg-green-50 border-green-500 text-green-700'
+                    : 'bg-white border-gray-300 text-gray-700 hover:border-gray-400'
+                }`}
+              >
+                📅 Plazo
+              </button>
+            </div>
+
+            {metodoPago === 'Plazo' && (
+              <div className="space-y-3">
+                <div className="flex gap-3 items-center p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <label className="text-sm font-medium text-gray-700">Días de plazo:</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={diasPlazo}
+                    onChange={(e) => setDiasPlazo(parseInt(e.target.value) || 0)}
+                    className="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 transition"
+                  />
+                  <span className="text-xs text-gray-600">
+                    (se marcará automáticamente como cobrado)
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <input
+                    type="checkbox"
+                    id="pagado-ingreso"
+                    checked={pagado}
+                    onChange={(e) => setPagado(e.target.checked)}
+                    className="w-5 h-5 text-green-600 rounded focus:ring-2 focus:ring-green-500"
+                  />
+                  <label htmlFor="pagado-ingreso" className="text-sm font-medium text-gray-700">
+                    ✅ Marcar como cobrado ahora
+                  </label>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -422,6 +495,20 @@ export default function ModalIngreso({ onClose, onSuccess }: ModalIngresoProps) 
         <span className="text-3xl font-bold text-green-600">
           ${montoTotal.toFixed(2)}
         </span>
+      </div>
+
+      {/* NOTAS */}
+      <div className="mb-6">
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Notas adicionales
+        </label>
+        <textarea
+          value={notas}
+          onChange={(e) => setNotas(e.target.value)}
+          placeholder="Información adicional..."
+          rows={3}
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 transition resize-none"
+        />
       </div>
 
       {/* BOTONES */}

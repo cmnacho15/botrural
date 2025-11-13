@@ -40,6 +40,16 @@ export default function ModalEditarIngreso({ gasto, onClose, onSuccess }: ModalE
   const [notas, setNotas] = useState('')
   const [loading, setLoading] = useState(false)
 
+  // ✅ Auto-marcar como cobrado si es contado
+  useEffect(() => {
+    if (metodoPago === 'Contado') {
+      setPagado(true)
+      setDiasPlazo(0)
+    } else {
+      setPagado(false)
+    }
+  }, [metodoPago])
+
   useEffect(() => {
     if (gasto.descripcion) {
       const partes = gasto.descripcion.split(' - ')
@@ -89,6 +99,41 @@ export default function ModalEditarIngreso({ gasto, onClose, onSuccess }: ModalE
 
   const montoTotal = items.reduce((sum, item) => sum + item.precioFinal, 0)
 
+  // 🟢 MARCAR COMO COBRADO (sin editar nada más)
+  const handleMarcarCobrado = async () => {
+    if (!confirm('¿Confirmar que este ingreso ya fue cobrado?')) return
+
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/ingresos/${gasto.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fecha: gasto.fecha,
+          descripcion: gasto.descripcion,
+          categoria: gasto.categoria,
+          monto: gasto.monto,
+          iva: gasto.iva,
+          comprador: gasto.comprador,
+          metodoPago: gasto.metodoPago,
+          diasPlazo: gasto.diasPlazo,
+          pagado: true,
+        }),
+      })
+
+      if (!res.ok) throw new Error('Error al marcar como cobrado')
+
+      alert('✅ Ingreso marcado como cobrado')
+      onSuccess()
+      onClose()
+    } catch (err) {
+      console.error(err)
+      alert('❌ Error al marcar como cobrado')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -107,7 +152,6 @@ export default function ModalEditarIngreso({ gasto, onClose, onSuccess }: ModalE
     try {
       const item = items[0]
       
-      // ✅ CAMBIO: Usar /api/ingresos/[id] en lugar de /api/gastos/[id]
       const response = await fetch(`/api/ingresos/${gasto.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -141,8 +185,11 @@ export default function ModalEditarIngreso({ gasto, onClose, onSuccess }: ModalE
     }
   }
 
+  const esPlazoYPendiente = metodoPago === 'Plazo' && !pagado
+
   return (
     <div className="p-6 max-h-[90vh] overflow-y-auto">
+      {/* HEADER */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center text-2xl">
@@ -159,6 +206,34 @@ export default function ModalEditarIngreso({ gasto, onClose, onSuccess }: ModalE
         </button>
       </div>
 
+      {/* ALERTA DE COBRO PENDIENTE */}
+      {esPlazoYPendiente && (
+        <div className="mb-6 p-4 bg-yellow-50 border-2 border-yellow-400 rounded-xl">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 bg-yellow-400 rounded-full flex items-center justify-center flex-shrink-0">
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <h3 className="font-bold text-yellow-900 mb-1">Cobro Pendiente</h3>
+              <p className="text-sm text-yellow-800 mb-3">
+                Este ingreso está pendiente de cobro. Podés marcarlo como cobrado sin editar nada más.
+              </p>
+              <button
+                type="button"
+                onClick={handleMarcarCobrado}
+                disabled={loading}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 font-medium transition shadow-sm"
+              >
+                {loading ? '⏳ Marcando...' : '✓ Marcar como Cobrado'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* INFORMACIÓN BÁSICA */}
       <div className="mb-6 p-5 bg-gray-50 rounded-xl border border-gray-200">
         <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
           <span className="w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center text-xs">1</span>
@@ -241,6 +316,9 @@ export default function ModalEditarIngreso({ gasto, onClose, onSuccess }: ModalE
                     onChange={(e) => setDiasPlazo(parseInt(e.target.value) || 0)}
                     className="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 transition"
                   />
+                  <span className="text-xs text-gray-600">
+                    (se marcará automáticamente como cobrado)
+                  </span>
                 </div>
 
                 <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
@@ -252,7 +330,7 @@ export default function ModalEditarIngreso({ gasto, onClose, onSuccess }: ModalE
                     className="w-5 h-5 text-green-600 rounded focus:ring-2 focus:ring-green-500"
                   />
                   <label htmlFor="pagado" className="text-sm font-medium text-gray-700">
-                    ✅ Marcar como pagado
+                    ✅ Marcar como cobrado ahora
                   </label>
                 </div>
               </div>
@@ -261,6 +339,7 @@ export default function ModalEditarIngreso({ gasto, onClose, onSuccess }: ModalE
         </div>
       </div>
 
+      {/* DETALLES DEL INGRESO */}
       <div className="mb-6 p-5 bg-gray-50 rounded-xl border border-gray-200">
         <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
           <span className="w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center text-xs">2</span>
@@ -320,11 +399,13 @@ export default function ModalEditarIngreso({ gasto, onClose, onSuccess }: ModalE
         </div>
       </div>
 
+      {/* TOTAL */}
       <div className="mb-6 p-4 bg-green-50 border-2 border-green-500 rounded-xl flex justify-between items-center">
         <span className="font-semibold text-gray-900 text-lg">💰 Monto Total</span>
         <span className="text-3xl font-bold text-green-600">${montoTotal.toFixed(2)}</span>
       </div>
 
+      {/* NOTAS */}
       <div className="mb-6">
         <label className="block text-sm font-medium text-gray-700 mb-2">Notas adicionales</label>
         <textarea
@@ -336,6 +417,7 @@ export default function ModalEditarIngreso({ gasto, onClose, onSuccess }: ModalE
         />
       </div>
 
+      {/* BOTONES */}
       <div className="flex gap-3">
         <button
           type="button"

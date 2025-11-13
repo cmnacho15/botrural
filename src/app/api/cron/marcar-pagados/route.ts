@@ -12,9 +12,13 @@ export async function GET(request: Request) {
     // 📅 Obtener fecha actual
     const ahora = new Date()
 
-    // 🔍 Buscar gastos que ya vencieron y marcarlos como pagados
+    // =========================================
+    // 1️⃣ PROCESAR GASTOS A PLAZO (tabla Gasto, tipo: "GASTO")
+    // =========================================
+    
     const gastosVencidos = await prisma.gasto.findMany({
       where: {
+        tipo: 'GASTO',
         metodoPago: 'Plazo',
         pagado: false,
         fecha: { not: null },
@@ -22,7 +26,6 @@ export async function GET(request: Request) {
       },
     })
 
-    // Filtrar los que realmente están vencidos
     const gastosAMarcar = gastosVencidos.filter(gasto => {
       if (!gasto.fecha || !gasto.diasPlazo) return false
       
@@ -32,31 +35,91 @@ export async function GET(request: Request) {
       return fechaVencimiento <= ahora
     })
 
-    // ✅ Marcar como pagados
-    const idsAMarcar = gastosAMarcar.map(g => g.id)
+    const idsGastosAMarcar = gastosAMarcar.map(g => g.id)
     
-    const resultado = await prisma.gasto.updateMany({
+    const resultadoGastos = idsGastosAMarcar.length > 0 
+      ? await prisma.gasto.updateMany({
+          where: { id: { in: idsGastosAMarcar } },
+          data: { pagado: true }
+        })
+      : { count: 0 }
+
+    console.log(`✅ Gastos: ${resultadoGastos.count} marcados como pagados`)
+
+    // =========================================
+    // 2️⃣ PROCESAR INGRESOS A PLAZO (tabla Gasto, tipo: "INGRESO")
+    // =========================================
+    
+    const ingresosVencidos = await prisma.gasto.findMany({
       where: {
-        id: { in: idsAMarcar }
+        tipo: 'INGRESO',
+        metodoPago: 'Plazo',
+        pagado: false,
+        fecha: { not: null },
+        diasPlazo: { not: null },
       },
-      data: {
-        pagado: true
-      }
     })
 
-    console.log(`✅ Cron ejecutado: ${resultado.count} gastos marcados como pagados`)
+    const ingresosAMarcar = ingresosVencidos.filter(ingreso => {
+      if (!ingreso.fecha || !ingreso.diasPlazo) return false
+      
+      const fechaVencimiento = new Date(ingreso.fecha)
+      fechaVencimiento.setDate(fechaVencimiento.getDate() + ingreso.diasPlazo)
+      
+      return fechaVencimiento <= ahora
+    })
+
+    const idsIngresosAMarcar = ingresosAMarcar.map(i => i.id)
+    
+    const resultadoIngresos = idsIngresosAMarcar.length > 0
+      ? await prisma.gasto.updateMany({
+          where: { id: { in: idsIngresosAMarcar } },
+          data: { pagado: true }
+        })
+      : { count: 0 }
+
+    console.log(`✅ Ingresos: ${resultadoIngresos.count} marcados como cobrados`)
+
+    // =========================================
+    // 3️⃣ RESUMEN FINAL
+    // =========================================
+    
+    const totalActualizados = resultadoGastos.count + resultadoIngresos.count
+
+    console.log(`🎯 TOTAL: ${totalActualizados} registros actualizados (${resultadoGastos.count} gastos + ${resultadoIngresos.count} ingresos)`)
 
     return NextResponse.json({ 
-      success: true, 
-      marcados: resultado.count,
+      success: true,
       fecha: ahora.toISOString(),
-      gastosActualizados: gastosAMarcar.map(g => ({
-        id: g.id,
-        descripcion: g.descripcion,
-        monto: g.monto,
-        fechaOriginal: g.fecha,
-        diasPlazo: g.diasPlazo
-      }))
+      resumen: {
+        totalActualizados,
+        gastos: {
+          encontrados: gastosVencidos.length,
+          vencidos: gastosAMarcar.length,
+          marcados: resultadoGastos.count,
+          detalles: gastosAMarcar.map(g => ({
+            id: g.id,
+            descripcion: g.descripcion,
+            monto: g.monto,
+            fechaOriginal: g.fecha,
+            diasPlazo: g.diasPlazo,
+            fechaVencimiento: new Date(new Date(g.fecha!).getTime() + (g.diasPlazo! * 24 * 60 * 60 * 1000)).toISOString()
+          }))
+        },
+        ingresos: {
+          encontrados: ingresosVencidos.length,
+          vencidos: ingresosAMarcar.length,
+          marcados: resultadoIngresos.count,
+          detalles: ingresosAMarcar.map(i => ({
+            id: i.id,
+            descripcion: i.descripcion,
+            monto: i.monto,
+            fechaOriginal: i.fecha,
+            diasPlazo: i.diasPlazo,
+            fechaVencimiento: new Date(new Date(i.fecha!).getTime() + (i.diasPlazo! * 24 * 60 * 60 * 1000)).toISOString()
+          }))
+        }
+      }
     })
 
   } catch (error) {
