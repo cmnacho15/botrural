@@ -232,11 +232,11 @@ export default function ManoDeObraPage() {
   }
 
   // ========================================
-  // EXCEL - FORMATO CORRECTO CON TABULACIONES
+  // EXCEL - CSV CON FORMATO CORRECTO
   // ========================================
   const handleExportarExcel = () => {
-    // Primera fila: Período
-    const periodo = `Período:\t${meses[mesSeleccionado]} ${anioSeleccionado}`
+    // Primera fila: Período (usando punto y coma como separador)
+    const periodo = `Período:;${meses[mesSeleccionado]} ${anioSeleccionado}`
     
     // Segunda fila vacía
     const vacio = ''
@@ -252,7 +252,7 @@ export default function ManoDeObraPage() {
       'Faltas',
       'Horas Extras',
       'Licencias'
-    ].join('\t')
+    ].join(';')
 
     // Filas de datos
     const rows = empleados.map(emp => [
@@ -265,21 +265,21 @@ export default function ManoDeObraPage() {
       emp.faltas,
       emp.horasExtras,
       emp.licencias
-    ].join('\t')).join('\n')
+    ].join(';')).join('\n')
 
     // Combinar todo
-    const tsvContent = [periodo, vacio, headers, rows].join('\n')
+    const csvContent = [periodo, vacio, headers, rows].join('\n')
 
-    // Crear el blob
-    const blob = new Blob([tsvContent], { 
-      type: 'text/tab-separated-values;charset=utf-8;' 
+    // Crear el blob con BOM para UTF-8
+    const blob = new Blob(['\ufeff' + csvContent], { 
+      type: 'text/csv;charset=utf-8;' 
     })
     
     const link = document.createElement('a')
     const url = URL.createObjectURL(blob)
     
     link.href = url
-    link.download = `ManoObra-${meses[mesSeleccionado]}-${anioSeleccionado}.xls`
+    link.download = `ManoObra-${meses[mesSeleccionado]}-${anioSeleccionado}.csv`
     link.style.display = 'none'
     
     document.body.appendChild(link)
