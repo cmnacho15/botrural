@@ -12,6 +12,7 @@
     "@auth/prisma-adapter": "^2.11.1",
     "@prisma/client": "^6.18.0",
     "bcryptjs": "^3.0.3",
+    "geotiff": "^2.1.4-beta.0",
     "leaflet": "^1.9.4",
     "leaflet-draw": "^1.0.4",
     "leaflet-geometryutil": "^0.10.3",
