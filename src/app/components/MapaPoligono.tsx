@@ -97,53 +97,42 @@ export default function MapaPoligono({
     ).addTo(map)
 
     // Dibujar potreros existentes
-    const existingLayers = new L.FeatureGroup()
-    map.addLayer(existingLayers)
-    existingLayersRef.current = existingLayers
+const existingLayers = new L.FeatureGroup()
+map.addLayer(existingLayers)
+existingLayersRef.current = existingLayers
 
-    existingPolygons.forEach((potrero) => {
-      const polygon = (L as any).polygon(potrero.coordinates, {
-        color: potrero.color || '#10b981',
-        fillColor: potrero.color || '#10b981',
-        fillOpacity: 0.3,
-        weight: 3,
-      })
-
-      polygon.bindPopup(`<strong>${potrero.nombre}</strong>`)
-      existingLayers.addLayer(polygon)
-
-      const bounds = (polygon as any).getBounds()
-      const center = bounds.getCenter()
-
-      const label = (L as any).marker(center, {
-        icon: (L as any).divIcon({
-          className: 'potrero-label',
-          html: `
-            <div style="
-              background: white;
-              padding: 4px 8px;
-              border-radius: 4px;
-              border: 2px solid ${potrero.color || '#10b981'};
-              font-weight: bold;
-              font-size: 13px;
-              color: ${potrero.color || '#10b981'};
-              white-space: nowrap;
-              box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-              pointer-events: none;
-            ">
-              ${potrero.nombre}
-            </div>
-          `
-        }),
-      })
-      existingLayers.addLayer(label)
+existingPolygons.forEach((potrero) => {
+  if (potrero.coordinates && potrero.coordinates.length > 0) {
+    // Crear polígono del potrero
+    const polygon = (L as any).polygon(potrero.coordinates, {
+      color: potrero.color || '#10b981',
+      fillColor: potrero.color || '#10b981',
+      fillOpacity: 0.3,
+      weight: 3,
     })
 
-    // Ajustar zoom si hay polígonos
-    if (existingPolygons.length > 0 && existingLayers.getLayers().length > 0) {
-      const bounds = (existingLayers as any).getBounds()
-      map.fitBounds(bounds, { padding: [100, 100], maxZoom: 16 })
-    }
+    // Popup al hacer click
+    polygon.bindPopup(`
+      <div style="padding: 8px;">
+        <strong style="font-size: 14px; color: ${potrero.color || '#10b981'};">
+          ${potrero.nombre}
+        </strong><br/>
+        <span style="color: #666; font-size: 12px;">
+          Potrero existente
+        </span>
+      </div>
+    `)
+
+    // Agregar polígono al mapa
+    existingLayers.addLayer(polygon)
+  }
+})
+
+// Ajustar zoom si hay polígonos
+if (existingPolygons.length > 0 && existingLayers.getLayers().length > 0) {
+  const bounds = (existingLayers as any).getBounds()
+  map.fitBounds(bounds, { padding: [100, 100], maxZoom: 16 })
+}
 
     // ⛔ DIBUJO SOLO SI NO es readOnly
     if (!readOnly) {
