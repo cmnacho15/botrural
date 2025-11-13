@@ -134,47 +134,65 @@ export default function NuevoLotePage() {
     setAnimales(animales.map(a => (a.id === id ? { ...a, [campo]: valor } : a)))
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    if (!poligono) return alert('Dibujá la ubicación del potrero en el mapa')
+  e.preventDefault()
+  if (!poligono) return alert('Dibujá la ubicación del potrero en el mapa')
 
-    setLoading(true)
+  setLoading(true)
 
-    try {
-      const hectareasFinales = hectareasCalculadas || parseFloat(hectareasManual)
-      const cultivosValidos = cultivos.filter(c => c.tipoCultivo && c.hectareas)
-      const animalesValidos = animales.filter(a => a.categoria && a.cantidad)
+  try {
+    const hectareasFinales = hectareasCalculadas || parseFloat(hectareasManual)
+    const cultivosValidos = cultivos.filter(c => c.tipoCultivo && c.hectareas)
+    const animalesValidos = animales.filter(a => a.categoria && a.cantidad)
 
-      const response = await fetch('/api/lotes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          nombre,
-          hectareas: hectareasFinales,
-          poligono,
-          cultivos: cultivosValidos,
-          animales: animalesValidos,
-        }),
-      })
+    // 🔥 AGREGAR LOGS DE DEBUG
+    console.log('📤 ENVIANDO AL BACKEND...')
+    console.log('👉 Cultivos válidos:', cultivosValidos)
+    console.log('👉 Animales válidos:', animalesValidos)
 
-      if (response.ok) {
-        if (poligono.length > 0) {
-          const center = poligono
-            .reduce((acc, point) => [acc[0] + point[0], acc[1] + point[1]], [0, 0])
-            .map(v => v / poligono.length) as [number, number]
-          localStorage.setItem('lastPotreroCenter', JSON.stringify(center))
-        }
-        router.push('/dashboard/lotes')
-        router.refresh()
-      } else {
-        alert('Error al crear el potrero')
-      }
-    } catch (error) {
-      console.error('Error:', error)
-      alert('Error al crear el potrero')
-    } finally {
-      setLoading(false)
+    const payload = {
+      nombre,
+      hectareas: hectareasFinales,
+      poligono,
+      cultivos: cultivosValidos,
+      animales: animalesValidos,
     }
+
+    console.log('📦 PAYLOAD COMPLETO:', JSON.stringify(payload, null, 2))
+
+    const response = await fetch('/api/lotes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+
+    console.log('📥 RESPUESTA DEL SERVER:', response.status)
+
+    if (response.ok) {
+      const result = await response.json()
+      console.log('✅ LOTE CREADO:', result)
+
+      // Guardar último centro del polígono
+      if (poligono.length > 0) {
+        const center = poligono
+          .reduce((acc, point) => [acc[0] + point[0], acc[1] + point[1]], [0, 0])
+          .map(v => v / poligono.length) as [number, number]
+
+        localStorage.setItem('lastPotreroCenter', JSON.stringify(center))
+      }
+
+      router.push('/dashboard/lotes')
+      router.refresh()
+    } else {
+      console.error('❌ ERROR:', await response.text())
+      alert('Error al crear el potrero')
+    }
+  } catch (error) {
+    console.error('💥 Error creando lote:', error)
+    alert('Error al crear el potrero')
+  } finally {
+    setLoading(false)
   }
+}
 
   const handlePolygonComplete = (coordinates: number[][], areaHectareas: number) => {
     setPoligono(coordinates)

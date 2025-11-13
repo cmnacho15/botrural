@@ -187,73 +187,76 @@ export default function EditarLotePage() {
 
   // REEMPLAZADO COMPLETAMENTE CON LOGS Y MEJOR MANEJO DE ERRORES
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
+  e.preventDefault();
 
-    console.log("handleSubmit iniciado");
-    console.log("Nombre:", nombre);
-    console.log("Hectáreas manual:", hectareasManual);
-    console.log("Hectáreas calculadas:", hectareasCalculadas);
-    console.log("Polígono:", poligono);
-    console.log("Cultivos:", cultivos);
-    console.log("Animales:", animales);
+  console.log("handleSubmit iniciado");
+  console.log("Nombre:", nombre);
+  console.log("Hectáreas manual:", hectareasManual);
+  console.log("Hectáreas calculadas:", hectareasCalculadas);
+  console.log("Polígono:", poligono);
+  console.log("Cultivos (crudos):", cultivos);
+  console.log("Animales (crudos):", animales);
 
-    if (!poligono) {
-      alert('Dibujá la ubicación del potrero en el mapa');
-      console.log("No hay polígono");
+  if (!poligono) {
+    alert('Dibujá la ubicación del potrero en el mapa');
+    console.log("No hay polígono");
+    return;
+  }
+
+  setLoading(true);
+
+  try {
+    const hectareasFinales = hectareasCalculadas || parseFloat(hectareasManual);
+    const cultivosValidos = cultivos.filter(c => c.tipoCultivo && c.hectareas);
+    const animalesValidos = animales.filter(a => a.categoria && a.cantidad);
+
+    console.log("hectareasFinales:", hectareasFinales);
+
+    // 🚀 LOGS NUEVOS (igual que en nuevo/page.tsx)
+    console.log('📤 ENVIANDO AL BACKEND:');
+    console.log('Cultivos válidos:', cultivosValidos);
+    console.log('Animales válidos:', animalesValidos);
+
+    const payload = {
+      nombre,
+      hectareas: hectareasFinales,
+      poligono,
+      cultivos: cultivosValidos,
+      animales: animalesValidos,
+    };
+
+    console.log('📦 PAYLOAD COMPLETO:', JSON.stringify(payload, null, 2));
+
+    const url = `/api/lotes/${loteId}`;
+    console.log("PUT URL:", url);
+
+    const response = await fetch(url, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    console.log("📥 RESPUESTA DEL SERVIDOR:", response.status);
+
+    if (!response.ok) {
+      const text = await response.text();
+      console.log("❌ ERROR cuerpo de respuesta:", text);
+      alert("Error al actualizar el potrero:\n" + text);
       return;
     }
 
-    setLoading(true);
+    console.log("✅ PUT exitoso");
 
-    try {
-      const hectareasFinales = hectareasCalculadas || parseFloat(hectareasManual);
-      const cultivosValidos = cultivos.filter(c => c.tipoCultivo && c.hectareas);
-      const animalesValidos = animales.filter(a => a.categoria && a.cantidad);
+    router.push('/dashboard/lotes');
+    router.refresh();
 
-      console.log("hectareasFinales:", hectareasFinales);
-      console.log("cultivosValidos:", cultivosValidos);
-      console.log("animalesValidos:", animalesValidos);
-
-      const bodyToSend = {
-        nombre,
-        hectareas: hectareasFinales,
-        poligono,
-        cultivos: cultivosValidos,
-        animales: animalesValidos,
-      };
-
-      console.log("JSON ENVIADO AL PUT:");
-      console.log(JSON.stringify(bodyToSend, null, 2));
-
-      const url = `/api/lotes/${loteId}`;
-      console.log("PUT URL:", url);
-
-      const response = await fetch(url, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(bodyToSend),
-      });
-
-      console.log("RESpuesta del servidor:", response.status);
-
-      if (!response.ok) {
-        const text = await response.text();
-        console.log("ERROR cuerpo de respuesta:", text);
-        alert("Error al actualizar el potrero:\n" + text);
-        return;
-      }
-
-      console.log("PUT exitoso");
-
-      router.push('/dashboard/lotes');
-      router.refresh();
-    } catch (error) {
-      console.error("ERROR en handleSubmit:", error);
-      alert("Error al actualizar el potrero");
-    } finally {
-      setLoading(false);
-    }
+  } catch (error) {
+    console.error("💥 ERROR en handleSubmit:", error);
+    alert("Error al actualizar el potrero");
+  } finally {
+    setLoading(false);
   }
+}
 
   const handlePolygonComplete = (coordinates: number[][], areaHectareas: number) => {
     setPoligono(coordinates)
