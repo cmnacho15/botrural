@@ -401,6 +401,7 @@ export async function GET() {
       return NextResponse.json([], { status: 200 });
     }
 
+    // ✅ 1. Obtener eventos normales
     const eventos = await prisma.evento.findMany({
       where: { campoId: usuario.campoId },
       include: {
@@ -410,7 +411,47 @@ export async function GET() {
       orderBy: { fecha: "desc" },
     });
 
-    return NextResponse.json(eventos);
+    // ✅ 2. Obtener gastos e ingresos de la tabla Gasto
+    const gastosIngresos = await prisma.gasto.findMany({
+      where: { campoId: usuario.campoId },
+      include: {
+        lote: { select: { nombre: true } },
+      },
+      orderBy: { fecha: "desc" },
+    });
+
+    // ✅ 3. Transformar gastos/ingresos al formato de eventos
+const gastosIngresosComoEventos = gastosIngresos.map((g) => ({
+  id: g.id,
+  tipo: g.tipo, // 'GASTO' o 'INGRESO'
+  descripcion: g.descripcion,
+  fecha: g.fecha,
+  cantidad: g.cantidadVendida || null,
+  categoria: g.categoria,
+  monto: g.monto,
+  loteId: g.loteId,
+  usuarioId: null,
+  campoId: g.campoId,
+  createdAt: g.createdAt,
+  updatedAt: g.updatedAt,
+  // Campos adicionales
+  metodoPago: g.metodoPago,
+  iva: g.iva,
+  proveedor: g.proveedor,
+  comprador: g.comprador,
+  diasPlazo: g.diasPlazo,
+  pagado: g.pagado,
+  // Relaciones
+  usuario: null,
+  lote: g.lote ? { nombre: g.lote.nombre } : null,
+}));
+
+    // ✅ 4. Combinar ambas listas y ordenar por fecha
+    const todosLosEventos = [...eventos, ...gastosIngresosComoEventos].sort(
+      (a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime()
+    );
+
+    return NextResponse.json(todosLosEventos);
   } catch (error) {
     console.error("Error al obtener eventos:", error);
     return NextResponse.json({ error: "Error al obtener eventos" }, { status: 500 });
