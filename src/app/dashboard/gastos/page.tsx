@@ -835,27 +835,25 @@ export default function GastosPage() {
 <td className="px-4 sm:px-6 py-3">{t.usuario}</td>
 
                       {/* ESTADO DE PAGO */}
-                      {esGasto && (
-                        <td className="px-4 sm:px-6 py-3 text-sm">
-                          {pagado ? (
-                            <span className="inline-flex items-center gap-1 text-green-700 bg-green-50 border border-green-200 px-2 py-1 rounded-md">
-                              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                              </svg>
-                              Pagado
-                            </span>
-                          ) : metodoPago === 'Plazo' ? (
-                            <span className="inline-flex items-center gap-1 text-yellow-700 bg-yellow-50 border border-yellow-200 px-2 py-1 rounded-md">
-                              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3" />
-                              </svg>
-                              Pendiente
-                            </span>
-                          ) : (
-                            <span className="text-gray-500">—</span>
-                          )}
-                        </td>
-                      )}
+<td className="px-4 sm:px-6 py-3 text-sm">
+  {pagado ? (
+    <span className="inline-flex items-center gap-1 text-green-700 bg-green-50 border border-green-200 px-2 py-1 rounded-md">
+      <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+      </svg>
+      {esIngreso ? 'Cobrado' : 'Pagado'}
+    </span>
+  ) : metodoPago === 'Plazo' ? (
+    <span className="inline-flex items-center gap-1 text-yellow-700 bg-yellow-50 border border-yellow-200 px-2 py-1 rounded-md">
+      <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3" />
+      </svg>
+      {esIngreso ? 'Por cobrar' : 'Pendiente'}
+    </span>
+  ) : (
+    <span className="text-gray-500">—</span>
+  )}
+</td>
 
                       {/* ACCIONES */}
                       <td className="px-4 sm:px-6 py-3 text-right">
