@@ -12,7 +12,7 @@ export async function GET(req: Request) {
   const challenge = url.searchParams.get('hub.challenge')
 
   if (mode === 'subscribe' && token === VERIFY_TOKEN) {
-    console.log('✅ Webhook verificado')
+    console.log('✅ WEBHOOK VERIFICADO')
     return new NextResponse(challenge, { status: 200 })
   }
 
@@ -24,7 +24,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const data = await req.json()
-    console.log('📩 Webhook recibido:', JSON.stringify(data, null, 2))
+    console.log('📩 NUEVO MENSAJE RECIBIDO:', JSON.stringify(data, null, 2))
 
     const message = data?.entry?.[0]?.changes?.[0]?.value?.messages?.[0]
     if (!message) {
@@ -57,7 +57,8 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('❌ Error en webhook:', error)
+    console.error('❌ ERROR FATAL en POST:', error)
+    console.error('❌ Stack:', error instanceof Error ? error.stack : 'No stack')
     return NextResponse.json(
       { error: 'Internal error', details: String(error) },
       { status: 500 }

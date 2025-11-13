@@ -1,56 +1,57 @@
 declare module 'leaflet' {
-  interface Map {
+  export interface Map {
     setView(center: [number, number], zoom: number): this
     addLayer(layer: any): this
     addControl(control: any): this
     on(event: string, handler: (e: any) => void): this
     remove(): void
+    fitBounds(bounds: any, options?: any): this
   }
 
-  interface Layer {
+  export interface Layer {
     addTo(map: Map): this
     getLatLngs(): any[]
+    bindPopup(content: string): this
   }
 
-  interface TileLayer extends Layer {}
+  export interface TileLayer extends Layer {}
 
-  interface FeatureGroupMethods {
+  export interface FeatureGroupMethods {
     clearLayers(): this
     getLayers(): any[]
     addLayer(layer: any): this
     eachLayer(fn: (layer: any) => void): void
+    getBounds(): any
   }
 
-  function map(id: string, options?: any): Map  // ← Esto retorna Map, no any
-  function tileLayer(url: string, options?: any): TileLayer
+  export function map(id: string, options?: any): Map
+  export function tileLayer(url: string, options?: any): TileLayer
+  export function polygon(latlngs: number[][], options?: any): Layer
 
-  class FeatureGroup implements FeatureGroupMethods {
+  export class FeatureGroup implements FeatureGroupMethods {
     constructor()
     clearLayers(): this
     getLayers(): any[]
     addLayer(layer: any): this
     eachLayer(fn: (layer: any) => void): void
+    getBounds(): any
   }
 
-  namespace control {
+  export namespace control {
     function layers(baseLayers?: any, overlays?: any, options?: any): any
   }
 
-  namespace Control {
+  export namespace Control {
     class Draw {
       constructor(options?: any)
     }
   }
 
-  namespace Draw {
+  export namespace Draw {
     const Event: {
       CREATED: string
       EDITED: string
       DELETED: string
-      DRAWSTART: string
-      DRAWSTOP: string
-      EDITSTART: string
-      EDITSTOP: string
     }
   }
 }

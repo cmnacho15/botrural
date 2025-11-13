@@ -57,11 +57,12 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
     },
     {
       title: 'Gestión',
-      items: [
-        { href: '/dashboard/lotes', icon: '🏞️', label: 'Potreros' },
-        { href: '/dashboard/gastos', icon: '💰', label: 'Gastos' },
-        { href: '/dashboard/insumos', icon: '📦', label: 'Insumos' },
-      ],
+  items: [
+    { href: '/dashboard/lotes', icon: '🏞️', label: 'Potreros' },
+    { href: '/dashboard/gastos', icon: '💰', label: 'Gastos' },
+    { href: '/dashboard/insumos', icon: '📦', label: 'Insumos' },
+    { href: '/dashboard/mano-de-obra', icon: '👷', label: 'Mano de Obra' }, // ← NUEVA LÍNEA
+  ],
     },
     {
       title: 'Configuración',

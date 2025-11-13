@@ -215,6 +215,25 @@ model Invitation {
   usedBy      User?     @relation("UsedInvitations", fields: [usedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
 
+model ManoObra {
+  id                      String   @id @default(cuid())
+  nombre                  String
+  horas_trabajadas        Int      @default(0)
+  dias_trabajados         Int      @default(0)
+  dias_no_trabajados      Int      @default(0)
+  feriados_trabajados     Int      @default(0)
+  dias_descanso_trabajados Int     @default(0)
+  faltas                  Int      @default(0)
+  horas_extras            Int      @default(0)
+  licencias               Int      @default(0)
+
+  mes                     Int
+  anio                    Int
+
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+}
+
 enum Role {
   ADMIN
   USUARIO
