@@ -158,13 +158,13 @@ export default function MapaPage() {
           color = '#D3D3D3'
         }
       } else if (vistaActual === 'ndvi') {
-        const ndvi = ndviData[lote.id]
-        if (ndvi !== undefined) {
-          color = getColorNDVI(ndvi)
-        } else {
-          color = '#CCCCCC'
-        }
-      }
+  const ndviInfo = ndviData[lote.id]
+  if (ndviInfo && typeof ndviInfo.promedio === 'number') { // 👈 CAMBIO AQUÍ
+    color = getColorNDVI(ndviInfo.promedio)
+  } else {
+    color = '#CCCCCC'
+  }
+}
 
       return {
         id: lote.id,
@@ -431,7 +431,7 @@ export default function MapaPage() {
                     (sum, a) => sum + a.cantidad,
                     0
                   ) || 0
-                  const ndvi = ndviData[lote.id]
+                  const ndvi = ndviData[lote.id]?.promedio // 👈 AGREGAR .promedio
 
                   return (
                     <div
@@ -460,10 +460,10 @@ export default function MapaPage() {
                         />
                       </div>
 
-                      {vistaActual === 'ndvi' && ndvi !== undefined && (
-                        <div className="mb-2 bg-green-50 rounded px-2 py-1">
-                          <div className="text-xs text-gray-600">
-                            📊 NDVI: <span className="font-semibold">{ndvi.toFixed(3)}</span>
+                      {vistaActual === 'ndvi' && typeof ndvi === 'number' && !isNaN(ndvi) && ( // 👈 VALIDAR
+  <div className="mb-2 bg-green-50 rounded px-2 py-1">
+    <div className="text-xs text-gray-600">
+      📊 NDVI: <span className="font-semibold">{ndvi.toFixed(3)}</span>
                             <span className="text-gray-500 ml-1">
                               {ndvi >= 0.7 ? '(Excelente)' : ndvi >= 0.5 ? '(Bueno)' : ndvi >= 0.3 ? '(Regular)' : '(Bajo)'}
                             </span>
