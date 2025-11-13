@@ -178,10 +178,11 @@ useEffect(() => {
         }
       } else if (vistaActual === 'ndvi') {
   const ndviInfo = ndviData[lote.id]
-  if (ndviInfo && typeof ndviInfo.promedio === 'number') { // 👈 CAMBIO AQUÍ
+  // ✅ Verificar que promedio NO sea null Y que haya píxeles válidos
+  if (ndviInfo && ndviInfo.promedio !== null && ndviInfo.validPixels > 0) {
     color = getColorNDVI(ndviInfo.promedio)
   } else {
-    color = '#CCCCCC'
+    color = '#999999'  // Gris oscuro = sin datos
   }
 }
 
@@ -465,30 +466,44 @@ useEffect(() => {
                           </p>
                         </div>
                         <div
-                          className="w-6 h-6 rounded"
-                          style={{
-                            backgroundColor:
-                              vistaActual === 'cultivo'
-                                ? lote.cultivos && lote.cultivos.length > 0
-                                  ? COLORES_CULTIVOS[lote.cultivos[0].tipoCultivo] || '#3b82f6'
-                                  : '#D3D3D3'
-                                : vistaActual === 'ndvi' && ndvi !== undefined
-                                ? getColorNDVI(ndvi)
-                                : '#3b82f6',
-                          }}
-                        />
+  className="w-6 h-6 rounded"
+  style={{
+    backgroundColor:
+      vistaActual === 'cultivo'
+        ? lote.cultivos && lote.cultivos.length > 0
+          ? COLORES_CULTIVOS[lote.cultivos[0].tipoCultivo] || '#3b82f6'
+          : '#D3D3D3'
+        : vistaActual === 'ndvi' && ndviData[lote.id]?.promedio !== null && ndviData[lote.id]?.validPixels > 0
+        ? getColorNDVI(ndviData[lote.id].promedio)
+        : vistaActual === 'ndvi'
+        ? '#999999'  // Gris si no hay NDVI
+        : '#3b82f6',
+  }}
+/>
                       </div>
 
-                      {vistaActual === 'ndvi' && typeof ndvi === 'number' && !isNaN(ndvi) && ( // 👈 VALIDAR
-  <div className="mb-2 bg-green-50 rounded px-2 py-1">
-    <div className="text-xs text-gray-600">
-      📊 NDVI: <span className="font-semibold">{ndvi.toFixed(3)}</span>
-                            <span className="text-gray-500 ml-1">
-                              {ndvi >= 0.7 ? '(Excelente)' : ndvi >= 0.5 ? '(Bueno)' : ndvi >= 0.3 ? '(Regular)' : '(Bajo)'}
-                            </span>
-                          </div>
-                        </div>
-                      )}
+                      {vistaActual === 'ndvi' && (
+  <>
+    {ndviData[lote.id]?.promedio !== null && ndviData[lote.id]?.validPixels > 0 ? (
+      <div className="mb-2 bg-green-50 rounded px-2 py-1">
+        <div className="text-xs text-gray-600">
+          📊 NDVI: <span className="font-semibold">{ndviData[lote.id].promedio.toFixed(3)}</span>
+          <span className="text-gray-500 ml-1">
+            {ndviData[lote.id].promedio >= 0.7 ? '(Excelente)' : 
+             ndviData[lote.id].promedio >= 0.5 ? '(Bueno)' : 
+             ndviData[lote.id].promedio >= 0.3 ? '(Regular)' : '(Bajo)'}
+          </span>
+        </div>
+      </div>
+    ) : (
+      <div className="mb-2 bg-red-50 rounded px-2 py-1">
+        <div className="text-xs text-red-600">
+          ⚠️ Sin datos satelitales disponibles
+        </div>
+      </div>
+    )}
+  </>
+)}
 
                       {vistaActual === 'cultivo' && (
                         <div className="mb-2">
