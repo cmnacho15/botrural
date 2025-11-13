@@ -106,7 +106,7 @@ async function calcularNDVI(coordinates: number[][], accessToken: string) {
   ]
 
   const endDate = new Date().toISOString().split('T')[0]
-  const startDate = new Date(Date.now() - 30 * 86400000)
+  const startDate = new Date(Date.now() - 90 * 86400000)
     .toISOString()
     .split('T')[0]
 
