@@ -2,7 +2,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import * as GeoTIFF from 'geotiff'
 
-// Función para obtener token de Copernicus
+// ===============================================
+// 🔹 1) Obtener token de Copernicus
+// ===============================================
 async function getAccessToken() {
   const tokenResponse = await fetch(
     'https://identity.dataspace.copernicus.eu/auth/realms/CDSE/protocol/openid-connect/token',
@@ -27,47 +29,75 @@ async function getAccessToken() {
   return data.access_token
 }
 
-// Función para calcular NDVI promedio de un TIFF
-async function calcularNDVIPromedio(imageBuffer: ArrayBuffer): Promise<number> {
+// ===============================================
+// 🔹 2) NUEVA FUNCIÓN: obtener matriz NDVI completa
+// ===============================================
+
+async function calcularNDVIMatriz(imageBuffer: ArrayBuffer) {
   try {
     const tiff = await GeoTIFF.fromArrayBuffer(imageBuffer)
     const image = await tiff.getImage()
     const data = await image.readRasters()
-    
-    // Los valores NDVI están en el primer canal
+
     const ndviValues = data[0] as Float32Array
-    
-    // Filtrar valores NaN (nubes, etc.)
+    const width = await image.getWidth()
+    const height = await image.getHeight()
+    const bbox = await image.getBoundingBox() // [west, south, east, north]
+
+    const matriz: number[][] = []
+    let validCount = 0
     let sum = 0
-    let count = 0
-    
-    for (let i = 0; i < ndviValues.length; i++) {
-      const value = ndviValues[i]
-      if (!isNaN(value) && value >= -1 && value <= 1) {
-        sum += value
-        count++
+
+    for (let y = 0; y < height; y++) {
+      const fila: number[] = []
+      for (let x = 0; x < width; x++) {
+        const idx = y * width + x
+        const value = ndviValues[idx]
+
+        if (!isNaN(value) && value >= -1 && value <= 1) {
+          fila.push(value)
+          sum += value
+          validCount++
+        } else {
+          fila.push(-999) // Sin datos
+        }
       }
+      matriz.push(fila)
     }
-    
-    if (count === 0) {
-      // Si no hay datos válidos, retornar valor neutral
-      return 0.5
+
+    const promedio = validCount > 0 ? sum / validCount : 0.5
+
+    return {
+      promedio,
+      matriz,
+      width,
+      height,
+      bbox,
+      validPixels: validCount,
+      totalPixels: width * height,
     }
-    
-    return sum / count
   } catch (error) {
     console.error('Error procesando TIFF:', error)
-    // En caso de error, retornar valor simulado
-    return 0.4 + Math.random() * 0.4
+    return {
+      promedio: 0.5,
+      matriz: [],
+      width: 0,
+      height: 0,
+      bbox: [0, 0, 0, 0],
+      validPixels: 0,
+      totalPixels: 0,
+    }
   }
 }
 
-// Función para calcular NDVI de un polígono
+// ===============================================
+// 🔹 3) Calcular NDVI (usa la nueva función)
+// ===============================================
+
 async function calcularNDVI(coordinates: number[][], accessToken: string) {
-  // Calcular bounding box del polígono
   const lats = coordinates.map((c) => c[0])
   const lngs = coordinates.map((c) => c[1])
-  
+
   const bbox = [
     Math.min(...lngs),
     Math.min(...lats),
@@ -75,13 +105,11 @@ async function calcularNDVI(coordinates: number[][], accessToken: string) {
     Math.max(...lats),
   ]
 
-  // Fechas: últimos 30 días
   const endDate = new Date().toISOString().split('T')[0]
-  const startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+  const startDate = new Date(Date.now() - 30 * 86400000)
     .toISOString()
     .split('T')[0]
 
-  // Evalscript para calcular NDVI
   const evalscript = `
     //VERSION=3
     function setup() {
@@ -96,15 +124,10 @@ async function calcularNDVI(coordinates: number[][], accessToken: string) {
         }
       }
     }
-
     function evaluatePixel(sample) {
-      // Filtrar nubes (SCL: Scene Classification Layer)
-      // 3=cloud shadows, 8=cloud medium probability, 9=cloud high probability, 10=thin cirrus
       if (sample.SCL === 3 || sample.SCL === 8 || sample.SCL === 9 || sample.SCL === 10) {
         return [NaN]
       }
-      
-      // Calcular NDVI: (NIR - Red) / (NIR + Red)
       let ndvi = (sample.B08 - sample.B04) / (sample.B08 + sample.B04)
       return [ndvi]
     }
@@ -123,9 +146,7 @@ async function calcularNDVI(coordinates: number[][], accessToken: string) {
           input: {
             bounds: {
               bbox,
-              properties: {
-                crs: 'http://www.opengis.net/def/crs/EPSG/0/4326',
-              },
+              properties: { crs: 'http://www.opengis.net/def/crs/EPSG/0/4326' },
             },
             data: [
               {
@@ -141,14 +162,12 @@ async function calcularNDVI(coordinates: number[][], accessToken: string) {
             ],
           },
           output: {
-            width: 256,
-            height: 256,
+            width: 64,   // Reducido para optimizar
+            height: 64,
             responses: [
               {
                 identifier: 'default',
-                format: {
-                  type: 'image/tiff',
-                },
+                format: { type: 'image/tiff' },
               },
             ],
           },
@@ -158,24 +177,24 @@ async function calcularNDVI(coordinates: number[][], accessToken: string) {
     )
 
     if (!response.ok) {
-      const errorText = await response.text()
-      console.error('Error en Sentinel Hub:', errorText)
+      const text = await response.text()
+      console.error('Error en Sentinel Hub:', text)
       throw new Error(`Error obteniendo imagen: ${response.status}`)
     }
 
-    // Obtener el buffer de la imagen TIFF
     const imageBuffer = await response.arrayBuffer()
-    
-    // Calcular NDVI promedio del TIFF
-    const ndviPromedio = await calcularNDVIPromedio(imageBuffer)
-    
-    return ndviPromedio
 
+    // --- NUEVO: retornar datos completos ---
+    return await calcularNDVIMatriz(imageBuffer)
   } catch (error) {
     console.error('Error calculando NDVI:', error)
     throw error
   }
 }
+
+// ===============================================
+// 🔹 4) POST Handler actualizado
+// ===============================================
 
 export async function POST(request: NextRequest) {
   try {
@@ -189,7 +208,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Verificar que existan las credenciales
     if (!process.env.COPERNICUS_CLIENT_ID || !process.env.COPERNICUS_CLIENT_SECRET) {
       return NextResponse.json(
         { error: 'Credenciales de Copernicus no configuradas' },
@@ -197,30 +215,51 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Obtener token de acceso
     const accessToken = await getAccessToken()
-
-    // Calcular NDVI para cada lote
-    const resultados: Record<string, number> = {}
+    const resultados: Record<string, any> = {}
 
     for (const lote of lotes) {
       if (lote.coordenadas && lote.coordenadas.length > 0) {
         try {
           console.log(`Calculando NDVI para lote ${lote.id}...`)
-          const ndvi = await calcularNDVI(lote.coordenadas, accessToken)
-          resultados[lote.id] = ndvi
-          console.log(`NDVI calculado para ${lote.id}: ${ndvi.toFixed(3)}`)
+          const ndviData = await calcularNDVI(lote.coordenadas, accessToken)
+
+          resultados[lote.id] = {
+            promedio: ndviData.promedio,
+            matriz: ndviData.matriz,
+            width: ndviData.width,
+            height: ndviData.height,
+            bbox: ndviData.bbox,
+            confiabilidad: ndviData.validPixels / ndviData.totalPixels,
+            validPixels: ndviData.validPixels,
+            totalPixels: ndviData.totalPixels,
+          }
+
+          console.log(
+            `NDVI ${lote.id}: ${ndviData.promedio.toFixed(3)} (${Math.round(
+              (ndviData.validPixels / ndviData.totalPixels) * 100
+            )}% válidos)`
+          )
         } catch (error) {
           console.error(`Error calculando NDVI para lote ${lote.id}:`, error)
-          // Si falla, usar valor por defecto
-          resultados[lote.id] = 0.5
+
+          resultados[lote.id] = {
+            promedio: 0.5,
+            matriz: [],
+            width: 0,
+            height: 0,
+            bbox: [0, 0, 0, 0],
+            confiabilidad: 0,
+            validPixels: 0,
+            totalPixels: 0,
+          }
         }
       }
     }
 
     return NextResponse.json({ ndvi: resultados })
   } catch (error) {
-    console.error('Error en API NDVI:', error)
+    console.error('Error API NDVI:', error)
     return NextResponse.json(
       { error: 'Error obteniendo datos NDVI' },
       { status: 500 }

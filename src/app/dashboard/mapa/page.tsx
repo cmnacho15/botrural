@@ -55,7 +55,7 @@ export default function MapaPage() {
   const [mapCenter, setMapCenter] = useState<[number, number]>([-32.5228, -55.7658])
   const [hayDatosCultivos, setHayDatosCultivos] = useState(false)
   const [loadingNDVI, setLoadingNDVI] = useState(false)
-  const [ndviData, setNdviData] = useState<Record<string, number>>({})
+  const [ndviData, setNdviData] = useState<Record<string, any>>({})
 
   useEffect(() => {
     cargarLotes()
@@ -175,7 +175,7 @@ export default function MapaPage() {
           hectareas: lote.hectareas,
           cultivos: lote.cultivos,
           animales: lote.animalesLote,
-          ndvi: ndviData[lote.id],
+          ndviMatriz: ndviData[lote.id] || null,
         },
       }
     })

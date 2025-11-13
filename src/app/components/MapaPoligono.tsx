@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import 'leaflet-draw/dist/leaflet.draw.css'
+import 'leaflet.heat'
 
 if (typeof window !== 'undefined') {
   require('leaflet-draw')
@@ -22,7 +23,7 @@ interface MapaPoligonoProps {
       hectareas?: number
       cultivos?: any[]
       animales?: any[]
-      ndvi?: number
+      ndviMatriz?: any
     }
   }>
   readOnly?: boolean
@@ -46,6 +47,58 @@ function calcularAreaPoligono(latlngs: any[]): number {
 
   area = Math.abs(area * R * R / 2)
   return area
+}
+
+function crearHeatmapNDVI(
+  map: any,
+  ndviData: any,
+  poligonoCoords: number[][]
+) {
+  if (!ndviData.matriz || ndviData.matriz.length === 0) return null
+
+  const { matriz, width, height, bbox } = ndviData
+  const [west, south, east, north] = bbox
+
+  const heatPoints: [number, number, number][] = []
+
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const value = matriz[y][x]
+      
+      if (value !== -999 && !isNaN(value)) {
+        // Convertir coordenadas de píxel a lat/lng
+        const lng = west + (x / width) * (east - west)
+        const lat = north - (y / height) * (north - south)
+        
+        // Normalizar NDVI de [-1, 1] a [0, 1] para el heatmap
+        const intensity = (value + 1) / 2
+        
+        heatPoints.push([lat, lng, intensity])
+      }
+    }
+  }
+
+  if (heatPoints.length === 0) return null
+
+  // Crear capa de calor
+  const heatLayer = (L as any).heatLayer(heatPoints, {
+    radius: 15,
+    blur: 20,
+    maxZoom: 18,
+    max: 1.0,
+    gradient: {
+      0.0: '#8B4513',
+      0.2: '#DAA520',
+      0.3: '#FFFF00',
+      0.4: '#ADFF2F',
+      0.5: '#7CFC00',
+      0.6: '#32CD32',
+      0.7: '#228B22',
+      0.8: '#006400'
+    }
+  })
+
+  return heatLayer
 }
 
 export default function MapaPoligono({
@@ -197,6 +250,18 @@ export default function MapaPoligono({
         weight: 3,
       })
 
+      // 🗺️ AGREGAR HEATMAP SI HAY DATOS NDVI COMPLETOS
+      if (potrero.info?.ndviMatriz) {
+        const heatLayer = crearHeatmapNDVI(
+          mapRef.current,
+          potrero.info.ndviMatriz,
+          potrero.coordinates
+        )
+        if (heatLayer) {
+          existingLayersRef.current.addLayer(heatLayer)
+        }
+      }
+
       let animalesInfo = ''
       if (potrero.info?.animales?.length) {
         const total = potrero.info.animales.reduce((s: number, a: any) => s + a.cantidad, 0)
@@ -220,8 +285,8 @@ export default function MapaPoligono({
       }
 
       let ndviInfo = ''
-      if (potrero.info?.ndvi !== undefined) {
-        const v = potrero.info.ndvi
+      if (potrero.info?.ndviMatriz?.promedio !== undefined) {
+        const v = potrero.info.ndviMatriz.promedio
         const label = v >= 0.7 ? 'Excelente' : v >= 0.5 ? 'Bueno' : v >= 0.3 ? 'Regular' : 'Bajo'
         ndviInfo = `
           <div style="margin-top:8px;padding-top:8px;border-top:1px solid #e5e7eb;">
@@ -247,11 +312,11 @@ export default function MapaPoligono({
     })
 
     if (existingPolygons.length > 0 && existingLayersRef.current.getLayers().length > 0) {
-  try {
-    const bounds = (existingLayersRef.current as any).getBounds()  // 👈 AQUÍ
-    mapRef.current.fitBounds(bounds, { padding: [100, 100], maxZoom: 16 })
-  } catch {}
-}
+      try {
+        const bounds = (existingLayersRef.current as any).getBounds()
+        mapRef.current.fitBounds(bounds, { padding: [100, 100], maxZoom: 16 })
+      } catch {}
+    }
   }, [existingPolygons, isReady])
 
   /** Buscar ubicación */
