@@ -10,7 +10,7 @@ if (typeof window !== 'undefined') {
 }
 
 interface MapaPoligonoProps {
-  onPolygonComplete?: (coordinates: number[][], areaHectareas: number) => void // ✅ Agregar ?
+  onPolygonComplete?: (coordinates: number[][], areaHectareas: number) => void
   initialCenter?: [number, number]
   initialZoom?: number
   existingPolygons?: Array<{
@@ -18,32 +18,32 @@ interface MapaPoligonoProps {
     nombre: string
     coordinates: number[][]
     color?: string
-    info?: {  // ✅ Agregar info opcional
+    info?: {
       hectareas?: number
       cultivos?: any[]
       animales?: any[]
-      ndvi?: number  // ✅ Agregar NDVI
+      ndvi?: number
     }
   }>
-  readOnly?: boolean // ✅ AGREGAR ESTA LÍNEA
+  readOnly?: boolean
 }
 
 function calcularAreaPoligono(latlngs: any[]): number {
   const R = 6371000
   if (latlngs.length < 3) return 0
-  
+
   let area = 0
   const coords = latlngs.map((ll: any) => ({
     lat: ll.lat * Math.PI / 180,
     lng: ll.lng * Math.PI / 180
   }))
-  
+
   for (let i = 0; i < coords.length; i++) {
     const j = (i + 1) % coords.length
     area += coords[i].lng * coords[j].lat
     area -= coords[j].lng * coords[i].lat
   }
-  
+
   area = Math.abs(area * R * R / 2)
   return area
 }
@@ -98,74 +98,74 @@ export default function MapaPoligono({
     ).addTo(map)
 
     // Dibujar potreros existentes
-const existingLayers = new L.FeatureGroup()
-map.addLayer(existingLayers)
-existingLayersRef.current = existingLayers
+    const existingLayers = new L.FeatureGroup()
+    map.addLayer(existingLayers)
+    existingLayersRef.current = existingLayers
 
-existingPolygons.forEach((potrero) => {
-  if (potrero.coordinates && potrero.coordinates.length > 0) {
-    // Crear polígono del potrero
-    const polygon = (L as any).polygon(potrero.coordinates, {
-      color: potrero.color || '#10b981',
-      fillColor: potrero.color || '#10b981',
-      fillOpacity: 0.3,
-      weight: 3,
+    existingPolygons.forEach((potrero) => {
+      if (potrero.coordinates && potrero.coordinates.length > 0) {
+        const polygon = (L as any).polygon(potrero.coordinates, {
+          color: potrero.color || '#10b981',
+          fillColor: potrero.color || '#10b981',
+          fillOpacity: 0.3,
+          weight: 3,
+        })
+
+        // --- Animales ---
+        let animalesInfo = ''
+        if (potrero.info?.animales && potrero.info.animales.length > 0) {
+          const totalAnimales = potrero.info.animales.reduce((s: number, a: any) => s + a.cantidad, 0)
+          const categorias = potrero.info.animales.map((a: any) => a.categoria).join(', ')
+          animalesInfo = `
+            <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #e5e7eb;">
+              <span style="color: #666; font-size: 12px;">
+                🐄 ${totalAnimales} animales<br/>
+                <span style="color: #999; font-size: 11px;">${categorias}</span>
+              </span>
+            </div>
+          `
+        }
+
+        // --- Cultivos ---
+        let cultivosInfo = ''
+        if (potrero.info?.cultivos && potrero.info.cultivos.length > 0) {
+          const cultivos = potrero.info.cultivos
+            .map((c: any) => `${c.tipoCultivo} (${c.hectareas} ha)`)
+            .join(', ')
+          cultivosInfo = `
+            <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #e5e7eb;">
+              <span style="color: #666; font-size: 12px;">
+                🌾 ${cultivos}
+              </span>
+            </div>
+          `
+        }
+
+        // 🗺 Popup
+        polygon.bindPopup(`
+          <div style="padding: 8px; min-width: 200px;">
+            <strong style="font-size: 16px; color: ${potrero.color || '#10b981'};">
+              ${potrero.nombre}
+            </strong><br/>
+            <span style="color: #999; font-size: 12px;">
+              ${potrero.info?.hectareas?.toFixed(2) || '0'} ha
+            </span>
+            ${cultivosInfo}
+            ${animalesInfo}
+          </div>
+        `)
+
+        existingLayers.addLayer(polygon)
+      }
     })
 
-    // Construir información de animales
-    let animalesInfo = ''
-    if (potrero.info?.animales && potrero.info.animales.length > 0) {
-      const totalAnimales = potrero.info.animales.reduce((sum: number, a: any) => sum + a.cantidad, 0)
-      const categorias = potrero.info.animales.map((a: any) => a.categoria).join(', ')
-      animalesInfo = `
-        <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #e5e7eb;">
-          <span style="color: #666; font-size: 12px;">
-            🐄 ${totalAnimales} animales<br/>
-            <span style="color: #999; font-size: 11px;">${categorias}</span>
-          </span>
-        </div>
-      `
+    // Ajustar zoom
+    if (existingPolygons.length > 0 && existingLayers.getLayers().length > 0) {
+      const bounds = (existingLayers as any).getBounds()
+      map.fitBounds(bounds, { padding: [100, 100], maxZoom: 16 })
     }
 
-    // Construir información de cultivos
-    let cultivosInfo = ''
-    if (potrero.info?.cultivos && potrero.info.cultivos.length > 0) {
-      const cultivos = potrero.info.cultivos.map((c: any) => `${c.tipoCultivo} (${c.hectareas} ha)`).join(', ')
-      cultivosInfo = `
-        <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #e5e7eb;">
-          <span style="color: #666; font-size: 12px;">
-            🌾 ${cultivos}
-          </span>
-        </div>
-      `
-    }
-
-    // Popup al hacer click
-    polygon.bindPopup(`
-      <div style="padding: 8px; min-width: 200px;">
-        <strong style="font-size: 16px; color: ${potrero.color || '#10b981'};">
-          ${potrero.nombre}
-        </strong><br/>
-        <span style="color: #999; font-size: 12px;">
-          ${potrero.info?.hectareas?.toFixed(2) || '0'} ha
-        </span>
-        ${cultivosInfo}
-        ${animalesInfo}
-      </div>
-    `)
-
-    // Agregar polígono al mapa
-    existingLayers.addLayer(polygon)
-  }
-})
-
-// Ajustar zoom si hay polígonos
-if (existingPolygons.length > 0 && existingLayers.getLayers().length > 0) {
-  const bounds = (existingLayers as any).getBounds()
-  map.fitBounds(bounds, { padding: [100, 100], maxZoom: 16 })
-}
-
-    // ⛔ DIBUJO SOLO SI NO es readOnly
+    // Editor de polígonos si no es readOnly
     if (!readOnly) {
       const drawnItems = new L.FeatureGroup()
       map.addLayer(drawnItems)
@@ -218,6 +218,96 @@ if (existingPolygons.length > 0 && existingLayers.getLayers().length > 0) {
     return () => map.remove()
   }, [isReady, initialCenter, initialZoom, existingPolygons, readOnly])
 
+  // 🔄 Redibujar polígonos cuando cambian existingPolygons
+  useEffect(() => {
+    if (!mapRef.current || !existingLayersRef.current) return
+
+    existingLayersRef.current.clearLayers()
+
+    existingPolygons.forEach((potrero) => {
+      if (!potrero.coordinates || potrero.coordinates.length === 0) return
+
+      const polygon = (L as any).polygon(potrero.coordinates, {
+        color: potrero.color || '#10b981',
+        fillColor: potrero.color || '#10b981',
+        fillOpacity: 0.3,
+        weight: 3,
+      })
+
+      // --- Animales ---
+      let animalesInfo = ''
+      if (potrero.info?.animales && potrero.info.animales.length > 0) {
+        const totalAnimales = potrero.info.animales.reduce((s: number, a: any) => s + a.cantidad, 0)
+        const categorias = potrero.info.animales.map((a: any) => a.categoria).join(', ')
+        animalesInfo = `
+          <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #e5e7eb;">
+            <span style="color: #666; font-size: 12px;">
+              🐄 ${totalAnimales} animales<br/>
+              <span style="color: #999; font-size: 11px;">${categorias}</span>
+            </span>
+          </div>
+        `
+      }
+
+      // --- Cultivos ---
+      let cultivosInfo = ''
+      if (potrero.info?.cultivos && potrero.info.cultivos.length > 0) {
+        const cultivos = potrero.info.cultivos
+          .map((c: any) => `${c.tipoCultivo} (${c.hectareas} ha)`)
+          .join(', ')
+        cultivosInfo = `
+          <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #e5e7eb;">
+            <span style="color: #666; font-size: 12px;">
+              🌾 ${cultivos}
+            </span>
+          </div>
+        `
+      }
+
+      // --- NDVI ---
+      let ndviInfo = ''
+      if (potrero.info?.ndvi !== undefined) {
+        const value = potrero.info.ndvi
+        const label =
+          value >= 0.7 ? 'Excelente'
+          : value >= 0.5 ? 'Bueno'
+          : value >= 0.3 ? 'Regular'
+          : 'Bajo'
+
+        ndviInfo = `
+          <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #e5e7eb;">
+            <span style="color: #666; font-size: 12px;">
+              📊 NDVI: <strong>${value.toFixed(3)}</strong> (${label})
+            </span>
+          </div>
+        `
+      }
+
+      polygon.bindPopup(`
+        <div style="padding: 8px; min-width: 200px;">
+          <strong style="font-size: 16px; color: ${potrero.color || '#10b981'};">
+            ${potrero.nombre}
+          </strong><br/>
+          <span style="color: #999; font-size: 12px;">
+            ${potrero.info?.hectareas?.toFixed(2) || '0'} ha
+          </span>
+          ${cultivosInfo}
+          ${animalesInfo}
+          ${ndviInfo}
+        </div>
+      `)
+
+      existingLayersRef.current.addLayer(polygon)
+    })
+
+    // Ajustar zoom
+    if (existingPolygons.length > 0 && existingLayersRef.current.getLayers().length > 0) {
+      const bounds = (existingLayersRef.current as any).getBounds()
+      mapRef.current.fitBounds(bounds, { padding: [100, 100], maxZoom: 16 })
+    }
+
+  }, [existingPolygons])
+
   const buscarUbicacion = async () => {
     if (!searchQuery.trim()) return
 
@@ -248,8 +338,6 @@ if (existingPolygons.length > 0 && existingLayers.getLayers().length > 0) {
 
   return (
     <div className="relative w-full h-full flex flex-col">
-
-      {/* 🔍 Barra de búsqueda SOLO si NO es readOnly */}
       {!readOnly && (
         <div className="absolute top-4 left-4 right-4 z-[1000] md:left-16 md:w-96">
           <div className="bg-white rounded-lg shadow-lg p-3">
@@ -292,14 +380,12 @@ if (existingPolygons.length > 0 && existingLayers.getLayers().length > 0) {
         </div>
       )}
 
-      {/* 🏷️ Badge solo lectura */}
       {readOnly && (
         <div className="absolute top-4 left-4 bg-white px-3 py-2 rounded-lg shadow-md border border-gray-200 text-sm text-gray-600 z-[1000]">
           🗺️ Vista del mapa
         </div>
       )}
 
-      {/* Área calculada */}
       {!readOnly && areaHectareas !== null && (
         <div className="absolute top-4 right-4 z-[1000] bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg">
           <div className="text-sm">Área:</div>
@@ -307,10 +393,8 @@ if (existingPolygons.length > 0 && existingLayers.getLayers().length > 0) {
         </div>
       )}
 
-      {/* Mapa */}
       <div id="map" className="flex-1 w-full h-full" />
 
-      {/* Botones dibujar */}
       {!readOnly && (
         <div className="absolute bottom-4 left-4 right-4 z-[1000] flex flex-col sm:flex-row gap-3">
           <button
