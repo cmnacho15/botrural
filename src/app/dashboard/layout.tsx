@@ -9,7 +9,7 @@ import { InsumosProvider, useInsumos } from '@/app/contexts/InsumosContext'
 import { GastosProvider, useGastos } from '@/app/contexts/GastosContext'
 import ModalNuevoDato from '@/app/components/modales/ModalNuevoDato'
 
-// 🔄 Hook SWR para traer datos con cache
+// SWR
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -34,20 +34,22 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
   const { refreshInsumos } = useInsumos()
   const { refreshGastos } = useGastos()
 
-  // 🧠 Nombre del campo
+  // Nombre del campo
   const { data, error, isLoading } = useSWR('/api/usuarios/campo', fetcher, {
     revalidateOnFocus: false,
     dedupingInterval: 1000 * 60 * 5,
   })
-  const campoNombre = error
-    ? 'Error al cargar'
-    : isLoading
-    ? null
-    : data?.campoNombre || 'Sin campo'
 
+  const campoNombre = error
+    ? 'Error'
+    : isLoading
+    ? ''
+    : data?.campoNombre ?? 'Mi Campo'
+
+  // MENÚ LATERAL
   const menuSections = [
     {
-      title: campoNombre || '',
+      title: campoNombre,
       items: [
         { href: '/dashboard/empezar', icon: '🚀', label: 'Cómo Empezar', badge: '2/3' },
         { href: '/dashboard', icon: '📊', label: 'Resumen' },
@@ -57,12 +59,12 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
     },
     {
       title: 'Gestión',
-  items: [
-    { href: '/dashboard/lotes', icon: '🏞️', label: 'Potreros' },
-    { href: '/dashboard/gastos', icon: '💰', label: 'Gastos' },
-    { href: '/dashboard/insumos', icon: '📦', label: 'Insumos' },
-    { href: '/dashboard/mano-de-obra', icon: '👷', label: 'Mano de Obra' }, // ← NUEVA LÍNEA
-  ],
+      items: [
+        { href: '/dashboard/lotes', icon: '🏞️', label: 'Potreros' },
+        { href: '/dashboard/gastos', icon: '💰', label: 'Gastos' },
+        { href: '/dashboard/insumos', icon: '📦', label: 'Insumos' },
+        { href: '/dashboard/mano-de-obra', icon: '👷', label: 'Mano de Obra' },
+      ],
     },
     {
       title: 'Configuración',
@@ -73,6 +75,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
     },
   ]
 
+  // OPCIONES DE EVENTOS (DESPLEGABLE NUEVO DATO)
   const eventosOptions = [
     {
       category: 'Animales',
@@ -111,16 +114,22 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
       ],
     },
     {
-      category: 'Insumos y Finanzas',
+      category: 'Insumos',
       items: [
         { icon: '📦', label: 'Uso de Insumos', action: 'uso-insumos' },
         { icon: '📥', label: 'Ingreso de Insumos', action: 'ingreso-insumos' },
+      ],
+    },
+    {
+      category: 'Finanzas',
+      items: [
         { icon: '💰', label: 'Gasto', action: 'gasto' },
         { icon: '👤', label: 'Ingreso', action: 'ingreso' },
       ],
     },
   ]
 
+  // CALLBACK AL GUARDAR
   const handleSuccess = async () => {
     await Promise.all([
       refetchDatos(),
@@ -137,8 +146,13 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex flex-col h-screen bg-gray-50">
-      {/* HEADER */}
+
+      {/* ===================================================================== */}
+      {/* HEADER SUPERIOR */}
+      {/* ===================================================================== */}
+
       <header className="bg-white border-b border-gray-200 px-4 sm:px-6 py-3 flex items-center justify-between">
+        {/* IZQUIERDA: LOGO + BOTÓN */}
         <div className="flex items-center gap-3">
           <button
             onClick={() => setSidebarOpen(true)}
@@ -150,12 +164,8 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
               stroke="currentColor"
               viewBox="0 0 24 24"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 6h16M4 12h16M4 18h16"
-              />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
 
@@ -175,30 +185,97 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
             <span className="hidden sm:inline">Nuevo Dato</span>
           </button>
 
+          {/* ===================================================================== */}
+          {/* TODO EL MENÚ “NUEVO DATO” RESPONSIVE */}
+          {/* ===================================================================== */}
+
           {nuevoDatoMenuOpen && (
             <>
+              {/* Overlay */}
               <div
-                className="fixed inset-0 z-10 bg-transparent"
+                className="fixed inset-0 z-10 bg-black/20 backdrop-blur-sm"
                 onClick={() => setNuevoDatoMenuOpen(false)}
               />
-              <div className="absolute right-0 mt-2 w-[90vw] sm:w-[700px] lg:w-[800px] bg-white rounded-xl shadow-2xl border border-gray-200 p-6 z-20 max-h-[80vh] overflow-y-auto">
+
+              {/* ======================= MOBILE: Bottom Sheet ======================= */}
+              <div className="fixed bottom-0 left-0 right-0 z-20 bg-white rounded-t-3xl shadow-2xl max-h-[85vh] overflow-y-auto lg:hidden animate-slide-up">
+                <div className="sticky top-0 bg-white border-b border-gray-200 p-4 rounded-t-3xl">
+                  <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-3" />
+                  <h2 className="text-lg font-semibold text-gray-900 text-center">
+                    Nuevo Dato
+                  </h2>
+                </div>
+
+                <div className="p-4 space-y-2">
+                  {eventosOptions.map((section, idx) => {
+                    const [isOpen, setIsOpen] = useState(false)
+
+                    return (
+                      <div key={idx} className="border-b border-gray-100 last:border-0">
+                        <button
+                          onClick={() => setIsOpen(!isOpen)}
+                          className="w-full flex items-center justify-between py-3 text-left"
+                        >
+                          <span className="font-medium text-gray-900">{section.category}</span>
+
+                          <svg className={`w-5 h-5 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                              d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </button>
+
+                        {isOpen && (
+                          <div className="pb-3 space-y-1">
+                            {section.items.map((item, itemIdx) => (
+                              <button
+                                key={itemIdx}
+                                onClick={() => handleEventoClick(item.action)}
+                                className="w-full flex items-center gap-3 px-3 py-2.5 text-left text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
+                              >
+                                <span className="text-xl">{item.icon}</span>
+                                <span className="text-sm">{item.label}</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* ======================= DESKTOP: Dropdown 5 columnas ======================= */}
+              <div className="hidden lg:block absolute right-0 mt-2 w-[800px] bg-white rounded-xl shadow-2xl border border-gray-200 p-6 z-20 max-h-[80vh] overflow-y-auto">
+
                 <h2 className="text-lg font-semibold mb-4 text-gray-800">
                   Seleccioná qué tipo de dato querés ingresar
                 </h2>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6 sm:gap-8">
+
+                <div className="
+                  grid 
+                  grid-cols-2 
+                  sm:grid-cols-3 
+                  md:grid-cols-4 
+                  lg:grid-cols-5 
+                  gap-8
+                ">
                   {eventosOptions.map((section, idx) => (
                     <div key={idx}>
                       <h3 className="text-sm font-bold text-gray-900 mb-3">
                         {section.category}
                       </h3>
+
                       <div className="space-y-2">
                         {section.items.map((item, itemIdx) => (
                           <button
                             key={itemIdx}
                             onClick={() => handleEventoClick(item.action)}
-                            className="w-full flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
+                            className="w-full flex items-center gap-3 px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
                           >
-                            <span className="text-base sm:text-lg">{item.icon}</span>
+                            <span className="text-lg">{item.icon}</span>
                             <span>{item.label}</span>
                           </button>
                         ))}
@@ -206,13 +283,16 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
                     </div>
                   ))}
                 </div>
+
               </div>
             </>
           )}
         </div>
       </header>
 
-      {/* CONTENIDO PRINCIPAL */}
+      {/* ===================================================================== */}
+      {/* CUERPO PRINCIPAL */}
+      {/* ===================================================================== */}
       <div className="flex flex-1 overflow-hidden">
         {sidebarOpen && (
           <div
@@ -231,17 +311,12 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
             {menuSections.map((section, idx) => (
               <div key={idx} className="mb-6">
                 <h3 className="px-4 mb-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  {isLoading ? (
-                    <div className="h-3 w-24 bg-gray-200 rounded-full animate-pulse" />
-                  ) : (
-                    section.title
-                  )}
+                  {isLoading ? <div className="h-3 w-24 bg-gray-200 rounded-full animate-pulse" /> : section.title}
                 </h3>
 
                 <div className="space-y-1">
                   {section.items.map((item) => {
-                    const isActive =
-                      pathname === item.href || pathname.startsWith(item.href + '/')
+                    const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
                     return (
                       <Link
                         key={item.href}
@@ -271,17 +346,22 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
           </nav>
         </aside>
 
-        {/* MAIN */}
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">{children}</main>
+        {/* MAIN CONTENT */}
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+          {children}
+        </main>
       </div>
 
+      {/* ===================================================================== */}
       {/* MODAL NUEVO DATO */}
+      {/* ===================================================================== */}
       <ModalNuevoDato
         isOpen={modalTipo !== null}
         onClose={() => setModalTipo(null)}
         tipo={modalTipo || ''}
         onSuccess={handleSuccess}
       />
+
     </div>
   )
 }
