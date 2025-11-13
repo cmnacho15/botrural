@@ -61,29 +61,33 @@ function crearHeatmapNDVI(
 
   const heatPoints: [number, number, number][] = []
 
+  // ✅ Crear polígono para verificar si un punto está dentro
+  const polygon = (L as any).polygon(poligonoCoords)
+
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const value = matriz[y][x]
       
       if (value !== -999 && !isNaN(value)) {
-        // Convertir coordenadas de píxel a lat/lng
         const lng = west + (x / width) * (east - west)
         const lat = north - (y / height) * (north - south)
         
-        // Normalizar NDVI de [-1, 1] a [0, 1] para el heatmap
-        const intensity = (value + 1) / 2
-        
-        heatPoints.push([lat, lng, intensity])
+        // ✅ SOLO agregar si está dentro del polígono
+        const latlng = (L as any).latLng(lat, lng)
+        if (polygon.getBounds().contains(latlng)) {
+          const intensity = (value + 1) / 2
+          heatPoints.push([lat, lng, intensity])
+        }
       }
     }
   }
 
   if (heatPoints.length === 0) return null
 
-  // Crear capa de calor
+  // ✅ Menos blur para evitar desbordamiento
   const heatLayer = (L as any).heatLayer(heatPoints, {
-    radius: 15,
-    blur: 20,
+    radius: 8,
+    blur: 10,
     maxZoom: 18,
     max: 1.0,
     gradient: {
@@ -243,15 +247,8 @@ export default function MapaPoligono({
     existingPolygons.forEach((potrero) => {
       if (!potrero.coordinates?.length) return
 
-      const polygon = (L as any).polygon(potrero.coordinates, {
-        color: potrero.color || '#10b981',
-        fillColor: potrero.color || '#10b981',
-        fillOpacity: 0.3,
-        weight: 3,
-      })
-
-      // 🗺️ AGREGAR HEATMAP SI HAY DATOS NDVI COMPLETOS
-      if (potrero.info?.ndviMatriz) {
+      // 🗺️ PRIMERO: Agregar heatmap si hay datos NDVI (va DEBAJO del polígono)
+      if (potrero.info?.ndviMatriz?.matriz?.length > 0) {
         const heatLayer = crearHeatmapNDVI(
           mapRef.current,
           potrero.info.ndviMatriz,
@@ -261,6 +258,14 @@ export default function MapaPoligono({
           existingLayersRef.current.addLayer(heatLayer)
         }
       }
+
+      // DESPUÉS: Dibujar el polígono encima
+      const polygon = (L as any).polygon(potrero.coordinates, {
+        color: potrero.color || '#10b981',
+        fillColor: potrero.color || '#10b981',
+        fillOpacity: 0.2,
+        weight: 3,
+      })
 
       let animalesInfo = ''
       if (potrero.info?.animales?.length) {
