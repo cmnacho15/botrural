@@ -39,11 +39,17 @@ const TIPOS_CULTIVO = [
   'Cebada', 'Avena', 'Arroz', 'Alfalfa', 'Pradera'
 ]
 
+// 🐄 Categorías animales
 const CATEGORIAS_ANIMAL = [
   'Vacas', 'Vaquillonas', 'Toros', 'Toritos',
   'Terneros', 'Terneras', 'Terneros/as',
-  'Novillos', 'Novillitos'
-]
+  'Novillos', 'Novillitos',
+  // Ovinos
+  'Borregas', 'Borregos', 'Carneros', 'Corderos', 'Ovejas',
+  
+  // Equinos
+  'Caballos', 'Yeguas', 'Potros', 'Potrancas',
+] 
 
 export default function EditarLotePage() {
   const router = useRouter()
