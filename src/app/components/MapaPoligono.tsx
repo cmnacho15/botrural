@@ -123,7 +123,7 @@ export default function MapaPoligono({
     })
 
     if (existingPolygons.length > 0 && existingLayers.getLayers().length > 0) {
-      const bounds = existingLayers.getBounds()
+      const bounds = (existingLayers as any).getBounds()
       map.fitBounds(bounds, { padding: [100, 100], maxZoom: 16 })
     }
 
@@ -247,11 +247,11 @@ export default function MapaPoligono({
     })
 
     if (existingPolygons.length > 0 && existingLayersRef.current.getLayers().length > 0) {
-      try {
-        const bounds = existingLayersRef.current.getBounds()
-        mapRef.current.fitBounds(bounds, { padding: [100, 100], maxZoom: 16 })
-      } catch {}
-    }
+  try {
+    const bounds = (existingLayersRef.current as any).getBounds()  // 👈 AQUÍ
+    mapRef.current.fitBounds(bounds, { padding: [100, 100], maxZoom: 16 })
+  } catch {}
+}
   }, [existingPolygons, isReady])
 
   /** Buscar ubicación */
