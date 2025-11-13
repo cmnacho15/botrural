@@ -10,10 +10,10 @@ function obtenerIcono(tipo: string): string {
     LLUVIA: '🌧️',
     HELADA: '❄️',
     GASTO: '💸',
-    INGRESO: '💰',
+    INGRESO: '💰',      // ✅ Ingreso de DINERO
     VENTA: '🐄',
     USO_INSUMO: '🧪',
-    INGRESO_INSUMO: '📦',
+    INGRESO_INSUMO: '📦', // ✅ Ingreso de MATERIALES
     SIEMBRA: '🌱',
     COSECHA: '🌾',
     NACIMIENTO: '🐮',
@@ -27,10 +27,10 @@ function obtenerColor(tipo: string): string {
     LLUVIA: 'blue',
     HELADA: 'cyan',
     GASTO: 'red',
-    INGRESO: 'green',
+    INGRESO: 'green',        // ✅ Verde para DINERO
     VENTA: 'green',
     USO_INSUMO: 'orange',
-    INGRESO_INSUMO: 'purple',
+    INGRESO_INSUMO: 'purple', // ✅ Púrpura para MATERIALES
     SIEMBRA: 'lime',
     COSECHA: 'yellow',
     NACIMIENTO: 'pink',
@@ -122,27 +122,25 @@ function TarjetaDato({ dato }: { dato: any }) {
   const renderDetalles = () => {
     const detalles = []
 
-    /* 💵 MONTO */
+    /* 💵 MONTO - Solo para movimientos de DINERO */
     if (dato.monto !== undefined && dato.monto !== null) {
-      const esIngreso =
-        dato.tipo === 'INGRESO' ||
-        dato.tipo === 'VENTA' ||
-        dato.tipo === 'COSECHA'
-
+      // ✅ INGRESO de dinero (verde con +)
+      const esIngresoDinero = dato.tipo === 'INGRESO' || dato.tipo === 'VENTA' || dato.tipo === 'COSECHA'
+      
       detalles.push(
         <span
           key="monto"
           className={`${
-            esIngreso ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+            esIngresoDinero ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
           } px-3 py-1 rounded-full text-sm font-semibold`}
         >
-          💵 {esIngreso ? '+' : '-'}${dato.monto.toLocaleString('es-UY')}
+          💵 {esIngresoDinero ? '+' : '-'}${dato.monto.toLocaleString('es-UY')}
         </span>
       )
     }
 
-    /* 📊 CANTIDAD */
-    if (dato.cantidad) {
+    /* 📊 CANTIDAD - Para insumos y animales */
+    if (dato.cantidad && dato.tipo !== 'INGRESO' && dato.tipo !== 'GASTO') {
       detalles.push(
         <span
           key="cantidad"
@@ -153,8 +151,8 @@ function TarjetaDato({ dato }: { dato: any }) {
       )
     }
 
-    /* 🏪 Proveedor (solo para gastos) */
-    if (dato.proveedor && dato.tipo === 'GASTO') {
+    /* 🏪 Proveedor (solo para GASTOS e INGRESO_INSUMO) */
+    if (dato.proveedor && (dato.tipo === 'GASTO' || dato.tipo === 'INGRESO_INSUMO')) {
       detalles.push(
         <span
           key="proveedor"
@@ -165,7 +163,7 @@ function TarjetaDato({ dato }: { dato: any }) {
       )
     }
 
-    /* 🤝 Comprador (solo ingresos) */
+    /* 🤝 Comprador (solo para INGRESOS de dinero) */
     if (dato.comprador && dato.tipo === 'INGRESO') {
       detalles.push(
         <span
@@ -177,8 +175,8 @@ function TarjetaDato({ dato }: { dato: any }) {
       )
     }
 
-    /* 💳 Método de pago */
-    if (dato.metodoPago) {
+    /* 💳 Método de pago (solo movimientos de dinero) */
+    if (dato.metodoPago && (dato.tipo === 'INGRESO' || dato.tipo === 'GASTO')) {
       detalles.push(
         <span
           key="metodo"
@@ -193,7 +191,7 @@ function TarjetaDato({ dato }: { dato: any }) {
       )
     }
 
-    /* 🧪 Insumo */
+    /* 🧪 Insumo (para movimientos de insumos) */
     if (dato.insumo) {
       detalles.push(
         <span
@@ -208,11 +206,29 @@ function TarjetaDato({ dato }: { dato: any }) {
     return detalles
   }
 
+  // ✅ Nombre más claro según el tipo
+  const obtenerNombreTipo = (tipo: string) => {
+    const nombres: Record<string, string> = {
+      INGRESO: 'Ingreso de Dinero',
+      INGRESO_INSUMO: 'Ingreso de Insumo',
+      USO_INSUMO: 'Uso de Insumo',
+      GASTO: 'Gasto',
+      VENTA: 'Venta',
+      COSECHA: 'Cosecha',
+      SIEMBRA: 'Siembra',
+      NACIMIENTO: 'Nacimiento',
+      MORTANDAD: 'Mortandad',
+      LLUVIA: 'Lluvia',
+      HELADA: 'Helada',
+    }
+    return nombres[tipo] || tipo.replace(/_/g, ' ')
+  }
+
   return (
     <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 border border-gray-100">
       <div className="flex items-start gap-4">
 
-        {/* Ícono actual */}
+        {/* Ícono */}
         <div
           className={`${
             colorClasses[obtenerColor(dato.tipo)] || 'bg-gray-500'
@@ -226,7 +242,7 @@ function TarjetaDato({ dato }: { dato: any }) {
           <div className="flex justify-between items-start mb-2">
             <div>
               <h3 className="font-semibold text-gray-900 text-base">
-                {dato.tipo.replace(/_/g, ' ')}
+                {obtenerNombreTipo(dato.tipo)}
               </h3>
               <span className="text-xs text-gray-500">{formatFecha(dato.fecha)}</span>
             </div>
