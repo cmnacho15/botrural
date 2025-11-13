@@ -42,7 +42,7 @@ async function calcularNDVIMatriz(imageBuffer: ArrayBuffer) {
     const ndviValues = data[0] as Float32Array
     const width = await image.getWidth()
     const height = await image.getHeight()
-    const bbox = await image.getBoundingBox() // [west, south, east, north]
+    const bbox = await image.getBoundingBox()
 
     const matriz: number[][] = []
     let validCount = 0
@@ -59,13 +59,26 @@ async function calcularNDVIMatriz(imageBuffer: ArrayBuffer) {
           sum += value
           validCount++
         } else {
-          fila.push(-999) // Sin datos
+          fila.push(-999)
         }
       }
       matriz.push(fila)
     }
 
-    const promedio = validCount > 0 ? sum / validCount : 0.5
+    // ✅ CAMBIO AQUÍ: Si no hay datos válidos, devolver null
+    if (validCount === 0) {
+      return {
+        promedio: null,
+        matriz: [],
+        width: 0,
+        height: 0,
+        bbox: [0, 0, 0, 0],
+        validPixels: 0,
+        totalPixels: width * height,
+      }
+    }
+
+    const promedio = sum / validCount  // Sin fallback
 
     return {
       promedio,
@@ -79,7 +92,7 @@ async function calcularNDVIMatriz(imageBuffer: ArrayBuffer) {
   } catch (error) {
     console.error('Error procesando TIFF:', error)
     return {
-      promedio: 0.5,
+      promedio: null,  // ✅ También null en caso de error
       matriz: [],
       width: 0,
       height: 0,
@@ -106,7 +119,7 @@ async function calcularNDVI(coordinates: number[][], accessToken: string) {
   ]
 
   const endDate = new Date().toISOString().split('T')[0]
-  const startDate = new Date(Date.now() - 90 * 86400000)
+  const startDate = new Date(Date.now() - 30 * 86400000)
     .toISOString()
     .split('T')[0]
 
@@ -156,7 +169,7 @@ async function calcularNDVI(coordinates: number[][], accessToken: string) {
                     from: `${startDate}T00:00:00Z`,
                     to: `${endDate}T23:59:59Z`,
                   },
-                  maxCloudCoverage: 60,
+                  maxCloudCoverage: 30,
                 },
               },
             ],
