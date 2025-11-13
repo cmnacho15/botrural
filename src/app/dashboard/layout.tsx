@@ -29,7 +29,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [nuevoDatoMenuOpen, setNuevoDatoMenuOpen] = useState(false)
   const [modalTipo, setModalTipo] = useState<string | null>(null)
-
+  const [openSections, setOpenSections] = useState<Record<number, boolean>>({})
   const { refetch: refetchDatos } = useDatos()
   const { refreshInsumos } = useInsumos()
   const { refreshGastos } = useGastos()
@@ -190,103 +190,100 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
           {/* ===================================================================== */}
 
           {nuevoDatoMenuOpen && (
-            <>
-              {/* Overlay */}
-              <div
-                className="fixed inset-0 z-10 bg-black/20 backdrop-blur-sm"
-                onClick={() => setNuevoDatoMenuOpen(false)}
-              />
+  <>
+    <div
+      className="fixed inset-0 z-10 bg-black/20 backdrop-blur-sm"
+      onClick={() => setNuevoDatoMenuOpen(false)}
+    />
 
-              {/* ======================= MOBILE: Bottom Sheet ======================= */}
-              <div className="fixed bottom-0 left-0 right-0 z-20 bg-white rounded-t-3xl shadow-2xl max-h-[85vh] overflow-y-auto lg:hidden animate-slide-up">
-                <div className="sticky top-0 bg-white border-b border-gray-200 p-4 rounded-t-3xl">
-                  <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-3" />
-                  <h2 className="text-lg font-semibold text-gray-900 text-center">
-                    Nuevo Dato
-                  </h2>
-                </div>
+    {/* ======================= MOBILE BOTTOM SHEET ======================= */}
+    <div className="fixed bottom-0 left-0 right-0 z-20 bg-white rounded-t-3xl shadow-2xl max-h-[85vh] overflow-y-auto lg:hidden animate-slide-up">
+      <div className="sticky top-0 bg-white border-b border-gray-200 p-4 rounded-t-3xl">
+        <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-3" />
+        <h2 className="text-lg font-semibold text-gray-900 text-center">
+          Nuevo Dato
+        </h2>
+      </div>
 
-                <div className="p-4 space-y-2">
-                  {eventosOptions.map((section, idx) => {
-                    const [isOpen, setIsOpen] = useState(false)
+      <div className="p-4 space-y-2">
+        {eventosOptions.map((section, idx) => (
+          <div key={idx} className="border-b border-gray-100 last:border-0">
+            {/* Botón para expandir/cerrar */}
+            <button
+              onClick={() =>
+                setOpenSections(prev => ({ ...prev, [idx]: !prev[idx] }))
+              }
+              className="w-full flex items-center justify-between py-3 text-left"
+            >
+              <span className="font-medium text-gray-900">{section.category}</span>
+              <svg
+                className={`w-5 h-5 text-gray-400 transition-transform ${
+                  openSections[idx] ? 'rotate-180' : ''
+                }`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 9l-7 7-7-7"
+                />
+              </svg>
+            </button>
 
-                    return (
-                      <div key={idx} className="border-b border-gray-100 last:border-0">
-                        <button
-                          onClick={() => setIsOpen(!isOpen)}
-                          className="w-full flex items-center justify-between py-3 text-left"
-                        >
-                          <span className="font-medium text-gray-900">{section.category}</span>
-
-                          <svg className={`w-5 h-5 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`}
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                              d="M19 9l-7 7-7-7" />
-                          </svg>
-                        </button>
-
-                        {isOpen && (
-                          <div className="pb-3 space-y-1">
-                            {section.items.map((item, itemIdx) => (
-                              <button
-                                key={itemIdx}
-                                onClick={() => handleEventoClick(item.action)}
-                                className="w-full flex items-center gap-3 px-3 py-2.5 text-left text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
-                              >
-                                <span className="text-xl">{item.icon}</span>
-                                <span className="text-sm">{item.label}</span>
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
+            {/* Contenido expandido */}
+            {openSections[idx] && (
+              <div className="pb-3 space-y-1">
+                {section.items.map((item, itemIdx) => (
+                  <button
+                    key={itemIdx}
+                    onClick={() => handleEventoClick(item.action)}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 text-left text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
+                  >
+                    <span className="text-xl">{item.icon}</span>
+                    <span className="text-sm">{item.label}</span>
+                  </button>
+                ))}
               </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
 
-              {/* ======================= DESKTOP: Dropdown 5 columnas ======================= */}
-              <div className="hidden lg:block absolute right-0 mt-2 w-[800px] bg-white rounded-xl shadow-2xl border border-gray-200 p-6 z-20 max-h-[80vh] overflow-y-auto">
+    {/* ======================= DESKTOP DROPDOWN (5 columnas) ======================= */}
+    <div className="hidden lg:block absolute right-0 mt-2 w-[800px] bg-white rounded-xl shadow-2xl border border-gray-200 p-6 z-20 max-h-[80vh] overflow-y-auto">
+      <h2 className="text-lg font-semibold mb-4 text-gray-800">
+        Seleccioná qué tipo de dato querés ingresar
+      </h2>
 
-                <h2 className="text-lg font-semibold mb-4 text-gray-800">
-                  Seleccioná qué tipo de dato querés ingresar
-                </h2>
+      <div className="grid grid-cols-5 gap-8">
+        {eventosOptions.map((section, idx) => (
+          <div key={idx}>
+            <h3 className="text-sm font-bold text-gray-900 mb-3">
+              {section.category}
+            </h3>
 
-                <div className="
-                  grid 
-                  grid-cols-2 
-                  sm:grid-cols-3 
-                  md:grid-cols-4 
-                  lg:grid-cols-5 
-                  gap-8
-                ">
-                  {eventosOptions.map((section, idx) => (
-                    <div key={idx}>
-                      <h3 className="text-sm font-bold text-gray-900 mb-3">
-                        {section.category}
-                      </h3>
-
-                      <div className="space-y-2">
-                        {section.items.map((item, itemIdx) => (
-                          <button
-                            key={itemIdx}
-                            onClick={() => handleEventoClick(item.action)}
-                            className="w-full flex items-center gap-3 px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
-                          >
-                            <span className="text-lg">{item.icon}</span>
-                            <span>{item.label}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-              </div>
-            </>
-          )}
+            <div className="space-y-2">
+              {section.items.map((item, itemIdx) => (
+                <button
+                  key={itemIdx}
+                  onClick={() => handleEventoClick(item.action)}
+                  className="w-full flex items-center gap-3 px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
+                >
+                  <span className="text-lg">{item.icon}</span>
+                  <span>{item.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </>
+)}
         </div>
       </header>
 
