@@ -61,8 +61,20 @@ function crearHeatmapNDVI(
 
   const heatPoints: [number, number, number][] = []
 
-  // ✅ Crear polígono para verificar si un punto está dentro
-  const polygon = (L as any).polygon(poligonoCoords)
+  // ✅ Función para verificar si un punto está dentro del polígono
+  function puntoEnPoligono(lat: number, lng: number, coords: number[][]): boolean {
+    let dentro = false
+    for (let i = 0, j = coords.length - 1; i < coords.length; j = i++) {
+      const xi = coords[i][1], yi = coords[i][0]
+      const xj = coords[j][1], yj = coords[j][0]
+      
+      const intersecta = ((yi > lat) !== (yj > lat)) &&
+        (lng < (xj - xi) * (lat - yi) / (yj - yi) + xi)
+      
+      if (intersecta) dentro = !dentro
+    }
+    return dentro
+  }
 
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
@@ -72,9 +84,8 @@ function crearHeatmapNDVI(
         const lng = west + (x / width) * (east - west)
         const lat = north - (y / height) * (north - south)
         
-        // ✅ SOLO agregar si está dentro del polígono
-        const latlng = (L as any).latLng(lat, lng)
-        if (polygon.getBounds().contains(latlng)) {
+        // ✅ Verificar si está REALMENTE dentro del polígono
+        if (puntoEnPoligono(lat, lng, poligonoCoords)) {
           const intensity = (value + 1) / 2
           heatPoints.push([lat, lng, intensity])
         }
@@ -84,10 +95,10 @@ function crearHeatmapNDVI(
 
   if (heatPoints.length === 0) return null
 
-  // ✅ Menos blur para evitar desbordamiento
+  // ✅ Parámetros más agresivos para contener el heatmap
   const heatLayer = (L as any).heatLayer(heatPoints, {
-    radius: 8,
-    blur: 10,
+    radius: 6,        // Más pequeño
+    blur: 8,          // Menos difuminado
     maxZoom: 18,
     max: 1.0,
     gradient: {
