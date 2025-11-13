@@ -1,17 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Calendar, Download, Printer, Plus, Edit2, Trash2, X, Save } from 'lucide-react'
-import jsPDF from 'jspdf'
-import 'jspdf-autotable'
-
-// 👇 Permite usar autoTable en TypeScript
-declare module 'jspdf' {
-  interface jsPDF {
-    autoTable: (options: any) => jsPDF
-    lastAutoTable: { finalY: number }
-  }
-}
+import { Calendar, Download, Plus, Edit2, Trash2, X, Save } from 'lucide-react'
 
 export default function ManoDeObraPage() {
   const [mesSeleccionado, setMesSeleccionado] = useState(new Date().getMonth())
@@ -38,9 +28,6 @@ export default function ManoDeObraPage() {
     'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
   ]
 
-  // -----------------------------------------------------
-  // 🔥 CARGAR DATOS DESDE TU API PRISMA
-  // -----------------------------------------------------
   useEffect(() => {
     cargarDatos()
   }, [mesSeleccionado, anioSeleccionado])
@@ -74,9 +61,6 @@ export default function ManoDeObraPage() {
     }
   }
 
-  // -----------------------------------------------------
-  // 💾 GUARDAR (CREAR / EDITAR)
-  // -----------------------------------------------------
   const handleGuardar = async () => {
     if (!formData.nombre.trim()) {
       alert('El nombre es obligatorio')
@@ -117,9 +101,6 @@ export default function ManoDeObraPage() {
     }
   }
 
-  // -----------------------------------------------------
-  // 🗑️ ELIMINAR
-  // -----------------------------------------------------
   const handleEliminar = async (id: number) => {
     if (!confirm('¿Eliminar este registro?')) return
 
@@ -134,72 +115,172 @@ export default function ManoDeObraPage() {
     }
   }
 
-  // -----------------------------------------------------
-  // 📄 EXPORTAR PDF
-  // -----------------------------------------------------
+  // ========================================
+  // PDF - SIN LIBRERÍAS EXTERNAS
+  // Genera un PDF básico usando window.print
+  // ========================================
   const handleExportarPDF = () => {
-    const doc = new jsPDF()
+    const printWindow = window.open('', '_blank')
+    if (!printWindow) {
+      alert('Por favor permite ventanas emergentes para descargar el PDF')
+      return
+    }
 
-    doc.setFontSize(18)
-    doc.text('INFORME DE MANO DE OBRA', 105, 15, { align: 'center' })
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Mano de Obra - ${meses[mesSeleccionado]} ${anioSeleccionado}</title>
+        <style>
+          @media print {
+            @page { margin: 1cm; }
+          }
+          body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+          }
+          h1 {
+            text-align: center;
+            color: #1e40af;
+            margin-bottom: 10px;
+          }
+          .subtitle {
+            text-align: center;
+            color: #6b7280;
+            margin-bottom: 30px;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+          }
+          th, td {
+            border: 1px solid #d1d5db;
+            padding: 8px;
+            text-align: center;
+            font-size: 12px;
+          }
+          th {
+            background-color: #3b82f6;
+            color: white;
+            font-weight: bold;
+          }
+          tr:nth-child(even) {
+            background-color: #f9fafb;
+          }
+          .nombre {
+            text-align: left;
+            font-weight: 500;
+          }
+        </style>
+      </head>
+      <body>
+        <h1>INFORME DE MANO DE OBRA</h1>
+        <div class="subtitle">
+          Período: ${meses[mesSeleccionado]} ${anioSeleccionado}<br>
+          Generado: ${new Date().toLocaleDateString('es-UY')}
+        </div>
+        
+        <table>
+          <thead>
+            <tr>
+              <th>Empleado</th>
+              <th>Horas Trabajadas</th>
+              <th>Días Trabajados</th>
+              <th>Días NO Trabajados</th>
+              <th>Feriados</th>
+              <th>Descansos</th>
+              <th>Faltas</th>
+              <th>Extras</th>
+              <th>Licencias</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${empleados.map(emp => `
+              <tr>
+                <td class="nombre">${emp.nombre}</td>
+                <td>${emp.horasTrabajadas}</td>
+                <td>${emp.diasTrabajados}</td>
+                <td>${emp.diasNoTrabajados}</td>
+                <td>${emp.feriadosTrabajados}</td>
+                <td>${emp.diasDescansoTrabajados}</td>
+                <td>${emp.faltas}</td>
+                <td>${emp.horasExtras}</td>
+                <td>${emp.licencias}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+        
+        <script>
+          window.onload = function() {
+            setTimeout(function() {
+              window.print();
+              setTimeout(function() {
+                window.close();
+              }, 100);
+            }, 250);
+          }
+        </script>
+      </body>
+      </html>
+    `
 
-    doc.setFontSize(12)
-    doc.text(`Período: ${meses[mesSeleccionado]} ${anioSeleccionado}`, 105, 23, { align: 'center' })
-    doc.text(`Generado: ${new Date().toLocaleDateString('es-UY')}`, 105, 30, { align: 'center' })
-
-    doc.autoTable({
-      head: [['Empleado', 'Hs. Trab.', 'Días Trab.', 'No Trab.', 'Feriados', 'Descansos', 'Faltas', 'Extras', 'Licencias']],
-      body: empleados.map(emp => [
-        emp.nombre,
-        emp.horasTrabajadas,
-        emp.diasTrabajados,
-        emp.diasNoTrabajados,
-        emp.feriadosTrabajados,
-        emp.diasDescansoTrabajados,
-        emp.faltas,
-        emp.horasExtras,
-        emp.licencias,
-      ]),
-      startY: 40,
-      theme: 'striped'
-    })
-
-    doc.save(`mano-obra-${meses[mesSeleccionado]}-${anioSeleccionado}.pdf`)
+    printWindow.document.write(html)
+    printWindow.document.close()
   }
 
-  // -----------------------------------------------------
-  // 📊 EXPORTAR A CSV
-  // -----------------------------------------------------
+  // ========================================
+  // EXCEL - FORMATO CORRECTO CON TABULACIONES
+  // ========================================
   const handleExportarExcel = () => {
-    const headers = ['Empleado', 'Horas Trabajadas', 'Días Trabajados', 'NO Trabajados', 'Feriados', 'Descansos', 'Faltas', 'Extras', 'Licencias']
+    // Usar TABULACIONES en lugar de comas o punto y coma
+    const headers = [
+      'Empleado',
+      'Horas Trabajadas',
+      'Días Trabajados',
+      'Días NO Trabajados',
+      'Feriados Trabajados',
+      'Días Descanso Trabajados',
+      'Faltas',
+      'Horas Extras',
+      'Licencias'
+    ].join('\t') // TAB como separador
 
-    const csvContent = [
-      headers.join(','),
-      ...empleados.map(emp =>
-        [
-          emp.nombre,
-          emp.horasTrabajadas,
-          emp.diasTrabajados,
-          emp.diasNoTrabajados,
-          emp.feriadosTrabajados,
-          emp.diasDescansoTrabajados,
-          emp.faltas,
-          emp.horasExtras,
-          emp.licencias
-        ].join(',')
-      )
-    ].join('\n')
+    const rows = empleados.map(emp => [
+      emp.nombre,
+      emp.horasTrabajadas,
+      emp.diasTrabajados,
+      emp.diasNoTrabajados,
+      emp.feriadosTrabajados,
+      emp.diasDescansoTrabajados,
+      emp.faltas,
+      emp.horasExtras,
+      emp.licencias
+    ].join('\t')).join('\n')
 
-    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' })
+    const tsvContent = headers + '\n' + rows
+
+    // Crear el archivo con extensión .xls para mejor compatibilidad
+    const blob = new Blob(['\ufeff' + tsvContent], { 
+      type: 'application/vnd.ms-excel;charset=utf-8;' 
+    })
+    
     const link = document.createElement('a')
-    link.href = URL.createObjectURL(blob)
-    link.download = `mano-obra-${meses[mesSeleccionado]}-${anioSeleccionado}.csv`
+    const url = URL.createObjectURL(blob)
+    
+    link.href = url
+    link.download = `mano-obra-${meses[mesSeleccionado]}-${anioSeleccionado}.xls`
+    link.style.display = 'none'
+    
+    document.body.appendChild(link)
     link.click()
+    document.body.removeChild(link)
+    
+    setTimeout(() => URL.revokeObjectURL(url), 100)
   }
 
-  // -----------------------------------------------------
-  // ➕ ABRIR MODAL NUEVO
-  // -----------------------------------------------------
   const handleAgregar = () => {
     setEmpleadoEditando(null)
     setFormData({
@@ -216,9 +297,6 @@ export default function ManoDeObraPage() {
     setModalOpen(true)
   }
 
-  // -----------------------------------------------------
-  // ✏️ ABRIR MODAL EDITAR
-  // -----------------------------------------------------
   const handleEditar = (emp: any) => {
     setEmpleadoEditando(emp)
     setFormData({
@@ -235,13 +313,8 @@ export default function ManoDeObraPage() {
     setModalOpen(true)
   }
 
-  // -----------------------------------------------------
-  // RENDER UI (NO TOQUÉ NADA)
-  // -----------------------------------------------------
   return (
     <div className="min-h-screen bg-gray-50">
-
-      {/* HEADER */}
       <div className="bg-white border-b border-gray-200 px-4 py-4 mb-6 flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold">Mano de Obra</h1>
@@ -249,21 +322,20 @@ export default function ManoDeObraPage() {
         </div>
 
         <div className="flex gap-3">
-          <button onClick={handleAgregar} className="px-4 py-2 bg-blue-600 text-white rounded-lg flex items-center gap-2">
+          <button onClick={handleAgregar} className="px-4 py-2 bg-blue-600 text-white rounded-lg flex items-center gap-2 hover:bg-blue-700">
             <Plus className="w-4 h-4" /> Agregar
           </button>
 
-          <button onClick={handleExportarPDF} className="px-4 py-2 bg-red-600 text-white rounded-lg flex items-center gap-2">
+          <button onClick={handleExportarPDF} className="px-4 py-2 bg-red-600 text-white rounded-lg flex items-center gap-2 hover:bg-red-700">
             <Download className="w-4 h-4" /> PDF
           </button>
 
-          <button onClick={handleExportarExcel} className="px-4 py-2 bg-green-600 text-white rounded-lg flex items-center gap-2">
+          <button onClick={handleExportarExcel} className="px-4 py-2 bg-green-600 text-white rounded-lg flex items-center gap-2 hover:bg-green-700">
             <Download className="w-4 h-4" /> Excel
           </button>
         </div>
       </div>
 
-      {/* SELECTOR DE PERÍODO */}
       <div className="px-4 mb-6">
         <div className="bg-white rounded-xl p-6 shadow border">
           <div className="flex items-center gap-4">
@@ -295,7 +367,6 @@ export default function ManoDeObraPage() {
         </div>
       </div>
 
-      {/* TABLA */}
       <div className="px-4">
         <div className="bg-white rounded-xl shadow border overflow-x-auto">
           <table className="min-w-full">
@@ -327,10 +398,10 @@ export default function ManoDeObraPage() {
                   <td className="px-6 py-4 text-center">{emp.licencias}</td>
 
                   <td className="px-6 py-4 text-center flex justify-center gap-2">
-                    <button onClick={() => handleEditar(emp)} className="text-blue-600 p-2">
+                    <button onClick={() => handleEditar(emp)} className="text-blue-600 p-2 hover:bg-blue-50 rounded">
                       <Edit2 className="w-4 h-4" />
                     </button>
-                    <button onClick={() => handleEliminar(emp.id)} className="text-red-600 p-2">
+                    <button onClick={() => handleEliminar(emp.id)} className="text-red-600 p-2 hover:bg-red-50 rounded">
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </td>
@@ -344,7 +415,7 @@ export default function ManoDeObraPage() {
               No hay registros para este período.
               <button
                 onClick={handleAgregar}
-                className="block mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg"
+                className="block mx-auto mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
               >
                 Agregar primer registro
               </button>
@@ -353,20 +424,18 @@ export default function ManoDeObraPage() {
         </div>
       </div>
 
-      {/* MODAL */}
       {modalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-xl w-full max-w-2xl p-6 shadow-xl">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold">
                 {empleadoEditando ? 'Editar' : 'Agregar'} Registro
               </h2>
-              <button onClick={() => setModalOpen(false)}>
+              <button onClick={() => setModalOpen(false)} className="hover:bg-gray-100 p-2 rounded">
                 <X className="w-6 h-6" />
               </button>
             </div>
 
-            {/* CAMPOS */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {[
                 ['nombre', 'Nombre'],
@@ -385,24 +454,23 @@ export default function ManoDeObraPage() {
                     type={campo === 'nombre' ? 'text' : 'number'}
                     value={(formData as any)[campo]}
                     onChange={e => setFormData({ ...formData, [campo]: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg"
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                 </div>
               ))}
             </div>
 
-            {/* BOTONES */}
             <div className="flex justify-end gap-3 mt-6">
               <button
                 onClick={() => setModalOpen(false)}
-                className="px-5 py-2 bg-gray-200 rounded-lg"
+                className="px-5 py-2 bg-gray-200 rounded-lg hover:bg-gray-300"
               >
                 Cancelar
               </button>
 
               <button
                 onClick={handleGuardar}
-                className="px-5 py-2 bg-blue-600 text-white rounded-lg flex items-center gap-2"
+                className="px-5 py-2 bg-blue-600 text-white rounded-lg flex items-center gap-2 hover:bg-blue-700"
               >
                 <Save className="w-4 h-4" />
                 Guardar
