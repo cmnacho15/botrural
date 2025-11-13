@@ -35,7 +35,7 @@ function calcularAreaPoligono(latlngs: any[]): number {
   let area = 0
   const coords = latlngs.map((ll: any) => ({
     lat: ll.lat * Math.PI / 180,
-    lng: ll.lng * Math.PI / 180
+    lng: ll.lng * Math.PI / 180,
   }))
 
   for (let i = 0; i < coords.length; i++) {
@@ -55,7 +55,6 @@ export default function MapaPoligono({
   existingPolygons = [],
   readOnly = false,
 }: MapaPoligonoProps) {
-
   const mapRef = useRef<any>(null)
   const drawnItemsRef = useRef<any>(null)
   const existingLayersRef = useRef<any>(null)
@@ -66,12 +65,12 @@ export default function MapaPoligono({
   const [areaHectareas, setAreaHectareas] = useState<number | null>(null)
   const [isReady, setIsReady] = useState(false)
 
-  // Esperar center
+  /** Esperar que center esté listo */
   useEffect(() => {
     if (initialCenter) setIsReady(true)
   }, [initialCenter])
 
-  // Crear mapa
+  /** Crear mapa */
   useEffect(() => {
     if (typeof window === 'undefined') return
     if (!isReady) return
@@ -81,7 +80,6 @@ export default function MapaPoligono({
     map.setView(initialCenter, initialZoom)
     mapRef.current = map
 
-    // Satelital
     const satelitalLayer = L.tileLayer(
       'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
       { attribution: '© Esri', maxZoom: 19 }
@@ -93,79 +91,43 @@ export default function MapaPoligono({
       { attribution: '© OpenStreetMap', maxZoom: 19 }
     )
 
-    L.control.layers(
-      { 'Satélite': satelitalLayer, 'Mapa': osmLayer }
-    ).addTo(map)
+    L.control.layers({ 'Satélite': satelitalLayer, 'Mapa': osmLayer }).addTo(map)
 
-    // Dibujar potreros existentes
+    /** Dibujar polígonos existentes iniciales */
     const existingLayers = new L.FeatureGroup()
     map.addLayer(existingLayers)
     existingLayersRef.current = existingLayers
 
     existingPolygons.forEach((potrero) => {
-      if (potrero.coordinates && potrero.coordinates.length > 0) {
-        const polygon = (L as any).polygon(potrero.coordinates, {
-          color: potrero.color || '#10b981',
-          fillColor: potrero.color || '#10b981',
-          fillOpacity: 0.3,
-          weight: 3,
-        })
+      if (!potrero.coordinates?.length) return
 
-        // --- Animales ---
-        let animalesInfo = ''
-        if (potrero.info?.animales && potrero.info.animales.length > 0) {
-          const totalAnimales = potrero.info.animales.reduce((s: number, a: any) => s + a.cantidad, 0)
-          const categorias = potrero.info.animales.map((a: any) => a.categoria).join(', ')
-          animalesInfo = `
-            <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #e5e7eb;">
-              <span style="color: #666; font-size: 12px;">
-                🐄 ${totalAnimales} animales<br/>
-                <span style="color: #999; font-size: 11px;">${categorias}</span>
-              </span>
-            </div>
-          `
-        }
+      const polygon = (L as any).polygon(potrero.coordinates, {
+        color: potrero.color || '#10b981',
+        fillColor: potrero.color || '#10b981',
+        fillOpacity: 0.3,
+        weight: 3,
+      })
 
-        // --- Cultivos ---
-        let cultivosInfo = ''
-        if (potrero.info?.cultivos && potrero.info.cultivos.length > 0) {
-          const cultivos = potrero.info.cultivos
-            .map((c: any) => `${c.tipoCultivo} (${c.hectareas} ha)`)
-            .join(', ')
-          cultivosInfo = `
-            <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #e5e7eb;">
-              <span style="color: #666; font-size: 12px;">
-                🌾 ${cultivos}
-              </span>
-            </div>
-          `
-        }
+      polygon.bindPopup(`
+        <div style="padding: 8px; min-width: 200px;">
+          <strong style="font-size: 16px; color: ${potrero.color || '#10b981'};">
+            ${potrero.nombre}
+          </strong><br/>
+          <span style="color: #999; font-size: 12px;">
+            ${potrero.info?.hectareas?.toFixed(2) || '0'} ha
+          </span>
+        </div>
+      `)
 
-        // 🗺 Popup
-        polygon.bindPopup(`
-          <div style="padding: 8px; min-width: 200px;">
-            <strong style="font-size: 16px; color: ${potrero.color || '#10b981'};">
-              ${potrero.nombre}
-            </strong><br/>
-            <span style="color: #999; font-size: 12px;">
-              ${potrero.info?.hectareas?.toFixed(2) || '0'} ha
-            </span>
-            ${cultivosInfo}
-            ${animalesInfo}
-          </div>
-        `)
-
-        existingLayers.addLayer(polygon)
-      }
+      existingLayers.addLayer(polygon)
     })
 
-    // Ajustar zoom
     if (existingPolygons.length > 0 && existingLayers.getLayers().length > 0) {
-      const bounds = (existingLayers as any).getBounds()
+      const bounds = existingLayers.getBounds()
       map.fitBounds(bounds, { padding: [100, 100], maxZoom: 16 })
     }
 
-    // Editor de polígonos si no es readOnly
+    /** Dibujo si NO es readOnly */
     if (!readOnly) {
       const drawnItems = new L.FeatureGroup()
       map.addLayer(drawnItems)
@@ -177,7 +139,7 @@ export default function MapaPoligono({
             allowIntersection: false,
             showArea: true,
             metric: ['ha', 'm'],
-            shapeOptions: { color: '#3b82f6', weight: 3 }
+            shapeOptions: { color: '#3b82f6', weight: 3 },
           },
           polyline: false,
           rectangle: false,
@@ -185,7 +147,7 @@ export default function MapaPoligono({
           marker: false,
           circlemarker: false,
         },
-        edit: { featureGroup: drawnItems, remove: true }
+        edit: { featureGroup: drawnItems, remove: true },
       })
       map.addControl(drawControl)
 
@@ -203,12 +165,10 @@ export default function MapaPoligono({
       })
 
       map.on(DrawEvent.EDITED, (event: any) => {
-        const layers = event.layers
-        layers.eachLayer((layer: any) => {
+        event.layers.eachLayer((layer: any) => {
           const latlngs = layer.getLatLngs()[0]
           const areaM2 = calcularAreaPoligono(latlngs)
-          const areaHa = areaM2 / 10000
-          setAreaHectareas(areaHa)
+          setAreaHectareas(areaM2 / 10000)
         })
       })
 
@@ -216,16 +176,19 @@ export default function MapaPoligono({
     }
 
     return () => map.remove()
-  }, [isReady, initialCenter, initialZoom, existingPolygons, readOnly])
+  }, [isReady, initialCenter, initialZoom, readOnly])
 
-  // 🔄 Redibujar polígonos cuando cambian existingPolygons
+  /**
+   * 🔄 Redibujar polígonos cuando cambian (ACTUALIZACIÓN DINÁMICA REAL)
+   */
   useEffect(() => {
     if (!mapRef.current || !existingLayersRef.current) return
+    if (!isReady) return
 
     existingLayersRef.current.clearLayers()
 
     existingPolygons.forEach((potrero) => {
-      if (!potrero.coordinates || potrero.coordinates.length === 0) return
+      if (!potrero.coordinates?.length) return
 
       const polygon = (L as any).polygon(potrero.coordinates, {
         color: potrero.color || '#10b981',
@@ -234,61 +197,44 @@ export default function MapaPoligono({
         weight: 3,
       })
 
-      // --- Animales ---
       let animalesInfo = ''
-      if (potrero.info?.animales && potrero.info.animales.length > 0) {
-        const totalAnimales = potrero.info.animales.reduce((s: number, a: any) => s + a.cantidad, 0)
-        const categorias = potrero.info.animales.map((a: any) => a.categoria).join(', ')
+      if (potrero.info?.animales?.length) {
+        const total = potrero.info.animales.reduce((s: number, a: any) => s + a.cantidad, 0)
+        const cats = potrero.info.animales.map((a: any) => a.categoria).join(', ')
         animalesInfo = `
-          <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #e5e7eb;">
-            <span style="color: #666; font-size: 12px;">
-              🐄 ${totalAnimales} animales<br/>
-              <span style="color: #999; font-size: 11px;">${categorias}</span>
-            </span>
-          </div>
-        `
+          <div style="margin-top:8px;padding-top:8px;border-top:1px solid #e5e7eb;">
+            🐄 ${total} animales<br/>
+            <span style="font-size:11px;color:#999">${cats}</span>
+          </div>`
       }
 
-      // --- Cultivos ---
       let cultivosInfo = ''
-      if (potrero.info?.cultivos && potrero.info.cultivos.length > 0) {
-        const cultivos = potrero.info.cultivos
+      if (potrero.info?.cultivos?.length) {
+        const cs = potrero.info.cultivos
           .map((c: any) => `${c.tipoCultivo} (${c.hectareas} ha)`)
           .join(', ')
         cultivosInfo = `
-          <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #e5e7eb;">
-            <span style="color: #666; font-size: 12px;">
-              🌾 ${cultivos}
-            </span>
-          </div>
-        `
+          <div style="margin-top:8px;padding-top:8px;border-top:1px solid #e5e7eb;">
+            🌾 ${cs}
+          </div>`
       }
 
-      // --- NDVI ---
       let ndviInfo = ''
       if (potrero.info?.ndvi !== undefined) {
-        const value = potrero.info.ndvi
-        const label =
-          value >= 0.7 ? 'Excelente'
-          : value >= 0.5 ? 'Bueno'
-          : value >= 0.3 ? 'Regular'
-          : 'Bajo'
-
+        const v = potrero.info.ndvi
+        const label = v >= 0.7 ? 'Excelente' : v >= 0.5 ? 'Bueno' : v >= 0.3 ? 'Regular' : 'Bajo'
         ndviInfo = `
-          <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #e5e7eb;">
-            <span style="color: #666; font-size: 12px;">
-              📊 NDVI: <strong>${value.toFixed(3)}</strong> (${label})
-            </span>
-          </div>
-        `
+          <div style="margin-top:8px;padding-top:8px;border-top:1px solid #e5e7eb;">
+            📊 NDVI: <strong>${v.toFixed(3)}</strong> (${label})
+          </div>`
       }
 
       polygon.bindPopup(`
-        <div style="padding: 8px; min-width: 200px;">
-          <strong style="font-size: 16px; color: ${potrero.color || '#10b981'};">
+        <div style="padding:8px;min-width:200px;">
+          <strong style="font-size:16px;color:${potrero.color || '#10b981'}">
             ${potrero.nombre}
           </strong><br/>
-          <span style="color: #999; font-size: 12px;">
+          <span style="color:#999;font-size:12px;">
             ${potrero.info?.hectareas?.toFixed(2) || '0'} ha
           </span>
           ${cultivosInfo}
@@ -300,24 +246,26 @@ export default function MapaPoligono({
       existingLayersRef.current.addLayer(polygon)
     })
 
-    // Ajustar zoom
     if (existingPolygons.length > 0 && existingLayersRef.current.getLayers().length > 0) {
-      const bounds = (existingLayersRef.current as any).getBounds()
-      mapRef.current.fitBounds(bounds, { padding: [100, 100], maxZoom: 16 })
+      try {
+        const bounds = existingLayersRef.current.getBounds()
+        mapRef.current.fitBounds(bounds, { padding: [100, 100], maxZoom: 16 })
+      } catch {}
     }
+  }, [existingPolygons, isReady])
 
-  }, [existingPolygons])
-
+  /** Buscar ubicación */
   const buscarUbicacion = async () => {
     if (!searchQuery.trim()) return
 
     setSearching(true)
     try {
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&countrycodes=uy&limit=5`
+      const r = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+          searchQuery
+        )}&countrycodes=uy&limit=5`
       )
-      const data = await response.json()
-      setSearchResults(data)
+      setSearchResults(await r.json())
     } finally {
       setSearching(false)
     }
@@ -325,7 +273,8 @@ export default function MapaPoligono({
 
   const confirmarPoligono = () => {
     if (!drawnItemsRef.current) return
-    if (drawnItemsRef.current.getLayers().length === 0) return alert('Dibuje el potrero primero')
+    if (drawnItemsRef.current.getLayers().length === 0)
+      return alert('Dibuje el potrero primero')
 
     const layer = drawnItemsRef.current.getLayers()[0]
     const latlngs = layer.getLatLngs()[0]
@@ -350,10 +299,7 @@ export default function MapaPoligono({
                 placeholder="Buscar ubicación..."
                 className="flex-1 px-3 py-2 border rounded-lg text-sm"
               />
-              <button
-                onClick={buscarUbicacion}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg"
-              >
+              <button onClick={buscarUbicacion} className="px-4 py-2 bg-blue-600 text-white rounded-lg">
                 {searching ? '⏳' : '🔍'}
               </button>
             </div>
