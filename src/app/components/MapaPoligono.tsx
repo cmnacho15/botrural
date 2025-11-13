@@ -22,6 +22,7 @@ interface MapaPoligonoProps {
       hectareas?: number
       cultivos?: any[]
       animales?: any[]
+      ndvi?: number  // ✅ Agregar NDVI
     }
   }>
   readOnly?: boolean // ✅ AGREGAR ESTA LÍNEA

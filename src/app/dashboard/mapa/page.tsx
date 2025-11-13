@@ -36,28 +36,83 @@ interface Lote {
 
 // 🎨 Colores por tipo de cultivo
 const COLORES_CULTIVOS: Record<string, string> = {
-  'Soja': '#FFD700',      // Amarillo oro
-  'Maíz': '#FF69B4',      // Rosa
-  'Trigo': '#F4A460',     // Naranja claro
-  'Girasol': '#FFD700',   // Amarillo
-  'Sorgo': '#DEB887',     // Beige
-  'Cebada': '#D2691E',    // Marrón claro
-  'Avena': '#F5DEB3',     // Trigo claro
-  'Arroz': '#90EE90',     // Verde claro
-  'Alfalfa': '#32CD32',   // Verde lima
-  'Pradera': '#228B22',   // Verde oscuro
+  'Soja': '#FFD700',
+  'Maíz': '#FF69B4',
+  'Trigo': '#F4A460',
+  'Girasol': '#FFD700',
+  'Sorgo': '#DEB887',
+  'Cebada': '#D2691E',
+  'Avena': '#F5DEB3',
+  'Arroz': '#90EE90',
+  'Alfalfa': '#32CD32',
+  'Pradera': '#228B22',
 }
 
 export default function MapaPage() {
   const [lotes, setLotes] = useState<Lote[]>([])
   const [loading, setLoading] = useState(true)
-  const [vistaActual, setVistaActual] = useState<'indice' | 'cultivo'>('indice')
+  const [vistaActual, setVistaActual] = useState<'indice' | 'cultivo' | 'ndvi'>('indice')
   const [mapCenter, setMapCenter] = useState<[number, number]>([-32.5228, -55.7658])
   const [hayDatosCultivos, setHayDatosCultivos] = useState(false)
+  const [loadingNDVI, setLoadingNDVI] = useState(false)
+  const [ndviData, setNdviData] = useState<Record<string, number>>({})
 
   useEffect(() => {
     cargarLotes()
   }, [])
+
+  // 🛰️ Función para obtener NDVI de Copernicus
+  async function obtenerNDVIPotreros() {
+    if (lotes.length === 0) return
+    
+    setLoadingNDVI(true)
+
+    try {
+      const response = await fetch('/api/ndvi', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          lotes: lotes.map(l => ({
+            id: l.id,
+            coordenadas: l.coordenadas,
+          })),
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Error obteniendo NDVI')
+      }
+
+      const data = await response.json()
+      setNdviData(data.ndvi)
+    } catch (error) {
+      console.error('Error obteniendo NDVI:', error)
+      alert('Error obteniendo datos NDVI. Intenta de nuevo más tarde.')
+    } finally {
+      setLoadingNDVI(false)
+    }
+  }
+
+  // Cargar NDVI cuando cambia a vista NDVI
+  useEffect(() => {
+    if (vistaActual === 'ndvi' && Object.keys(ndviData).length === 0) {
+      obtenerNDVIPotreros()
+    }
+  }, [vistaActual, lotes])
+
+  // 🎨 Función para obtener color según NDVI
+  function getColorNDVI(ndvi: number): string {
+    if (ndvi < 0.2) return '#8B4513'
+    if (ndvi < 0.3) return '#DAA520'
+    if (ndvi < 0.4) return '#FFFF00'
+    if (ndvi < 0.5) return '#ADFF2F'
+    if (ndvi < 0.6) return '#7CFC00'
+    if (ndvi < 0.7) return '#32CD32'
+    if (ndvi < 0.8) return '#228B22'
+    return '#006400'
+  }
 
   async function cargarLotes() {
     try {
@@ -66,11 +121,9 @@ export default function MapaPage() {
         const data: Lote[] = await response.json()
         setLotes(data)
 
-        // Verificar si hay cultivos
         const tieneCultivos = data.some(lote => lote.cultivos && lote.cultivos.length > 0)
         setHayDatosCultivos(tieneCultivos)
 
-        // Calcular centro del mapa
         if (data.length > 0) {
           const todosLosPuntos = data
             .flatMap(l => l.coordenadas || [])
@@ -95,15 +148,21 @@ export default function MapaPage() {
   const poligonosParaMapa = lotes
     .filter(l => l.coordenadas && l.coordenadas.length > 0)
     .map(lote => {
-      let color = '#3b82f6' // Azul por defecto
+      let color = '#3b82f6'
 
       if (vistaActual === 'cultivo') {
-        // Color según el cultivo principal
         if (lote.cultivos && lote.cultivos.length > 0) {
           const cultivoPrincipal = lote.cultivos[0].tipoCultivo
           color = COLORES_CULTIVOS[cultivoPrincipal] || '#3b82f6'
         } else {
-          color = '#D3D3D3' // Gris para lotes sin cultivo
+          color = '#D3D3D3'
+        }
+      } else if (vistaActual === 'ndvi') {
+        const ndvi = ndviData[lote.id]
+        if (ndvi !== undefined) {
+          color = getColorNDVI(ndvi)
+        } else {
+          color = '#CCCCCC'
         }
       }
 
@@ -116,11 +175,11 @@ export default function MapaPage() {
           hectareas: lote.hectareas,
           cultivos: lote.cultivos,
           animales: lote.animalesLote,
+          ndvi: ndviData[lote.id],
         },
       }
     })
 
-  // 📊 Resumen de cultivos para la leyenda
   const resumenCultivos = lotes.reduce((acc, lote) => {
     lote.cultivos?.forEach(cultivo => {
       if (!acc[cultivo.tipoCultivo]) {
@@ -160,23 +219,37 @@ export default function MapaPage() {
             <div className="inline-flex rounded-lg border-2 border-gray-300 bg-white overflow-hidden">
               <button
                 onClick={() => setVistaActual('indice')}
-                className={`px-4 py-2 text-sm font-medium transition ${
+                className={`px-3 py-2 text-xs sm:text-sm font-medium transition ${
                   vistaActual === 'indice'
                     ? 'bg-blue-600 text-white'
                     : 'text-gray-700 hover:bg-gray-50'
                 }`}
               >
-                🌿 Índice Verde
+                🗺️ General
               </button>
               <button
                 onClick={() => setVistaActual('cultivo')}
-                className={`px-4 py-2 text-sm font-medium transition ${
+                className={`px-3 py-2 text-xs sm:text-sm font-medium transition ${
                   vistaActual === 'cultivo'
                     ? 'bg-blue-600 text-white'
                     : 'text-gray-700 hover:bg-gray-50'
                 }`}
               >
-                🌾 Cultivo
+                🌾 Cultivos
+              </button>
+              <button
+                onClick={() => setVistaActual('ndvi')}
+                disabled={loadingNDVI}
+                className={`px-3 py-2 text-xs sm:text-sm font-medium transition relative ${
+                  vistaActual === 'ndvi'
+                    ? 'bg-green-600 text-white'
+                    : 'text-gray-700 hover:bg-gray-50'
+                } ${loadingNDVI ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                🛰️ NDVI
+                {loadingNDVI && (
+                  <span className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 rounded-full animate-pulse"></span>
+                )}
               </button>
             </div>
           </div>
@@ -220,14 +293,87 @@ export default function MapaPage() {
           <div className="p-4">
             {/* TÍTULO DEL PANEL */}
             <h2 className="text-lg font-semibold text-gray-900 mb-4">
-              {vistaActual === 'indice' ? '🌿 Índice Verde' : '🌾 Cultivos'}
+              {vistaActual === 'indice' && '🗺️ Vista General'}
+              {vistaActual === 'cultivo' && '🌾 Cultivos'}
+              {vistaActual === 'ndvi' && '🛰️ Índice de Vegetación (NDVI)'}
             </h2>
+
+            {/* VISTA NDVI */}
+            {vistaActual === 'ndvi' && (
+              <>
+                {loadingNDVI ? (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                      <p className="text-sm text-gray-700">
+                        Obteniendo datos satelitales...
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="mb-6">
+                      <h3 className="text-sm font-semibold text-gray-700 mb-3">
+                        📊 Escala de Vegetación
+                      </h3>
+                      <div className="space-y-1 text-xs">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-4 rounded" style={{ backgroundColor: '#006400' }}></div>
+                          <span>0.8 - 1.0: Vegetación muy densa</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-4 rounded" style={{ backgroundColor: '#228B22' }}></div>
+                          <span>0.7 - 0.8: Vegetación densa</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-4 rounded" style={{ backgroundColor: '#32CD32' }}></div>
+                          <span>0.6 - 0.7: Vegetación media-alta</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-4 rounded" style={{ backgroundColor: '#7CFC00' }}></div>
+                          <span>0.5 - 0.6: Vegetación media</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-4 rounded" style={{ backgroundColor: '#ADFF2F' }}></div>
+                          <span>0.4 - 0.5: Vegetación baja-media</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-4 rounded" style={{ backgroundColor: '#FFFF00' }}></div>
+                          <span>0.3 - 0.4: Vegetación baja</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-4 rounded" style={{ backgroundColor: '#DAA520' }}></div>
+                          <span>0.2 - 0.3: Vegetación escasa</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-4 rounded" style={{ backgroundColor: '#8B4513' }}></div>
+                          <span>0.0 - 0.2: Sin vegetación</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={obtenerNDVIPotreros}
+                      className="w-full mb-4 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm font-medium"
+                    >
+                      🔄 Actualizar Datos NDVI
+                    </button>
+
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4 text-xs">
+                      <p className="text-gray-700">
+                        <strong>🛰️ Datos satelitales:</strong> Los valores NDVI se obtienen de 
+                        imágenes Sentinel-2 de los últimos 30 días (Copernicus).
+                      </p>
+                    </div>
+                  </>
+                )}
+              </>
+            )}
 
             {/* VISTA DE CULTIVOS */}
             {vistaActual === 'cultivo' && (
               <>
                 {!hayDatosCultivos ? (
-                  // Sin datos de cultivos
                   <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
                     <p className="text-sm text-gray-700 mb-3">
                       Todavía no ingresaste datos de cultivos por potrero. Podés
@@ -241,39 +387,35 @@ export default function MapaPage() {
                     </a>
                   </div>
                 ) : (
-                  // Con datos de cultivos
-                  <>
-                    {/* LEYENDA DE COLORES */}
-                    <div className="mb-6">
-                      <h3 className="text-sm font-semibold text-gray-700 mb-3">
-                        Selecciona los cultivos
-                      </h3>
-                      <div className="space-y-2">
-                        {Object.entries(resumenCultivos).map(([cultivo, hectareas]) => (
-                          <div
-                            key={cultivo}
-                            className="flex items-center justify-between p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition"
-                            style={{
-                              backgroundColor: `${COLORES_CULTIVOS[cultivo] || '#3b82f6'}20`,
-                            }}
-                          >
-                            <div className="flex items-center gap-3">
-                              <div
-                                className="w-4 h-4 rounded"
-                                style={{
-                                  backgroundColor: COLORES_CULTIVOS[cultivo] || '#3b82f6',
-                                }}
-                              />
-                              <span className="font-medium text-gray-900">{cultivo}</span>
-                              <span className="text-xs text-gray-500">
-                                ({hectareas.toFixed(1)} ha)
-                              </span>
-                            </div>
+                  <div className="mb-6">
+                    <h3 className="text-sm font-semibold text-gray-700 mb-3">
+                      Selecciona los cultivos
+                    </h3>
+                    <div className="space-y-2">
+                      {Object.entries(resumenCultivos).map(([cultivo, hectareas]) => (
+                        <div
+                          key={cultivo}
+                          className="flex items-center justify-between p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition"
+                          style={{
+                            backgroundColor: `${COLORES_CULTIVOS[cultivo] || '#3b82f6'}20`,
+                          }}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div
+                              className="w-4 h-4 rounded"
+                              style={{
+                                backgroundColor: COLORES_CULTIVOS[cultivo] || '#3b82f6',
+                              }}
+                            />
+                            <span className="font-medium text-gray-900">{cultivo}</span>
+                            <span className="text-xs text-gray-500">
+                              ({hectareas.toFixed(1)} ha)
+                            </span>
                           </div>
-                        ))}
-                      </div>
+                        </div>
+                      ))}
                     </div>
-                  </>
+                  </div>
                 )}
               </>
             )}
@@ -289,6 +431,7 @@ export default function MapaPage() {
                     (sum, a) => sum + a.cantidad,
                     0
                   ) || 0
+                  const ndvi = ndviData[lote.id]
 
                   return (
                     <div
@@ -302,21 +445,32 @@ export default function MapaPage() {
                             {lote.hectareas.toFixed(2)} ha
                           </p>
                         </div>
-                        {vistaActual === 'cultivo' && (
-                          <div
-                            className="w-6 h-6 rounded"
-                            style={{
-                              backgroundColor:
-                                lote.cultivos && lote.cultivos.length > 0
-                                  ? COLORES_CULTIVOS[lote.cultivos[0].tipoCultivo] ||
-                                    '#3b82f6'
-                                  : '#D3D3D3',
-                            }}
-                          />
-                        )}
+                        <div
+                          className="w-6 h-6 rounded"
+                          style={{
+                            backgroundColor:
+                              vistaActual === 'cultivo'
+                                ? lote.cultivos && lote.cultivos.length > 0
+                                  ? COLORES_CULTIVOS[lote.cultivos[0].tipoCultivo] || '#3b82f6'
+                                  : '#D3D3D3'
+                                : vistaActual === 'ndvi' && ndvi !== undefined
+                                ? getColorNDVI(ndvi)
+                                : '#3b82f6',
+                          }}
+                        />
                       </div>
 
-                      {/* CULTIVOS */}
+                      {vistaActual === 'ndvi' && ndvi !== undefined && (
+                        <div className="mb-2 bg-green-50 rounded px-2 py-1">
+                          <div className="text-xs text-gray-600">
+                            📊 NDVI: <span className="font-semibold">{ndvi.toFixed(3)}</span>
+                            <span className="text-gray-500 ml-1">
+                              {ndvi >= 0.7 ? '(Excelente)' : ndvi >= 0.5 ? '(Bueno)' : ndvi >= 0.3 ? '(Regular)' : '(Bajo)'}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+
                       {vistaActual === 'cultivo' && (
                         <div className="mb-2">
                           {lote.cultivos && lote.cultivos.length > 0 ? (
@@ -331,7 +485,6 @@ export default function MapaPage() {
                         </div>
                       )}
 
-                      {/* ANIMALES */}
                       {totalAnimales > 0 ? (
                         <div className="text-xs text-gray-600">
                           🐄 {totalAnimales}{' '}
