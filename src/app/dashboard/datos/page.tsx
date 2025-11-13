@@ -353,16 +353,8 @@ function ModalFiltroTipoDato({
 // ==================== FILTROS ====================
 function FiltrosDatos() {
   const { filtros, setFiltros } = useDatos()
+  const [showMenuFiltros, setShowMenuFiltros] = useState(false)
   const [showModalTipo, setShowModalTipo] = useState(false)
-
-  const categorias = [
-    { value: 'todos', label: 'Todos', icon: '📊' },
-    { value: 'animales', label: 'Animales', icon: '🐄' },
-    { value: 'agricultura', label: 'Agricultura', icon: '🌾' },
-    { value: 'clima', label: 'Clima', icon: '⛅' },
-    { value: 'insumos', label: 'Insumos', icon: '📦' },
-    { value: 'finanzas', label: 'Finanzas', icon: '💰' },
-  ]
 
   const obtenerNombreTipo = (tipo: string) => {
     const nombres: Record<string, string> = {
@@ -400,35 +392,116 @@ function FiltrosDatos() {
     <>
       <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
         <div className="flex flex-wrap gap-4 items-center">
-          <div className="flex gap-2 flex-wrap">
-            {categorias.map((cat) => (
-              <button
-                key={cat.value}
-                onClick={() => setFiltros({ ...filtros, categoria: cat.value })}
-                className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                  filtros.categoria === cat.value
-                    ? 'bg-blue-500 text-white shadow-md'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                <span className="mr-2">{cat.icon}</span>
-                {cat.label}
-              </button>
-            ))}
+          {/* BOTÓN FILTROS */}
+          <div className="relative">
+            <button
+              onClick={() => setShowMenuFiltros(!showMenuFiltros)}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 font-medium transition"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+              </svg>
+              Filtros
+            </button>
+
+            {/* MENÚ DESPLEGABLE */}
+            {showMenuFiltros && (
+              <>
+                <div
+                  className="fixed inset-0 z-10 bg-transparent"
+                  onClick={() => setShowMenuFiltros(false)}
+                />
+                <div className="absolute left-0 mt-2 w-64 bg-white rounded-xl shadow-2xl border border-gray-200 z-20 overflow-hidden">
+                  <div className="p-2">
+                    <button
+                      onClick={() => {
+                        setShowMenuFiltros(false)
+                        // TODO: Abrir modal de fecha
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-left text-gray-700 hover:bg-gray-50 rounded-lg transition"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      <span className="font-medium">Fecha</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setShowMenuFiltros(false)
+                        setShowModalTipo(true)
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-left text-gray-700 hover:bg-gray-50 rounded-lg transition"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                      </svg>
+                      <span className="font-medium">Tipos de Datos</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setShowMenuFiltros(false)
+                        // TODO: Abrir modal de usuarios
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-left text-gray-700 hover:bg-gray-50 rounded-lg transition"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                      <span className="font-medium">Usuarios</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setShowMenuFiltros(false)
+                        // TODO: Abrir modal de potreros
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-left text-gray-700 hover:bg-gray-50 rounded-lg transition"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                      </svg>
+                      <span className="font-medium">Potreros</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setShowMenuFiltros(false)
+                        // TODO: Abrir modal de animales
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-left text-gray-700 hover:bg-gray-50 rounded-lg transition"
+                    >
+                      <span className="text-xl">🐄</span>
+                      <span className="font-medium">Animales</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setShowMenuFiltros(false)
+                        // TODO: Abrir modal de cultivos
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-left text-gray-700 hover:bg-gray-50 rounded-lg transition"
+                    >
+                      <span className="text-xl">🌾</span>
+                      <span className="font-medium">Cultivos</span>
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
 
-          {/* BOTÓN TIPO DE DATO */}
-          <button
-            onClick={() => setShowModalTipo(true)}
-            className="px-4 py-2 rounded-lg font-medium transition-all bg-gray-100 text-gray-700 hover:bg-gray-200 flex items-center gap-2"
-          >
-            <span>🔽</span>
-            <span className="text-sm">
-              {obtenerNombreTipo(filtros.tipoDato)}
-            </span>
+          {/* BOTÓN BUSCAR */}
+          <button className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 font-medium transition">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            Buscar Dato
           </button>
 
-          <div className="flex-1 min-w-[200px]">
+          {/* BARRA DE BÚSQUEDA (oculta en este diseño, pero podés mantenerla) */}
+          <div className="flex-1 min-w-[200px] hidden">
             <input
               type="text"
               placeholder="🔍 Buscar..."
@@ -440,7 +513,7 @@ function FiltrosDatos() {
         </div>
       </div>
 
-      {/* MODAL */}
+      {/* MODAL TIPO DE DATO */}
       <ModalFiltroTipoDato
         isOpen={showModalTipo}
         onClose={() => setShowModalTipo(false)}
