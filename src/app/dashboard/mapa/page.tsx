@@ -86,21 +86,40 @@ export default function MapaPage() {
       }
 
       const data = await response.json()
-      setNdviData(data.ndvi)
-    } catch (error) {
-      console.error('Error obteniendo NDVI:', error)
-      alert('Error obteniendo datos NDVI. Intenta de nuevo más tarde.')
-    } finally {
-      setLoadingNDVI(false)
-    }
-  }
 
-  // Cargar NDVI cuando cambia a vista NDVI
-  useEffect(() => {
-    if (vistaActual === 'ndvi' && Object.keys(ndviData).length === 0) {
-      obtenerNDVIPotreros()
-    }
-  }, [vistaActual, lotes])
+// 🔍 DEBUG: Ver qué datos NDVI se recibieron
+console.log('📊 Datos NDVI recibidos:', data.ndvi)
+
+// Ver detalles de cada potrero
+Object.keys(data.ndvi).forEach(loteId => {
+  const ndvi = data.ndvi[loteId]
+  console.log(`Lote ${loteId}:`, {
+    promedio: ndvi.promedio,
+    tieneMatriz: ndvi.matriz?.length > 0,
+    dimensiones: `${ndvi.width}x${ndvi.height}`,
+    validPixels: ndvi.validPixels,
+    totalPixels: ndvi.totalPixels,
+    porcentajeValido: ndvi.totalPixels > 0 
+      ? `${Math.round((ndvi.validPixels / ndvi.totalPixels) * 100)}%`
+      : '0%'
+  })
+})
+
+setNdviData(data.ndvi)
+} catch (error) {
+  console.error('Error obteniendo NDVI:', error)
+  alert('Error obteniendo datos NDVI. Intenta de nuevo más tarde.')
+} finally {
+  setLoadingNDVI(false)
+}
+}
+
+// Cargar NDVI cuando cambia a vista NDVI
+useEffect(() => {
+  if (vistaActual === 'ndvi' && Object.keys(ndviData).length === 0) {
+    obtenerNDVIPotreros()
+  }
+}, [vistaActual, lotes])
 
   // 🎨 Función para obtener color según NDVI
   function getColorNDVI(ndvi: number): string {
