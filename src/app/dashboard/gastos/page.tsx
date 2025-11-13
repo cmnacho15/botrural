@@ -773,7 +773,7 @@ export default function GastosPage() {
             <table className="min-w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-200">
-                  {['Fecha', 'Precio', 'Ítem', 'Categoría', 'Usuario', ''].map((th, i) => (
+                  {['Fecha', 'Precio', 'Ítem', 'Categoría', 'Proveedor/Comprador', 'Usuario', ''].map((th, i) => (
                     <th key={i} className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{th}</th>
                   ))}
                 </tr>
@@ -818,17 +818,21 @@ export default function GastosPage() {
                       <td className="px-4 sm:px-6 py-3">{t.item}</td>
 
                       {/* CATEGORÍA */}
-                      <td className="px-4 sm:px-6 py-3">
-                        <span
-                          className="inline-block px-3 py-1 rounded-lg text-xs font-medium"
-                          style={{ backgroundColor: `${t.color}15`, color: t.color }}
-                        >
-                          {t.categoria}
-                        </span>
-                      </td>
+<td className="px-4 sm:px-6 py-3">
+  <span className="inline-block px-3 py-1 rounded-lg text-xs font-medium" style={{ backgroundColor: `${t.color}15`, color: t.color }}>
+    {t.categoria}
+  </span>
+</td>
 
-                      {/* USUARIO */}
-                      <td className="px-4 sm:px-6 py-3">{t.usuario}</td>
+{/* PROVEEDOR/COMPRADOR */}
+<td className="px-4 sm:px-6 py-3">
+  <span className="text-sm text-gray-700">
+    {t.gastoCompleto?.proveedor || '-'}
+  </span>
+</td>
+
+{/* USUARIO */}
+<td className="px-4 sm:px-6 py-3">{t.usuario}</td>
 
                       {/* ESTADO DE PAGO */}
                       {esGasto && (
