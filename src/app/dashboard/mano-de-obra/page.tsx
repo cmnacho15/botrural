@@ -235,7 +235,13 @@ export default function ManoDeObraPage() {
   // EXCEL - FORMATO CORRECTO CON TABULACIONES
   // ========================================
   const handleExportarExcel = () => {
-    // Usar TABULACIONES en lugar de comas o punto y coma
+    // Primera fila: Período
+    const periodo = `Período:\t${meses[mesSeleccionado]} ${anioSeleccionado}`
+    
+    // Segunda fila vacía
+    const vacio = ''
+    
+    // Tercera fila: Headers de la tabla
     const headers = [
       'Empleado',
       'Horas Trabajadas',
@@ -246,8 +252,9 @@ export default function ManoDeObraPage() {
       'Faltas',
       'Horas Extras',
       'Licencias'
-    ].join('\t') // TAB como separador
+    ].join('\t')
 
+    // Filas de datos
     const rows = empleados.map(emp => [
       emp.nombre,
       emp.horasTrabajadas,
@@ -260,18 +267,19 @@ export default function ManoDeObraPage() {
       emp.licencias
     ].join('\t')).join('\n')
 
-    const tsvContent = headers + '\n' + rows
+    // Combinar todo
+    const tsvContent = [periodo, vacio, headers, rows].join('\n')
 
-    // Crear el archivo con extensión .xls para mejor compatibilidad
-    const blob = new Blob(['\ufeff' + tsvContent], { 
-      type: 'application/vnd.ms-excel;charset=utf-8;' 
+    // Crear el blob
+    const blob = new Blob([tsvContent], { 
+      type: 'text/tab-separated-values;charset=utf-8;' 
     })
     
     const link = document.createElement('a')
     const url = URL.createObjectURL(blob)
     
     link.href = url
-    link.download = `mano-obra-${meses[mesSeleccionado]}-${anioSeleccionado}.xls`
+    link.download = `ManoObra-${meses[mesSeleccionado]}-${anioSeleccionado}.xls`
     link.style.display = 'none'
     
     document.body.appendChild(link)
