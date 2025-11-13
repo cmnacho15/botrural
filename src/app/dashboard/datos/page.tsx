@@ -1,23 +1,137 @@
 'use client'
-export const dynamic = 'force-dynamic'
 
-import { DatosProvider, useDatos } from '@/app/contexts/DatosContext'
-import { useState } from 'react'
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 
-/* ==================== FUNCIONES AUXILIARES ==================== */
+// ==================== TIPOS ====================
+type DatoUnificado = {
+  id: string
+  fecha: Date
+  createdAt?: Date
+  tipo: string
+  categoria: string
+  descripcion: string
+  icono: string
+  usuario?: string | null
+  lote?: string | null
+  // Campos específicos
+  cantidad?: number | null
+  monto?: number | null
+  proveedor?: string | null
+  comprador?: string | null
+  metodoPago?: string | null
+  iva?: number | null
+  diasPlazo?: number | null
+  pagado?: boolean | null
+  insumo?: string | null
+  unidad?: string | null
+  notas?: string | null
+}
+
+type DatosContextType = {
+  datos: DatoUnificado[]
+  loading: boolean
+  error: string | null
+  filtros: {
+    categoria: string
+    fechaDesde: Date | null
+    fechaHasta: Date | null
+    busqueda: string
+  }
+  setFiltros: (filtros: any) => void
+  refetch: () => Promise<void>
+}
+
+const DatosContext = createContext<DatosContextType | undefined>(undefined)
+
+// ==================== PROVIDER ====================
+export function DatosProvider({ children }: { children: ReactNode }) {
+  const [datos, setDatos] = useState<DatoUnificado[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [filtros, setFiltros] = useState({
+    categoria: 'todos',
+    fechaDesde: null as Date | null,
+    fechaHasta: null as Date | null,
+    busqueda: '',
+  })
+
+  const fetchDatos = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      const params = new URLSearchParams()
+      if (filtros.categoria !== 'todos') params.append('categoria', filtros.categoria)
+      if (filtros.fechaDesde) params.append('fechaDesde', filtros.fechaDesde.toISOString())
+      if (filtros.fechaHasta) params.append('fechaHasta', filtros.fechaHasta.toISOString())
+      if (filtros.busqueda) params.append('busqueda', filtros.busqueda)
+
+      const response = await fetch(`/api/datos?${params}`)
+      if (!response.ok) throw new Error('Error al cargar datos')
+
+      const data = await response.json()
+      setDatos(data)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error desconocido')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchDatos()
+  }, [filtros])
+
+  return (
+    <DatosContext.Provider
+      value={{
+        datos,
+        loading,
+        error,
+        filtros,
+        setFiltros,
+        refetch: fetchDatos,
+      }}
+    >
+      {children}
+    </DatosContext.Provider>
+  )
+}
+
+export function useDatos() {
+  const context = useContext(DatosContext)
+  if (!context) throw new Error('useDatos debe usarse dentro de DatosProvider')
+  return context
+}
+
+// ==================== FUNCIONES AUXILIARES ====================
 function obtenerIcono(tipo: string): string {
   const iconos: Record<string, string> = {
     LLUVIA: '🌧️',
     HELADA: '❄️',
     GASTO: '💸',
-    INGRESO: '💰',      // ✅ Ingreso de DINERO
+    INGRESO: '💰',
     VENTA: '🐄',
-    USO_INSUMO: '🧪',
-    INGRESO_INSUMO: '📦', // ✅ Ingreso de MATERIALES
-    SIEMBRA: '🌱',
-    COSECHA: '🌾',
-    NACIMIENTO: '🐮',
+    COMPRA: '🛒',
+    TRASLADO: '🚛',
+    NACIMIENTO: '🐣',
     MORTANDAD: '💀',
+    CONSUMO: '🍖',
+    ABORTO: '❌',
+    DESTETE: '🔀',
+    TACTO: '✋',
+    RECATEGORIZACION: '🏷️',
+    TRATAMIENTO: '💉',
+    MOVIMIENTO: '🔄',
+    USO_INSUMO: '🧪',
+    INGRESO_INSUMO: '📦',
+    SIEMBRA: '🌱',
+    PULVERIZACION: '💦',
+    REFERTILIZACION: '🌿',
+    RIEGO: '💧',
+    MONITOREO: '🔍',
+    COSECHA: '🌾',
+    OTROS_LABORES: '🔧',
   }
   return iconos[tipo] || '📊'
 }
@@ -27,36 +141,35 @@ function obtenerColor(tipo: string): string {
     LLUVIA: 'blue',
     HELADA: 'cyan',
     GASTO: 'red',
-    INGRESO: 'green',        // ✅ Verde para DINERO
+    INGRESO: 'green',
     VENTA: 'green',
-    USO_INSUMO: 'orange',
-    INGRESO_INSUMO: 'purple', // ✅ Púrpura para MATERIALES
-    SIEMBRA: 'lime',
-    COSECHA: 'yellow',
+    COMPRA: 'orange',
+    TRASLADO: 'indigo',
     NACIMIENTO: 'pink',
     MORTANDAD: 'gray',
+    CONSUMO: 'brown',
+    USO_INSUMO: 'orange',
+    INGRESO_INSUMO: 'purple',
+    SIEMBRA: 'lime',
+    COSECHA: 'yellow',
+    TRATAMIENTO: 'pink',
+    MOVIMIENTO: 'blue',
   }
   return colores[tipo] || 'gray'
 }
 
-/* ==================== FILTROS ==================== */
+// ==================== FILTROS ====================
 function FiltrosDatos() {
   const { filtros, setFiltros } = useDatos()
-  const [categoriaSeleccionada, setCategoriaSeleccionada] = useState('todos')
 
   const categorias = [
-    { value: 'todos', label: 'Todos los datos', icon: '📊' },
+    { value: 'todos', label: 'Todos', icon: '📊' },
     { value: 'animales', label: 'Animales', icon: '🐄' },
     { value: 'agricultura', label: 'Agricultura', icon: '🌾' },
     { value: 'clima', label: 'Clima', icon: '⛅' },
     { value: 'insumos', label: 'Insumos', icon: '📦' },
     { value: 'finanzas', label: 'Finanzas', icon: '💰' },
   ]
-
-  const handleCategoriaChange = (categoria: string) => {
-    setCategoriaSeleccionada(categoria)
-    setFiltros({ ...filtros, categoria })
-  }
 
   return (
     <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
@@ -65,9 +178,9 @@ function FiltrosDatos() {
           {categorias.map((cat) => (
             <button
               key={cat.value}
-              onClick={() => handleCategoriaChange(cat.value)}
+              onClick={() => setFiltros({ ...filtros, categoria: cat.value })}
               className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                categoriaSeleccionada === cat.value
+                filtros.categoria === cat.value
                   ? 'bg-blue-500 text-white shadow-md'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
@@ -92,14 +205,13 @@ function FiltrosDatos() {
   )
 }
 
-/* ==================== TARJETA DE DATO ==================== */
-function TarjetaDato({ dato }: { dato: any }) {
+// ==================== TARJETA ====================
+function TarjetaDato({ dato }: { dato: DatoUnificado }) {
   const formatFecha = (fecha: Date) => {
-    const fechaDato = new Date(fecha)
-    return fechaDato.toLocaleDateString('es-UY', {
+    return new Date(fecha).toLocaleDateString('es-UY', {
       day: '2-digit',
       month: '2-digit',
-      year: 'numeric'
+      year: 'numeric',
     })
   }
 
@@ -115,57 +227,59 @@ function TarjetaDato({ dato }: { dato: any }) {
     pink: 'bg-pink-500',
     indigo: 'bg-indigo-500',
     lime: 'bg-lime-500',
-    amber: 'bg-amber-500',
     brown: 'bg-orange-800',
   }
 
   const renderDetalles = () => {
     const detalles = []
 
-    console.log('🔍 Dato completo:', dato) // DEBUG
-
-    /* 💵 MONTO - Solo para movimientos de DINERO */
+    // 💵 MONTO - Para movimientos financieros
     if (dato.monto !== undefined && dato.monto !== null && dato.monto !== 0) {
-      // ✅ INGRESO de dinero (verde con +)
-      const esIngresoDinero = dato.tipo === 'INGRESO' || dato.tipo === 'VENTA' || dato.tipo === 'COSECHA'
+      const esIngreso = dato.tipo === 'INGRESO' || dato.tipo === 'VENTA'
       
       detalles.push(
         <span
           key="monto"
           className={`${
-            esIngresoDinero ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+            esIngreso ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
           } px-3 py-1 rounded-full text-sm font-semibold`}
         >
-          💵 {esIngresoDinero ? '+' : '-'}${Number(dato.monto).toLocaleString('es-UY')}
+          💵 {esIngreso ? '+' : '-'}${Number(dato.monto).toLocaleString('es-UY')}
         </span>
       )
     }
 
-    /* 📊 CANTIDAD - Para insumos y animales */
-    if (dato.cantidad && dato.tipo !== 'INGRESO' && dato.tipo !== 'GASTO') {
+    // 📊 CANTIDAD - Para animales o productos
+    if (dato.cantidad && !['INGRESO', 'GASTO'].includes(dato.tipo)) {
+      const texto = dato.tipo === 'VENTA' 
+        ? `${dato.cantidad} vendidos`
+        : dato.tipo === 'COMPRA'
+        ? `${dato.cantidad} comprados`
+        : `${dato.cantidad} ${dato.unidad || ''}`
+
       detalles.push(
         <span
           key="cantidad"
           className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm"
         >
-          📊 {dato.cantidad} {dato.unidad || ''}
+          📊 {texto}
         </span>
       )
     }
 
-    /* 🏪 Proveedor (solo para GASTOS e INGRESO_INSUMO) */
+    // 🏪 PROVEEDOR (para GASTOS, COMPRAS e INGRESO_INSUMO)
     if (dato.proveedor) {
       detalles.push(
         <span
           key="proveedor"
-          className="bg-red-100 text-red-700 px-3 py-1 rounded-full text-sm"
+          className="bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-sm"
         >
           🏪 {dato.proveedor}
         </span>
       )
     }
 
-    /* 🤝 Comprador (solo para INGRESOS de dinero) */
+    // 🤝 COMPRADOR (para INGRESOS y VENTAS)
     if (dato.comprador) {
       detalles.push(
         <span
@@ -177,9 +291,9 @@ function TarjetaDato({ dato }: { dato: any }) {
       )
     }
 
-    /* 💳 Método de pago (solo movimientos de dinero) */
+    // 💳 MÉTODO DE PAGO
     if (dato.metodoPago) {
-      const esIngreso = dato.tipo === 'INGRESO' || dato.tipo === 'VENTA' || dato.tipo === 'COSECHA'
+      const esIngreso = dato.tipo === 'INGRESO' || dato.tipo === 'VENTA'
       detalles.push(
         <span
           key="metodo"
@@ -190,12 +304,13 @@ function TarjetaDato({ dato }: { dato: any }) {
           } px-3 py-1 rounded-full text-sm`}
         >
           💳 {dato.metodoPago}
+          {dato.diasPlazo && dato.diasPlazo > 0 && ` (${dato.diasPlazo} días)`}
         </span>
       )
     }
 
-    /* ⏱️ Estado de pago */
-    if (dato.pagado !== undefined && dato.metodoPago) {
+    // ⏱️ ESTADO DE PAGO
+    if (dato.metodoPago && dato.pagado !== undefined) {
       detalles.push(
         <span
           key="pagado"
@@ -210,14 +325,26 @@ function TarjetaDato({ dato }: { dato: any }) {
       )
     }
 
-    /* 🧪 Insumo (para movimientos de insumos) */
+    // 📦 INSUMO (para movimientos de materiales)
     if (dato.insumo) {
       detalles.push(
         <span
           key="insumo"
-          className="bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-sm"
+          className="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm"
         >
           📦 {dato.insumo}
+        </span>
+      )
+    }
+
+    // 💹 IVA
+    if (dato.iva && dato.iva !== 0) {
+      detalles.push(
+        <span
+          key="iva"
+          className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm"
+        >
+          💹 IVA: ${Number(dato.iva).toLocaleString('es-UY')}
         </span>
       )
     }
@@ -225,7 +352,6 @@ function TarjetaDato({ dato }: { dato: any }) {
     return detalles
   }
 
-  // ✅ Nombre más claro según el tipo
   const obtenerNombreTipo = (tipo: string) => {
     const nombres: Record<string, string> = {
       INGRESO: 'Ingreso de Dinero',
@@ -233,10 +359,24 @@ function TarjetaDato({ dato }: { dato: any }) {
       USO_INSUMO: 'Uso de Insumo',
       GASTO: 'Gasto',
       VENTA: 'Venta',
-      COSECHA: 'Cosecha',
-      SIEMBRA: 'Siembra',
+      COMPRA: 'Compra',
+      TRASLADO: 'Traslado',
       NACIMIENTO: 'Nacimiento',
       MORTANDAD: 'Mortandad',
+      CONSUMO: 'Consumo',
+      ABORTO: 'Aborto',
+      DESTETE: 'Destete',
+      TACTO: 'Tacto',
+      RECATEGORIZACION: 'Recategorización',
+      TRATAMIENTO: 'Tratamiento',
+      MOVIMIENTO: 'Movimiento',
+      SIEMBRA: 'Siembra',
+      PULVERIZACION: 'Pulverización',
+      REFERTILIZACION: 'Refertilización',
+      RIEGO: 'Riego',
+      MONITOREO: 'Monitoreo',
+      COSECHA: 'Cosecha',
+      OTROS_LABORES: 'Otras Labores',
       LLUVIA: 'Lluvia',
       HELADA: 'Helada',
     }
@@ -246,8 +386,7 @@ function TarjetaDato({ dato }: { dato: any }) {
   return (
     <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 border border-gray-100">
       <div className="flex items-start gap-4">
-
-        {/* Ícono */}
+        {/* ÍCONO */}
         <div
           className={`${
             colorClasses[obtenerColor(dato.tipo)] || 'bg-gray-500'
@@ -267,11 +406,11 @@ function TarjetaDato({ dato }: { dato: any }) {
             </div>
           </div>
 
-          <p className="text-gray-700 text-sm mb-3">{dato.descripcion}</p>
+          {dato.descripcion && (
+            <p className="text-gray-700 text-sm mb-3">{dato.descripcion}</p>
+          )}
 
-          <div className="flex flex-wrap gap-2 mb-2">
-            {renderDetalles()}
-          </div>
+          <div className="flex flex-wrap gap-2 mb-2">{renderDetalles()}</div>
 
           <div className="flex flex-wrap gap-2 text-xs text-gray-500">
             {dato.usuario && (
@@ -286,13 +425,17 @@ function TarjetaDato({ dato }: { dato: any }) {
               {dato.categoria}
             </span>
           </div>
+
+          {dato.notas && (
+            <p className="text-xs text-gray-500 mt-2 italic">📝 {dato.notas}</p>
+          )}
         </div>
       </div>
     </div>
   )
 }
 
-/* ==================== LISTA ==================== */
+// ==================== LISTA ====================
 function ListaDatos() {
   const { datos, loading, error } = useDatos()
 
@@ -300,7 +443,7 @@ function ListaDatos() {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4 mx-auto"></div>
           <p className="text-gray-600">Cargando datos...</p>
         </div>
       </div>
@@ -342,13 +485,13 @@ function ListaDatos() {
   )
 }
 
-/* ==================== PÁGINA ==================== */
-export default function DatosPage() {
+// ==================== PÁGINA PRINCIPAL ====================
+export default function PaginaDatos() {
   return (
     <DatosProvider>
-      <div className="container mx-auto px-4 py-6">
+      <div className="container mx-auto px-4 py-6 max-w-6xl">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Datos</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">📊 Datos del Campo</h1>
           <p className="text-gray-600">
             Visualiza todos los eventos, movimientos y registros de tu campo
           </p>

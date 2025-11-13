@@ -1,61 +1,61 @@
-import { NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
-import { getServerSession } from "next-auth"
-import { authOptions } from "../auth/[...nextauth]/route"
+import { NextResponse } from 'next/server'
+import { prisma } from '@/lib/prisma'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '../auth/[...nextauth]/route'
 
 // ==============================================
 // 🔹 Configuración de categorías e íconos
 // ==============================================
 const categoriaPorTipo: Record<string, string> = {
-  MOVIMIENTO: "animales",
-  TRATAMIENTO: "animales",
-  VENTA: "animales",
-  COMPRA: "animales",
-  TRASLADO: "animales",
-  NACIMIENTO: "animales",
-  MORTANDAD: "animales",
-  CONSUMO: "animales",
-  ABORTO: "animales",
-  DESTETE: "animales",
-  TACTO: "animales",
-  RECATEGORIZACION: "animales",
-  SIEMBRA: "agricultura",
-  PULVERIZACION: "agricultura",
-  REFERTILIZACION: "agricultura",
-  RIEGO: "agricultura",
-  MONITOREO: "agricultura",
-  COSECHA: "agricultura",
-  OTROS_LABORES: "agricultura",
-  LLUVIA: "clima",
-  HELADA: "clima",
-  GASTO: "finanzas",
-  INGRESO: "finanzas",
+  MOVIMIENTO: 'animales',
+  TRATAMIENTO: 'animales',
+  VENTA: 'animales',
+  COMPRA: 'animales',
+  TRASLADO: 'animales',
+  NACIMIENTO: 'animales',
+  MORTANDAD: 'animales',
+  CONSUMO: 'animales',
+  ABORTO: 'animales',
+  DESTETE: 'animales',
+  TACTO: 'animales',
+  RECATEGORIZACION: 'animales',
+  SIEMBRA: 'agricultura',
+  PULVERIZACION: 'agricultura',
+  REFERTILIZACION: 'agricultura',
+  RIEGO: 'agricultura',
+  MONITOREO: 'agricultura',
+  COSECHA: 'agricultura',
+  OTROS_LABORES: 'agricultura',
+  LLUVIA: 'clima',
+  HELADA: 'clima',
+  GASTO: 'finanzas',
+  INGRESO: 'finanzas',
 }
 
 const iconoPorTipo: Record<string, string> = {
-  MOVIMIENTO: "🔄",
-  TRATAMIENTO: "💉",
-  VENTA: "💰",
-  COMPRA: "🛒",
-  TRASLADO: "🚛",
-  NACIMIENTO: "🐣",
-  MORTANDAD: "💀",
-  CONSUMO: "🍖",
-  ABORTO: "❌",
-  DESTETE: "🔀",
-  TACTO: "✋",
-  RECATEGORIZACION: "🏷️",
-  SIEMBRA: "🌱",
-  PULVERIZACION: "💦",
-  REFERTILIZACION: "🌿",
-  RIEGO: "💧",
-  MONITOREO: "🔍",
-  COSECHA: "🌾",
-  OTROS_LABORES: "🔧",
-  LLUVIA: "🌧️",
-  HELADA: "❄️",
-  GASTO: "💸",
-  INGRESO: "💰",
+  MOVIMIENTO: '🔄',
+  TRATAMIENTO: '💉',
+  VENTA: '🐄',
+  COMPRA: '🛒',
+  TRASLADO: '🚛',
+  NACIMIENTO: '🐣',
+  MORTANDAD: '💀',
+  CONSUMO: '🍖',
+  ABORTO: '❌',
+  DESTETE: '🔀',
+  TACTO: '✋',
+  RECATEGORIZACION: '🏷️',
+  SIEMBRA: '🌱',
+  PULVERIZACION: '💦',
+  REFERTILIZACION: '🌿',
+  RIEGO: '💧',
+  MONITOREO: '🔍',
+  COSECHA: '🌾',
+  OTROS_LABORES: '🔧',
+  LLUVIA: '🌧️',
+  HELADA: '❄️',
+  GASTO: '💸',
+  INGRESO: '💰',
 }
 
 // ==============================================
@@ -63,116 +63,119 @@ const iconoPorTipo: Record<string, string> = {
 // ==============================================
 export async function GET(request: Request) {
   try {
-    console.log('🚀 GET /api/datos INICIADO');
+    console.log('🚀 GET /api/datos INICIADO')
 
     const session = await getServerSession(authOptions)
-    console.log('👤 Sesión:', session?.user?.id);
+    console.log('👤 Sesión:', session?.user?.id)
 
     if (!session?.user?.id) {
-      return NextResponse.json({ error: "No autenticado" }, { status: 401 })
+      return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
     }
 
     const usuario = await prisma.user.findUnique({
       where: { id: session.user.id },
     })
 
-    console.log('👤 Usuario encontrado:', usuario);
+    console.log('👤 Usuario encontrado:', usuario)
 
     if (!usuario?.campoId) {
       return NextResponse.json(
-        { error: "Usuario sin campo asignado" },
+        { error: 'Usuario sin campo asignado' },
         { status: 400 }
       )
     }
 
     const { searchParams } = new URL(request.url)
-    const categoria = searchParams.get("categoria")
-    const fechaDesde = searchParams.get("fechaDesde")
-    const fechaHasta = searchParams.get("fechaHasta")
-    const busqueda = searchParams.get("busqueda")
+    const categoria = searchParams.get('categoria')
+    const fechaDesde = searchParams.get('fechaDesde')
+    const fechaHasta = searchParams.get('fechaHasta')
+    const busqueda = searchParams.get('busqueda')
 
-    console.log('🔍 Filtros:', { categoria, fechaDesde, fechaHasta, busqueda });
+    console.log('🔍 Filtros:', { categoria, fechaDesde, fechaHasta, busqueda })
 
     // ==============================
     // 1️⃣ Obtener datos base
     // ==============================
-    console.log('📊 Consultando eventos...');
+    console.log('📊 Consultando eventos...')
     const eventos = await prisma.evento.findMany({
       where: {
         campoId: usuario.campoId,
-        tipo: { not: "GASTO" },
       },
       include: {
         usuario: { select: { name: true } },
         lote: { select: { nombre: true } },
       },
-      orderBy: { fecha: "desc" },
-    });
-    console.log('✅ Eventos encontrados:', eventos.length);
+      orderBy: { fecha: 'desc' },
+    })
+    console.log('✅ Eventos encontrados:', eventos.length)
 
-    console.log('💸 Consultando gastos...');
+    console.log('💸 Consultando gastos e ingresos...')
     const gastos = await prisma.gasto.findMany({
       where: { campoId: usuario.campoId },
       include: { lote: { select: { nombre: true } } },
-      orderBy: { fecha: "desc" },
-    });
-    console.log('✅ Gastos encontrados:', gastos.length);
+      orderBy: { fecha: 'desc' },
+    })
+    console.log('✅ Gastos/Ingresos encontrados:', gastos.length)
 
-    console.log('📦 Consultando movimientos de insumos...');
+    console.log('📦 Consultando movimientos de insumos...')
     const movimientosInsumos = await prisma.movimientoInsumo.findMany({
       where: { insumo: { campoId: usuario.campoId } },
       include: {
         insumo: { select: { nombre: true, unidad: true } },
         lote: { select: { nombre: true } },
       },
-      orderBy: { fecha: "desc" },
-    });
-    console.log('✅ Movimientos encontrados:', movimientosInsumos.length);
+      orderBy: { fecha: 'desc' },
+    })
+    console.log('✅ Movimientos encontrados:', movimientosInsumos.length)
 
     // ==============================
     // 2️⃣ Unificar todos los datos
     // ==============================
     const datosUnificados: any[] = []
 
-    // 🎯 EVENTOS
-    eventos.forEach((evento) => {
-      datosUnificados.push({
-        id: evento.id,
-        fecha: evento.fecha,
-        createdAt: evento.createdAt,
-        tipo: evento.tipo,
-        categoria: categoriaPorTipo[evento.tipo] || "otros",
-        descripcion: evento.descripcion,
-        icono: iconoPorTipo[evento.tipo] || "📌",
-        color: "gray",
-        usuario: evento.usuario?.name || null,
-        lote: evento.lote?.nombre || null,
-        detalles: {
-          cantidad: evento.cantidad,
-          categoriaEvento: evento.categoria,
-        },
-      })
+    // 🎯 EVENTOS (excepto gastos e ingresos que ya están en tabla Gasto)
+eventos
+  .filter((evento: any) => evento.tipo !== 'GASTO' && evento.tipo !== 'INGRESO')
+  .forEach((evento) => {
+    datosUnificados.push({
+      id: evento.id,
+      fecha: evento.fecha,
+      createdAt: evento.createdAt,
+      tipo: evento.tipo,
+      categoria: categoriaPorTipo[evento.tipo] || 'otros',
+      descripcion: evento.descripcion,
+      icono: iconoPorTipo[evento.tipo] || '📌',
+      usuario: evento.usuario?.name || null,
+      lote: evento.lote?.nombre || null,
+      // ✅ Campos directos (no en detalles)
+      cantidad: evento.cantidad,
+      monto: evento.monto,
     })
+  })
 
-    // 💸 GASTOS
+    // 💸 GASTOS E INGRESOS de la tabla Gasto
     gastos.forEach((gasto) => {
+      const esIngreso = gasto.tipo === 'INGRESO'
+
       datosUnificados.push({
         id: gasto.id,
         fecha: gasto.fecha,
         createdAt: gasto.createdAt,
-        tipo: "GASTO",
-        categoria: "finanzas",
-        descripcion: gasto.descripcion || `Gasto en ${gasto.categoria}`,
-        icono: "💸",
-        color: "red",
+        tipo: gasto.tipo, // 'GASTO' o 'INGRESO'
+        categoria: 'finanzas',
+        descripcion: gasto.descripcion,
+        icono: esIngreso ? '💰' : '💸',
         usuario: null,
         lote: gasto.lote?.nombre || null,
-        detalles: {
-          monto:
-            gasto.monto !== null ? parseFloat(gasto.monto.toString()) : undefined,
-          categoriaGasto: gasto.categoria,
-          metodoPago: gasto.metodoPago,
-        },
+        // ✅ Campos directos para que los vea la página
+        monto: gasto.monto ? parseFloat(gasto.monto.toString()) : null,
+        cantidad: gasto.cantidadVendida,
+        proveedor: gasto.proveedor,
+        comprador: gasto.comprador,
+        metodoPago: gasto.metodoPago,
+        iva: gasto.iva ? parseFloat(gasto.iva.toString()) : null,
+        diasPlazo: gasto.diasPlazo,
+        pagado: gasto.pagado,
       })
     })
 
@@ -182,21 +185,19 @@ export async function GET(request: Request) {
         id: mov.id,
         fecha: mov.fecha,
         createdAt: mov.createdAt,
-        tipo: mov.tipo,
-        categoria: "insumos",
-        descripcion: `${mov.tipo === "INGRESO" ? "Ingreso" : "Uso"} de ${
+        tipo: mov.tipo === 'INGRESO' ? 'INGRESO_INSUMO' : 'USO_INSUMO',
+        categoria: 'insumos',
+        descripcion: `${mov.tipo === 'INGRESO' ? 'Ingreso' : 'Uso'} de ${
           mov.insumo.nombre
-        }: ${mov.cantidad} ${mov.insumo.unidad}`,
-        icono: mov.tipo === "INGRESO" ? "📥" : "📤",
-        color: mov.tipo === "INGRESO" ? "green" : "red",
+        }`,
+        icono: mov.tipo === 'INGRESO' ? '📦' : '🧪',
         usuario: null,
         lote: mov.lote?.nombre || null,
-        detalles: {
-          insumo: mov.insumo.nombre,
-          cantidad: mov.cantidad,
-          unidad: mov.insumo.unidad,
-          notas: mov.notas,
-        },
+        // ✅ Campos directos
+        insumo: mov.insumo.nombre,
+        cantidad: mov.cantidad,
+        unidad: mov.insumo.unidad,
+        notas: mov.notas,
       })
     })
 
@@ -215,7 +216,7 @@ export async function GET(request: Request) {
     // ==============================
     let datosFiltrados = [...datosUnificados]
 
-    if (categoria && categoria !== "todos") {
+    if (categoria && categoria !== 'todos') {
       datosFiltrados = datosFiltrados.filter((d) => d.categoria === categoria)
     }
 
@@ -236,21 +237,25 @@ export async function GET(request: Request) {
       datosFiltrados = datosFiltrados.filter(
         (d) =>
           d.descripcion?.toLowerCase().includes(q) ||
-          (d.tipo && d.tipo.toLowerCase().includes(q))
+          d.tipo?.toLowerCase().includes(q) ||
+          d.proveedor?.toLowerCase().includes(q) ||
+          d.comprador?.toLowerCase().includes(q) ||
+          d.insumo?.toLowerCase().includes(q) ||
+          d.lote?.toLowerCase().includes(q)
       )
     }
 
-    console.log('✅ Total datos unificados:', datosUnificados.length);
-    console.log('✅ Total datos filtrados:', datosFiltrados.length);
+    console.log('✅ Total datos unificados:', datosUnificados.length)
+    console.log('✅ Total datos filtrados:', datosFiltrados.length)
+    console.log('📊 Ejemplo primer dato:', datosFiltrados[0])
 
     return NextResponse.json(datosFiltrados)
-
   } catch (error) {
-    console.error("💥 ERROR COMPLETO en /api/datos:", error)
-    console.error("Stack:", (error as Error).stack)
+    console.error('💥 ERROR COMPLETO en /api/datos:', error)
+    console.error('Stack:', (error as Error).stack)
     return NextResponse.json(
       {
-        error: "Error al obtener datos",
+        error: 'Error al obtener datos',
         message: (error as Error).message,
       },
       { status: 500 }
