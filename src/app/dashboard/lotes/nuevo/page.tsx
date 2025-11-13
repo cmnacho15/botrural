@@ -141,7 +141,12 @@ export default function NuevoLotePage() {
 
   try {
     const hectareasFinales = hectareasCalculadas || parseFloat(hectareasManual)
-    const cultivosValidos = cultivos.filter(c => c.tipoCultivo && c.hectareas)
+    const cultivosValidos = cultivos
+  .filter(c => c.tipoCultivo) // Solo requiere tipo de cultivo
+  .map(c => ({
+    ...c,
+    hectareas: c.hectareas || hectareasFinales.toString() // Si no tiene, usa total del potrero
+  }))
     const animalesValidos = animales.filter(a => a.categoria && a.cantidad)
 
     // 🔥 AGREGAR LOGS DE DEBUG
@@ -277,7 +282,7 @@ export default function NuevoLotePage() {
                     type="number"
                     value={c.hectareas}
                     onChange={e => actualizarCultivo(c.id, 'hectareas', e.target.value)}
-                    placeholder="ha"
+                    placeholder="(total potrero)"  // 👈 Texto que indica que es opcional
                     className="w-24 border border-gray-300 rounded px-3 py-2"
                   />
                   <button onClick={() => eliminarCultivo(c.id)} type="button" className="text-red-600">🗑️</button>
