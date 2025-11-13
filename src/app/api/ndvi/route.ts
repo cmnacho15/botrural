@@ -156,7 +156,7 @@ async function calcularNDVI(coordinates: number[][], accessToken: string) {
                     from: `${startDate}T00:00:00Z`,
                     to: `${endDate}T23:59:59Z`,
                   },
-                  maxCloudCoverage: 30,
+                  maxCloudCoverage: 60,
                 },
               },
             ],
