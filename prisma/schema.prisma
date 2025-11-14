@@ -264,4 +264,5 @@ enum TipoEvento {
   USO_INSUMO
   INGRESO_INSUMO
   GASTO
+  AJUSTE 
 }
