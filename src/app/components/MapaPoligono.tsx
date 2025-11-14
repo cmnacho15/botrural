@@ -278,53 +278,57 @@ export default function MapaPoligono({
         weight: 3,
       })
 
-      let animalesInfo = ''
+      existingLayersRef.current.addLayer(polygon)
+
+      // 🏷️ CREAR TOOLTIP PERMANENTE (siempre visible, sin hacer clic)
+      const center = polygon.getBounds().getCenter()
+      
+      // Construir información de animales
+      let animalesText = ''
       if (potrero.info?.animales?.length) {
-        const total = potrero.info.animales.reduce((s: number, a: any) => s + a.cantidad, 0)
-        const cats = potrero.info.animales.map((a: any) => a.categoria).join(', ')
-        animalesInfo = `
-          <div style="margin-top:8px;padding-top:8px;border-top:1px solid #e5e7eb;">
-            🐄 ${total} animales<br/>
-            <span style="font-size:11px;color:#999">${cats}</span>
-          </div>`
+        const grupos = potrero.info.animales
+          .map((a: any) => `${a.categoria}: ${a.cantidad}`)
+          .join('<br/>')
+        animalesText = `<br/>${grupos}`
       }
 
-      let cultivosInfo = ''
+      // Construir información de cultivos
+      let cultivosText = ''
       if (potrero.info?.cultivos?.length) {
         const cs = potrero.info.cultivos
-          .map((c: any) => `${c.tipoCultivo} (${c.hectareas} ha)`)
-          .join(', ')
-        cultivosInfo = `
-          <div style="margin-top:8px;padding-top:8px;border-top:1px solid #e5e7eb;">
-            🌾 ${cs}
-          </div>`
+          .map((c: any) => `${c.tipoCultivo}: ${c.hectareas} ha`)
+          .join('<br/>')
+        cultivosText = `<br/>${cs}`
       }
 
-      let ndviInfo = ''
-      if (potrero.info?.ndviMatriz?.promedio !== undefined) {
-        const v = potrero.info.ndviMatriz.promedio
-        const label = v >= 0.7 ? 'Excelente' : v >= 0.5 ? 'Bueno' : v >= 0.3 ? 'Regular' : 'Bajo'
-        ndviInfo = `
-          <div style="margin-top:8px;padding-top:8px;border-top:1px solid #e5e7eb;">
-            📊 NDVI: <strong>${v.toFixed(3)}</strong> (${label})
-          </div>`
-      }
-
-      polygon.bindPopup(`
-        <div style="padding:8px;min-width:200px;">
-          <strong style="font-size:16px;color:${potrero.color || '#10b981'}">
+      const tooltipContent = `
+        <div style="
+          background: white;
+          padding: 8px 12px;
+          border-radius: 8px;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+          border: 2px solid ${potrero.color || '#10b981'};
+          font-family: system-ui, -apple-system, sans-serif;
+          text-align: center;
+          min-width: 120px;
+        ">
+          <div style="font-weight: bold; font-size: 16px; color: ${potrero.color || '#10b981'}; margin-bottom: 4px;">
             ${potrero.nombre}
-          </strong><br/>
-          <span style="color:#999;font-size:12px;">
-            ${potrero.info?.hectareas?.toFixed(2) || '0'} ha
-          </span>
-          ${cultivosInfo}
-          ${animalesInfo}
-          ${ndviInfo}
+          </div>
+          ${animalesText}
+          ${cultivosText}
         </div>
-      `)
+      `
 
-      existingLayersRef.current.addLayer(polygon)
+      const tooltip = (L as any).tooltip({
+        permanent: true,
+        direction: 'center',
+        className: 'potrero-label',
+        opacity: 0.95,
+      }).setContent(tooltipContent)
+
+      tooltip.setLatLng(center)
+      existingLayersRef.current.addLayer(tooltip)
     })
 
     if (existingPolygons.length > 0 && existingLayersRef.current.getLayers().length > 0) {
