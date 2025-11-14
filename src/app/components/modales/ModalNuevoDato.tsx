@@ -47,11 +47,6 @@ export default function ModalNuevoDato({
   }
 
   const handleSubmit = async (data: any) => {
-  // ModalRecategorizacion maneja su propio submit, no necesita este handler
-  if (tipo === 'recategorizacion') {
-    return
-  }
-
   try {
     const response = await fetch('/api/eventos', {
       method: 'POST',
@@ -64,7 +59,7 @@ export default function ModalNuevoDato({
     handleSuccess()
   } catch (error) {
     console.error('Error:', error)
-    alert('Error al crear el evento')
+    // ✅ NO MOSTRAR ALERT, SOLO LOG
   }
 }
 
