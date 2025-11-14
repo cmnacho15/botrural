@@ -18,7 +18,7 @@ interface LoteExistente {
   id: string
   nombre: string
   hectareas: number
-  coordenadas: number[][]
+  poligono: number[][]
 }
 
 interface Cultivo {
@@ -44,7 +44,12 @@ const TIPOS_CULTIVO = [
 const CATEGORIAS_ANIMAL = [
   'Vacas', 'Vaquillonas', 'Toros', 'Toritos',
   'Terneros', 'Terneras', 'Terneros/as',
-  'Novillos', 'Novillitos'
+  'Novillos', 'Novillitos',
+  // Ovinos
+  'Borregas', 'Borregos', 'Carneros', 'Corderos', 'Ovejas',
+  
+  // Equinos
+  'Caballos', 'Yeguas', 'Potros', 'Potrancas',
 ]
 
 export default function NuevoLotePage() {
@@ -71,7 +76,7 @@ export default function NuevoLotePage() {
   useEffect(() => {
     if (lotesExistentes.length > 0) {
       const todosLosPuntos = lotesExistentes
-        .flatMap(l => l.coordenadas || [])
+        .flatMap(l => l.poligono || [])
         .filter(c => c.length === 2)
 
       if (todosLosPuntos.length > 0) {
@@ -207,13 +212,13 @@ export default function NuevoLotePage() {
   }
 
   const potrerosParaMapa = lotesExistentes
-    .filter(l => l.coordenadas && l.coordenadas.length > 0)
-    .map((l, i) => ({
-      id: l.id,
-      nombre: l.nombre,
-      coordinates: l.coordenadas,
-      color: ['#ef4444', '#84cc16', '#06b6d4', '#8b5cf6'][i % 4],
-    }))
+  .filter(l => l.poligono && l.poligono.length > 0)
+  .map((l, i) => ({
+    id: l.id,
+    nombre: l.nombre,
+    coordinates: l.poligono,
+    color: ['#ef4444', '#84cc16', '#06b6d4', '#8b5cf6'][i % 4],
+  }))
 
   return (
     <div className="min-h-screen bg-gray-50 p-6 text-gray-900">
