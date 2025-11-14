@@ -121,12 +121,25 @@ export function DatosProvider({ children }: { children: ReactNode }) {
         );
       }
 
-      // 👉 Filtro por animales (futuro)
-      if (filtros.animales.length > 0) {
-        filtrados = filtrados.filter(
-          (d) => d.detalles?.caravana && filtros.animales.includes(d.detalles.caravana)
-        );
-      }
+      // 👉 Filtro por animales
+if (filtros.animales.length > 0) {
+  filtrados = filtrados.filter((d) => {
+    const desc = (d.descripcion ?? '').toLowerCase();
+    return filtros.animales.some(animal => 
+      desc.includes(animal.toLowerCase())
+    );
+  });
+}
+
+// 👉 Filtro por cultivos
+if (filtros.cultivos.length > 0) {
+  filtrados = filtrados.filter((d) => {
+    const desc = (d.descripcion ?? '').toLowerCase();
+    return filtros.cultivos.some(cultivo => 
+      desc.includes(cultivo.toLowerCase())
+    );
+  });
+}
 
       // 👉 Orden por fecha (más reciente primero)
       filtrados.sort(
