@@ -186,18 +186,19 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
           </button>
 
           {/* ===================================================================== */}
-          {/* TODO EL MENÚ “NUEVO DATO” RESPONSIVE */}
+          {/* TODO EL MENÚ "NUEVO DATO" RESPONSIVE */}
           {/* ===================================================================== */}
 
           {nuevoDatoMenuOpen && (
   <>
+    {/* OVERLAY QUE CUBRE TODO INCLUYENDO SIDEBAR */}
     <div
-      className="fixed inset-0 z-10 bg-black/20 backdrop-blur-sm"
+      className="fixed inset-0 z-[9999] bg-black/50 backdrop-blur-sm"
       onClick={() => setNuevoDatoMenuOpen(false)}
     />
 
     {/* ======================= MOBILE BOTTOM SHEET ======================= */}
-    <div className="fixed bottom-0 left-0 right-0 z-20 bg-white rounded-t-3xl shadow-2xl max-h-[85vh] overflow-y-auto lg:hidden animate-slide-up">
+    <div className="fixed bottom-0 left-0 right-0 z-[10000] bg-white rounded-t-3xl shadow-2xl max-h-[85vh] overflow-y-auto lg:hidden animate-slide-up">
       <div className="sticky top-0 bg-white border-b border-gray-200 p-4 rounded-t-3xl">
         <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-3" />
         <h2 className="text-lg font-semibold text-gray-900 text-center">
@@ -254,10 +255,20 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
     </div>
 
     {/* ======================= DESKTOP DROPDOWN (5 columnas) ======================= */}
-    <div className="hidden lg:block absolute right-0 mt-2 w-[800px] bg-white rounded-xl shadow-2xl border border-gray-200 p-6 z-20 max-h-[80vh] overflow-y-auto">
-      <h2 className="text-lg font-semibold mb-4 text-gray-800">
-        Seleccioná qué tipo de dato querés ingresar
-      </h2>
+    <div className="hidden lg:block fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] bg-white rounded-xl shadow-2xl border border-gray-200 p-6 z-[10000] max-h-[80vh] overflow-y-auto">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-lg font-semibold text-gray-800">
+          Seleccioná qué tipo de dato querés ingresar
+        </h2>
+        <button
+          onClick={() => setNuevoDatoMenuOpen(false)}
+          className="text-gray-400 hover:text-gray-600 p-2"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
 
       <div className="grid grid-cols-5 gap-8">
         {eventosOptions.map((section, idx) => (

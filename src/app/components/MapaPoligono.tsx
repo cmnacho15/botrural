@@ -335,7 +335,7 @@ export default function MapaPoligono({
             ${potrero.nombre}
           </div>
           <div style="
-            font-size: 14px; 
+            font-size: 16px; 
             color: black; 
             text-shadow: 
               -1px -1px 0 white,
