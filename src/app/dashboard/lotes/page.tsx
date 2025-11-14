@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import useSWR, { mutate } from 'swr' // ✅ Importar SWR
 
+
 interface Lote {
   id: string
   nombre: string
@@ -163,84 +164,103 @@ export default function LotesPage() {
                 {lotes.map((lote) => (
                   <tr key={lote.id} className="hover:bg-gray-50 transition">
 
-                    {/* NOMBRE Y HAS */}
-                    <td className="px-6 py-4">
-                      <div className="font-medium text-gray-900">
-                        {lote.nombre}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {Number(lote.hectareas).toLocaleString('es-UY', {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })}{' '}
-                        has
-                      </div>
-                    </td>
-
-                    {/* CULTIVOS */}
-<td className="px-6 py-4 text-sm text-gray-700">
-  {lote.cultivos?.length > 0 ? (
-    <div className="space-y-1">
-      {lote.cultivos.map((cultivo, idx) => (
-        <div key={idx} className="text-sm">
-          <span className="font-medium">{cultivo.tipoCultivo}</span>
-          <div className="text-xs text-gray-500">
-            {cultivo.hectareas.toFixed(1)} ha
-          </div>
-        </div>
-      ))}
+  {/* NOMBRE Y HAS */}
+  <td className="px-6 py-4">
+    <div className="font-medium text-gray-900">
+      {lote.nombre}
     </div>
-  ) : (
-    <span className="text-gray-400 italic">
-      Sin cultivos
-    </span>
-  )}
-</td>
-
-                    {/* ANIMALES */}
-                    <td className="px-6 py-4 text-sm text-gray-700">
-  {lote.animalesLote.length > 0 ? (
-    <div className="space-y-1">
-      {lote.animalesLote.map((animal, idx) => (
-        <div key={idx} className="text-sm">
-          <span className="font-medium">{animal.cantidad}</span>{' '}
-          <span className="text-gray-600">({animal.categoria})</span>
-        </div>
-      ))}
+    <div className="text-sm text-gray-500">
+      {Number(lote.hectareas).toLocaleString('es-UY', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}{' '}
+      has
     </div>
-  ) : (
-    <span className="text-gray-400 italic">
-      Sin animales
-    </span>
-  )}
-</td>
+  </td>
 
-                    {/* ACCIONES */}
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex justify-end gap-3">
-                        <button className="text-gray-400 hover:text-gray-600 transition" title="Ver detalles">
-                          🔗
-                        </button>
+  {/* CULTIVOS */}
+  <td className="px-6 py-4 text-sm text-gray-700">
+    {lote.cultivos?.length > 0 ? (
+      <div className="space-y-1">
+        {lote.cultivos.map((cultivo, idx) => (
+          <Link
+            key={idx}
+            href={`/dashboard/datos?potrero=${encodeURIComponent(lote.nombre)}&cultivo=${encodeURIComponent(cultivo.tipoCultivo)}`}
+            className="block"
+          >
+            <div className="inline-block px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm hover:bg-green-200 transition cursor-pointer">
+              <span className="font-medium">{cultivo.tipoCultivo}</span>
+              <span className="text-xs ml-1">({cultivo.hectareas.toFixed(1)} ha)</span>
+            </div>
+          </Link>
+        ))}
+      </div>
+    ) : (
+      <span className="text-gray-400 italic">
+        Sin cultivos
+      </span>
+    )}
+  </td>
 
-                        <Link
-                          href={`/dashboard/lotes/${lote.id}/editar`}
-                          className="text-gray-400 hover:text-gray-600 transition"
-                          title="Editar"
-                        >
-                          ✏️
-                        </Link>
+  {/* ANIMALES */}
+  <td className="px-6 py-4 text-sm text-gray-700">
+    {lote.animalesLote.length > 0 ? (
+      <div className="space-y-2">
+        {/* Total y días de pastoreo */}
+        <div 
+          className="inline-block px-3 py-1 bg-blue-600 text-white rounded-full text-sm font-semibold cursor-help"
+          title="120 animales, 0 días de pastoreo"
+        >
+          {lote.animalesLote.reduce((sum, a) => sum + a.cantidad, 0)} (0 días) 🔍
+        </div>
+        
+        {/* Lista de animales */}
+        <div className="flex flex-wrap gap-2">
+          {lote.animalesLote.map((animal, idx) => (
+            <Link
+              key={idx}
+              href={`/dashboard/datos?potrero=${encodeURIComponent(lote.nombre)}&animal=${encodeURIComponent(animal.categoria)}`}
+            >
+              <div className="inline-block px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm hover:bg-gray-200 transition cursor-pointer">
+                <span className="font-medium">{animal.cantidad}</span> {animal.categoria}
+              </div>
+            </Link>
+          ))}
+        </div>
+      </div>
+    ) : (
+      <span className="text-gray-400 italic">
+        Sin animales
+      </span>
+    )}
+  </td>
 
-                        <button
-                          onClick={() => eliminarLote(lote.id, lote.nombre)}
-                          className="text-gray-400 hover:text-red-600 transition"
-                          title="Eliminar"
-                        >
-                          🗑️
-                        </button>
-                      </div>
-                    </td>
+  {/* ACCIONES */}
+  <td className="px-6 py-4 text-right">
+    <div className="flex justify-end gap-3">
+      <button className="text-gray-400 hover:text-gray-600 transition" title="Ver detalles">
+        🔗
+      </button>
 
-                  </tr>
+      <Link
+        href={`/dashboard/lotes/${lote.id}/editar`}
+        className="text-gray-400 hover:text-gray-600 transition"
+        title="Editar"
+      >
+        ✏️
+      </Link>
+
+      <button
+        onClick={() => eliminarLote(lote.id, lote.nombre)}
+        className="text-gray-400 hover:text-red-600 transition"
+        title="Eliminar"
+      >
+        🗑️
+      </button>
+    </div>
+  </td>
+
+</tr>
                 ))}
               </tbody>
 
