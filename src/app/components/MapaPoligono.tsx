@@ -8,6 +8,25 @@ import 'leaflet.heat'
 
 if (typeof window !== 'undefined') {
   require('leaflet-draw')
+  
+  // Agregar estilos para tooltips sin fondo
+  if (!document.getElementById('leaflet-tooltip-override')) {
+    const style = document.createElement('style')
+    style.id = 'leaflet-tooltip-override'
+    style.innerHTML = `
+      .potrero-label-transparent {
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+      .potrero-label-transparent::before {
+        display: none !important;
+      }
+    `
+    document.head.appendChild(style)
+  }
 }
 
 interface MapaPoligonoProps {
