@@ -136,6 +136,11 @@ model Evento {
   monto           Float?
   animalLoteId    String?
   cantidadVendida Int?
+
+  loteDestinoId   String?
+  notas           String?
+  intensidad      String?
+  
   animalLote      AnimalLote? @relation(fields: [animalLoteId], references: [id])
 
   campo           Campo       @relation(fields: [campoId], references: [id], onDelete: Cascade)
@@ -264,5 +269,8 @@ enum TipoEvento {
   USO_INSUMO
   INGRESO_INSUMO
   GASTO
-  AJUSTE 
-}# Force rebuild Fri Nov 14 03:10:56 -03 2025
+  AJUSTE
+  CAMBIO_POTRERO 
+}
+
+// Force rebuild - 2025-11-14
