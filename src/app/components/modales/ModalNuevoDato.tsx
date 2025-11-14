@@ -47,21 +47,26 @@ export default function ModalNuevoDato({
   }
 
   const handleSubmit = async (data: any) => {
-    try {
-      const response = await fetch('/api/eventos', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      })
-
-      if (!response.ok) throw new Error('Error al crear evento')
-
-      handleSuccess()
-    } catch (error) {
-      console.error('Error:', error)
-      alert('Error al crear el evento')
-    }
+  // ModalRecategorizacion maneja su propio submit, no necesita este handler
+  if (tipo === 'recategorizacion') {
+    return
   }
+
+  try {
+    const response = await fetch('/api/eventos', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    })
+
+    if (!response.ok) throw new Error('Error al crear evento')
+
+    handleSuccess()
+  } catch (error) {
+    console.error('Error:', error)
+    alert('Error al crear el evento')
+  }
+}
 
   return (
     <div className="fixed inset-0 backdrop-blur-md bg-white/30 flex items-center justify-center z-50 p-4">

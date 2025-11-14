@@ -107,7 +107,10 @@ export async function GET(request: Request) {
         usuario: { select: { name: true } },
         lote: { select: { nombre: true } },
       },
-      orderBy: { fecha: 'desc' },
+      orderBy: [
+  { fecha: 'desc' },
+  { createdAt: 'desc' },
+],
     })
     console.log('✅ Eventos encontrados:', eventos.length)
 
@@ -115,7 +118,10 @@ export async function GET(request: Request) {
     const gastos = await prisma.gasto.findMany({
       where: { campoId: usuario.campoId },
       include: { lote: { select: { nombre: true } } },
-      orderBy: { fecha: 'desc' },
+      orderBy: [
+  { fecha: 'desc' },
+  { createdAt: 'desc' },
+],
     })
     console.log('✅ Gastos/Ingresos encontrados:', gastos.length)
 
@@ -126,7 +132,10 @@ export async function GET(request: Request) {
         insumo: { select: { nombre: true, unidad: true } },
         lote: { select: { nombre: true } },
       },
-      orderBy: { fecha: 'desc' },
+      orderBy: [
+  { fecha: 'desc' },
+  { createdAt: 'desc' },
+],
     })
     console.log('✅ Movimientos encontrados:', movimientosInsumos.length)
 
