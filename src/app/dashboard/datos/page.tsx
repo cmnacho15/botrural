@@ -1106,15 +1106,16 @@ function ListaDatos() {
 // Componente interno que usa useSearchParams
 function DatosContent() {
   const searchParams = useSearchParams()
-  const { filtros, setFiltros } = useDatos()
+  const { setFiltros } = useDatos()
+  const [filtrosAplicados, setFiltrosAplicados] = useState(false)
 
   useEffect(() => {
     const potreroUrl = searchParams.get('potreros')
     const animalUrl = searchParams.get('animales')
     const cultivoUrl = searchParams.get('cultivos')
 
-    if (potreroUrl || animalUrl || cultivoUrl) {
-      const nuevosFiltros = {
+    if ((potreroUrl || animalUrl || cultivoUrl) && !filtrosAplicados) {
+      setFiltros({
         categoria: 'todos',
         tipoDato: 'todos',
         fechaDesde: null,
@@ -1124,11 +1125,10 @@ function DatosContent() {
         potreros: potreroUrl ? [potreroUrl] : [],
         animales: animalUrl ? [animalUrl] : [],
         cultivos: cultivoUrl ? [cultivoUrl] : [],
-      }
-      setFiltros(nuevosFiltros)
+      })
+      setFiltrosAplicados(true)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams])
+  }, [searchParams, filtrosAplicados, setFiltros])
 
   return (
     <>

@@ -29,7 +29,7 @@ interface Lote {
   id: string
   nombre: string
   hectareas: number
-  coordenadas: number[][]
+  poligono: number[][]  // ✅ CAMBIAR A poligono
   cultivos: Cultivo[]
   animalesLote: Animal[]
 }
@@ -76,7 +76,7 @@ export default function MapaPage() {
         body: JSON.stringify({
           lotes: lotes.map(l => ({
             id: l.id,
-            coordenadas: l.coordenadas,
+            coordenadas: l.poligono,  // ✅ Cambiar a poligono (pero mantener el nombre "coordenadas" en el objeto que envías a la API)
           })),
         }),
       })
@@ -145,7 +145,7 @@ useEffect(() => {
 
         if (data.length > 0) {
           const todosLosPuntos = data
-            .flatMap(l => l.coordenadas || [])
+            .flatMap(l => l.poligono || [])  // ✅ CAMBIAR A poligono
             .filter(c => c && c.length === 2)
 
           if (todosLosPuntos.length > 0) {
@@ -165,7 +165,7 @@ useEffect(() => {
 
   // 🗺️ Preparar polígonos para el mapa
   const poligonosParaMapa = lotes
-    .filter(l => l.coordenadas && l.coordenadas.length > 0)
+    .filter(l => l.poligono && l.poligono.length > 0)  // ✅ CAMBIAR A poligono
     .map(lote => {
       let color = '#3b82f6'
 
@@ -189,7 +189,7 @@ useEffect(() => {
       return {
         id: lote.id,
         nombre: lote.nombre,
-        coordinates: lote.coordenadas,
+        coordinates: lote.poligono,  // ✅ CAMBIAR A poligono
         color,
         info: {
           hectareas: lote.hectareas,
