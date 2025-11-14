@@ -13,6 +13,7 @@ function obtenerIcono(tipo: string): string {
     VENTA: '🐄',
     COMPRA: '🛒',
     TRASLADO: '🚛',
+    CAMBIO_POTRERO: '⊞', //
     NACIMIENTO: '🐣',
     MORTANDAD: '💀',
     CONSUMO: '🍖',
@@ -44,6 +45,7 @@ function obtenerColor(tipo: string): string {
     VENTA: 'green',
     COMPRA: 'orange',
     TRASLADO: 'indigo',
+    CAMBIO_POTRERO: 'amber',
     NACIMIENTO: 'pink',
     MORTANDAD: 'gray',
     CONSUMO: 'brown',
@@ -79,7 +81,7 @@ function ModalFiltroTipoDato({
     {
       category: 'Animales',
       items: [
-        { value: 'MOVIMIENTO', label: 'Cambio De Potrero', icon: '⊞' },
+        { value: 'CAMBIO_POTRERO', label: 'Cambio De Potrero', icon: '⊞' },
         { value: 'TRATAMIENTO', label: 'Tratamiento', icon: '💉' },
         { value: 'VENTA', label: 'Venta', icon: '💵' },
         { value: 'COMPRA', label: 'Compra', icon: '🛒' },
@@ -525,7 +527,7 @@ function FiltrosActivos() {
 
   const obtenerNombreTipo = (tipo: string) => {
     const nombres: Record<string, string> = {
-      MOVIMIENTO: 'Cambio De Potrero',
+      CAMBIO_POTRERO: 'Cambio De Potrero',
       TRATAMIENTO: 'Tratamiento',
       VENTA: 'Venta',
       COMPRA: 'Compra',
@@ -828,6 +830,7 @@ function TarjetaDato({ dato }: { dato: any }) {
     cyan: 'bg-cyan-500',
     pink: 'bg-pink-500',
     indigo: 'bg-indigo-500',
+    amber: 'bg-amber-500',
     lime: 'bg-lime-500',
     brown: 'bg-orange-800',
   }
@@ -919,6 +922,7 @@ function TarjetaDato({ dato }: { dato: any }) {
       GASTO: 'Gasto',
       VENTA: 'Venta',
       COMPRA: 'Compra',
+      CAMBIO_POTRERO: 'Cambio De Potrero',
       TRASLADO: 'Traslado',
       NACIMIENTO: 'Nacimiento',
       MORTANDAD: 'Mortandad',
