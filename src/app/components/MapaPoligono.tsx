@@ -286,10 +286,10 @@ export default function MapaPoligono({
       // Construir información de animales
       let animalesText = ''
       if (potrero.info?.animales?.length) {
-        const grupos = potrero.info.animales
+        const lineas = potrero.info.animales
           .map((a: any) => `${a.categoria}: ${a.cantidad}`)
-          .join('<br/>')
-        animalesText = `<br/>${grupos}`
+          .join('\n')
+        animalesText = lineas
       }
 
       // Construir información de cultivos
@@ -297,26 +297,46 @@ export default function MapaPoligono({
       if (potrero.info?.cultivos?.length) {
         const cs = potrero.info.cultivos
           .map((c: any) => `${c.tipoCultivo}: ${c.hectareas} ha`)
-          .join('<br/>')
-        cultivosText = `<br/>${cs}`
+          .join('\n')
+        cultivosText = animalesText ? '\n' + cs : cs
       }
 
       const tooltipContent = `
         <div style="
-          background: white;
-          padding: 8px 12px;
-          border-radius: 8px;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-          border: 2px solid ${potrero.color || '#10b981'};
           font-family: system-ui, -apple-system, sans-serif;
           text-align: center;
-          min-width: 120px;
+          white-space: nowrap;
         ">
-          <div style="font-weight: bold; font-size: 16px; color: ${potrero.color || '#10b981'}; margin-bottom: 4px;">
+          <div style="
+            font-weight: bold; 
+            font-size: 18px; 
+            color: black; 
+            text-shadow: 
+              -1px -1px 0 white,
+              1px -1px 0 white,
+              -1px 1px 0 white,
+              1px 1px 0 white,
+              -2px 0 0 white,
+              2px 0 0 white,
+              0 -2px 0 white,
+              0 2px 0 white;
+            margin-bottom: 2px;
+          ">
             ${potrero.nombre}
           </div>
-          ${animalesText}
-          ${cultivosText}
+          <div style="
+            font-size: 14px; 
+            color: black; 
+            text-shadow: 
+              -1px -1px 0 white,
+              1px -1px 0 white,
+              -1px 1px 0 white,
+              1px 1px 0 white;
+            line-height: 1.3;
+          ">
+            ${animalesText}
+            ${cultivosText}
+          </div>
         </div>
       `
 
