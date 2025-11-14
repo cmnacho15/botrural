@@ -457,16 +457,26 @@ case "CAMBIO_POTRERO":
     });
   }
 
-  // Actualizar evento creado con los datos correctos
-  await prisma.evento.update({
-    where: { id: evento.id },
-    data: {
-      loteDestinoId,
-      cantidad: cantidadMover,
-      categoria,
-      notas: notas || null,
-    },
-  });
+  // 🧠 Singular / plural automático
+const categoriaLabel =
+  cantidadMover === 1
+    ? categoria.replace(/s$/, "") // elimina la "s" final (va bien para la mayoría)
+    : categoria;
+
+// 🧠 Descripción profesional
+const descripcionFinal = `Cambio de ${cantidadMover} ${categoriaLabel} del potrero "${potreroOrigen.nombre}" al potrero "${potreroDestino.nombre}".`;
+
+// Actualizar el evento
+await prisma.evento.update({
+  where: { id: evento.id },
+  data: {
+    loteDestinoId,
+    cantidad: cantidadMover,
+    categoria,
+    notas: notas || null,
+    descripcion: descripcionFinal,
+  },
+});
 
   console.log(
     `🔄 CAMBIO_POTRERO → ${cantidadMover} ${categoria} movidos de ${potreroOrigen.nombre} a ${potreroDestino.nombre}`
