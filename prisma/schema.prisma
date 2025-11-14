@@ -86,8 +86,6 @@ model Lote {
   updatedAt        DateTime         @updatedAt
   animalesLote     AnimalLote[]
   cultivos         Cultivo[]
-  eventos          Evento[]         @relation("EventoLote")              
-  eventosDestino   Evento[]         @relation("EventoLoteDestino")
   eventos          Evento[]
   gastos           Gasto[]
   campo            Campo            @relation(fields: [campoId], references: [id], onDelete: Cascade)
@@ -147,7 +145,6 @@ model Evento {
 
   campo           Campo       @relation(fields: [campoId], references: [id], onDelete: Cascade)
   lote            Lote?       @relation(fields: [loteId], references: [id])
-  loteDestino     Lote?       @relation("EventoLoteDestino", fields: [loteDestinoId], references: [id])
   usuario         User        @relation(fields: [usuarioId], references: [id])
 }
 
