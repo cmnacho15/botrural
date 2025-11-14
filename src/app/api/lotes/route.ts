@@ -6,13 +6,11 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 // 📋 GET - Obtener lotes del campo del usuario autenticado
 export async function GET() {
   try {
-    // 🔐 Verificar sesión
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
     }
 
-    // Buscar usuario y su campo
     const usuario = await prisma.user.findUnique({
       where: { id: session.user.id },
       include: { campo: true },
@@ -22,7 +20,6 @@ export async function GET() {
       return NextResponse.json([], { status: 200 });
     }
 
-    // Traer lotes asociados al campo del usuario con cultivos y animales
     const lotes = await prisma.lote.findMany({
       where: { campoId: usuario.campoId },
       include: {
@@ -33,7 +30,6 @@ export async function GET() {
       orderBy: { createdAt: "desc" },
     });
 
-    // ✅ MAPEAR poligono a coordenadas (para el mapa)
     const lotesFormateados = lotes.map((lote) => ({
       ...lote,
       coordenadas: lote.poligono || [],
@@ -52,7 +48,6 @@ export async function GET() {
 // 🧩 POST - Crear nuevo lote asociado al campo del usuario autenticado
 export async function POST(request: Request) {
   try {
-    // 🔐 Validar sesión
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
@@ -69,7 +64,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // 📦 Leer datos del body
     const body = await request.json();
     const { nombre, hectareas, poligono, cultivos = [], animales = [] } = body;
 
@@ -80,7 +74,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // ✅ Validar polígono
     if (!Array.isArray(poligono) || poligono.length < 3) {
       return NextResponse.json(
         { error: "El polígono debe tener al menos 3 puntos" },
@@ -88,15 +81,14 @@ export async function POST(request: Request) {
       );
     }
 
-    // ✅ Crear el lote con cultivos y animales relacionados
+    // ✨ Crear el lote con cultivos y animales relacionados
     const lote = await prisma.lote.create({
       data: {
         nombre,
         hectareas: parseFloat(hectareas),
-        poligono, // JSON con coordenadas
+        poligono,
         campoId: usuario.campoId,
 
-        // ✨ NUEVO: crear cultivos en la misma transacción
         cultivos: {
           create: cultivos.map((c: any) => ({
             tipoCultivo: c.tipoCultivo,
@@ -105,7 +97,6 @@ export async function POST(request: Request) {
           })),
         },
 
-        // ✨ NUEVO: crear animales asociados
         animalesLote: {
           create: animales.map((a: any) => ({
             categoria: a.categoria,
@@ -120,8 +111,44 @@ export async function POST(request: Request) {
       },
     });
 
+    // 🔥 NUEVO: Crear eventos en la tabla Evento
+    
+    // 1️⃣ Crear eventos de SIEMBRA por cada cultivo
+    for (const cultivo of cultivos) {
+      if (cultivo.tipoCultivo) {
+        await prisma.evento.create({
+          data: {
+            tipo: 'SIEMBRA',
+            fecha: new Date(cultivo.fechaSiembra),
+            descripcion: `Se sembraron ${parseFloat(cultivo.hectareas).toFixed(1)} hectáreas de ${cultivo.tipoCultivo} en el lote "${nombre}".`,
+            campoId: usuario.campoId,
+            loteId: lote.id,
+            usuarioId: session.user.id,
+            cantidad: parseFloat(cultivo.hectareas),
+          },
+        });
+      }
+    }
+
+    // 2️⃣ Crear eventos de INGRESO de animales
+    for (const animal of animales) {
+      if (animal.categoria && animal.cantidad) {
+        await prisma.evento.create({
+          data: {
+            tipo: 'COMPRA',
+            fecha: new Date(),
+            descripcion: `Se ingresaron ${animal.cantidad} ${animal.categoria.toLowerCase()} al lote "${nombre}".`,
+            campoId: usuario.campoId,
+            loteId: lote.id,
+            usuarioId: session.user.id,
+            cantidad: parseInt(animal.cantidad),
+          },
+        });
+      }
+    }
+
     console.log(
-      `✅ Lote creado: ${nombre} con ${cultivos.length} cultivos y ${animales.length} animales`
+      `✅ Lote creado: ${nombre} con ${cultivos.length} cultivos y ${animales.length} animales + eventos generados`
     );
     return NextResponse.json(lote, { status: 201 });
   } catch (error) {
@@ -136,7 +163,6 @@ export async function POST(request: Request) {
 // 🗑️ DELETE - Eliminar lote por ID
 export async function DELETE(request: Request) {
   try {
-    // 🔐 Verificar sesión
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
