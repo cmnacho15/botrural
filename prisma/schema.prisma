@@ -81,6 +81,7 @@ model Lote {
   nombre           String
   hectareas        Float
   poligono         Json?
+  ultimoCambio      DateTime  @default(now()) // ← NUEVO CAMPO
   campoId          String
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt

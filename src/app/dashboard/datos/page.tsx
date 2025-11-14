@@ -1114,13 +1114,20 @@ function DatosContent() {
     const cultivoUrl = searchParams.get('cultivos')
 
     if (potreroUrl || animalUrl || cultivoUrl) {
-      setFiltros({
-        ...filtros,
-        potreros: potreroUrl ? [potreroUrl] : filtros.potreros,
-        animales: animalUrl ? [animalUrl] : filtros.animales,
-        cultivos: cultivoUrl ? [cultivoUrl] : filtros.cultivos,
-      })
+      const nuevosFiltros = {
+        categoria: 'todos',
+        tipoDato: 'todos',
+        fechaDesde: null,
+        fechaHasta: null,
+        busqueda: '',
+        usuarios: [],
+        potreros: potreroUrl ? [potreroUrl] : [],
+        animales: animalUrl ? [animalUrl] : [],
+        cultivos: cultivoUrl ? [cultivoUrl] : [],
+      }
+      setFiltros(nuevosFiltros)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams])
 
   return (

@@ -4,44 +4,49 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 // 📋 GET - Obtener lotes del campo del usuario autenticado
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(authOptions)
     if (!session?.user?.id) {
-      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
     const usuario = await prisma.user.findUnique({
       where: { id: session.user.id },
-      include: { campo: true },
-    });
+      select: { campoId: true },
+    })
 
     if (!usuario?.campoId) {
-      return NextResponse.json([], { status: 200 });
+      return NextResponse.json({ error: 'Usuario sin campo' }, { status: 400 })
     }
 
     const lotes = await prisma.lote.findMany({
       where: { campoId: usuario.campoId },
       include: {
-        campo: true,
         cultivos: true,
         animalesLote: true,
       },
-      orderBy: { createdAt: "desc" },
-    });
+      orderBy: { nombre: 'asc' },
+    })
 
-    const lotesFormateados = lotes.map((lote) => ({
-      ...lote,
-      coordenadas: lote.poligono || [],
-    }));
+    // Calcular días de pastoreo/descanso
+    const lotesConDias = lotes.map((lote: any) => {
+      const tieneAnimales = lote.animalesLote && lote.animalesLote.length > 0
+      const diasDesdeUltimoCambio = lote.ultimoCambio 
+        ? Math.floor((Date.now() - new Date(lote.ultimoCambio).getTime()) / (1000 * 60 * 60 * 24))
+        : 0
 
-    return NextResponse.json(lotesFormateados, { status: 200 });
+      return {
+        ...lote,
+        diasPastoreo: tieneAnimales ? diasDesdeUltimoCambio : 0,
+        diasDescanso: !tieneAnimales ? diasDesdeUltimoCambio : 0,
+      }
+    })
+
+    return NextResponse.json(lotesConDias)
   } catch (error) {
-    console.error("💥 Error obteniendo lotes:", error);
-    return NextResponse.json(
-      { error: "Error obteniendo los lotes" },
-      { status: 500 }
-    );
+    console.error('Error al obtener lotes:', error)
+    return NextResponse.json({ error: 'Error al obtener lotes' }, { status: 500 })
   }
 }
 
@@ -135,7 +140,7 @@ export async function POST(request: Request) {
       if (animal.categoria && animal.cantidad) {
         await prisma.evento.create({
           data: {
-            tipo: 'COMPRA',
+            tipo: 'AJUSTE',
             fecha: new Date(),
             descripcion: `Se ingresaron ${animal.cantidad} ${animal.categoria.toLowerCase()} al lote "${nombre}".`,
             campoId: usuario.campoId,
