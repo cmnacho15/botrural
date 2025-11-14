@@ -8,6 +8,7 @@ import { authOptions } from '../auth/[...nextauth]/route'
 // ==============================================
 const categoriaPorTipo: Record<string, string> = {
   MOVIMIENTO: 'animales',
+  CAMBIO_POTRERO: 'animales', //
   TRATAMIENTO: 'animales',
   VENTA: 'animales',
   COMPRA: 'animales',
@@ -34,6 +35,7 @@ const categoriaPorTipo: Record<string, string> = {
 
 const iconoPorTipo: Record<string, string> = {
   MOVIMIENTO: '🔄',
+  CAMBIO_POTRERO: '⊞',
   TRATAMIENTO: '💉',
   VENTA: '🐄',
   COMPRA: '🛒',
