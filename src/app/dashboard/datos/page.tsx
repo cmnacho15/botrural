@@ -812,12 +812,13 @@ function FiltrosDatos() {
 // ==================== TARJETA ====================
 function TarjetaDato({ dato }: { dato: any }) {
   const formatFecha = (fecha: Date) => {
-    return new Date(fecha).toLocaleDateString('es-UY', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    })
-  }
+  const date = new Date(fecha)
+  // Usar UTC para evitar problemas de zona horaria
+  const day = String(date.getUTCDate()).padStart(2, '0')
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0')
+  const year = date.getUTCFullYear()
+  return `${day}/${month}/${year}`
+}
 
   const colorClasses: Record<string, string> = {
     green: 'bg-green-500',
