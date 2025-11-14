@@ -9,6 +9,8 @@ interface Lote {
   id: string
   nombre: string
   hectareas: number
+  diasPastoreo: number     // ← NUEVO
+  diasDescanso: number 
   cultivos: Array<{ 
     tipoCultivo: string
     hectareas: number
@@ -179,61 +181,71 @@ export default function LotesPage() {
   </td>
 
   {/* CULTIVOS */}
-  <td className="px-6 py-4 text-sm text-gray-700">
-    {lote.cultivos?.length > 0 ? (
-      <div className="space-y-1">
-        {lote.cultivos.map((cultivo, idx) => (
+<td className="px-6 py-4 text-sm text-gray-700">
+  {lote.cultivos?.length > 0 ? (
+    <div className="space-y-1">
+      {lote.cultivos.map((cultivo, idx) => (
+        <Link
+          key={idx}
+          href={`/dashboard/datos?potreros=${encodeURIComponent(lote.nombre)}&cultivos=${encodeURIComponent(cultivo.tipoCultivo)}`}
+          className="block"
+        >
+          <div className="inline-block px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm hover:bg-green-200 transition cursor-pointer">
+            <span className="font-medium">{cultivo.tipoCultivo}</span>
+            <span className="text-xs ml-1">({cultivo.hectareas.toFixed(1)} ha)</span>
+          </div>
+        </Link>
+      ))}
+    </div>
+  ) : (
+    <span className="text-gray-400 italic">
+      Sin cultivos
+    </span>
+  )}
+</td>
+
+  {/* ANIMALES */}
+<td className="px-6 py-4 text-sm text-gray-700">
+  {lote.animalesLote.length > 0 ? (
+    <div className="space-y-2">
+      {/* Total y días de pastoreo */}
+      <div className="relative group">
+        <div className="inline-block px-3 py-1 bg-blue-600 text-white rounded-full text-sm font-semibold cursor-pointer">
+          {lote.animalesLote.reduce((sum, a) => sum + a.cantidad, 0)} ({lote.diasPastoreo || 0} días)
+        </div>
+        <div className="hidden group-hover:block absolute z-10 px-3 py-2 text-sm text-white bg-gray-900 rounded-lg shadow-lg -top-10 left-0 whitespace-nowrap">
+          {lote.animalesLote.reduce((sum, a) => sum + a.cantidad, 0)} animales, {lote.diasPastoreo || 0} días de pastoreo
+        </div>
+      </div>
+      
+      {/* Lista de animales */}
+      <div className="flex flex-wrap gap-2">
+        {lote.animalesLote.map((animal, idx) => (
           <Link
             key={idx}
-            href={`/dashboard/datos?potrero=${encodeURIComponent(lote.nombre)}&cultivo=${encodeURIComponent(cultivo.tipoCultivo)}`}
-            className="block"
+            href={`/dashboard/datos?potreros=${encodeURIComponent(lote.nombre)}&animales=${encodeURIComponent(animal.categoria)}`}
           >
-            <div className="inline-block px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm hover:bg-green-200 transition cursor-pointer">
-              <span className="font-medium">{cultivo.tipoCultivo}</span>
-              <span className="text-xs ml-1">({cultivo.hectareas.toFixed(1)} ha)</span>
+            <div className="inline-block px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm hover:bg-gray-200 transition cursor-pointer">
+              <span className="font-medium">{animal.cantidad}</span> {animal.categoria}
             </div>
           </Link>
         ))}
       </div>
-    ) : (
-      <span className="text-gray-400 italic">
-        Sin cultivos
-      </span>
-    )}
-  </td>
-
-  {/* ANIMALES */}
-  <td className="px-6 py-4 text-sm text-gray-700">
-    {lote.animalesLote.length > 0 ? (
-      <div className="space-y-2">
-        {/* Total y días de pastoreo */}
-        <div 
-          className="inline-block px-3 py-1 bg-blue-600 text-white rounded-full text-sm font-semibold cursor-help"
-          title="120 animales, 0 días de pastoreo"
-        >
-          {lote.animalesLote.reduce((sum, a) => sum + a.cantidad, 0)} (0 días) 🔍
+    </div>
+  ) : (
+    <div className="space-y-2">
+      {/* Potrero en descanso */}
+      <div className="relative group">
+        <div className="inline-block px-3 py-1 bg-green-600 text-white rounded-full text-sm font-semibold cursor-pointer">
+          Descanso ({lote.diasDescanso || 0} días)
         </div>
-        
-        {/* Lista de animales */}
-        <div className="flex flex-wrap gap-2">
-          {lote.animalesLote.map((animal, idx) => (
-            <Link
-              key={idx}
-              href={`/dashboard/datos?potrero=${encodeURIComponent(lote.nombre)}&animal=${encodeURIComponent(animal.categoria)}`}
-            >
-              <div className="inline-block px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm hover:bg-gray-200 transition cursor-pointer">
-                <span className="font-medium">{animal.cantidad}</span> {animal.categoria}
-              </div>
-            </Link>
-          ))}
+        <div className="hidden group-hover:block absolute z-10 px-3 py-2 text-sm text-white bg-gray-900 rounded-lg shadow-lg -top-10 left-0 whitespace-nowrap">
+          Potrero en descanso: {lote.diasDescanso || 0} días
         </div>
       </div>
-    ) : (
-      <span className="text-gray-400 italic">
-        Sin animales
-      </span>
-    )}
-  </td>
+    </div>
+  )}
+</td>
 
   {/* ACCIONES */}
   <td className="px-6 py-4 text-right">
