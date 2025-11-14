@@ -292,15 +292,6 @@ export default function MapaPoligono({
         animalesText = lineas
       }
 
-      // Construir información de cultivos
-      let cultivosText = ''
-      if (potrero.info?.cultivos?.length) {
-        const cs = potrero.info.cultivos
-          .map((c: any) => `${c.tipoCultivo}: ${c.hectareas} ha`)
-          .join('\n')
-        cultivosText = animalesText ? '\n' + cs : cs
-      }
-
       const tooltipContent = `
         <div style="
           font-family: system-ui, -apple-system, sans-serif;
@@ -335,7 +326,6 @@ export default function MapaPoligono({
             line-height: 1.3;
           ">
             ${animalesText}
-            ${cultivosText}
           </div>
         </div>
       `
@@ -343,8 +333,8 @@ export default function MapaPoligono({
       const tooltip = (L as any).tooltip({
         permanent: true,
         direction: 'center',
-        className: 'potrero-label',
-        opacity: 0.95,
+        className: 'potrero-label-transparent',
+        opacity: 1,
       }).setContent(tooltipContent)
 
       tooltip.setLatLng(center)
