@@ -304,12 +304,12 @@ export default function MapaPoligono({
       
       // Construir información de animales
       let animalesText = ''
-      if (potrero.info?.animales?.length) {
-        const lineas = potrero.info.animales
-          .map((a: any) => `${a.categoria}: ${a.cantidad}`)
-          .join('\n')
-        animalesText = lineas
-      }
+if (potrero.info?.animales?.length) {
+  const lineas = potrero.info.animales
+    .map((a: any) => `${a.categoria}: ${a.cantidad}`)
+    .join('<br>')
+  animalesText = lineas
+}
 
       const tooltipContent = `
         <div style="
