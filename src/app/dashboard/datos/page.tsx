@@ -235,19 +235,67 @@ function ModalFiltroFecha({
   fechaHasta: Date | null
   onApply: (desde: Date | null, hasta: Date | null) => void
 }) {
-  const [desde, setDesde] = useState<string>(fechaDesde ? fechaDesde.toISOString().split('T')[0] : '')
-  const [hasta, setHasta] = useState<string>(fechaHasta ? fechaHasta.toISOString().split('T')[0] : '')
+  const [desde, setDesde] = useState<string>(
+    fechaDesde ? new Date(fechaDesde.getTime() - fechaDesde.getTimezoneOffset() * 60000).toISOString().split('T')[0] : ''
+  )
+  const [hasta, setHasta] = useState<string>(
+    fechaHasta ? new Date(fechaHasta.getTime() - fechaHasta.getTimezoneOffset() * 60000).toISOString().split('T')[0] : ''
+  )
 
   if (!isOpen) return null
 
   const handleApply = () => {
-    onApply(desde ? new Date(desde) : null, hasta ? new Date(hasta) : null)
+    const desdeDate = desde ? new Date(desde + 'T00:00:00') : null
+    const hastaDate = hasta ? new Date(hasta + 'T23:59:59') : null
+    onApply(desdeDate, hastaDate)
     onClose()
+  }
+
+  const setRangoRapido = (dias: number) => {
+    const hoy = new Date()
+    const inicio = new Date(hoy)
+    inicio.setDate(hoy.getDate() - dias)
+    
+    setDesde(new Date(inicio.getTime() - inicio.getTimezoneOffset() * 60000).toISOString().split('T')[0])
+    setHasta(new Date(hoy.getTime() - hoy.getTimezoneOffset() * 60000).toISOString().split('T')[0])
+  }
+
+  const setHoy = () => {
+    const hoy = new Date()
+    const hoyStr = new Date(hoy.getTime() - hoy.getTimezoneOffset() * 60000).toISOString().split('T')[0]
+    setDesde(hoyStr)
+    setHasta(hoyStr)
+  }
+
+  const setEstaSemana = () => {
+    const hoy = new Date()
+    const diaSemana = hoy.getDay()
+    const inicio = new Date(hoy)
+    inicio.setDate(hoy.getDate() - diaSemana)
+    
+    setDesde(new Date(inicio.getTime() - inicio.getTimezoneOffset() * 60000).toISOString().split('T')[0])
+    setHasta(new Date(hoy.getTime() - hoy.getTimezoneOffset() * 60000).toISOString().split('T')[0])
+  }
+
+  const setEsteMes = () => {
+    const hoy = new Date()
+    const inicio = new Date(hoy.getFullYear(), hoy.getMonth(), 1)
+    
+    setDesde(new Date(inicio.getTime() - inicio.getTimezoneOffset() * 60000).toISOString().split('T')[0])
+    setHasta(new Date(hoy.getTime() - hoy.getTimezoneOffset() * 60000).toISOString().split('T')[0])
+  }
+
+  const setEsteAno = () => {
+    const hoy = new Date()
+    const inicio = new Date(hoy.getFullYear(), 0, 1)
+    
+    setDesde(new Date(inicio.getTime() - inicio.getTimezoneOffset() * 60000).toISOString().split('T')[0])
+    setHasta(new Date(hoy.getTime() - hoy.getTimezoneOffset() * 60000).toISOString().split('T')[0])
   }
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-hidden flex flex-col">
         <div className="p-4 border-b border-gray-200 flex justify-between items-center">
           <h2 className="text-lg font-semibold text-gray-900">Filtrar por Fecha</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">
@@ -255,7 +303,7 @@ function ModalFiltroFecha({
           </button>
         </div>
 
-        <div className="p-6 space-y-4">
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Desde</label>
             <input
@@ -274,6 +322,54 @@ function ModalFiltroFecha({
               onChange={(e) => setHasta(e.target.value)}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
+          </div>
+
+          <div className="pt-4 border-t border-gray-200">
+            <p className="text-sm font-medium text-gray-700 mb-3">Rangos rápidos</p>
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                onClick={setHoy}
+                className="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-700 transition"
+              >
+                Hoy
+              </button>
+              <button
+                onClick={setEstaSemana}
+                className="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-700 transition"
+              >
+                Esta Semana
+              </button>
+              <button
+                onClick={setEsteMes}
+                className="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-700 transition"
+              >
+                Este Mes
+              </button>
+              <button
+                onClick={() => setRangoRapido(7)}
+                className="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-700 transition"
+              >
+                Últimos 7 Días
+              </button>
+              <button
+                onClick={() => setRangoRapido(30)}
+                className="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-700 transition"
+              >
+                Últimos 30 Días
+              </button>
+              <button
+                onClick={() => setRangoRapido(90)}
+                className="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-700 transition"
+              >
+                Últimos 90 Días
+              </button>
+              <button
+                onClick={setEsteAno}
+                className="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-700 transition col-span-3"
+              >
+                Este Año
+              </button>
+            </div>
           </div>
         </div>
 
