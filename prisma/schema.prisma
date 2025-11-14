@@ -265,4 +265,4 @@ enum TipoEvento {
   INGRESO_INSUMO
   GASTO
   AJUSTE 
-}
+}# Force rebuild Fri Nov 14 03:10:56 -03 2025
