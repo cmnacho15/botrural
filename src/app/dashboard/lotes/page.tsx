@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
+import useSWR, { mutate } from 'swr' // ✅ Importar SWR
 
 interface Lote {
   id: string
@@ -18,43 +19,23 @@ interface Lote {
   }>
 }
 
+// ✅ Fetcher para SWR
+const fetcher = (url: string) => fetch(url).then((res) => res.json())
+
 export default function LotesPage() {
-  const [lotes, setLotes] = useState<Lote[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    cargarLotes()
-  }, [])
-
-  // ==========================================
-  // 🚀 CARGAR LOTES + LOGS
-  // ==========================================
-
-  async function cargarLotes() {
-    try {
-      const response = await fetch('/api/lotes')
-      if (response.ok) {
-        const data = await response.json()
-
-        // 🔥 LOGS NUEVOS PARA DEBUG
-        console.log('📊 DATOS COMPLETOS:', JSON.stringify(data, null, 2))
-        console.log(
-          '🌾 Cultivos por lote:',
-          data.map((l: any) => ({
-            nombre: l.nombre,
-            cultivos: l.cultivos,
-            animales: l.animalesLote,
-          }))
-        )
-
-        setLotes(data)
-      }
-    } catch (error) {
-      console.error('Error cargando lotes:', error)
-    } finally {
-      setLoading(false)
+  // ✅ Usar SWR en lugar de useState + useEffect
+  const { data: lotes = [], isLoading: loading, mutate: revalidate } = useSWR<Lote[]>(
+    '/api/lotes',
+    fetcher,
+    {
+      revalidateOnFocus: true, // ✅ Se actualiza al volver a la pestaña
+      refreshInterval: 30000, // ✅ Opcional: refresh cada 30s
     }
-  }
+  )
+
+  // ==========================================
+  // 🗑️ ELIMINAR LOTE
+  // ==========================================
 
   async function eliminarLote(id: string, nombre: string) {
     if (!confirm(`¿Estás seguro de eliminar el potrero "${nombre}"?`)) return
@@ -62,7 +43,8 @@ export default function LotesPage() {
     try {
       const response = await fetch(`/api/lotes?id=${id}`, { method: 'DELETE' })
       if (response.ok) {
-        setLotes(lotes.filter((lote) => lote.id !== id))
+        // ✅ Actualizar la lista local inmediatamente
+        revalidate()
         alert('Potrero eliminado correctamente')
       } else {
         alert('Error al eliminar el potrero')
@@ -196,37 +178,42 @@ export default function LotesPage() {
                     </td>
 
                     {/* CULTIVOS */}
-                    <td className="px-6 py-4 text-sm text-gray-700">
-                      {lote.cultivos?.length > 0 ? (
-                        <div>
-                          <span className="font-medium">
-                            {lote.cultivos.map((c) => c.tipoCultivo).join(', ')}
-                          </span>
-                          <div className="text-xs text-gray-500">
-                            {lote.cultivos
-                              .reduce((sum, c) => sum + c.hectareas, 0)
-                              .toFixed(1)}{' '}
-                            ha total
-                          </div>
-                        </div>
-                      ) : (
-                        <span className="text-gray-400 italic">
-                          Sin cultivos
-                        </span>
-                      )}
-                    </td>
+<td className="px-6 py-4 text-sm text-gray-700">
+  {lote.cultivos?.length > 0 ? (
+    <div className="space-y-1">
+      {lote.cultivos.map((cultivo, idx) => (
+        <div key={idx} className="text-sm">
+          <span className="font-medium">{cultivo.tipoCultivo}</span>
+          <div className="text-xs text-gray-500">
+            {cultivo.hectareas.toFixed(1)} ha
+          </div>
+        </div>
+      ))}
+    </div>
+  ) : (
+    <span className="text-gray-400 italic">
+      Sin cultivos
+    </span>
+  )}
+</td>
 
                     {/* ANIMALES */}
                     <td className="px-6 py-4 text-sm text-gray-700">
-                      {lote.animalesLote.length
-                        ? `${lote.animalesLote.reduce(
-                            (sum, a) => sum + a.cantidad,
-                            0
-                          )} (${lote.animalesLote
-                            .map((a) => a.categoria)
-                            .join(', ')})`
-                        : 'Sin animales'}
-                    </td>
+  {lote.animalesLote.length > 0 ? (
+    <div className="space-y-1">
+      {lote.animalesLote.map((animal, idx) => (
+        <div key={idx} className="text-sm">
+          <span className="font-medium">{animal.cantidad}</span>{' '}
+          <span className="text-gray-600">({animal.categoria})</span>
+        </div>
+      ))}
+    </div>
+  ) : (
+    <span className="text-gray-400 italic">
+      Sin animales
+    </span>
+  )}
+</td>
 
                     {/* ACCIONES */}
                     <td className="px-6 py-4 text-right">
