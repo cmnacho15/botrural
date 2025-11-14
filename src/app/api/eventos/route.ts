@@ -328,132 +328,174 @@ export async function POST(request: Request) {
         break;
 
       // INGRESO (genérico)
-      case "INGRESO":
-        // Guardar campos de ingreso con comprador y pago
-        await prisma.evento.update({
-          where: { id: evento.id },
-          data: {
-            comprador: comprador || null,
-            metodoPago: metodoPago || "Contado",
-            diasPlazo: metodoPago === "Plazo" ? parseInt(diasPlazo || "0") : null,
-            pagado: metodoPago === "Contado" ? true : (pagado ?? false),
-          },
-        });
+case "INGRESO":
+  // Guardar campos de ingreso con comprador y pago
+  await prisma.evento.update({
+    where: { id: evento.id },
+    data: {
+      comprador: comprador || null,
+      metodoPago: metodoPago || "Contado",
+      diasPlazo: metodoPago === "Plazo" ? parseInt(diasPlazo || "0") : null,
+      pagado: metodoPago === "Contado" ? true : (pagado ?? false),
+    },
+  });
 
-        // ✅ Crear registro en tabla Gasto con tipo INGRESO
-        if (monto && parseFloat(monto) > 0) {
-          await prisma.gasto.create({
-            data: {
-              tipo: "INGRESO",
-              monto: parseFloat(monto),
-              fecha: fecha ? new Date(fecha) : new Date(),
-              descripcion: descripcion || "Ingreso",
-              categoria: categoria || "Otros",
-              metodoPago: metodoPago || "Contado",
-              iva: iva !== undefined ? parseFloat(String(iva)) : null,
-              comprador: comprador ? comprador.trim().toLowerCase() : null, // ✅ AGREGADO
-              proveedor: null, // ✅ AGREGADO: Los ingresos NO tienen proveedor
-              diasPlazo: metodoPago === "Plazo" ? parseInt(diasPlazo || "0") : null,
-              pagado: metodoPago === "Contado" ? true : (pagado ?? false),
-              campoId: usuario.campoId,
-              loteId: loteId || null,
-            },
-          });
-          console.log("Ingreso registrado correctamente");
-        }
-        console.log("Ingreso registrado con condición de pago");
-        break;
-
-      default:
-        break;
-    }
-
-    return NextResponse.json({ success: true, evento }, { status: 201 });
-  } catch (error) {
-    console.error("Error creando evento:", error);
-    return NextResponse.json(
-      {
-        error: "Error al crear el evento",
-        details: error instanceof Error ? error.message : "Unknown error",
+  // ✅ Crear registro en tabla Gasto con tipo INGRESO
+  if (monto && parseFloat(monto) > 0) {
+    await prisma.gasto.create({
+      data: {
+        tipo: "INGRESO",
+        monto: parseFloat(monto),
+        fecha: fecha ? new Date(fecha) : new Date(),
+        descripcion: descripcion || "Ingreso",
+        categoria: categoria || "Otros",
+        metodoPago: metodoPago || "Contado",
+        iva: iva !== undefined ? parseFloat(String(iva)) : null,
+        comprador: comprador ? comprador.trim().toLowerCase() : null,
+        proveedor: null, // INGRESO no tiene proveedor
+        diasPlazo: metodoPago === "Plazo" ? parseInt(diasPlazo || "0") : null,
+        pagado: metodoPago === "Contado" ? true : (pagado ?? false),
+        campoId: usuario.campoId,
+        loteId: loteId || null,
       },
-      { status: 500 }
+    });
+    console.log("Ingreso registrado correctamente");
+  }
+
+  console.log("Ingreso registrado con condición de pago");
+  break;
+
+
+
+// ==============================================
+// 🚜 CAMBIO DE POTRERO
+// ==============================================
+case "CAMBIO_POTRERO":
+  if (!loteId || !loteDestinoId || !categoria) {
+    return NextResponse.json(
+      { error: "Se requiere potrero origen, destino y categoría de animales" },
+      { status: 400 }
     );
   }
+
+  // Verificar que ambos potreros existan y pertenezcan al usuario
+  const [potreroOrigen, potreroDestino] = await Promise.all([
+    prisma.lote.findFirst({
+      where: { id: loteId, campoId: usuario.campoId },
+    }),
+    prisma.lote.findFirst({
+      where: { id: loteDestinoId, campoId: usuario.campoId },
+    }),
+  ]);
+
+  if (!potreroOrigen || !potreroDestino) {
+    return NextResponse.json(
+      { error: "Uno o ambos potreros no existen" },
+      { status: 404 }
+    );
+  }
+
+  // Obtener animales en potrero origen
+  const animalesOrigen = await prisma.animalLote.findFirst({
+    where: {
+      loteId,
+      categoria,
+      lote: { campoId: usuario.campoId },
+    },
+  });
+
+  if (!animalesOrigen) {
+    return NextResponse.json(
+      { error: `No hay animales de categoría ${categoria} en el potrero origen` },
+      { status: 404 }
+    );
+  }
+
+  // Determinar cantidad a mover
+  const cantidadMover = cantidad ? parseInt(cantidad) : animalesOrigen.cantidad;
+
+  if (cantidadMover > animalesOrigen.cantidad) {
+    return NextResponse.json(
+      { error: "No hay suficientes animales en el potrero origen" },
+      { status: 400 }
+    );
+  }
+
+  // Restar en origen
+  const nuevaCantidadOrigen = animalesOrigen.cantidad - cantidadMover;
+
+  if (nuevaCantidadOrigen === 0) {
+    await prisma.animalLote.delete({ where: { id: animalesOrigen.id } });
+  } else {
+    await prisma.animalLote.update({
+      where: { id: animalesOrigen.id },
+      data: { cantidad: nuevaCantidadOrigen },
+    });
+  }
+
+  // Sumar en destino
+  const animalesDestino = await prisma.animalLote.findFirst({
+    where: {
+      loteId: loteDestinoId,
+      categoria,
+      lote: { campoId: usuario.campoId },
+    },
+  });
+
+  if (animalesDestino) {
+    await prisma.animalLote.update({
+      where: { id: animalesDestino.id },
+      data: { cantidad: animalesDestino.cantidad + cantidadMover },
+    });
+  } else {
+    await prisma.animalLote.create({
+      data: {
+        categoria,
+        cantidad: cantidadMover,
+        loteId: loteDestinoId,
+      },
+    });
+  }
+
+  // Actualizar evento creado con los datos correctos
+  await prisma.evento.update({
+    where: { id: evento.id },
+    data: {
+      loteDestinoId,
+      cantidad: cantidadMover,
+      categoria,
+      notas: notas || null,
+    },
+  });
+
+  console.log(
+    `🔄 CAMBIO_POTRERO → ${cantidadMover} ${categoria} movidos de ${potreroOrigen.nombre} a ${potreroDestino.nombre}`
+  );
+  break;
+
+
+
+// ==============================================
+// DEFAULT
+// ==============================================
+default:
+  break;
 }
 
+
 // ==============================================
-// GET: Listar eventos del campo del usuario
+// FIN DEL POST
 // ==============================================
-export async function GET() {
-  try {
-    const session = await getServerSession(authOptions);
 
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-    }
-
-    const usuario = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { campoId: true },
-    });
-
-    if (!usuario?.campoId) {
-      return NextResponse.json([], { status: 200 });
-    }
-
-    // ✅ 1. Obtener eventos normales
-    const eventos = await prisma.evento.findMany({
-      where: { campoId: usuario.campoId },
-      include: {
-        usuario: { select: { name: true } },
-        lote: { select: { nombre: true } },
-      },
-      orderBy: { fecha: "desc" },
-    });
-
-    // ✅ 2. Obtener gastos e ingresos de la tabla Gasto
-    const gastosIngresos = await prisma.gasto.findMany({
-      where: { campoId: usuario.campoId },
-      include: {
-        lote: { select: { nombre: true } },
-      },
-      orderBy: { fecha: "desc" },
-    });
-
-    // ✅ 3. Transformar gastos/ingresos al formato de eventos
-const gastosIngresosComoEventos = gastosIngresos.map((g) => ({
-  id: g.id,
-  tipo: g.tipo, // 'GASTO' o 'INGRESO'
-  descripcion: g.descripcion,
-  fecha: g.fecha,
-  cantidad: g.cantidadVendida || null,
-  categoria: g.categoria,
-  monto: g.monto,
-  loteId: g.loteId,
-  usuarioId: null,
-  campoId: g.campoId,
-  createdAt: g.createdAt,
-  updatedAt: g.updatedAt,
-  // Campos adicionales
-  metodoPago: g.metodoPago,
-  iva: g.iva,
-  proveedor: g.proveedor,
-  comprador: g.comprador,
-  diasPlazo: g.diasPlazo,
-  pagado: g.pagado,
-  // Relaciones
-  usuario: null,
-  lote: g.lote ? { nombre: g.lote.nombre } : null,
-}));
-
-    // ✅ 4. Combinar ambas listas y ordenar por fecha
-    const todosLosEventos = [...eventos, ...gastosIngresosComoEventos].sort(
-      (a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime()
-    );
-
-    return NextResponse.json(todosLosEventos);
-  } catch (error) {
-    console.error("Error al obtener eventos:", error);
-    return NextResponse.json({ error: "Error al obtener eventos" }, { status: 500 });
-  }
+return NextResponse.json({ success: true, evento }, { status: 201 });
+} catch (error) {
+console.error("Error creando evento:", error);
+return NextResponse.json(
+  {
+    error: "Error al crear el evento",
+    details: error instanceof Error ? error.message : "Unknown error",
+  },
+  { status: 500 }
+);
+}
 }

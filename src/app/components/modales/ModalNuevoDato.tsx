@@ -9,6 +9,7 @@ import {
   ModalIngresoInsumos,
   ModalSiembra,
   ModalNacimiento,
+  ModalCambioPotrero,
 } from '@/app/components/modales'
 
 type ModalNuevoDatoProps = {
