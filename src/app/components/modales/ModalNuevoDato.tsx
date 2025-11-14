@@ -43,6 +43,10 @@ export default function ModalNuevoDato({
         {tipo === 'uso-insumos' && <ModalUsoInsumos onClose={onClose} onSuccess={handleSuccess} />}
         {tipo === 'ingreso-insumos' && <ModalIngresoInsumos onClose={onClose} onSuccess={handleSuccess} />}
         {tipo === 'siembra' && <ModalSiembra onClose={onClose} onSuccess={handleSuccess} />}
+        {/* ⭐ CAMBIO DE POTRERO (ESTE TE FALTABA) ⭐ */}
+{tipo === 'cambio-potrero' && (
+  <ModalCambioPotrero onClose={onClose} onSuccess={handleSuccess} />
+)}
         {tipo === 'nacimiento' && <ModalNacimiento onClose={onClose} onSuccess={handleSuccess} />}
       </div>
     </div>
