@@ -606,7 +606,7 @@ export default function GastosPage() {
                           cx="50%"
                           cy="50%"
                           outerRadius={120}
-                          label={(entry) => `${entry.nombre}: ${entry.total}`}
+                          label={({ nombre, total }: any) => `${nombre}: ${total}`}
                         >
                           {datosPieChart.map((entry, index) => (
                             <Cell key={`cell-${index}`} fill={entry.color} />
@@ -721,7 +721,7 @@ export default function GastosPage() {
                           cx="50%"
                           cy="50%"
                           outerRadius={100}
-                          label={(entry) => `${entry.nombre}: ${entry.total}`}
+                          label={({ nombre, total }: any) => `${nombre}: ${total}`}
                         >
                           {datosPieChart.map((entry, index) => (
                             <Cell key={`cell-${index}`} fill={entry.color} />
