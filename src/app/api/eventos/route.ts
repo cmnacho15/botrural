@@ -52,7 +52,7 @@ export async function POST(request: Request) {
       data: {
         tipo,
         descripcion,
-        fecha: fecha ? new Date(fecha) : new Date(),
+        fecha: fecha ? new Date(fecha + 'T12:00:00Z') : new Date(),
         cantidad: cantidad ? parseInt(cantidad) : null,
         categoria: categoria || null,
         monto: monto ? parseFloat(monto) : null,
@@ -93,7 +93,7 @@ export async function POST(request: Request) {
             data: {
               tipo: "GASTO",
               monto: parseFloat(monto),
-              fecha: fecha ? new Date(fecha) : new Date(),
+              fecha: fecha ? new Date(fecha + 'T12:00:00Z') : new Date(),
               descripcion: descripcion || `Gasto en ${categoria}`,
               categoria: categoria || "Otros",
               metodoPago: metodoPago || "Contado",
@@ -142,7 +142,7 @@ export async function POST(request: Request) {
             data: {
               tipo: "INGRESO",
               monto: parseFloat(monto),
-              fecha: fecha ? new Date(fecha) : new Date(),
+              fecha: fecha ? new Date(fecha + 'T12:00:00Z') : new Date(),
               descripcion: descripcion || `Venta de ${categoria}`,
               categoria: categoria || "Otros",
               metodoPago: metodoPago || "Contado",
@@ -176,7 +176,7 @@ export async function POST(request: Request) {
           data: {
             tipo: "USO",
             cantidad: parseFloat(cantidad),
-            fecha: fecha ? new Date(fecha) : new Date(),
+            fecha: fecha ? new Date(fecha + 'T12:00:00Z') : new Date(),
             notas: notas || descripcion || null,
             insumoId,
             loteId: loteId || null,
@@ -209,7 +209,7 @@ export async function POST(request: Request) {
           data: {
             tipo: "INGRESO",
             cantidad: parseFloat(cantidad),
-            fecha: fecha ? new Date(fecha) : new Date(),
+            fecha: fecha ? new Date(fecha + 'T12:00:00Z') : new Date(),
             notas: notas || descripcion || null,
             insumoId,
             loteId: loteId || null,
@@ -226,7 +226,7 @@ export async function POST(request: Request) {
             data: {
               tipo: "GASTO",
               monto: parseFloat(monto),
-              fecha: fecha ? new Date(fecha) : new Date(),
+              fecha: fecha ? new Date(fecha + 'T12:00:00Z') : new Date(),
               descripcion: `Compra de ${insumo.nombre}`,
               categoria: "Insumos",
               metodoPago: metodoPago || "Contado",
@@ -275,7 +275,7 @@ export async function POST(request: Request) {
             data: {
               tipo: "INGRESO",
               monto: parseFloat(monto),
-              fecha: fecha ? new Date(fecha) : new Date(),
+              fecha: fecha ? new Date(fecha + 'T12:00:00Z') : new Date(),
               descripcion: descripcion || `Cosecha de ${tipoCultivo}`,
               categoria: categoria || "Cosecha",
               metodoPago: metodoPago || "Contado",
@@ -409,7 +409,7 @@ export async function POST(request: Request) {
             data: {
               tipo: "GASTO",
               monto: parseFloat(monto),
-              fecha: fecha ? new Date(fecha) : new Date(),
+              fecha: fecha ? new Date(fecha + 'T12:00:00Z') : new Date(),
               descripcion: descripcion || `Compra de ${categoria}`,
               categoria: categoria || "Otros",
               metodoPago: metodoPago || "Contado",
@@ -546,7 +546,7 @@ export async function POST(request: Request) {
             data: {
               tipo: "INGRESO",
               monto: parseFloat(monto),
-              fecha: fecha ? new Date(fecha) : new Date(),
+              fecha: fecha ? new Date(fecha + 'T12:00:00Z') : new Date(),
               descripcion: descripcion || "Ingreso",
               categoria: categoria || "Otros",
               metodoPago: metodoPago || "Contado",
