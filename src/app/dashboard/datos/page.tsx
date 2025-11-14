@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useDatos } from '@/app/contexts/DatosContext'
 
 // ==================== FUNCIONES AUXILIARES ====================
@@ -518,10 +518,21 @@ function FiltrosDatos() {
   const [showModalUsuarios, setShowModalUsuarios] = useState(false)
   const [showModalPotreros, setShowModalPotreros] = useState(false)
   const [showBusqueda, setShowBusqueda] = useState(false)
+  const [todosLosPotreros, setTodosLosPotreros] = useState<string[]>([])
 
-  // Obtener datos únicos de la BD
+  // Cargar potreros desde la API
+  useEffect(() => {
+    fetch('/api/lotes')
+      .then(r => r.json())
+      .then(lotes => setTodosLosPotreros(lotes.map((l: any) => l.nombre)))
+      .catch(err => console.error('Error cargando potreros:', err))
+  }, [])
+
+  // Obtener datos únicos
   const usuariosDisponibles = Array.from(new Set(datos.map((d) => d.usuario).filter(Boolean))) as string[]
-  const potrerosDisponibles = Array.from(new Set(datos.map((d) => d.lote).filter(Boolean))) as string[]
+  const potrerosDisponibles = todosLosPotreros.length > 0 
+    ? todosLosPotreros 
+    : Array.from(new Set(datos.map((d) => d.lote).filter(Boolean))) as string[]
 
   return (
     <>
