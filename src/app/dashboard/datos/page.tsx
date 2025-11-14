@@ -1,7 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useDatos } from '@/app/contexts/DatosContext'
+import { useSearchParams } from 'next/navigation'
+
 
 // ==================== FUNCIONES AUXILIARES ====================
 function obtenerIcono(tipo: string): string {
@@ -1101,6 +1103,35 @@ function ListaDatos() {
 }
 
 // ==================== PÁGINA PRINCIPAL ====================
+// Componente interno que usa useSearchParams
+function DatosContent() {
+  const searchParams = useSearchParams()
+  const { filtros, setFiltros } = useDatos()
+
+  useEffect(() => {
+    const potreroUrl = searchParams.get('potreros')
+    const animalUrl = searchParams.get('animales')
+    const cultivoUrl = searchParams.get('cultivos')
+
+    if (potreroUrl || animalUrl || cultivoUrl) {
+      setFiltros({
+        ...filtros,
+        potreros: potreroUrl ? [potreroUrl] : filtros.potreros,
+        animales: animalUrl ? [animalUrl] : filtros.animales,
+        cultivos: cultivoUrl ? [cultivoUrl] : filtros.cultivos,
+      })
+    }
+  }, [searchParams])
+
+  return (
+    <>
+      <FiltrosDatos />
+      <ListaDatos />
+    </>
+  )
+}
+
+// Componente principal exportado
 export default function PaginaDatos() {
   return (
     <div className="container mx-auto px-4 py-6 max-w-6xl">
@@ -1109,8 +1140,9 @@ export default function PaginaDatos() {
         <p className="text-gray-600">Visualiza todos los eventos, movimientos y registros de tu campo</p>
       </div>
 
-      <FiltrosDatos />
-      <ListaDatos />
+      <Suspense fallback={<div>Cargando...</div>}>
+        <DatosContent />
+      </Suspense>
     </div>
   )
 }
