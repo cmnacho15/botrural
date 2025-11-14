@@ -293,6 +293,21 @@ function ModalFiltroFecha({
     setHasta(new Date(hoy.getTime() - hoy.getTimezoneOffset() * 60000).toISOString().split('T')[0])
   }
 
+  const setEjercicioActual = () => {
+    const hoy = new Date()
+    const anioActual = hoy.getFullYear()
+    const mesActual = hoy.getMonth()
+    
+    const anioInicio = mesActual < 6 ? anioActual - 1 : anioActual
+    const anioFin = anioInicio + 1
+    
+    const inicio = new Date(anioInicio, 6, 1)
+    const fin = new Date(anioFin, 5, 30)
+    
+    setDesde(new Date(inicio.getTime() - inicio.getTimezoneOffset() * 60000).toISOString().split('T')[0])
+    setHasta(new Date(fin.getTime() - fin.getTimezoneOffset() * 60000).toISOString().split('T')[0])
+  }
+
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-hidden flex flex-col">
@@ -365,9 +380,15 @@ function ModalFiltroFecha({
               </button>
               <button
                 onClick={setEsteAno}
-                className="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-700 transition col-span-3"
+                className="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-700 transition"
               >
                 Este Año
+              </button>
+              <button
+                onClick={setEjercicioActual}
+                className="px-3 py-2 text-sm bg-blue-100 hover:bg-blue-200 rounded-lg text-blue-700 font-medium transition col-span-2"
+              >
+                📊 Ejercicio Actual
               </button>
             </div>
           </div>
