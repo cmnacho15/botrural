@@ -7,3 +7,7 @@ export { default as ModalIngresoInsumos } from './ModalIngresoInsumos'
 export { default as ModalSiembra } from './ModalSiembra'
 export { default as ModalNacimiento } from './ModalNacimiento'
 export { default as ModalCambioPotrero } from './ModalCambioPotrero'
+
+// Importar y re-exportar directamente
+import ModalRecategorizacion from './ModalRecategorizacion'
+export { ModalRecategorizacion }
