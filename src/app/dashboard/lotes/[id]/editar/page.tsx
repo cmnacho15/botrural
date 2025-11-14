@@ -18,7 +18,7 @@ interface LoteExistente {
   id: string
   nombre: string
   hectareas: number
-  coordenadas: number[][]
+  poligono: number[][]  // ← Cambiar coordenadas por poligono
 }
 
 interface Cultivo {
@@ -77,7 +77,7 @@ export default function EditarLotePage() {
   useEffect(() => {
     if (lotesExistentes.length > 0) {
       const todosLosPuntos = lotesExistentes
-        .flatMap(l => l.coordenadas || [])
+        .flatMap(l => l.poligono || [])
         .filter(c => c.length === 2)
 
       if (todosLosPuntos.length > 0) {
@@ -114,7 +114,7 @@ export default function EditarLotePage() {
         if (lote) {
           setNombre(lote.nombre);
           setHectareasManual(lote.hectareas.toString());
-          setPoligono(lote.coordenadas || lote.poligono || null);
+          setPoligono(lote.poligono || null);
 
           // Cultivos
           console.log("Cultivos del lote:", lote.cultivos);
@@ -277,13 +277,13 @@ export default function EditarLotePage() {
   }
 
   const potrerosParaMapa = lotesExistentes
-    .filter(l => l.coordenadas && l.coordenadas.length > 0)
-    .map((l, i) => ({
-      id: l.id,
-      nombre: l.nombre,
-      coordinates: l.coordenadas,
-      color: ['#ef4444', '#84cc16', '#06b6d4', '#8b5cf6'][i % 4],
-    }))
+  .filter(l => l.poligono && l.poligono.length > 0)
+  .map((l, i) => ({
+    id: l.id,
+    nombre: l.nombre,
+    coordinates: l.poligono,
+    color: ['#ef4444', '#84cc16', '#06b6d4', '#8b5cf6'][i % 4],
+  }))
 
   if (cargando) {
     return (
