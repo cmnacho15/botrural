@@ -10,6 +10,7 @@ import {
   ModalSiembra,
   ModalNacimiento,
   ModalCambioPotrero,
+  ModalRecategorizacion,
 } from '@/app/components/modales'
 
 type ModalNuevoDatoProps = {
@@ -27,7 +28,6 @@ export default function ModalNuevoDato({
 }: ModalNuevoDatoProps) {
   if (!isOpen) return null
 
-  // ✅ AGREGAR ESTA FUNCIÓN:
   const handleSuccess = () => {
     onSuccess()
     window.location.reload()
@@ -36,6 +36,7 @@ export default function ModalNuevoDato({
   return (
     <div className="fixed inset-0 backdrop-blur-md bg-white/30 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+
         {tipo === 'lluvia' && <ModalLluvia onClose={onClose} onSuccess={handleSuccess} />}
         {tipo === 'helada' && <ModalHelada onClose={onClose} onSuccess={handleSuccess} />}
         {tipo === 'gasto' && <ModalGasto onClose={onClose} onSuccess={handleSuccess} />}
@@ -43,12 +44,20 @@ export default function ModalNuevoDato({
         {tipo === 'uso-insumos' && <ModalUsoInsumos onClose={onClose} onSuccess={handleSuccess} />}
         {tipo === 'ingreso-insumos' && <ModalIngresoInsumos onClose={onClose} onSuccess={handleSuccess} />}
         {tipo === 'siembra' && <ModalSiembra onClose={onClose} onSuccess={handleSuccess} />}
-        {/* ⭐ CAMBIO DE POTRERO (ESTE TE FALTABA) ⭐ */}
-{tipo === 'cambio-potrero' && (
-  <ModalCambioPotrero onClose={onClose} onSuccess={handleSuccess} />
-)}
-        {tipo === 'nacimiento' && <ModalNacimiento onClose={onClose} onSuccess={handleSuccess} />}
+
+        {tipo === 'cambio-potrero' && (
+          <ModalCambioPotrero onClose={onClose} onSuccess={handleSuccess} />
+        )}
+
+        {tipo === 'recategorizacion' && (
+          <ModalRecategorizacion onClose={onClose} onSuccess={handleSuccess} />
+        )}
+
+        {tipo === 'nacimiento' && (
+          <ModalNacimiento onClose={onClose} onSuccess={handleSuccess} />
+        )}
+
       </div>
     </div>
   )
-}
+}   // ← ESTA LLAVE FALTABA

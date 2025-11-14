@@ -1,0 +1,316 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { X } from "lucide-react";
+
+interface Lote {
+  id: string;
+  nombre: string;
+  animalesLote: Array<{
+    id: string;
+    categoria: string;
+    cantidad: number;
+  }>;
+}
+
+interface ModalRecategorizacionProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSubmit: (data: any) => void;
+  lotes: Lote[];
+}
+
+const CATEGORIAS_DISPONIBLES = [
+  "Vacas",
+  "Vaquillonas",
+  "Novillos",
+  "Novillitos",
+  "Terneros",
+  "Terneras",
+  "Toros",
+];
+
+export default function ModalRecategorizacion({
+  isOpen,
+  onClose,
+  onSubmit,
+  lotes,
+}: ModalRecategorizacionProps) {
+  const [loteId, setLoteId] = useState("");
+  const [categoria, setCategoria] = useState("");
+  const [categoriaNueva, setCategoriaNueva] = useState("");
+  const [cantidad, setCantidad] = useState("");
+  const [fecha, setFecha] = useState(
+    new Date().toISOString().split("T")[0]
+  );
+  const [notas, setNotas] = useState("");
+
+  const [categoriasDisponibles, setCategoriasDisponibles] = useState<string[]>([]);
+  const [cantidadMaxima, setCantidadMaxima] = useState(0);
+
+  // Resetear formulario cuando se abre/cierra
+  useEffect(() => {
+    if (isOpen) {
+      setLoteId("");
+      setCategoria("");
+      setCategoriaNueva("");
+      setCantidad("");
+      setFecha(new Date().toISOString().split("T")[0]);
+      setNotas("");
+      setCategoriasDisponibles([]);
+      setCantidadMaxima(0);
+    }
+  }, [isOpen]);
+
+  // Actualizar categorías disponibles cuando se selecciona un lote
+  useEffect(() => {
+    if (loteId) {
+      const loteSeleccionado = lotes.find((l) => l.id === loteId);
+      if (loteSeleccionado) {
+        const cats = loteSeleccionado.animalesLote.map((a) => a.categoria);
+        setCategoriasDisponibles(cats);
+        setCategoria(""); // Resetear categoría seleccionada
+        setCategoriaNueva("");
+        setCantidad("");
+      }
+    } else {
+      setCategoriasDisponibles([]);
+      setCategoria("");
+      setCategoriaNueva("");
+      setCantidad("");
+    }
+  }, [loteId, lotes]);
+
+  // Actualizar cantidad máxima cuando se selecciona una categoría
+  useEffect(() => {
+    if (loteId && categoria) {
+      const loteSeleccionado = lotes.find((l) => l.id === loteId);
+      const animal = loteSeleccionado?.animalesLote.find(
+        (a) => a.categoria === categoria
+      );
+      setCantidadMaxima(animal?.cantidad || 0);
+      setCantidad(""); // Resetear cantidad
+    } else {
+      setCantidadMaxima(0);
+      setCantidad("");
+    }
+  }, [loteId, categoria, lotes]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!loteId || !categoria || !categoriaNueva || !cantidad) {
+      alert("Por favor complete todos los campos obligatorios");
+      return;
+    }
+
+    if (categoria === categoriaNueva) {
+      alert("La categoría nueva debe ser diferente a la actual");
+      return;
+    }
+
+    const cantidadNum = parseInt(cantidad);
+    if (cantidadNum <= 0 || cantidadNum > cantidadMaxima) {
+      alert(`La cantidad debe ser entre 1 y ${cantidadMaxima}`);
+      return;
+    }
+
+    // Obtener nombre del potrero para la descripción
+    const loteSeleccionado = lotes.find((l) => l.id === loteId);
+    const nombrePotrero = loteSeleccionado?.nombre || "desconocido";
+
+    // Generar descripción automática
+    const catActualLabel = cantidadNum === 1 ? categoria.replace(/s$/, "") : categoria;
+    const catNuevaLabel = cantidadNum === 1 ? categoriaNueva.replace(/s$/, "") : categoriaNueva;
+    const descripcion = `Recategorización de ${cantidadNum} ${catActualLabel} a ${catNuevaLabel} en potrero "${nombrePotrero}"`;
+
+    onSubmit({
+      tipo: "RECATEGORIZACION",
+      loteId,
+      categoria,
+      categoriaNueva,
+      cantidad: cantidadNum,
+      fecha,
+      descripcion,
+      notas: notas.trim() || null,
+    });
+
+    onClose();
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+        {/* Header */}
+        <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between">
+          <h2 className="text-xl font-semibold text-gray-800">
+            🏷️ Recategorización de Animales
+          </h2>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            <X size={24} />
+          </button>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {/* Fecha */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Fecha *
+            </label>
+            <input
+              type="date"
+              value={fecha}
+              onChange={(e) => setFecha(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              required
+            />
+          </div>
+
+          {/* Potrero */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Potrero *
+            </label>
+            <select
+              value={loteId}
+              onChange={(e) => setLoteId(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              required
+            >
+              <option value="">Seleccione un potrero</option>
+              {lotes
+                .filter((l) => l.animalesLote.length > 0)
+                .map((lote) => (
+                  <option key={lote.id} value={lote.id}>
+                    {lote.nombre}
+                  </option>
+                ))}
+            </select>
+          </div>
+
+          {/* Categoría Actual */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Categoría Actual *
+            </label>
+            <select
+              value={categoria}
+              onChange={(e) => setCategoria(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              disabled={!loteId}
+              required
+            >
+              <option value="">Seleccione categoría actual</option>
+              {categoriasDisponibles.map((cat) => {
+                const animal = lotes
+                  .find((l) => l.id === loteId)
+                  ?.animalesLote.find((a) => a.categoria === cat);
+                return (
+                  <option key={cat} value={cat}>
+                    {cat} ({animal?.cantidad || 0})
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+
+          {/* Categoría Nueva */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Categoría Nueva *
+            </label>
+            <select
+              value={categoriaNueva}
+              onChange={(e) => setCategoriaNueva(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              disabled={!categoria}
+              required
+            >
+              <option value="">Seleccione categoría nueva</option>
+              {CATEGORIAS_DISPONIBLES.filter((cat) => cat !== categoria).map(
+                (cat) => (
+                  <option key={cat} value={cat}>
+                    {cat}
+                  </option>
+                )
+              )}
+            </select>
+          </div>
+
+          {/* Cantidad */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Cantidad a Recategorizar *
+            </label>
+            <input
+              type="number"
+              value={cantidad}
+              onChange={(e) => setCantidad(e.target.value)}
+              min="1"
+              max={cantidadMaxima}
+              placeholder={cantidadMaxima > 0 ? `Máximo: ${cantidadMaxima}` : "Seleccione categoría"}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              disabled={!categoria}
+              required
+            />
+            {cantidadMaxima > 0 && (
+              <p className="text-xs text-gray-500 mt-1">
+                Disponibles: {cantidadMaxima} {categoria}
+              </p>
+            )}
+          </div>
+
+          {/* Notas */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Notas (opcional)
+            </label>
+            <textarea
+              value={notas}
+              onChange={(e) => setNotas(e.target.value)}
+              rows={3}
+              placeholder="Ej: Peso promedio 280kg, destete tardío..."
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
+            />
+          </div>
+
+          {/* Vista previa */}
+          {loteId && categoria && categoriaNueva && cantidad && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <p className="text-sm text-blue-800">
+                <strong>Vista previa:</strong> Se recategorizarán {cantidad}{" "}
+                {parseInt(cantidad) === 1 ? categoria.replace(/s$/, "") : categoria} a{" "}
+                {parseInt(cantidad) === 1 ? categoriaNueva.replace(/s$/, "") : categoriaNueva} en{" "}
+                {lotes.find((l) => l.id === loteId)?.nombre}
+              </p>
+            </div>
+          )}
+
+          {/* Buttons */}
+          <div className="flex gap-3 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+              disabled={!loteId || !categoria || !categoriaNueva || !cantidad}
+            >
+              Recategorizar
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
