@@ -213,14 +213,14 @@ eventos
     })
 
     // ORDENAR
-    datosUnificados.sort((a, b) => {
-      const fechaA = new Date(a.fecha).getTime()
-      const fechaB = new Date(b.fecha).getTime()
-      if (fechaB !== fechaA) return fechaB - fechaA
-      const creadoA = a.createdAt ? new Date(a.createdAt).getTime() : 0
-      const creadoB = b.createdAt ? new Date(b.createdAt).getTime() : 0
-      return creadoB - creadoA
-    })
+datosUnificados.sort((a, b) => {
+  const fechaA = new Date(a.fecha).getTime()
+  const fechaB = new Date(b.fecha).getTime()
+  if (fechaB !== fechaA) return fechaB - fechaA
+  const creadoA = a.createdAt ? new Date(a.createdAt).getTime() : 0
+  const creadoB = b.createdAt ? new Date(b.createdAt).getTime() : 0
+  return creadoB - creadoA
+})
 
     // ==============================
     // 3️⃣ Filtros
