@@ -43,8 +43,8 @@ export default function ModalRecategorizacion({
   const [categoriaNueva, setCategoriaNueva] = useState("");
   const [cantidad, setCantidad] = useState("");
   const [fecha, setFecha] = useState(
-    new Date().toISOString().split("T")[0]
-  );
+  new Date().toLocaleDateString('en-CA') // en-CA da formato YYYY-MM-DD en tu zona horaria
+);
   const [notas, setNotas] = useState("");
 
   const [categoriasDisponibles, setCategoriasDisponibles] = useState<string[]>([]);
@@ -52,17 +52,17 @@ export default function ModalRecategorizacion({
 
   // Resetear formulario cuando se abre/cierra
   useEffect(() => {
-    if (isOpen) {
-      setLoteId("");
-      setCategoria("");
-      setCategoriaNueva("");
-      setCantidad("");
-      setFecha(new Date().toISOString().split("T")[0]);
-      setNotas("");
-      setCategoriasDisponibles([]);
-      setCantidadMaxima(0);
-    }
-  }, [isOpen]);
+  if (isOpen) {
+    setLoteId("");
+    setCategoria("");
+    setCategoriaNueva("");
+    setCantidad("");
+    setFecha(new Date().toLocaleDateString('en-CA'));
+    setNotas("");
+    setCategoriasDisponibles([]);
+    setCantidadMaxima(0);
+  }
+}, [isOpen]);
 
   // Actualizar categorías disponibles cuando se selecciona un lote
   useEffect(() => {
@@ -98,48 +98,57 @@ export default function ModalRecategorizacion({
     }
   }, [loteId, categoria, lotes]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
 
-    if (!loteId || !categoria || !categoriaNueva || !cantidad) {
-      alert("Por favor complete todos los campos obligatorios");
-      return;
-    }
+  if (!loteId || !categoria || !categoriaNueva || !cantidad) {
+    alert("Por favor complete todos los campos obligatorios");
+    return;
+  }
 
-    if (categoria === categoriaNueva) {
-      alert("La categoría nueva debe ser diferente a la actual");
-      return;
-    }
+  if (categoria === categoriaNueva) {
+    alert("La categoría nueva debe ser diferente a la actual");
+    return;
+  }
 
-    const cantidadNum = parseInt(cantidad);
-    if (cantidadNum <= 0 || cantidadNum > cantidadMaxima) {
-      alert(`La cantidad debe ser entre 1 y ${cantidadMaxima}`);
-      return;
-    }
+  const cantidadNum = parseInt(cantidad);
+  if (cantidadNum <= 0 || cantidadNum > cantidadMaxima) {
+    alert(`La cantidad debe ser entre 1 y ${cantidadMaxima}`);
+    return;
+  }
 
-    // Obtener nombre del potrero para la descripción
-    const loteSeleccionado = lotes.find((l) => l.id === loteId);
-    const nombrePotrero = loteSeleccionado?.nombre || "desconocido";
+  const loteSeleccionado = lotes.find((l) => l.id === loteId);
+  const nombrePotrero = loteSeleccionado?.nombre || "desconocido";
 
-    // Generar descripción automática
-    const catActualLabel = cantidadNum === 1 ? categoria.replace(/s$/, "") : categoria;
-    const catNuevaLabel = cantidadNum === 1 ? categoriaNueva.replace(/s$/, "") : categoriaNueva;
-    const descripcion = `Recategorización de ${cantidadNum} ${catActualLabel} a ${catNuevaLabel} en potrero "${nombrePotrero}"`;
+  const catActualLabel = cantidadNum === 1 ? categoria.replace(/s$/, "") : categoria;
+  const catNuevaLabel = cantidadNum === 1 ? categoriaNueva.replace(/s$/, "") : categoriaNueva;
+  const descripcion = `Recategorización de ${cantidadNum} ${catActualLabel} a ${catNuevaLabel} en potrero "${nombrePotrero}"`;
 
-    onSubmit({
-      tipo: "RECATEGORIZACION",
-      loteId,
-      categoria,
-      categoriaNueva,
-      cantidad: cantidadNum,
-      fecha,
-      descripcion,
-      notas: notas.trim() || null,
+  try {
+    const response = await fetch('/api/eventos', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tipo: "RECATEGORIZACION",
+        loteId,
+        categoria,
+        categoriaNueva,
+        cantidad: cantidadNum,
+        fecha,
+        descripcion,
+        notas: notas.trim() || null,
+      }),
     });
-    
+
+    if (!response.ok) throw new Error('Error al crear evento');
+
     onSuccess();
     onClose();
-  };
+  } catch (error) {
+    console.error('Error:', error);
+    alert('Error al crear la recategorización');
+  }
+};
 
   if (!isOpen) return null;
 
