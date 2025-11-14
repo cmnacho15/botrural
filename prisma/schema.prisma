@@ -116,33 +116,31 @@ model AnimalLote {
 }
 
 model Evento {
-  id              String     @id @default(cuid())
+  id              String      @id @default(cuid())
   tipo            TipoEvento
   descripcion     String
   fecha           DateTime
   cantidad        Int?
   categoria       String?
+  categoriaNueva  String?
   loteId          String?
   usuarioId       String
   campoId         String
-  createdAt       DateTime   @default(now())
-  updatedAt       DateTime   @updatedAt
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
   comprador       String?
-  pagado          Boolean    @default(false)
+  pagado          Boolean     @default(false)
   diasPlazo       Int?
-  metodoPago      String?    @default("Contado")
+  metodoPago      String?     @default("Contado")
   proveedor       String?
   iva             Float?
   monto           Float?
   animalLoteId    String?
   cantidadVendida Int?
-
   loteDestinoId   String?
   notas           String?
   intensidad      String?
-  
   animalLote      AnimalLote? @relation(fields: [animalLoteId], references: [id])
-
   campo           Campo       @relation(fields: [campoId], references: [id], onDelete: Cascade)
   lote            Lote?       @relation(fields: [loteId], references: [id])
   usuario         User        @relation(fields: [usuarioId], references: [id])
@@ -273,4 +271,3 @@ enum TipoEvento {
   CAMBIO_POTRERO 
 }
 
-// Force rebuild - 2025-11-14

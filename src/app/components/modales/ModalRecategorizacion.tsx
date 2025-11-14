@@ -18,6 +18,7 @@ interface ModalRecategorizacionProps {
   onClose: () => void;
   onSubmit: (data: any) => void;
   lotes: Lote[];
+  onSuccess: () => void;
 }
 
 const CATEGORIAS_DISPONIBLES = [
@@ -35,6 +36,7 @@ export default function ModalRecategorizacion({
   onClose,
   onSubmit,
   lotes,
+  onSuccess,
 }: ModalRecategorizacionProps) {
   const [loteId, setLoteId] = useState("");
   const [categoria, setCategoria] = useState("");
@@ -134,7 +136,8 @@ export default function ModalRecategorizacion({
       descripcion,
       notas: notas.trim() || null,
     });
-
+    
+    onSuccess();
     onClose();
   };
 
