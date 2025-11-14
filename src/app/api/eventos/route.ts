@@ -3,6 +3,12 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../auth/[...nextauth]/route";
 
+// Función para combinar fecha del usuario con hora actual
+function crearFechaConHoraActual(fechaUsuario: string | undefined): Date {
+  if (!fechaUsuario) return new Date()
+  const horaActual = new Date().toISOString().split('T')[1]
+  return new Date(fechaUsuario + 'T' + horaActual)
+}
 // ====================================================
 // POST – CREAR EVENTO
 // ====================================================
@@ -52,7 +58,7 @@ export async function POST(request: Request) {
       data: {
         tipo,
         descripcion,
-        fecha: fecha ? new Date(fecha + 'T12:00:00Z') : new Date(),
+        fecha: fecha ? new Date(fecha + 'T' + new Date().toISOString().split('T')[1]) : new Date(),
         cantidad: cantidad ? parseInt(cantidad) : null,
         categoria: categoria || null,
         monto: monto ? parseFloat(monto) : null,
@@ -93,7 +99,7 @@ export async function POST(request: Request) {
             data: {
               tipo: "GASTO",
               monto: parseFloat(monto),
-              fecha: fecha ? new Date(fecha + 'T12:00:00Z') : new Date(),
+              fecha: crearFechaConHoraActual(fecha),
               descripcion: descripcion || `Gasto en ${categoria}`,
               categoria: categoria || "Otros",
               metodoPago: metodoPago || "Contado",
@@ -142,7 +148,7 @@ export async function POST(request: Request) {
             data: {
               tipo: "INGRESO",
               monto: parseFloat(monto),
-              fecha: fecha ? new Date(fecha + 'T12:00:00Z') : new Date(),
+              fecha: crearFechaConHoraActual(fecha),
               descripcion: descripcion || `Venta de ${categoria}`,
               categoria: categoria || "Otros",
               metodoPago: metodoPago || "Contado",
@@ -176,7 +182,7 @@ export async function POST(request: Request) {
           data: {
             tipo: "USO",
             cantidad: parseFloat(cantidad),
-            fecha: fecha ? new Date(fecha + 'T12:00:00Z') : new Date(),
+            fecha: crearFechaConHoraActual(fecha),
             notas: notas || descripcion || null,
             insumoId,
             loteId: loteId || null,
@@ -209,7 +215,7 @@ export async function POST(request: Request) {
           data: {
             tipo: "INGRESO",
             cantidad: parseFloat(cantidad),
-            fecha: fecha ? new Date(fecha + 'T12:00:00Z') : new Date(),
+            fecha: crearFechaConHoraActual(fecha),
             notas: notas || descripcion || null,
             insumoId,
             loteId: loteId || null,
@@ -226,7 +232,7 @@ export async function POST(request: Request) {
             data: {
               tipo: "GASTO",
               monto: parseFloat(monto),
-              fecha: fecha ? new Date(fecha + 'T12:00:00Z') : new Date(),
+              fecha: crearFechaConHoraActual(fecha),
               descripcion: `Compra de ${insumo.nombre}`,
               categoria: "Insumos",
               metodoPago: metodoPago || "Contado",
@@ -252,7 +258,7 @@ export async function POST(request: Request) {
           await prisma.cultivo.create({
             data: {
               tipoCultivo,
-              fechaSiembra: fecha ? new Date(fecha) : new Date(),
+              fechaSiembra: crearFechaConHoraActual(fecha),
               hectareas: parseFloat(hectareas),
               loteId,
             },
@@ -275,7 +281,7 @@ export async function POST(request: Request) {
             data: {
               tipo: "INGRESO",
               monto: parseFloat(monto),
-              fecha: fecha ? new Date(fecha + 'T12:00:00Z') : new Date(),
+              fecha: crearFechaConHoraActual(fecha),
               descripcion: descripcion || `Cosecha de ${tipoCultivo}`,
               categoria: categoria || "Cosecha",
               metodoPago: metodoPago || "Contado",
@@ -409,7 +415,7 @@ export async function POST(request: Request) {
             data: {
               tipo: "GASTO",
               monto: parseFloat(monto),
-              fecha: fecha ? new Date(fecha + 'T12:00:00Z') : new Date(),
+              fecha: crearFechaConHoraActual(fecha),
               descripcion: descripcion || `Compra de ${categoria}`,
               categoria: categoria || "Otros",
               metodoPago: metodoPago || "Contado",
@@ -546,7 +552,7 @@ export async function POST(request: Request) {
             data: {
               tipo: "INGRESO",
               monto: parseFloat(monto),
-              fecha: fecha ? new Date(fecha + 'T12:00:00Z') : new Date(),
+              fecha: crearFechaConHoraActual(fecha),
               descripcion: descripcion || "Ingreso",
               categoria: categoria || "Otros",
               metodoPago: metodoPago || "Contado",
