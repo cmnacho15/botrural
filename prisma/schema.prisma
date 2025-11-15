@@ -230,6 +230,7 @@ model ManoObra {
   faltas                  Int      @default(0)
   horas_extras            Int      @default(0)
   licencias               Int      @default(0)
+  trabajo_feriado           Boolean  @default(false)
 
   mes                     Int
   anio                    Int

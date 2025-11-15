@@ -10,7 +10,6 @@ export async function GET(req: Request) {
     const mes = searchParams.get('mes')
     const anio = searchParams.get('anio')
 
-    // Validación mejorada
     if (!mes || !anio) {
       return NextResponse.json(
         { error: 'Parámetros mes y anio son requeridos' },
@@ -59,8 +58,7 @@ export async function POST(req: Request) {
 
     console.log('📝 Creando registro:', body)
 
-    // Validación
-    if (!body.nombre || !body.mes || !body.anio) {
+    if (!body.nombre || body.mes === undefined || body.anio === undefined) {
       return NextResponse.json(
         { error: 'Nombre, mes y año son obligatorios' },
         { status: 400 }
@@ -78,6 +76,7 @@ export async function POST(req: Request) {
         faltas: Number(body.faltas) || 0,
         horas_extras: Number(body.horas_extras) || 0,
         licencias: Number(body.licencias) || 0,
+        trabajo_feriado: body.trabajo_feriado === true || body.trabajo_feriado === 1, // ✅ AGREGADO
         mes: Number(body.mes),
         anio: Number(body.anio),
       }
@@ -103,7 +102,7 @@ export async function PUT(req: Request) {
     const body = await req.json()
     const { id, ...resto } = body
 
-    console.log('✏️ Actualizando registro:', id)
+    console.log('✏️ Actualizando registro:', id, resto)
 
     if (!id) {
       return NextResponse.json(
@@ -124,6 +123,13 @@ export async function PUT(req: Request) {
     if (resto.faltas !== undefined) dataToUpdate.faltas = Number(resto.faltas)
     if (resto.horas_extras !== undefined) dataToUpdate.horas_extras = Number(resto.horas_extras)
     if (resto.licencias !== undefined) dataToUpdate.licencias = Number(resto.licencias)
+    
+    // ✅ AGREGADO: guardar trabajo_feriado
+    if (resto.trabajo_feriado !== undefined) {
+      dataToUpdate.trabajo_feriado = resto.trabajo_feriado === true || resto.trabajo_feriado === 1
+    }
+
+    console.log('📦 Datos a actualizar:', dataToUpdate)
 
     const actualizado = await prisma.manoObra.update({
       where: { id: String(id) },
