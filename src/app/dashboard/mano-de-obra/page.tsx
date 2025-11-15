@@ -22,11 +22,25 @@ export default function ManoDeObraPage() {
     horasExtras: '',
     licencias: '',
   })
+  const [trabajoFeriado, setTrabajoFeriado] = useState(false)
 
   const meses = [
     'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
     'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
   ]
+
+  // Feriados fijos de Uruguay
+  const feriadosFijos = [
+    { mes: 0, nombre: 'Año Nuevo (1 de enero)' },
+    { mes: 3, nombre: 'Día del Trabajador Rural (30 de abril)' },
+    { mes: 4, nombre: 'Día de los Trabajadores (1 de mayo)' },
+    { mes: 6, nombre: 'Jura de la Constitución (18 de julio)' },
+    { mes: 7, nombre: 'Declaratoria de la Independencia (25 de agosto)' },
+    { mes: 11, nombre: 'Navidad (25 de diciembre)' }
+  ]
+
+  // Verificar si el mes seleccionado tiene un feriado
+  const feriadoDelMes = feriadosFijos.find(f => f.mes === mesSeleccionado)
 
   useEffect(() => {
     cargarDatos()
@@ -51,6 +65,7 @@ export default function ManoDeObraPage() {
         faltas: emp.faltas,
         horasExtras: emp.horas_extras,
         licencias: emp.licencias,
+        trabajoFeriado: emp.trabajo_feriado || false,
       }))
 
       setEmpleados(empleadosMapeados)
@@ -77,6 +92,7 @@ export default function ManoDeObraPage() {
       faltas: Number(formData.faltas) || 0,
       horas_extras: Number(formData.horasExtras) || 0,
       licencias: Number(formData.licencias) || 0,
+      trabajo_feriado: trabajoFeriado,
       mes: mesSeleccionado,
       anio: anioSeleccionado,
     }
@@ -116,8 +132,7 @@ export default function ManoDeObraPage() {
   }
 
   // ========================================
-  // PDF - SIN LIBRERÍAS EXTERNAS
-  // Genera un PDF básico usando window.print
+  // PDF - CON DATO DE FERIADO
   // ========================================
   const handleExportarPDF = () => {
     const printWindow = window.open('', '_blank')
@@ -180,6 +195,7 @@ export default function ManoDeObraPage() {
         <div class="subtitle">
           Período: ${meses[mesSeleccionado]} ${anioSeleccionado}<br>
           Generado: ${new Date().toLocaleDateString('es-UY')}
+          ${feriadoDelMes ? `<br><strong>Mes con feriado: ${feriadoDelMes.nombre}</strong>` : ''}
         </div>
         
         <table>
@@ -194,6 +210,7 @@ export default function ManoDeObraPage() {
               <th>Faltas</th>
               <th>Extras</th>
               <th>Licencias</th>
+              ${feriadoDelMes ? '<th>Trabajó Feriado</th>' : ''}
             </tr>
           </thead>
           <tbody>
@@ -208,6 +225,7 @@ export default function ManoDeObraPage() {
                 <td>${emp.faltas}</td>
                 <td>${emp.horasExtras}</td>
                 <td>${emp.licencias}</td>
+                ${feriadoDelMes ? `<td>${emp.trabajoFeriado ? 'SÍ' : 'NO'}</td>` : ''}
               </tr>
             `).join('')}
           </tbody>
@@ -232,11 +250,11 @@ export default function ManoDeObraPage() {
   }
 
   // ========================================
-  // EXCEL - CSV CON FORMATO CORRECTO
+  // EXCEL - CSV CON DATO DE FERIADO
   // ========================================
   const handleExportarExcel = () => {
-    // Primera fila: Período (usando punto y coma como separador)
-    const periodo = `Período:;${meses[mesSeleccionado]} ${anioSeleccionado}`
+    // Primera fila: Período
+    const periodo = `Período:;${meses[mesSeleccionado]} ${anioSeleccionado}${feriadoDelMes ? ` (Feriado: ${feriadoDelMes.nombre})` : ''}`
     
     // Segunda fila vacía
     const vacio = ''
@@ -251,7 +269,8 @@ export default function ManoDeObraPage() {
       'Días Descanso Trabajados',
       'Faltas',
       'Horas Extras',
-      'Licencias'
+      'Licencias',
+      ...(feriadoDelMes ? ['Trabajó Feriado'] : [])
     ].join(';')
 
     // Filas de datos
@@ -264,7 +283,8 @@ export default function ManoDeObraPage() {
       emp.diasDescansoTrabajados,
       emp.faltas,
       emp.horasExtras,
-      emp.licencias
+      emp.licencias,
+      ...(feriadoDelMes ? [emp.trabajoFeriado ? 'SÍ' : 'NO'] : [])
     ].join(';')).join('\n')
 
     // Combinar todo
@@ -302,6 +322,7 @@ export default function ManoDeObraPage() {
       horasExtras: '',
       licencias: '',
     })
+    setTrabajoFeriado(false)
     setModalOpen(true)
   }
 
@@ -318,6 +339,7 @@ export default function ManoDeObraPage() {
       horasExtras: emp.horasExtras,
       licencias: emp.licencias,
     })
+    setTrabajoFeriado(emp.trabajoFeriado || false)
     setModalOpen(true)
   }
 
@@ -467,6 +489,22 @@ export default function ManoDeObraPage() {
                 </div>
               ))}
             </div>
+
+            {feriadoDelMes && (
+              <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={trabajoFeriado}
+                    onChange={(e) => setTrabajoFeriado(e.target.checked)}
+                    className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                  />
+                  <span className="text-sm font-medium text-gray-700">
+                    ¿Trabajó el feriado de {feriadoDelMes.nombre}?
+                  </span>
+                </label>
+              </div>
+            )}
 
             <div className="flex justify-end gap-3 mt-6">
               <button
