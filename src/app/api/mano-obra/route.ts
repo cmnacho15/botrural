@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma'
 // ========================================================
 export async function GET(req: Request) {
   try {
+    console.log('🔄 API Mano de Obra ejecutándose - Build:', new Date().toISOString())
     const { searchParams } = new URL(req.url)
     const mes = searchParams.get('mes')
     const anio = searchParams.get('anio')

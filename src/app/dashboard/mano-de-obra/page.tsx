@@ -77,45 +77,54 @@ export default function ManoDeObraPage() {
   }
 
   const handleGuardar = async () => {
-    if (!formData.nombre.trim()) {
-      alert('El nombre es obligatorio')
-      return
-    }
-
-    const datos = {
-      nombre: formData.nombre,
-      horas_trabajadas: Number(formData.horasTrabajadas) || 0,
-      dias_trabajados: Number(formData.diasTrabajados) || 0,
-      dias_no_trabajados: Number(formData.diasNoTrabajados) || 0,
-      feriados_trabajados: Number(formData.feriadosTrabajados) || 0,
-      dias_descanso_trabajados: Number(formData.diasDescansoTrabajados) || 0,
-      faltas: Number(formData.faltas) || 0,
-      horas_extras: Number(formData.horasExtras) || 0,
-      licencias: Number(formData.licencias) || 0,
-      trabajo_feriado: trabajoFeriado,
-      mes: mesSeleccionado,
-      anio: anioSeleccionado,
-    }
-
-    try {
-      const res = await fetch('/api/mano-obra', {
-        method: empleadoEditando ? 'PUT' : 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...datos,
-          id: empleadoEditando?.id,
-        })
-      })
-
-      if (!res.ok) throw new Error('Error guardando')
-
-      setModalOpen(false)
-      cargarDatos()
-      alert('✅ Guardado correctamente')
-    } catch (error: any) {
-      alert('❌ Error al guardar: ' + error.message)
-    }
+  if (!formData.nombre.trim()) {
+    alert('El nombre es obligatorio')
+    return
   }
+
+  const datos = {
+    nombre: formData.nombre,
+    horas_trabajadas: Number(formData.horasTrabajadas) || 0,
+    dias_trabajados: Number(formData.diasTrabajados) || 0,
+    dias_no_trabajados: Number(formData.diasNoTrabajados) || 0,
+    feriados_trabajados: Number(formData.feriadosTrabajados) || 0,
+    dias_descanso_trabajados: Number(formData.diasDescansoTrabajados) || 0,
+    faltas: Number(formData.faltas) || 0,
+    horas_extras: Number(formData.horasExtras) || 0,
+    licencias: Number(formData.licencias) || 0,
+    trabajo_feriado: trabajoFeriado,
+    mes: mesSeleccionado,
+    anio: anioSeleccionado,
+  }
+
+  console.log('📤 Enviando:', datos)
+
+  try {
+    const res = await fetch('/api/mano-obra', {
+      method: empleadoEditando ? 'PUT' : 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ...datos,
+        id: empleadoEditando?.id,
+      })
+    })
+
+    console.log('📥 Status:', res.status)
+
+    if (!res.ok) {
+      const errorData = await res.json()
+      console.error('❌ Error del servidor:', errorData)
+      throw new Error(errorData.details || errorData.error || 'Error guardando')
+    }
+
+    setModalOpen(false)
+    cargarDatos()
+    alert('✅ Guardado correctamente')
+  } catch (error: any) {
+    console.error('💥 Error completo:', error)
+    alert('❌ Error al guardar: ' + error.message)
+  }
+}
 
   const handleEliminar = async (id: number) => {
     if (!confirm('¿Eliminar este registro?')) return
