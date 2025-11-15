@@ -10,6 +10,8 @@ export async function GET(req: Request) {
     const mes = searchParams.get('mes')
     const anio = searchParams.get('anio')
 
+    console.log('🔍 API Mano de Obra v1.1 - Buscando:', { mes, anio })
+    
     if (!mes || !anio) {
       return NextResponse.json(
         { error: 'Parámetros mes y anio son requeridos' },
