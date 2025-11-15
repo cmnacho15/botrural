@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { CATEGORIAS_GASTOS, METODOS_PAGO } from '@/lib/constants'
+import { obtenerFechaLocal } from '@/lib/fechas'
 
 type ModalGastoProps = {
   onClose: () => void
@@ -18,7 +19,7 @@ type ItemGasto = {
 }
 
 export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
-  const [fecha, setFecha] = useState(new Date().toISOString().split('T')[0])
+  const [fecha, setFecha] = useState(obtenerFechaLocal())
   const [proveedor, setProveedor] = useState('')
   const [proveedoresPrevios, setProveedoresPrevios] = useState<string[]>([])
   const [mostrarSugerencias, setMostrarSugerencias] = useState(false)
@@ -120,57 +121,58 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
   const montoTotal = items.reduce((sum, item) => sum + item.precioFinal, 0)
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  e.preventDefault()
 
-    if (items.some((item) => !item.item || item.precio <= 0)) {
-      alert('Completá todos los ítems con nombre y precio válido')
-      return
-    }
-
-    if (esPlazo && diasPlazo < 1) {
-      alert('Si es pago a plazo, ingresá una cantidad de días válida')
-      return
-    }
-
-    setLoading(true)
-
-    try {
-      const baseDate = new Date(fecha)
-
-      for (let i = 0; i < items.length; i++) {
-        const item = items[i]
-        const fechaConHora = new Date(baseDate)
-        fechaConHora.setSeconds(i)
-
-        const response = await fetch('/api/eventos', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            tipo: 'GASTO',
-            fecha: fechaConHora.toISOString(),
-            descripcion: `${item.item}${notas ? ` - ${notas}` : ''}`, // ✅ Sin proveedor aquí
-            categoria: item.categoria,
-            monto: item.precioFinal,
-            metodoPago: esPlazo ? 'Plazo' : 'Contado',
-            iva: item.iva,
-            diasPlazo: esPlazo ? diasPlazo : null,
-            pagado: esPlazo ? pagado : true,
-            proveedor: proveedor.trim() || null, // ✅ Proveedor como campo separado
-          }),
-        })
-
-        if (!response.ok) throw new Error('Error al guardar')
-      }
-
-      onSuccess()
-      onClose()
-    } catch (error) {
-      console.error('Error:', error)
-      alert('Error al guardar los gastos')
-    } finally {
-      setLoading(false)
-    }
+  if (items.some((item) => !item.item || item.precio <= 0)) {
+    alert('Completá todos los ítems con nombre y precio válido')
+    return
   }
+
+  if (esPlazo && diasPlazo < 1) {
+    alert('Si es pago a plazo, ingresá una cantidad de días válida')
+    return
+  }
+
+  setLoading(true)
+
+  try {
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i]
+
+      const response = await fetch('/api/eventos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tipo: 'GASTO',
+          fecha: fecha,
+          descripcion: `${item.item}${notas ? ` - ${notas}` : ''}`,
+          categoria: item.categoria,
+          monto: item.precioFinal,
+          metodoPago: esPlazo ? 'Plazo' : 'Contado',
+          iva: item.iva,
+          diasPlazo: esPlazo ? diasPlazo : null,
+          pagado: esPlazo ? pagado : true,
+          proveedor: proveedor.trim() || null,
+        }),
+      })
+
+      if (!response.ok) throw new Error('Error al guardar')
+      
+      // ⏱️ Pequeña pausa entre items para que tengan timestamps diferentes
+      if (i < items.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 100))
+      }
+    }
+
+    onSuccess()
+    onClose()
+  } catch (error) {
+    console.error('Error:', error)
+    alert('Error al guardar los gastos')
+  } finally {
+    setLoading(false)
+  }
+}
 
   // Filtrar proveedores según lo que el usuario escribe
   const proveedoresFiltrados = proveedoresPrevios.filter(p =>
