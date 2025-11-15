@@ -40,17 +40,37 @@ const TIPOS_CULTIVO = [
   'Cebada', 'Avena', 'Arroz', 'Alfalfa', 'Pradera'
 ]
 
-// 🐄 Categorías animales
-const CATEGORIAS_ANIMAL = [
-  'Vacas', 'Vaquillonas', 'Toros', 'Toritos',
-  'Terneros', 'Terneras', 'Terneros/as',
-  'Novillos', 'Novillitos',
-  // Ovinos
-  'Borregas', 'Borregos', 'Carneros', 'Corderos', 'Ovejas',
-  
-  // Equinos
-  'Caballos', 'Yeguas', 'Potros', 'Potrancas',
-]
+// 🐄 Categorías animales actualizadas
+const CATEGORIAS_ANIMAL = {
+  'VACUNOS': [
+    'Toros',
+    'Vacas',
+    'Novillos +3 años y Bueyes',
+    'Novillos 2–3 años',
+    'Novillos 1–2 años',
+    'Vaquillonas +2 años',
+    'Vaquillonas 1–2 años',
+    'Terneros/as'
+  ],
+  'OVINOS': [
+    'Carneros',
+    'Ovejas',
+    'Capones',
+    'Borregas 2–4 dientes',
+    'Corderas DL',
+    'Corderos DL',
+    'Corderos/as Mamones'
+  ],
+  'YEGUARIZOS': [
+    'Padrillos',
+    'Yeguas',
+    'Caballos',
+    'Potrillos'
+  ]
+}
+
+
+console.log('🔍 CATEGORIAS_ANIMAL VERSION:', JSON.stringify(CATEGORIAS_ANIMAL).substring(0, 100))
 
 export default function NuevoLotePage() {
   const router = useRouter()
@@ -139,70 +159,68 @@ export default function NuevoLotePage() {
     setAnimales(animales.map(a => (a.id === id ? { ...a, [campo]: valor } : a)))
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-  e.preventDefault()
-  if (!poligono) return alert('Dibujá la ubicación del potrero en el mapa')
+    e.preventDefault()
+    if (!poligono) return alert('Dibujá la ubicación del potrero en el mapa')
 
-  setLoading(true)
+    setLoading(true)
 
-  try {
-    const hectareasFinales = hectareasCalculadas || parseFloat(hectareasManual)
-    const cultivosValidos = cultivos
-  .filter(c => c.tipoCultivo) // Solo requiere tipo de cultivo
-  .map(c => ({
-    ...c,
-    hectareas: c.hectareas || hectareasFinales.toString() // Si no tiene, usa total del potrero
-  }))
-    const animalesValidos = animales.filter(a => a.categoria && a.cantidad)
+    try {
+      const hectareasFinales = hectareasCalculadas || parseFloat(hectareasManual)
+      const cultivosValidos = cultivos
+        .filter(c => c.tipoCultivo)
+        .map(c => ({
+          ...c,
+          hectareas: c.hectareas || hectareasFinales.toString()
+        }))
+      const animalesValidos = animales.filter(a => a.categoria && a.cantidad)
 
-    // 🔥 AGREGAR LOGS DE DEBUG
-    console.log('📤 ENVIANDO AL BACKEND...')
-    console.log('👉 Cultivos válidos:', cultivosValidos)
-    console.log('👉 Animales válidos:', animalesValidos)
+      console.log('📤 ENVIANDO AL BACKEND...')
+      console.log('👉 Cultivos válidos:', cultivosValidos)
+      console.log('👉 Animales válidos:', animalesValidos)
 
-    const payload = {
-      nombre,
-      hectareas: hectareasFinales,
-      poligono,
-      cultivos: cultivosValidos,
-      animales: animalesValidos,
-    }
-
-    console.log('📦 PAYLOAD COMPLETO:', JSON.stringify(payload, null, 2))
-
-    const response = await fetch('/api/lotes', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    })
-
-    console.log('📥 RESPUESTA DEL SERVER:', response.status)
-
-    if (response.ok) {
-      const result = await response.json()
-      console.log('✅ LOTE CREADO:', result)
-
-      // Guardar último centro del polígono
-      if (poligono.length > 0) {
-        const center = poligono
-          .reduce((acc, point) => [acc[0] + point[0], acc[1] + point[1]], [0, 0])
-          .map(v => v / poligono.length) as [number, number]
-
-        localStorage.setItem('lastPotreroCenter', JSON.stringify(center))
+      const payload = {
+        nombre,
+        hectareas: hectareasFinales,
+        poligono,
+        cultivos: cultivosValidos,
+        animales: animalesValidos,
       }
 
-      router.push('/dashboard/lotes')
-      router.refresh()
-    } else {
-      console.error('❌ ERROR:', await response.text())
+      console.log('📦 PAYLOAD COMPLETO:', JSON.stringify(payload, null, 2))
+
+      const response = await fetch('/api/lotes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+
+      console.log('📥 RESPUESTA DEL SERVER:', response.status)
+
+      if (response.ok) {
+        const result = await response.json()
+        console.log('✅ LOTE CREADO:', result)
+
+        if (poligono.length > 0) {
+          const center = poligono
+            .reduce((acc, point) => [acc[0] + point[0], acc[1] + point[1]], [0, 0])
+            .map(v => v / poligono.length) as [number, number]
+
+          localStorage.setItem('lastPotreroCenter', JSON.stringify(center))
+        }
+
+        router.push('/dashboard/lotes')
+        router.refresh()
+      } else {
+        console.error('❌ ERROR:', await response.text())
+        alert('Error al crear el potrero')
+      }
+    } catch (error) {
+      console.error('💥 Error creando lote:', error)
       alert('Error al crear el potrero')
+    } finally {
+      setLoading(false)
     }
-  } catch (error) {
-    console.error('💥 Error creando lote:', error)
-    alert('Error al crear el potrero')
-  } finally {
-    setLoading(false)
   }
-}
 
   const handlePolygonComplete = (coordinates: number[][], areaHectareas: number) => {
     setPoligono(coordinates)
@@ -212,13 +230,13 @@ export default function NuevoLotePage() {
   }
 
   const potrerosParaMapa = lotesExistentes
-  .filter(l => l.poligono && l.poligono.length > 0)
-  .map((l, i) => ({
-    id: l.id,
-    nombre: l.nombre,
-    coordinates: l.poligono,
-    color: ['#ef4444', '#84cc16', '#06b6d4', '#8b5cf6'][i % 4],
-  }))
+    .filter(l => l.poligono && l.poligono.length > 0)
+    .map((l, i) => ({
+      id: l.id,
+      nombre: l.nombre,
+      coordinates: l.poligono,
+      color: ['#ef4444', '#84cc16', '#06b6d4', '#8b5cf6'][i % 4],
+    }))
 
   return (
     <div className="min-h-screen bg-gray-50 p-6 text-gray-900">
@@ -287,7 +305,7 @@ export default function NuevoLotePage() {
                     type="number"
                     value={c.hectareas}
                     onChange={e => actualizarCultivo(c.id, 'hectareas', e.target.value)}
-                    placeholder="(total potrero)"  // 👈 Texto que indica que es opcional
+                    placeholder="(total potrero)"
                     className="w-24 border border-gray-300 rounded px-3 py-2"
                   />
                   <button onClick={() => eliminarCultivo(c.id)} type="button" className="text-red-600">🗑️</button>
@@ -320,10 +338,28 @@ export default function NuevoLotePage() {
                     onChange={e => actualizarAnimal(a.id, 'categoria', e.target.value)}
                     className="flex-1 border border-gray-300 rounded px-3 py-2"
                   >
-                    <option value="">Categoría</option>
-                    {CATEGORIAS_ANIMAL.map(c => (
-                      <option key={c}>{c}</option>
-                    ))}
+                    <option value="">Seleccionar categoría</option>
+                    
+                    {/* VACUNOS */}
+                    <optgroup label="🐄 VACUNOS">
+                      {CATEGORIAS_ANIMAL.VACUNOS.map(cat => (
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))}
+                    </optgroup>
+
+                    {/* OVINOS */}
+                    <optgroup label="🐑 OVINOS">
+                      {CATEGORIAS_ANIMAL.OVINOS.map(cat => (
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))}
+                    </optgroup>
+
+                    {/* YEGUARIZOS */}
+                    <optgroup label="🐴 YEGUARIZOS">
+                      {CATEGORIAS_ANIMAL.YEGUARIZOS.map(cat => (
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))}
+                    </optgroup>
                   </select>
                   <button onClick={() => eliminarAnimal(a.id)} type="button" className="text-red-600">🗑️</button>
                 </div>
