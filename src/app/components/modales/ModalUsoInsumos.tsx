@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { obtenerFechaLocal } from '@/lib/fechas'
 
 type Insumo = {
   id: string
@@ -15,7 +16,7 @@ type ModalUsoInsumosProps = {
 }
 
 export default function ModalUsoInsumos({ onClose, onSuccess }: ModalUsoInsumosProps) {
-  const [fecha, setFecha] = useState(new Date().toISOString().split('T')[0])
+  const [fecha, setFecha] = useState(obtenerFechaLocal())
   const [insumoId, setInsumoId] = useState('')
   const [cantidad, setCantidad] = useState('')
   const [notas, setNotas] = useState('')

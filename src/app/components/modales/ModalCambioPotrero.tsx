@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { obtenerFechaLocal } from '@/lib/fechas'
 
 type ModalCambioPotreroProps = {
   onClose: () => void
@@ -19,7 +20,7 @@ type AnimalLote = {
 }
 
 export default function ModalCambioPotrero({ onClose, onSuccess }: ModalCambioPotreroProps) {
-  const [fecha, setFecha] = useState(new Date().toISOString().split('T')[0])
+  const [fecha, setFecha] = useState(obtenerFechaLocal())
   const [potreros, setPotreros] = useState<Lote[]>([])
   const [potreroOrigen, setPotreroOrigen] = useState('')
   const [potreroDestino, setPotreroDestino] = useState('')
@@ -96,7 +97,7 @@ export default function ModalCambioPotrero({ onClose, onSuccess }: ModalCambioPo
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           tipo: 'CAMBIO_POTRERO',
-          fecha: new Date(fecha),
+          fecha: fecha,  // ✅ Enviar el string directamente
           descripcion: `Cambio de ${cantidad} ${categoriaSeleccionada} al ${potreros.find(p => p.id === potreroDestino)?.nombre}`,
           loteId: potreroOrigen,
           loteDestinoId: potreroDestino,
