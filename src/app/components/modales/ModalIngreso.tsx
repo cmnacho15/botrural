@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { obtenerFechaLocal } from '@/lib/fechas'
 
 type ModalIngresoProps = {
   onClose: () => void
@@ -19,7 +20,7 @@ type ItemIngreso = {
 }
 
 export default function ModalIngreso({ onClose, onSuccess }: ModalIngresoProps) {
-  const [fecha, setFecha] = useState(new Date().toISOString().split('T')[0])
+  const [fecha, setFecha] = useState(obtenerFechaLocal())
   const [comprador, setComprador] = useState('')
   const [moneda, setMoneda] = useState('UYU')
   

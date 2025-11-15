@@ -65,7 +65,7 @@ export default function ManoDeObraPage() {
         faltas: emp.faltas,
         horasExtras: emp.horas_extras,
         licencias: emp.licencias,
-        trabajoFeriado: emp.trabajo_feriado || false,
+        trabajoFeriado: emp.trabajo_feriado === true || emp.trabajo_feriado === 1
       }))
 
       setEmpleados(empleadosMapeados)
