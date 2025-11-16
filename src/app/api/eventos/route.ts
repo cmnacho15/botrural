@@ -58,7 +58,7 @@ export async function POST(request: Request) {
       data: {
         tipo,
         descripcion,
-        fecha: fecha ? new Date(fecha + 'T' + new Date().toISOString().split('T')[1]) : new Date(),
+        fecha: crearFechaConHoraActual(fecha),
         cantidad: cantidad ? parseInt(cantidad) : null,
         categoria: categoria || null,
         monto: monto ? parseFloat(monto) : null,
