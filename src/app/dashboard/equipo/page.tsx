@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { UserPlus, Shield, DollarSign } from "lucide-react"
-import ModalInvitarUsuario from "@/components/modales/ModalInvitarUsuario"
-
+import ModalInvitarUsuario from "@/app/components/modales/ModalInvitarUsuario"
 interface Usuario {
   id: string
   nombre: string

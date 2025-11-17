@@ -67,7 +67,7 @@ export async function POST(req: Request) {
 
     const { role } = await req.json();
 
-    if (!["ADMIN", "USUARIO"].includes(role)) {
+    if (!["COLABORADOR", "EMPLEADO", "CONTADOR"].includes(role)) {
       return NextResponse.json({ error: "Rol inválido" }, { status: 400 });
     }
 

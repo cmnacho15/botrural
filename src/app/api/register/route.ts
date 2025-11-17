@@ -1,81 +1,91 @@
-import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import bcrypt from "bcryptjs";
+import { NextResponse } from "next/server"
+import { prisma } from "@/lib/prisma"
+import bcrypt from "bcryptjs"
 
-// 📩 POST /api/register
+/**
+ * 🚀 POST - Registro del primer usuario (ADMIN_GENERAL)
+ * 
+ * Este endpoint solo debe usarse para crear el PRIMER usuario del sistema.
+ * Verifica que no existan usuarios previos antes de crear.
+ */
 export async function POST(request: Request) {
   try {
-    const { name, email, password } = await request.json();
+    const { name, email, password, campoNombre } = await request.json()
 
-    // 🔍 Validaciones básicas
-    if (!email || !password || !name) {
+    // 🔒 Validaciones
+    if (!name || !email || !password || !campoNombre) {
       return NextResponse.json(
-        { error: "Nombre, email y contraseña son requeridos" },
+        { error: "Todos los campos son requeridos" },
         { status: 400 }
-      );
+      )
     }
 
-    // 📧 Validar formato de email
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    // 🔍 Verificar que no exista ningún usuario en el sistema
+    const userCount = await prisma.user.count()
+    if (userCount > 0) {
       return NextResponse.json(
-        { error: "El formato de email no es válido" },
-        { status: 400 }
-      );
+        { error: "El sistema ya tiene usuarios registrados. Use el sistema de invitaciones." },
+        { status: 403 }
+      )
     }
 
-    // 🔒 Validar longitud de contraseña
-    if (password.length < 6) {
-      return NextResponse.json(
-        { error: "La contraseña debe tener al menos 6 caracteres" },
-        { status: 400 }
-      );
-    }
-
-    // ⚠️ Verificar si ya existe el usuario
+    // 🔍 Verificar que el email no esté en uso
     const existingUser = await prisma.user.findUnique({
-      where: { email: email.toLowerCase() },
-    });
+      where: { email },
+    })
 
     if (existingUser) {
       return NextResponse.json(
         { error: "El email ya está registrado" },
-        { status: 409 }
-      );
+        { status: 400 }
+      )
     }
 
-    // 🔐 Encriptar contraseña
-    const hashedPassword = await bcrypt.hash(password, 10);
+    // 🔐 Hash de contraseña
+    const hashedPassword = await bcrypt.hash(password, 10)
 
-    // 👤 Crear usuario con rol ADMIN (primer usuario del campo)
-    const user = await prisma.user.create({
-      data: {
-        name,
-        email: email.toLowerCase(),
-        password: hashedPassword,
-        role: "ADMIN", // ✅ primer registro siempre será ADMIN
-        campoId: null, // todavía no tiene un campo asignado
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        createdAt: true,
-      },
-    });
+    // 🏗️ Crear campo y usuario ADMIN_GENERAL en transacción
+    const result = await prisma.$transaction(async (tx) => {
+      // Crear campo
+      const campo = await tx.campo.create({
+        data: { nombre: campoNombre },
+      })
 
-    console.log("✅ Nuevo usuario admin registrado:", user);
+      // Crear usuario ADMIN_GENERAL
+      const user = await tx.user.create({
+        data: {
+          name,
+          email,
+          password: hashedPassword,
+          role: "ADMIN_GENERAL",
+          accesoFinanzas: true, // ✅ Admin siempre tiene acceso a finanzas
+          campoId: campo.id,
+        },
+      })
+
+      return { user, campo }
+    })
+
+    console.log(`✅ Primer usuario creado: ${result.user.email} (ADMIN_GENERAL)`)
+    console.log(`✅ Campo creado: ${result.campo.nombre}`)
 
     return NextResponse.json(
-      { success: true, message: "Usuario registrado correctamente", user },
+      {
+        message: "Registro exitoso como Administrador General",
+        user: {
+          id: result.user.id,
+          name: result.user.name,
+          email: result.user.email,
+          role: result.user.role,
+        },
+      },
       { status: 201 }
-    );
+    )
   } catch (error) {
-    console.error("💥 Error al registrar usuario:", error);
+    console.error("💥 Error en /api/register:", error)
     return NextResponse.json(
       { error: "Error interno al registrar usuario" },
       { status: 500 }
-    );
+    )
   }
 }

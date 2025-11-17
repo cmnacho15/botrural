@@ -49,7 +49,7 @@ export async function POST(req: Request) {
     // 👑 Asignar campoId al usuario y rol ADMIN
     await prisma.user.update({
       where: { id: session.user.id },
-      data: { campoId: campo.id, role: "ADMIN" },
+      data: { campoId: campo.id, role: "ADMIN_GENERAL" },
     });
 
     console.log(`✅ Campo creado: ${campo.nombre} (asociado a ${session.user.email})`);

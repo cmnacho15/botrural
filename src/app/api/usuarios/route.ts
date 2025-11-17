@@ -43,7 +43,7 @@ export async function GET() {
       id: u.id,
       nombre: u.name || "Sin nombre",
       email: u.email || "Sin email",
-      rol: u.role === "ADMIN"
+      rol: u.role === "ADMIN_GENERAL"
         ? "Administrador con Datos Finanzas"
         : "Usuario",
       datosIngresados: u._count.eventos,
