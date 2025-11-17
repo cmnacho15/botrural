@@ -37,7 +37,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const fetchCampoNombre = async () => {
       try {
-        const res = await fetch("/api/usuarios/campos");
+        const res = await fetch("/api/usuarios/campo"); // ✅ Sin la 's'
         const data = await res.json();
         if (data.campoNombre) {
           setCampoNombre(data.campoNombre);
