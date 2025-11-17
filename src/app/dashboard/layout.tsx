@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { useState } from "react";
+import { useSession } from "next-auth/react";
 
 import { DatosProvider } from "@/app/contexts/DatosContext";
 import { InsumosProvider } from "@/app/contexts/InsumosContext";
@@ -24,7 +25,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
 function LayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-
+  const { data: session } = useSession();
+  
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [modalTipo, setModalTipo] = useState<string | null>(null);
@@ -36,34 +38,68 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
 
   const closeModal = () => setModalTipo(null);
 
-  // MENÚ LATERAL
-  const menuSections = [
+  // Obtener rol y permisos del usuario
+  const userRole = session?.user?.role || "COLABORADOR";
+  const accesoFinanzas = session?.user?.accesoFinanzas || false; // ✅ Nuevo
+  const isContador = userRole === "CONTADOR";
+
+  // MENÚ LATERAL CON PERMISOS
+  const allMenuSections = [
     {
       title: "Mi Campo",
       items: [
-        { href: "/dashboard/empezar", icon: "🚀", label: "Cómo Empezar" },
-        { href: "/dashboard", icon: "📊", label: "Resumen" },
-        { href: "/dashboard/datos", icon: "📝", label: "Datos" },
-        { href: "/dashboard/mapa", icon: "🗺️", label: "Mapa" },
+        { href: "/dashboard/empezar", icon: "🚀", label: "Cómo Empezar", roles: ["ADMIN_GENERAL", "COLABORADOR"], requiresFinance: false },
+        { href: "/dashboard", icon: "📊", label: "Resumen", roles: ["ADMIN_GENERAL", "COLABORADOR", "CONTADOR"], requiresFinance: false },
+        { href: "/dashboard/datos", icon: "📝", label: "Datos", roles: ["ADMIN_GENERAL", "COLABORADOR"], requiresFinance: false },
+        { href: "/dashboard/mapa", icon: "🗺️", label: "Mapa", roles: ["ADMIN_GENERAL", "COLABORADOR"], requiresFinance: false },
       ],
     },
     {
       title: "Gestión",
       items: [
-        { href: "/dashboard/lotes", icon: "🏞️", label: "Potreros" },
-        { href: "/dashboard/insumos", icon: "📦", label: "Insumos" },
-        { href: "/dashboard/mano-de-obra", icon: "👷", label: "Mano de Obra" },
-        { href: "/dashboard/gastos", icon: "💰", label: "Gastos" },
+        { href: "/dashboard/lotes", icon: "🏞️", label: "Potreros", roles: ["ADMIN_GENERAL", "COLABORADOR"], requiresFinance: false },
+        { href: "/dashboard/insumos", icon: "📦", label: "Insumos", roles: ["ADMIN_GENERAL", "COLABORADOR"], requiresFinance: false },
+        { href: "/dashboard/mano-de-obra", icon: "👷", label: "Mano de Obra", roles: ["ADMIN_GENERAL", "COLABORADOR", "CONTADOR"], requiresFinance: false },
+        { 
+          href: "/dashboard/gastos", 
+          icon: "💰", 
+          label: "Gastos", 
+          roles: ["ADMIN_GENERAL", "COLABORADOR", "CONTADOR"], 
+          requiresFinance: true // ✅ Solo este requiere finanzas
+        },
       ],
     },
     {
       title: "Configuración",
       items: [
-        { href: "/dashboard/equipo", icon: "👥", label: "Equipo" },
-        { href: "/dashboard/preferencias", icon: "⚙️", label: "Preferencias" },
+        { href: "/dashboard/equipo", icon: "👥", label: "Equipo", roles: ["ADMIN_GENERAL"], requiresFinance: false },
+        { href: "/dashboard/preferencias", icon: "⚙️", label: "Preferencias", roles: ["ADMIN_GENERAL", "COLABORADOR"], requiresFinance: false },
       ],
     },
   ];
+
+  // ✅ Filtrar menú según rol Y permisos de finanzas
+  const menuSections = allMenuSections
+    .map(section => ({
+      ...section,
+      items: section.items.filter((item: any) => {
+        // Si el item requiere acceso a finanzas
+        if (item.requiresFinance) {
+          // ADMIN y CONTADOR siempre lo ven
+          if (userRole === "ADMIN_GENERAL" || userRole === "CONTADOR") {
+            return true;
+          }
+          // COLABORADOR solo si tiene accesoFinanzas
+          if (userRole === "COLABORADOR") {
+            return accesoFinanzas;
+          }
+          return false;
+        }
+        // Items normales: verificar roles
+        return item.roles.includes(userRole);
+      })
+    }))
+    .filter(section => section.items.length > 0);
 
   return (
     <div className="flex flex-col h-screen bg-gray-50">
@@ -81,17 +117,19 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
           <span className="text-xl font-bold text-gray-900">BotRural</span>
         </div>
 
-        {/* BOTÓN NUEVO DATO */}
-        <button
-          onClick={() => setMenuOpen((prev) => !prev)}
-          className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
-        >
-          ＋ Nuevo Dato
-        </button>
+        {/* BOTÓN NUEVO DATO - Solo para ADMIN_GENERAL y COLABORADOR */}
+        {!isContador && (
+          <button
+            onClick={() => setMenuOpen((prev) => !prev)}
+            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+          >
+            ＋ Nuevo Dato
+          </button>
+        )}
       </header>
 
-      {/* MENÚ GIGANTE DE EVENTOS - 5 COLUMNAS */}
-      {menuOpen && (
+      {/* MENÚ GIGANTE DE EVENTOS - Solo para ADMIN_GENERAL y COLABORADOR */}
+      {menuOpen && !isContador && (
         <div 
           className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40 flex justify-center items-start pt-10 p-4"
           onClick={() => setMenuOpen(false)}
@@ -245,7 +283,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
               <div key={i}>
                 <h3 className="text-xs text-gray-500 px-4 mb-2">{section.title}</h3>
 
-                {section.items.map((item) => {
+                {section.items.map((item: any) => {
                   const isActive = pathname.startsWith(item.href);
                   return (
                     <Link

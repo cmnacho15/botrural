@@ -6,8 +6,8 @@ declare module "next-auth" {
     email: string
     name: string
     role: string
-    roleCode?: string        // 👈 FALTABA ESTO
-    accesoFinanzas?: boolean
+    roleCode: string
+    accesoFinanzas: boolean // ✅ Quitar el "?"
     campoId?: string
   }
 
@@ -17,8 +17,8 @@ declare module "next-auth" {
       email: string
       name: string
       role: string
-      roleCode?: string      // 👈 FALTABA ESTO
-      accesoFinanzas?: boolean
+      roleCode: string
+      accesoFinanzas: boolean // ✅ Quitar el "?"
       campoId?: string
     }
   }
@@ -28,8 +28,8 @@ declare module "next-auth/jwt" {
   interface JWT {
     id: string
     role: string
-    roleCode?: string        // 👈 FALTABA ESTO
-    accesoFinanzas?: boolean
+    roleCode: string
+    accesoFinanzas: boolean // ✅ Quitar el "?"
     campoId?: string
   }
 }
