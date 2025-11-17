@@ -92,13 +92,19 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
 
       {/* MENÚ GIGANTE DE EVENTOS - 5 COLUMNAS */}
       {menuOpen && (
-        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40 flex justify-center items-start pt-10 p-4">
-          <div className="bg-white rounded-xl shadow-2xl p-8 max-w-5xl w-full">
+        <div 
+          className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40 flex justify-center items-start pt-10 p-4"
+          onClick={() => setMenuOpen(false)}
+        >
+          <div 
+            className="bg-white rounded-xl shadow-2xl p-8 max-w-5xl w-full relative"
+            onClick={(e) => e.stopPropagation()}
+          >
             
             {/* Botón cerrar */}
             <button
               onClick={() => setMenuOpen(false)}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-2xl"
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-3xl leading-none"
             >
               ×
             </button>
@@ -107,102 +113,120 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
               
               {/* ANIMALES */}
               <div>
-                <h3 className="font-semibold mb-3 text-gray-700 text-sm uppercase tracking-wide">Animales</h3>
-                {[
-                  ["cambio-potrero", "Cambio De Potrero"],
-                  ["tratamiento", "Tratamiento"],
-                  ["venta", "Venta"],
-                  ["compra", "Compra"],
-                  ["traslado", "Traslado"],
-                  ["nacimiento", "Nacimiento"],
-                  ["mortandad", "Mortandad"],
-                  ["consumo", "Consumo"],
-                  ["aborto", "Aborto"],
-                  ["destete", "Destete"],
-                  ["tacto", "Tacto"],
-                  ["recategorizacion", "Recategorización"],
-                ].map(([tipo, label]) => (
-                  <p
-                    key={tipo}
-                    onClick={() => openModal(tipo)}
-                    className="cursor-pointer text-sm py-1.5 px-2 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                  >
-                    {label}
-                  </p>
-                ))}
+                <h3 className="font-bold mb-4 text-gray-800 text-sm uppercase tracking-wide">ANIMALES</h3>
+                <div className="space-y-1">
+                  {[
+                    ["cambio-potrero", "🔄", "Cambio De Potrero"],
+                    ["tratamiento", "💉", "Tratamiento"],
+                    ["venta", "💵", "Venta"],
+                    ["compra", "🛒", "Compra"],
+                    ["traslado", "🚚", "Traslado"],
+                    ["nacimiento", "🐄", "Nacimiento"],
+                    ["mortandad", "💀", "Mortandad"],
+                    ["consumo", "🥩", "Consumo"],
+                    ["aborto", "❌", "Aborto"],
+                    ["destete", "🍼", "Destete"],
+                    ["tacto", "✋", "Tacto"],
+                    ["recategorizacion", "🏷️", "Recategorización"],
+                  ].map(([tipo, emoji, label]) => (
+                    <button
+                      key={tipo}
+                      onClick={() => openModal(tipo)}
+                      className="w-full text-left flex items-center gap-2 text-sm py-2 px-3 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                    >
+                      <span className="text-base">{emoji}</span>
+                      <span>{label}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {/* AGRICULTURA */}
               <div>
-                <h3 className="font-semibold mb-3 text-gray-700 text-sm uppercase tracking-wide">Agricultura</h3>
-                {[
-                  ["siembra", "Siembra"],
-                  ["pulverizacion", "Pulverización"],
-                  ["refertilizacion", "Refertilización"],
-                  ["riego", "Riego"],
-                  ["monitoreo", "Monitoreo"],
-                  ["cosecha", "Cosecha"],
-                  ["otros-labores", "Otros Labores"],
-                ].map(([tipo, label]) => (
-                  <p
-                    key={tipo}
-                    onClick={() => openModal(tipo)}
-                    className="cursor-pointer text-sm py-1.5 px-2 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                  >
-                    {label}
-                  </p>
-                ))}
+                <h3 className="font-bold mb-4 text-gray-800 text-sm uppercase tracking-wide">AGRICULTURA</h3>
+                <div className="space-y-1">
+                  {[
+                    ["siembra", "🌱", "Siembra"],
+                    ["pulverizacion", "💧", "Pulverización"],
+                    ["refertilizacion", "🌿", "Refertilización"],
+                    ["riego", "💦", "Riego"],
+                    ["monitoreo", "🔍", "Monitoreo"],
+                    ["cosecha", "🌾", "Cosecha"],
+                    ["otros-labores", "🔧", "Otros Labores"],
+                  ].map(([tipo, emoji, label]) => (
+                    <button
+                      key={tipo}
+                      onClick={() => openModal(tipo)}
+                      className="w-full text-left flex items-center gap-2 text-sm py-2 px-3 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                    >
+                      <span className="text-base">{emoji}</span>
+                      <span>{label}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {/* CLIMA */}
               <div>
-                <h3 className="font-semibold mb-3 text-gray-700 text-sm uppercase tracking-wide">Clima</h3>
-                <p 
-                  onClick={() => openModal("lluvia")} 
-                  className="cursor-pointer text-sm py-1.5 px-2 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                >
-                  Lluvia
-                </p>
-                <p 
-                  onClick={() => openModal("helada")} 
-                  className="cursor-pointer text-sm py-1.5 px-2 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                >
-                  Helada
-                </p>
+                <h3 className="font-bold mb-4 text-gray-800 text-sm uppercase tracking-wide">CLIMA</h3>
+                <div className="space-y-1">
+                  <button
+                    onClick={() => openModal("lluvia")} 
+                    className="w-full text-left flex items-center gap-2 text-sm py-2 px-3 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                  >
+                    <span className="text-base">🌧️</span>
+                    <span>Lluvia</span>
+                  </button>
+                  <button
+                    onClick={() => openModal("helada")} 
+                    className="w-full text-left flex items-center gap-2 text-sm py-2 px-3 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                  >
+                    <span className="text-base">❄️</span>
+                    <span>Helada</span>
+                  </button>
+                </div>
               </div>
 
               {/* INSUMOS */}
               <div>
-                <h3 className="font-semibold mb-3 text-gray-700 text-sm uppercase tracking-wide">Insumos</h3>
-                <p 
-                  onClick={() => openModal("uso-insumos")} 
-                  className="cursor-pointer text-sm py-1.5 px-2 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                >
-                  Uso
-                </p>
-                <p 
-                  onClick={() => openModal("ingreso-insumos")} 
-                  className="cursor-pointer text-sm py-1.5 px-2 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                >
-                  Ingreso
-                </p>
+                <h3 className="font-bold mb-4 text-gray-800 text-sm uppercase tracking-wide">INSUMOS</h3>
+                <div className="space-y-1">
+                  <button
+                    onClick={() => openModal("uso-insumos")} 
+                    className="w-full text-left flex items-center gap-2 text-sm py-2 px-3 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                  >
+                    <span className="text-base">📤</span>
+                    <span>Uso</span>
+                  </button>
+                  <button
+                    onClick={() => openModal("ingreso-insumos")} 
+                    className="w-full text-left flex items-center gap-2 text-sm py-2 px-3 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                  >
+                    <span className="text-base">📥</span>
+                    <span>Ingreso</span>
+                  </button>
+                </div>
               </div>
 
               {/* FINANZAS */}
               <div>
-                <h3 className="font-semibold mb-3 text-gray-700 text-sm uppercase tracking-wide">Finanzas</h3>
-                <p 
-                  onClick={() => openModal("gasto")} 
-                  className="cursor-pointer text-sm py-1.5 px-2 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                >
-                  Gasto
-                </p>
-                <p 
-                  onClick={() => openModal("ingreso")} 
-                  className="cursor-pointer text-sm py-1.5 px-2 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                >
-                  Ingreso
-                </p>
+                <h3 className="font-bold mb-4 text-gray-800 text-sm uppercase tracking-wide">FINANZAS</h3>
+                <div className="space-y-1">
+                  <button
+                    onClick={() => openModal("gasto")} 
+                    className="w-full text-left flex items-center gap-2 text-sm py-2 px-3 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                  >
+                    <span className="text-base">💰</span>
+                    <span>Gasto</span>
+                  </button>
+                  <button
+                    onClick={() => openModal("ingreso")} 
+                    className="w-full text-left flex items-center gap-2 text-sm py-2 px-3 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                  >
+                    <span className="text-base">✅</span>
+                    <span>Ingreso</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
