@@ -59,7 +59,7 @@ export default function ModalNuevoDato({
     handleSuccess()
   } catch (error) {
     console.error('Error:', error)
-    // ✅ NO MOSTRAR ALERT, SOLO LOG
+    // No mostrar alert, solo registrar en consola
   }
 }
 

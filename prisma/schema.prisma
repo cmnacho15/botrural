@@ -8,41 +8,43 @@ datasource db {
 }
 
 model User {
-  id                    String    @id @default(cuid())
-  email                 String?   @unique
+  id                    String       @id @default(cuid())
+  email                 String?      @unique
   name                  String?
+  apellido              String? // ✅ NUEVO - Para empleados sin email
   password              String?
-  role                  Role      @default(USUARIO)
+  role                  Role         @default(COLABORADOR)
+  accesoFinanzas        Boolean      @default(false) // ✅ NUEVO
   campoId               String?
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
-  lastMessageAt         DateTime? @db.Timestamp(6)
-  onboardingCompletedAt DateTime? @db.Timestamp(6)
-  onboardingStartedAt   DateTime? @db.Timestamp(6)
-  telefono              String?   @unique
-  whatsappState         String?   @default("IDLE")
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
+  lastMessageAt         DateTime?    @db.Timestamp(6)
+  onboardingCompletedAt DateTime?    @db.Timestamp(6)
+  onboardingStartedAt   DateTime?    @db.Timestamp(6)
+  telefono              String?      @unique
+  whatsappState         String?      @default("IDLE")
   accounts              Account[]
   eventos               Evento[]
   createdInvitations    Invitation[] @relation("CreatedInvitations")
   usedInvitations       Invitation[] @relation("UsedInvitations")
   sessions              Session[]
-  campo                 Campo?    @relation(fields: [campoId], references: [id])
+  campo                 Campo?       @relation(fields: [campoId], references: [id])
 }
 
 model Account {
-  id                 String  @id @default(cuid())
-  userId             String
-  type               String
-  provider           String
-  providerAccountId  String
-  refresh_token      String?
-  access_token       String?
-  expires_at         Int?
-  token_type         String?
-  scope              String?
-  id_token           String?
-  session_state      String?
-  user               User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
 }
@@ -57,39 +59,40 @@ model Session {
 
 model VerificationToken {
   identifier String
-  token      String    @unique
+  token      String   @unique
   expires    DateTime
 
   @@unique([identifier, token])
 }
 
 model Campo {
-  id         String     @id @default(cuid())
-  nombre     String
-  createdAt  DateTime   @default(now())
-  updatedAt  DateTime   @updatedAt
-  eventos    Evento[]
-  gastos     Gasto[]
-  insumos    Insumo[]
+  id          String       @id @default(cuid())
+  nombre      String
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  eventos     Evento[]
+  gastos      Gasto[]
+  insumos     Insumo[]
   invitations Invitation[]
-  lotes      Lote[]
-  usuarios   User[]
+  lotes       Lote[]
+  usuarios    User[]
+  manoObras   ManoObra[]
 }
 
 model Lote {
-  id               String           @id @default(cuid())
-  nombre           String
-  hectareas        Float
-  poligono         Json?
-  ultimoCambio      DateTime  @default(now()) // ← NUEVO CAMPO
-  campoId          String
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
-  animalesLote     AnimalLote[]
-  cultivos         Cultivo[]
-  eventos          Evento[]
-  gastos           Gasto[]
-  campo            Campo            @relation(fields: [campoId], references: [id], onDelete: Cascade)
+  id                String             @id @default(cuid())
+  nombre            String
+  hectareas         Float
+  poligono          Json?
+  ultimoCambio      DateTime           @default(now())
+  campoId           String
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  animalesLote      AnimalLote[]
+  cultivos          Cultivo[]
+  eventos           Evento[]
+  gastos            Gasto[]
+  campo             Campo              @relation(fields: [campoId], references: [id], onDelete: Cascade)
   movimientosInsumo MovimientoInsumo[]
 }
 
@@ -148,14 +151,14 @@ model Evento {
 }
 
 model Insumo {
-  id        String   @id @default(cuid())
-  nombre    String
-  unidad    String
-  campoId   String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  stock     Float    @default(0)
-  campo     Campo    @relation(fields: [campoId], references: [id], onDelete: Cascade)
+  id          String             @id @default(cuid())
+  nombre      String
+  unidad      String
+  campoId     String
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  stock       Float              @default(0)
+  campo       Campo              @relation(fields: [campoId], references: [id], onDelete: Cascade)
   movimientos MovimientoInsumo[]
 }
 
@@ -193,8 +196,6 @@ model Gasto {
   campo           Campo     @relation(fields: [campoId], references: [id])
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
-
-  // ✅ NUEVOS CAMPOS AGREGADOS
   animalLoteId    String?
   cantidadVendida Int?
 
@@ -204,44 +205,56 @@ model Gasto {
 }
 
 model Invitation {
-  id          String    @id @default(dbgenerated("gen_random_uuid()"))
-  token       String    @unique @default(cuid())
-  role        String
+  id          String         @id @default(dbgenerated("gen_random_uuid()"))
+  token       String         @unique @default(cuid())
+  role        InvitationRole // ✅ CAMBIADO a enum específico
   campoId     String
   createdById String
   usedById    String?
-  expiresAt   DateTime  @db.Timestamptz(6)
-  usedAt      DateTime? @db.Timestamptz(6)
-  createdAt   DateTime? @default(now()) @db.Timestamptz(6)
-  updatedAt   DateTime? @default(now()) @updatedAt @db.Timestamptz(6)
-  campo       Campo     @relation(fields: [campoId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  createdBy   User      @relation("CreatedInvitations", fields: [createdById], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  usedBy      User?     @relation("UsedInvitations", fields: [usedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  expiresAt   DateTime       @db.Timestamptz(6)
+  usedAt      DateTime?      @db.Timestamptz(6)
+  createdAt   DateTime?      @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime?      @default(now()) @updatedAt @db.Timestamptz(6)
+  campo       Campo          @relation(fields: [campoId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  createdBy   User           @relation("CreatedInvitations", fields: [createdById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  usedBy      User?          @relation("UsedInvitations", fields: [usedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
 
 model ManoObra {
-  id                      String   @id @default(cuid())
-  nombre                  String
-  horas_trabajadas        Int      @default(0)
-  dias_trabajados         Int      @default(0)
-  dias_no_trabajados      Int      @default(0)
-  feriados_trabajados     Int      @default(0)
+  id                       String  @id @default(cuid())
+  nombre                   String
+  horas_trabajadas         Int     @default(0)
+  dias_trabajados          Int     @default(0)
+  dias_no_trabajados       Int     @default(0)
+  feriados_trabajados      Int     @default(0)
   dias_descanso_trabajados Int     @default(0)
-  faltas                  Int      @default(0)
-  horas_extras            Int      @default(0)
-  licencias               Int      @default(0)
-  trabajo_feriado           Boolean  @default(false)
+  faltas                   Int     @default(0)
+  horas_extras             Int     @default(0)
+  licencias                Int     @default(0)
+  trabajo_feriado          Boolean @default(false)
+  mes                      Int
+  anio                     Int
 
-  mes                     Int
-  anio                    Int
+  campoId String
+  campo   Campo  @relation(fields: [campoId], references: [id], onDelete: Cascade)
 
-  createdAt               DateTime @default(now())
-  updatedAt               DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
+// ✅ ENUM DE ROLES DE USUARIO
 enum Role {
-  ADMIN
-  USUARIO
+  ADMIN_GENERAL // Primer usuario, acceso total
+  COLABORADOR // Acceso web + bot, finanzas opcional
+  EMPLEADO // Solo bot, sin web
+  CONTADOR // Solo lectura finanzas en web
+}
+
+// ✅ ENUM DE TIPOS DE INVITACIÓN
+enum InvitationRole {
+  COLABORADOR
+  EMPLEADO
+  CONTADOR
 }
 
 enum TipoEvento {
@@ -270,6 +283,5 @@ enum TipoEvento {
   INGRESO_INSUMO
   GASTO
   AJUSTE
-  CAMBIO_POTRERO 
+  CAMBIO_POTRERO
 }
-

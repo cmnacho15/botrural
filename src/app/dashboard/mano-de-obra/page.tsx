@@ -97,8 +97,6 @@ export default function ManoDeObraPage() {
       anio: anioSeleccionado,
     }
 
-    console.log('📤 Enviando:', datos)
-
     try {
       const res = await fetch('/api/mano-obra', {
         method: empleadoEditando ? 'PUT' : 'POST',
@@ -109,11 +107,8 @@ export default function ManoDeObraPage() {
         })
       })
 
-      console.log('📥 Status:', res.status)
-
       if (!res.ok) {
         const errorData = await res.json()
-        console.error('❌ Error del servidor:', errorData)
         throw new Error(errorData.details || errorData.error || 'Error guardando')
       }
 
@@ -121,7 +116,6 @@ export default function ManoDeObraPage() {
       cargarDatos()
       alert('✅ Guardado correctamente')
     } catch (error: any) {
-      console.error('💥 Error completo:', error)
       alert('❌ Error al guardar: ' + error.message)
     }
   }
@@ -353,13 +347,13 @@ export default function ManoDeObraPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100">
+    <div className="min-h-screen bg-gray-50 text-gray-900">
       {/* HEADER */}
-      <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 py-4 mb-6">
+      <div className="bg-white border-b border-gray-200 px-4 py-4 mb-6">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <h1 className="text-2xl font-bold">Mano de Obra</h1>
-            <p className="text-gray-500 dark:text-gray-400 text-sm">
+            <p className="text-gray-500 text-sm">
               Resumen mensual para el contador
             </p>
           </div>
@@ -367,21 +361,21 @@ export default function ManoDeObraPage() {
           <div className="flex flex-wrap gap-2">
             <button
               onClick={handleAgregar}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg flex items-center gap-2 hover:bg-blue-700 dark:hover:bg-blue-500 transition"
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg flex items-center gap-2 hover:bg-blue-700 transition"
             >
               <Plus className="w-4 h-4" /> Agregar
             </button>
 
             <button
               onClick={handleExportarPDF}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg flex items-center gap-2 hover:bg-red-700 dark:hover:bg-red-500 transition"
+              className="px-4 py-2 bg-red-600 text-white rounded-lg flex items-center gap-2 hover:bg-red-700 transition"
             >
               <Download className="w-4 h-4" /> PDF
             </button>
 
             <button
               onClick={handleExportarExcel}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg flex items-center gap-2 hover:bg-green-700 dark:hover:bg-green-500 transition"
+              className="px-4 py-2 bg-green-600 text-white rounded-lg flex items-center gap-2 hover:bg-green-700 transition"
             >
               <Download className="w-4 h-4" /> Excel
             </button>
@@ -391,11 +385,11 @@ export default function ManoDeObraPage() {
 
       {/* PERÍODO */}
       <div className="px-4 mb-6">
-        <div className="bg-white dark:bg-gray-900 rounded-xl p-6 shadow border border-gray-200 dark:border-gray-800">
+        <div className="bg-white rounded-xl p-6 shadow border border-gray-200">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
             <div className="flex items-center gap-3">
-              <Calendar className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-              <span className="font-medium text-gray-700 dark:text-gray-200">
+              <Calendar className="w-5 h-5 text-gray-500" />
+              <span className="font-medium text-gray-700">
                 Período:
               </span>
             </div>
@@ -404,7 +398,7 @@ export default function ManoDeObraPage() {
               <select
                 value={mesSeleccionado}
                 onChange={e => setMesSeleccionado(Number(e.target.value))}
-                className="px-4 py-2 border rounded-lg bg-white dark:bg-gray-950 border-gray-300 dark:border-gray-700 text-sm sm:text-base"
+                className="px-4 py-2 border rounded-lg bg-white border-gray-300 text-sm sm:text-base"
               >
                 {meses.map((m, idx) => (
                   <option key={idx} value={idx}>{m}</option>
@@ -414,7 +408,7 @@ export default function ManoDeObraPage() {
               <select
                 value={anioSeleccionado}
                 onChange={e => setAnioSeleccionado(Number(e.target.value))}
-                className="px-4 py-2 border rounded-lg bg-white dark:bg-gray-950 border-gray-300 dark:border-gray-700 text-sm sm:text-base"
+                className="px-4 py-2 border rounded-lg bg-white border-gray-300 text-sm sm:text-base"
               >
                 {[2023, 2024, 2025, 2026].map(yr => (
                   <option key={yr} value={yr}>{yr}</option>
@@ -422,7 +416,7 @@ export default function ManoDeObraPage() {
               </select>
 
               {cargando && (
-                <span className="text-gray-500 dark:text-gray-400 animate-pulse">
+                <span className="text-gray-500 animate-pulse">
                   Cargando...
                 </span>
               )}
@@ -430,7 +424,7 @@ export default function ManoDeObraPage() {
           </div>
 
           {feriadoDelMes && (
-            <p className="mt-4 text-xs sm:text-sm text-blue-700 dark:text-blue-300">
+            <p className="mt-4 text-xs sm:text-sm text-blue-700">
               💡 Este mes incluye el feriado:&nbsp;
               <span className="font-medium">{feriadoDelMes.nombre}</span>
             </p>
@@ -439,48 +433,53 @@ export default function ManoDeObraPage() {
       </div>
 
       {/* TABLA */}
-      <div className="px-4">
-        <div className="bg-white dark:bg-gray-900 rounded-xl shadow border border-gray-200 dark:border-gray-800 overflow-x-auto">
+      <div className="px-4 pb-6">
+        <div className="bg-white rounded-xl shadow border border-gray-200 overflow-x-auto">
           <table className="min-w-full text-sm">
-            <thead className="bg-gray-50 dark:bg-gray-800">
+            <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-200">
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600">
                   Empleado
                 </th>
-                <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 dark:text-gray-200">
+                <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600">
                   Horas
                 </th>
-                <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 dark:text-gray-200">
+                <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600">
                   Trab.
                 </th>
-                <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 dark:text-gray-200">
+                <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600">
                   NO
                 </th>
-                <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 dark:text-gray-200">
+                <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600">
                   Feriados
                 </th>
-                <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 dark:text-gray-200">
+                <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600">
                   Descanso
                 </th>
-                <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 dark:text-gray-200">
+                <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600">
                   Faltas
                 </th>
-                <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 dark:text-gray-200">
+                <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600">
                   Extras
                 </th>
-                <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 dark:text-gray-200">
+                <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600">
                   Licencias
                 </th>
-                <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 dark:text-gray-200">
+                {feriadoDelMes && (
+                  <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600">
+                    Trabajó feriado
+                  </th>
+                )}
+                <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600">
                   Acciones
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
+            <tbody className="divide-y divide-gray-200">
               {empleados.map(emp => (
                 <tr
                   key={emp.id}
-                  className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                  className="hover:bg-gray-50 transition-colors"
                 >
                   <td className="px-6 py-4 font-medium">
                     {emp.nombre}
@@ -509,18 +508,22 @@ export default function ManoDeObraPage() {
                   <td className="px-6 py-4 text-center">
                     {emp.licencias}
                   </td>
-
+                  {feriadoDelMes && (
+                    <td className="px-6 py-4 text-center">
+                      {emp.trabajoFeriado ? 'Sí' : 'No'}
+                    </td>
+                  )}
                   <td className="px-6 py-4">
                     <div className="flex justify-center gap-2">
                       <button
                         onClick={() => handleEditar(emp)}
-                        className="text-blue-600 dark:text-blue-400 p-2 hover:bg-blue-50 dark:hover:bg-blue-950 rounded transition"
+                        className="text-blue-600 p-2 hover:bg-blue-50 rounded transition"
                       >
                         <Edit2 className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => handleEliminar(emp.id)}
-                        className="text-red-600 dark:text-red-400 p-2 hover:bg-red-50 dark:hover:bg-red-950 rounded transition"
+                        className="text-red-600 p-2 hover:bg-red-50 rounded transition"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -532,11 +535,11 @@ export default function ManoDeObraPage() {
           </table>
 
           {empleados.length === 0 && !cargando && (
-            <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+            <div className="text-center py-12 text-gray-500">
               No hay registros para este período.
               <button
                 onClick={handleAgregar}
-                className="block mx-auto mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-500 transition"
+                className="block mx-auto mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
               >
                 Agregar primer registro
               </button>
@@ -548,14 +551,14 @@ export default function ManoDeObraPage() {
       {/* MODAL */}
       {modalOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-gray-900 rounded-xl w-full max-w-2xl p-6 shadow-xl border border-gray-200 dark:border-gray-800">
+          <div className="bg-white rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 shadow-xl border border-gray-200">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold">
                 {empleadoEditando ? 'Editar' : 'Agregar'} Registro
               </h2>
               <button
                 onClick={() => setModalOpen(false)}
-                className="hover:bg-gray-100 dark:hover:bg-gray-800 p-2 rounded"
+                className="hover:bg-gray-100 p-2 rounded"
               >
                 <X className="w-6 h-6" />
               </button>
@@ -583,22 +586,22 @@ export default function ManoDeObraPage() {
                     onChange={e =>
                       setFormData({ ...formData, [campo]: e.target.value })
                     }
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-950 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100"
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white border-gray-300 text-gray-900"
                   />
                 </div>
               ))}
             </div>
 
             {feriadoDelMes && (
-              <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-500/60 rounded-lg">
+              <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                 <label className="flex items-center gap-3 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={trabajoFeriado}
                     onChange={(e) => setTrabajoFeriado(e.target.checked)}
-                    className="w-5 h-5 text-blue-600 rounded border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500"
+                    className="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-2 focus:ring-blue-500"
                   />
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
+                  <span className="text-sm font-medium text-gray-700">
                     ¿Trabajó el feriado de {feriadoDelMes.nombre}?
                   </span>
                 </label>
@@ -608,14 +611,14 @@ export default function ManoDeObraPage() {
             <div className="flex flex-col sm:flex-row justify-end gap-3 mt-6">
               <button
                 onClick={() => setModalOpen(false)}
-                className="px-5 py-2 bg-gray-200 dark:bg-gray-800 text-gray-800 dark:text-gray-100 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-700 transition"
+                className="px-5 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition"
               >
                 Cancelar
               </button>
 
               <button
                 onClick={handleGuardar}
-                className="px-5 py-2 bg-blue-600 text-white rounded-lg flex items-center gap-2 hover:bg-blue-700 dark:hover:bg-blue-500 transition"
+                className="px-5 py-2 bg-blue-600 text-white rounded-lg flex items-center gap-2 hover:bg-blue-700 transition"
               >
                 <Save className="w-4 h-4" />
                 Guardar

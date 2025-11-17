@@ -189,7 +189,7 @@ export async function PUT(
         // INGRESO de animales
         await prisma.evento.create({
           data: {
-            tipo: 'COMPRA',
+            tipo: 'AJUSTE',
             fecha: new Date(),
             descripcion: `Se ingresaron ${diferencia} ${categoria.toLowerCase()} al lote "${nombre}".`,
             campoId: usuario!.campoId!,
@@ -198,12 +198,12 @@ export async function PUT(
             cantidad: diferencia,
           },
         });
-        console.log(`✅ Evento COMPRA creado: +${diferencia} ${categoria}`);
+        console.log(`✅ Evento AJUSTE creado: +${diferencia} ${categoria}`);
       } else if (diferencia < 0) {
         // SALIDA de animales
         await prisma.evento.create({
           data: {
-            tipo: 'VENTA',
+            tipo: 'AJUSTE',
             fecha: new Date(),
             descripcion: `Se retiraron ${Math.abs(diferencia)} ${categoria.toLowerCase()} del lote "${nombre}".`,
             campoId: usuario!.campoId!,
@@ -212,7 +212,7 @@ export async function PUT(
             cantidad: Math.abs(diferencia),
           },
         });
-        console.log(`✅ Evento VENTA creado: -${Math.abs(diferencia)} ${categoria}`);
+        console.log(`✅ Evento AJUSTE creado: -${Math.abs(diferencia)} ${categoria}`);
       }
     }
 

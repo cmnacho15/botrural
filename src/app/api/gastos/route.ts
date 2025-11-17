@@ -3,12 +3,26 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 
-// ✅ GET - Obtener gastos del usuario autenticado
+// Roles con permisos
+const allowedRead = ["ADMIN_GENERAL", "ADMIN_CON_FINANZAS", "CONTADOR"]
+const allowedWrite = ["ADMIN_GENERAL", "ADMIN_CON_FINANZAS"]
+
+// ------------------------------------------
+// GET - Obtener gastos del usuario
+// ------------------------------------------
 export async function GET(request: Request) {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
+    }
+
+    // ❗ Control de acceso
+    if (!allowedRead.includes(session.user.role)) {
+      return NextResponse.json(
+        { error: 'No tienes acceso a información financiera' },
+        { status: 403 }
+      )
     }
 
     const usuario = await prisma.user.findUnique({
@@ -45,12 +59,22 @@ export async function GET(request: Request) {
   }
 }
 
-// ✅ POST - Crear nuevo gasto o ingreso
+// ------------------------------------------
+// POST - Crear gasto o ingreso
+// ------------------------------------------
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
+    }
+
+    // ❗ Control de acceso
+    if (!allowedWrite.includes(session.user.role)) {
+      return NextResponse.json(
+        { error: 'No tienes permisos para crear gastos' },
+        { status: 403 }
+      )
     }
 
     const usuario = await prisma.user.findUnique({
@@ -69,7 +93,7 @@ export async function POST(request: Request) {
       descripcion,
       categoria,
       proveedor,
-      comprador, // ✅ NUEVO CAMPO
+      comprador,
       metodoPago,
       iva,
       diasPlazo,
@@ -77,15 +101,14 @@ export async function POST(request: Request) {
       loteId,
     } = body
 
-    // ✅ Normalizar proveedor y comprador
+    // Normalización
     const proveedorNormalizado = proveedor ? proveedor.trim().toLowerCase() : null
     const compradorNormalizado = comprador ? comprador.trim().toLowerCase() : null
 
-    // ✅ Si es contado → marcar pagado automáticamente y setear fechaPago
-    const esPagado = pagado ?? (metodoPago === 'Contado' ? true : false)
+    // Autopago si es contado
+    const esPagado = pagado ?? (metodoPago === 'Contado')
     const fechaPago = esPagado ? new Date() : null
 
-    // ✅ Crear gasto o ingreso según tipo
     const gasto = await prisma.gasto.create({
       data: {
         tipo,
@@ -113,7 +136,9 @@ export async function POST(request: Request) {
   }
 }
 
-// ✅ DELETE - Eliminar gasto solo si pertenece al campo del usuario
+// ------------------------------------------
+// DELETE - Eliminar gasto
+// ------------------------------------------
 export async function DELETE(request: Request) {
   try {
     const session = await getServerSession(authOptions)
@@ -121,13 +146,17 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
     }
 
+    // ❗ Control de acceso
+    if (!allowedWrite.includes(session.user.role)) {
+      return NextResponse.json(
+        { error: 'No autorizado para eliminar gastos' },
+        { status: 403 }
+      )
+    }
+
     const usuario = await prisma.user.findUnique({
       where: { id: session.user.id },
     })
-
-    if (!usuario?.campoId) {
-      return NextResponse.json({ error: 'Usuario sin campo asignado' }, { status: 400 })
-    }
 
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
@@ -137,7 +166,7 @@ export async function DELETE(request: Request) {
     }
 
     const gasto = await prisma.gasto.findUnique({ where: { id } })
-    if (!gasto || gasto.campoId !== usuario.campoId) {
+    if (!gasto || gasto.campoId !== usuario?.campoId) {
       return NextResponse.json(
         { error: 'No autorizado para eliminar este gasto' },
         { status: 403 }
@@ -145,6 +174,7 @@ export async function DELETE(request: Request) {
     }
 
     await prisma.gasto.delete({ where: { id } })
+
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('💥 Error eliminando gasto:', error)

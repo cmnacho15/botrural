@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { obtenerFechaLocal } from '@/lib/fechas'
 
 type ModalNacimientoProps = {
   onClose: () => void
@@ -8,7 +9,7 @@ type ModalNacimientoProps = {
 }
 
 export default function ModalNacimiento({ onClose, onSuccess }: ModalNacimientoProps) {
-  const [fecha, setFecha] = useState(new Date().toISOString().split('T')[0])
+  const [fecha, setFecha] = useState(obtenerFechaLocal())
   const [cantidad, setCantidad] = useState('')
   const [categoria, setCategoria] = useState('ternero')
   const [loteId, setLoteId] = useState('')
@@ -24,7 +25,7 @@ export default function ModalNacimiento({ onClose, onSuccess }: ModalNacimientoP
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           tipo: 'NACIMIENTO',
-          fecha: new Date(fecha),
+          fecha: fecha,
           descripcion: `Nacimiento de ${cantidad} ${categoria}${parseInt(cantidad) > 1 ? 's' : ''}${notas ? `: ${notas}` : ''}`,
           loteId: loteId || null,
           cantidad: parseInt(cantidad),

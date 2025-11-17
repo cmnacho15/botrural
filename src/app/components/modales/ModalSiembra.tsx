@@ -1,14 +1,14 @@
 'use client'
 
 import { useState } from 'react'
-
+import { obtenerFechaLocal } from '@/lib/fechas'
 type ModalSiembraProps = {
   onClose: () => void
   onSuccess: () => void
 }
 
 export default function ModalSiembra({ onClose, onSuccess }: ModalSiembraProps) {
-  const [fecha, setFecha] = useState(new Date().toISOString().split('T')[0])
+  const [fecha, setFecha] = useState(obtenerFechaLocal())
   const [cultivo, setCultivo] = useState('')
   const [hectareas, setHectareas] = useState('')
   const [loteId, setLoteId] = useState('')
@@ -24,7 +24,7 @@ export default function ModalSiembra({ onClose, onSuccess }: ModalSiembraProps) 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           tipo: 'SIEMBRA',
-          fecha: new Date(fecha),
+          fecha: fecha,
           descripcion: `Siembra de ${cultivo} en ${hectareas} ha${notas ? `: ${notas}` : ''}`,
           loteId: loteId || null,
           cantidad: parseFloat(hectareas),

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { X } from "lucide-react";
+import { obtenerFechaLocal } from '@/lib/fechas'
 
 interface Lote {
   id: string;
@@ -98,7 +99,7 @@ export default function ModalRecategorizacion({
     }
   }, [loteId, categoria, lotes]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
   e.preventDefault();
 
   if (!loteId || !categoria || !categoriaNueva || !cantidad) {
@@ -124,30 +125,19 @@ export default function ModalRecategorizacion({
   const catNuevaLabel = cantidadNum === 1 ? categoriaNueva.replace(/s$/, "") : categoriaNueva;
   const descripcion = `Recategorización de ${cantidadNum} ${catActualLabel} a ${catNuevaLabel} en potrero "${nombrePotrero}"`;
 
-  try {
-    const response = await fetch('/api/eventos', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        tipo: "RECATEGORIZACION",
-        loteId,
-        categoria,
-        categoriaNueva,
-        cantidad: cantidadNum,
-        fecha,
-        descripcion,
-        notas: notas.trim() || null,
-      }),
-    });
+  onSubmit({
+    tipo: "RECATEGORIZACION",
+    loteId,
+    categoria,
+    categoriaNueva,
+    cantidad: cantidadNum,
+    fecha: new Date(fecha + 'T12:00:00').toISOString(), // ✅ FORZAR MEDIODÍA PARA EVITAR CAMBIO DE DÍA
+    descripcion,
+    notas: notas.trim() || null,
+  });
 
-    if (!response.ok) throw new Error('Error al crear evento');
-
-    onSuccess();
-    onClose();
-  } catch (error) {
-    console.error('Error:', error);
-    alert('Error al crear la recategorización');
-  }
+  onSuccess();
+  onClose();
 };
 
   if (!isOpen) return null;

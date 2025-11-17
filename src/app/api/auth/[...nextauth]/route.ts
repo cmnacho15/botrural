@@ -11,24 +11,37 @@ export const authOptions = {
         email: { label: "Email", type: "text" },
         password: { label: "Contraseña", type: "password" },
       },
+
       async authorize(credentials): Promise<any> {
         if (!credentials?.email || !credentials.password) {
           return null;
         }
 
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email },
-        });
+        // Buscar usuario por email (findUnique falla si email es nullable)
+const user = await prisma.user.findFirst({
+  where: { email: credentials.email.toLowerCase().trim() },
+  select: {
+    id: true,
+    email: true,
+    password: true,
+    name: true,
+    role: true,
+    accesoFinanzas: true,
+    campoId: true,
+  },
+});
 
         if (!user || !user.password) {
           return null;
         }
 
+        // Comparar contraseña
         const isValid = await bcrypt.compare(credentials.password, user.password);
         if (!isValid) {
           return null;
         }
 
+        // Devuelve datos que van al JWT
         return {
           id: user.id,
           email: user.email,
@@ -41,6 +54,7 @@ export const authOptions = {
   ],
 
   session: { strategy: "jwt" as const },
+
   secret: process.env.NEXTAUTH_SECRET,
 
   pages: {
@@ -48,7 +62,7 @@ export const authOptions = {
   },
 
   callbacks: {
-    // 🔐 Guardar info en el token JWT
+    // Guardar info del user en el JWT
     async jwt({ token, user }: any) {
       if (user) {
         token.id = user.id;
@@ -58,18 +72,25 @@ export const authOptions = {
       return token;
     },
 
-    // 🔁 Actualizar datos de usuario desde Prisma en cada sesión
+    // Exponer la data del usuario en session.user
     async session({ session, token }: any) {
       if (session.user) {
         const dbUser = await prisma.user.findUnique({
           where: { id: token.id as string },
-          select: { id: true, name: true, email: true, telefono: true, role: true, campoId: true },
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            telefono: true,
+            role: true,
+            campoId: true,
+          },
         });
 
         if (dbUser) {
           session.user = { ...session.user, ...dbUser };
         } else {
-          session.user.id = token.id as string;
+          session.user.id = token.id;
           session.user.role = token.role;
           session.user.campoId = token.campoId;
         }

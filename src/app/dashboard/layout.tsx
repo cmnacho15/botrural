@@ -1,13 +1,14 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { useState } from 'react'
 import useSWR from 'swr'
 import { DatosProvider, useDatos } from '@/app/contexts/DatosContext'
 import { InsumosProvider, useInsumos } from '@/app/contexts/InsumosContext'
 import { GastosProvider, useGastos } from '@/app/contexts/GastosContext'
 import ModalNuevoDato from '@/app/components/modales/ModalNuevoDato'
+import { useSession } from 'next-auth/react'
 
 // SWR
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
@@ -26,6 +27,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
 function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
+  const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [nuevoDatoMenuOpen, setNuevoDatoMenuOpen] = useState(false)
   const [modalTipo, setModalTipo] = useState<string | null>(null)
@@ -34,48 +36,95 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
   const { refreshInsumos } = useInsumos()
   const { refreshGastos } = useGastos()
 
+  const { data: session, status } = useSession()
+
+  // ⛔ Si no está cargada la sesión todavía → loading
+  if (status === 'loading') {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        Cargando...
+      </div>
+    )
+  }
+
+  // ⛔ Si no hay sesión → redirect login
+  if (!session?.user) {
+    router.push('/login')
+    return null
+  }
+
+  const user = session.user
+  const role = user.roleCode;  // ✔️ ahora toma el valor correcto del enum
+const accesoFinanzas = user.accesoFinanzas ?? false;
+
+  // Bloqueo total a EMPLEADO
+  if (role === 'EMPLEADO') {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        No tenés acceso al panel. Usá el bot de WhatsApp.
+      </div>
+    )
+  }
+
   // Nombre del campo
   const { data, error, isLoading } = useSWR('/api/usuarios/campo', fetcher, {
     revalidateOnFocus: false,
     dedupingInterval: 1000 * 60 * 5,
   })
 
-  const campoNombre = error
-    ? 'Error'
-    : isLoading
-    ? ''
-    : data?.campoNombre ?? 'Mi Campo'
+  const campoNombre = error ? 'Error' : isLoading ? '' : data?.campoNombre ?? 'Mi Campo'
 
-  // MENÚ LATERAL
+  // ============================
+  // MENÚ SEGÚN ROL
+  // ============================
+
   const menuSections = [
     {
       title: campoNombre,
       items: [
-        { href: '/dashboard/empezar', icon: '🚀', label: 'Cómo Empezar', badge: '2/3' },
+        { href: '/dashboard/empezar', icon: '🚀', label: 'Cómo Empezar' },
         { href: '/dashboard', icon: '📊', label: 'Resumen' },
         { href: '/dashboard/datos', icon: '📝', label: 'Datos' },
         { href: '/dashboard/mapa', icon: '🗺️', label: 'Mapa' },
       ],
     },
+
     {
       title: 'Gestión',
       items: [
         { href: '/dashboard/lotes', icon: '🏞️', label: 'Potreros' },
-        { href: '/dashboard/gastos', icon: '💰', label: 'Gastos' },
-        { href: '/dashboard/insumos', icon: '📦', label: 'Insumos' },
-        { href: '/dashboard/mano-de-obra', icon: '👷', label: 'Mano de Obra' },
-      ],
+        role === 'CONTADOR'
+          ? null
+          : { href: '/dashboard/insumos', icon: '📦', label: 'Insumos' },
+        role === 'CONTADOR'
+          ? null
+          : { href: '/dashboard/mano-de-obra', icon: '👷', label: 'Mano de Obra' },
+
+        // Gastos (roles con acceso)
+        role === 'ADMIN_GENERAL' ||
+        role === 'CONTADOR' ||
+        (role === 'COLABORADOR' && accesoFinanzas)
+          ? { href: '/dashboard/gastos', icon: '💰', label: 'Gastos' }
+          : null,
+      ].filter(Boolean),
     },
+
     {
       title: 'Configuración',
       items: [
-        { href: '/dashboard/equipo', icon: '👥', label: 'Equipo' },
-        { href: '/dashboard/preferencias', icon: '⚙️', label: 'Preferencias' },
-      ],
+        // Solo ADMIN_GENERAL
+        role === 'ADMIN_GENERAL'
+          ? { href: '/dashboard/equipo', icon: '👥', label: 'Equipo' }
+          : null,
+
+        role === 'ADMIN_GENERAL'
+          ? { href: '/dashboard/preferencias', icon: '⚙️', label: 'Preferencias' }
+          : null,
+      ].filter(Boolean),
     },
   ]
 
-  // OPCIONES DE EVENTOS (DESPLEGABLE NUEVO DATO)
+  // EVENTOS
   const eventosOptions = [
     {
       category: 'Animales',
@@ -86,56 +135,12 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
         { icon: '🛒', label: 'Compra', action: 'compra' },
         { icon: '🚚', label: 'Traslado', action: 'traslado' },
         { icon: '🐣', label: 'Nacimiento', action: 'nacimiento' },
-        { icon: '💀', label: 'Mortandad', action: 'mortandad' },
-        { icon: '🌾', label: 'Consumo', action: 'consumo' },
-        { icon: '⊗', label: 'Aborto', action: 'aborto' },
-        { icon: '🥛', label: 'Destete', action: 'destete' },
-        { icon: '✋', label: 'Tacto', action: 'tacto' },
-        { icon: '🏷️', label: 'Recategorización', action: 'recategorizacion' },
-      ],
-    },
-    {
-      category: 'Agricultura',
-      items: [
-        { icon: '🚜', label: 'Siembra', action: 'siembra' },
-        { icon: '🧴', label: 'Pulverización', action: 'pulverizacion' },
-        { icon: '🌱', label: 'Refertilización', action: 'refertilizacion' },
-        { icon: '💧', label: 'Riego', action: 'riego' },
-        { icon: '🔍', label: 'Monitoreo', action: 'monitoreo' },
-        { icon: '🌾', label: 'Cosecha', action: 'cosecha' },
-        { icon: '🔧', label: 'Otros Labores', action: 'otros-labores' },
-      ],
-    },
-    {
-      category: 'Clima',
-      items: [
-        { icon: '🌧️', label: 'Lluvia', action: 'lluvia' },
-        { icon: '❄️', label: 'Helada', action: 'helada' },
-      ],
-    },
-    {
-      category: 'Insumos',
-      items: [
-        { icon: '📦', label: 'Uso de Insumos', action: 'uso-insumos' },
-        { icon: '📥', label: 'Ingreso de Insumos', action: 'ingreso-insumos' },
-      ],
-    },
-    {
-      category: 'Finanzas',
-      items: [
-        { icon: '💰', label: 'Gasto', action: 'gasto' },
-        { icon: '👤', label: 'Ingreso', action: 'ingreso' },
       ],
     },
   ]
 
-  // CALLBACK AL GUARDAR
   const handleSuccess = async () => {
-    await Promise.all([
-      refetchDatos(),
-      refreshInsumos(),
-      refreshGastos()
-    ])
+    await Promise.all([refetchDatos(), refreshInsumos(), refreshGastos()])
     setModalTipo(null)
   }
 
@@ -147,26 +152,14 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex flex-col h-screen bg-gray-50">
 
-      {/* ===================================================================== */}
-      {/* HEADER SUPERIOR */}
-      {/* ===================================================================== */}
-
+      {/* HEADER */}
       <header className="bg-white border-b border-gray-200 px-4 sm:px-6 py-3 flex items-center justify-between">
-        {/* IZQUIERDA: LOGO + BOTÓN */}
         <div className="flex items-center gap-3">
           <button
             onClick={() => setSidebarOpen(true)}
             className="p-2 rounded-lg text-gray-600 hover:bg-gray-100 lg:hidden"
           >
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
+            ☰
           </button>
 
           <div className="flex items-center gap-2">
@@ -175,133 +168,20 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
           </div>
         </div>
 
-        {/* BOTÓN NUEVO DATO */}
-        <div className="relative">
+        {/* NUEVO DATO */}
+        {role !== 'CONTADOR' && (
           <button
             onClick={() => setNuevoDatoMenuOpen(!nuevoDatoMenuOpen)}
-            className="flex items-center gap-2 px-3 sm:px-4 py-2.5 rounded-lg bg-blue-500 text-white hover:bg-blue-600 font-medium text-sm sm:text-base transition-all"
+            className="flex items-center gap-2 px-3 sm:px-4 py-2.5 rounded-lg bg-blue-500 text-white hover:bg-blue-600"
           >
-            <span className="text-lg sm:text-xl">＋</span>
-            <span className="hidden sm:inline">Nuevo Dato</span>
+            ＋ <span className="hidden sm:inline">Nuevo Dato</span>
           </button>
-
-          {/* ===================================================================== */}
-          {/* TODO EL MENÚ "NUEVO DATO" RESPONSIVE */}
-          {/* ===================================================================== */}
-
-          {nuevoDatoMenuOpen && (
-  <>
-    {/* OVERLAY QUE CUBRE TODO INCLUYENDO SIDEBAR */}
-    <div
-      className="fixed inset-0 z-[9999] bg-black/50 backdrop-blur-sm"
-      onClick={() => setNuevoDatoMenuOpen(false)}
-    />
-
-    {/* ======================= MOBILE BOTTOM SHEET ======================= */}
-    <div className="fixed bottom-0 left-0 right-0 z-[10000] bg-white rounded-t-3xl shadow-2xl max-h-[85vh] overflow-y-auto lg:hidden animate-slide-up">
-      <div className="sticky top-0 bg-white border-b border-gray-200 p-4 rounded-t-3xl">
-        <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-3" />
-        <h2 className="text-lg font-semibold text-gray-900 text-center">
-          Nuevo Dato
-        </h2>
-      </div>
-
-      <div className="p-4 space-y-2">
-        {eventosOptions.map((section, idx) => (
-          <div key={idx} className="border-b border-gray-100 last:border-0">
-            {/* Botón para expandir/cerrar */}
-            <button
-              onClick={() =>
-                setOpenSections(prev => ({ ...prev, [idx]: !prev[idx] }))
-              }
-              className="w-full flex items-center justify-between py-3 text-left"
-            >
-              <span className="font-medium text-gray-900">{section.category}</span>
-              <svg
-                className={`w-5 h-5 text-gray-400 transition-transform ${
-                  openSections[idx] ? 'rotate-180' : ''
-                }`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M19 9l-7 7-7-7"
-                />
-              </svg>
-            </button>
-
-            {/* Contenido expandido */}
-            {openSections[idx] && (
-              <div className="pb-3 space-y-1">
-                {section.items.map((item, itemIdx) => (
-                  <button
-                    key={itemIdx}
-                    onClick={() => handleEventoClick(item.action)}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 text-left text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
-                  >
-                    <span className="text-xl">{item.icon}</span>
-                    <span className="text-sm">{item.label}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-    </div>
-
-    {/* ======================= DESKTOP DROPDOWN (5 columnas) ======================= */}
-    <div className="hidden lg:block fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] bg-white rounded-xl shadow-2xl border border-gray-200 p-6 z-[10000] max-h-[80vh] overflow-y-auto">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold text-gray-800">
-          Seleccioná qué tipo de dato querés ingresar
-        </h2>
-        <button
-          onClick={() => setNuevoDatoMenuOpen(false)}
-          className="text-gray-400 hover:text-gray-600 p-2"
-        >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      </div>
-
-      <div className="grid grid-cols-5 gap-8">
-        {eventosOptions.map((section, idx) => (
-          <div key={idx}>
-            <h3 className="text-sm font-bold text-gray-900 mb-3">
-              {section.category}
-            </h3>
-
-            <div className="space-y-2">
-              {section.items.map((item, itemIdx) => (
-                <button
-                  key={itemIdx}
-                  onClick={() => handleEventoClick(item.action)}
-                  className="w-full flex items-center gap-3 px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
-                >
-                  <span className="text-lg">{item.icon}</span>
-                  <span>{item.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  </>
-)}
-        </div>
+        )}
       </header>
 
-      {/* ===================================================================== */}
-      {/* CUERPO PRINCIPAL */}
-      {/* ===================================================================== */}
+      {/* BODY */}
       <div className="flex flex-1 overflow-hidden">
+
         {sidebarOpen && (
           <div
             className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 lg:hidden"
@@ -311,7 +191,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
 
         {/* SIDEBAR */}
         <aside
-          className={`fixed lg:static inset-y-0 left-0 z-50 top-[57px] lg:top-0 w-60 sm:w-64 bg-white border-r border-gray-200 flex flex-col transform transition-transform duration-300 ease-in-out ${
+          className={`fixed lg:static inset-y-0 left-0 z-50 top-[57px] lg:top-0 w-60 sm:w-64 bg-white border-r border-gray-200 flex flex-col transform transition-transform ${
             sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
           }`}
         >
@@ -319,12 +199,13 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
             {menuSections.map((section, idx) => (
               <div key={idx} className="mb-6">
                 <h3 className="px-4 mb-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  {isLoading ? <div className="h-3 w-24 bg-gray-200 rounded-full animate-pulse" /> : section.title}
+                  {section.title}
                 </h3>
 
                 <div className="space-y-1">
-                  {section.items.map((item) => {
-                    const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
+                  {section.items.map((item: any) => {
+                    const isActive = pathname.startsWith(item.href)
+
                     return (
                       <Link
                         key={item.href}
@@ -340,11 +221,6 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
                           <span>{item.icon}</span>
                           <span>{item.label}</span>
                         </div>
-                        {item.badge && (
-                          <span className="bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full">
-                            {item.badge}
-                          </span>
-                        )}
                       </Link>
                     )
                   })}
@@ -360,9 +236,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
         </main>
       </div>
 
-      {/* ===================================================================== */}
       {/* MODAL NUEVO DATO */}
-      {/* ===================================================================== */}
       <ModalNuevoDato
         isOpen={modalTipo !== null}
         onClose={() => setModalTipo(null)}

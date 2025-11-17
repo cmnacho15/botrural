@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { obtenerFechaLocal } from '@/lib/fechas'
 
 type ModalLluviaProps = {
   onClose: () => void
@@ -8,7 +9,7 @@ type ModalLluviaProps = {
 }
 
 export default function ModalLluvia({ onClose, onSuccess }: ModalLluviaProps) {
-  const [fecha, setFecha] = useState(new Date().toISOString().split('T')[0])
+  const [fecha, setFecha] = useState(obtenerFechaLocal())
   const [milimetros, setMilimetros] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -22,7 +23,7 @@ export default function ModalLluvia({ onClose, onSuccess }: ModalLluviaProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           tipo: 'LLUVIA',
-          fecha: new Date(fecha),
+          fecha: fecha,
           descripcion: `Se registró ${milimetros} mm de lluvia`,
           cantidad: parseFloat(milimetros),
         }),

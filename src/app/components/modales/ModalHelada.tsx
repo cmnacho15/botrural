@@ -1,14 +1,14 @@
 'use client'
 
 import { useState } from 'react'
-
+import { obtenerFechaLocal } from '@/lib/fechas'
 type ModalHeladaProps = {
   onClose: () => void
   onSuccess: () => void
 }
 
 export default function ModalHelada({ onClose, onSuccess }: ModalHeladaProps) {
-  const [fecha, setFecha] = useState(new Date().toISOString().split('T')[0])
+  const [fecha, setFecha] = useState(obtenerFechaLocal())
   const [intensidad, setIntensidad] = useState('leve')
   const [notas, setNotas] = useState('')
   const [loading, setLoading] = useState(false)
@@ -23,7 +23,7 @@ export default function ModalHelada({ onClose, onSuccess }: ModalHeladaProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           tipo: 'HELADA',
-          fecha: new Date(fecha),
+          fecha: fecha,
           descripcion: `Helada ${intensidad}${notas ? `: ${notas}` : ''}`,
           categoria: intensidad,
         }),

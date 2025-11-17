@@ -232,10 +232,10 @@ export async function POST(request: NextRequest) {
     const resultados: Record<string, any> = {}
 
     for (const lote of lotes) {
-      if (lote.coordenadas && lote.coordenadas.length > 0) {
-        try {
-          console.log(`Calculando NDVI para lote ${lote.id}...`)
-          const ndviData = await calcularNDVI(lote.coordenadas, accessToken)
+  if (lote.poligono && lote.poligono.length > 0) {  // ← Cambiar coordenadas por poligono
+    try {
+      console.log(`Calculando NDVI para lote ${lote.id}...`)
+      const ndviData = await calcularNDVI(lote.poligono, accessToken)  // ← Cambiar
 
           resultados[lote.id] = {
             promedio: ndviData.promedio,

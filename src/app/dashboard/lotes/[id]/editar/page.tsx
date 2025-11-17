@@ -1,5 +1,5 @@
 'use client'
-
+//hola
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
@@ -44,7 +44,7 @@ const CATEGORIAS_ANIMAL = {
   'VACUNOS': [
     'Toros',
     'Vacas',
-    'Novillos +3 años y Bueyes',
+    'Novillos +3 años',
     'Novillos 2–3 años',
     'Novillos 1–2 años',
     'Vaquillonas +2 años',
