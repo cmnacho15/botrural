@@ -2,8 +2,9 @@
 
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
+
 
 import { DatosProvider } from "@/app/contexts/DatosContext";
 import { InsumosProvider } from "@/app/contexts/InsumosContext";
@@ -30,6 +31,26 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [modalTipo, setModalTipo] = useState<string | null>(null);
+  const [campoNombre, setCampoNombre] = useState("Mi Campo"); // ✅ Nuevo
+
+  // ✅ Cargar nombre del campo
+  useEffect(() => {
+    const fetchCampoNombre = async () => {
+      try {
+        const res = await fetch("/api/usuarios/campos");
+        const data = await res.json();
+        if (data.campoNombre) {
+          setCampoNombre(data.campoNombre);
+        }
+      } catch (error) {
+        console.error("Error cargando nombre del campo:", error);
+      }
+    };
+
+    if (session?.user?.id) {
+      fetchCampoNombre();
+    }
+  }, [session]);
 
   const openModal = (tipo: string) => {
     setModalTipo(tipo);
@@ -40,7 +61,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
 
   // Obtener rol y permisos del usuario
   const userRole = session?.user?.role || "COLABORADOR";
-  const accesoFinanzas = session?.user?.accesoFinanzas || false; // ✅ Nuevo
+  const accesoFinanzas = session?.user?.accesoFinanzas || false;
   const isContador = userRole === "CONTADOR";
 
   // MENÚ LATERAL CON PERMISOS
