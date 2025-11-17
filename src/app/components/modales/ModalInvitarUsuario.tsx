@@ -42,6 +42,13 @@ export default function ModalInvitarUsuario({
         throw new Error(data.error || "Error creando invitación")
       }
 
+      // ✅ AGREGAR ESTOS CONSOLE.LOGS
+console.log("📦 Data recibida:", data)
+console.log("🔗 Link:", data.link)
+console.log("🔗 Tipo:", data.linkType)
+
+
+
       setLinkGenerado(data.link)
       setLinkType(data.linkType)
       setStep("mostrar-link")
