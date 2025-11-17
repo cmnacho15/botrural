@@ -31,26 +31,8 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [modalTipo, setModalTipo] = useState<string | null>(null);
-  const [campoNombre, setCampoNombre] = useState("Mi Campo"); // ✅ Nuevo
-
-  // ✅ Cargar nombre del campo
-  useEffect(() => {
-    const fetchCampoNombre = async () => {
-      try {
-        const res = await fetch("/api/usuarios/campo"); // ✅ Sin la 's'
-        const data = await res.json();
-        if (data.campoNombre) {
-          setCampoNombre(data.campoNombre);
-        }
-      } catch (error) {
-        console.error("Error cargando nombre del campo:", error);
-      }
-    };
-
-    if (session?.user?.id) {
-      fetchCampoNombre();
-    }
-  }, [session]);
+  // ✅ Simplemente usar el valor de la sesión
+  const campoNombre = session?.user?.campoNombre || "Mi Campo";
 
   const openModal = (tipo: string) => {
     setModalTipo(tipo);

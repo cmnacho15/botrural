@@ -46,7 +46,7 @@ export const authOptions = {
           email: user.email,
           name: user.name,
           role: user.role,
-          roleCode: user.role,          // 👈 IMPORTANTE
+          roleCode: user.role,
           accesoFinanzas: user.accesoFinanzas,
           campoId: user.campoId,
         };
@@ -68,7 +68,7 @@ export const authOptions = {
       if (user) {
         token.id = user.id;
         token.role = user.role;
-        token.roleCode = user.role;           // 👈 IMPORTANTE
+        token.roleCode = user.role;
         token.accesoFinanzas = user.accesoFinanzas;
         token.campoId = user.campoId;
       }
@@ -89,6 +89,7 @@ export const authOptions = {
             role: true,
             accesoFinanzas: true,
             campoId: true,
+            campo: { select: { nombre: true } }, // ✅ Incluir nombre del campo
           },
         });
 
@@ -96,14 +97,16 @@ export const authOptions = {
           session.user = {
             ...session.user,
             ...dbUser,
-            roleCode: dbUser.role,                // 👈 IMPORTANTE
+            roleCode: dbUser.role,
+            campoNombre: dbUser.campo?.nombre || null, // ✅ Agregar nombre del campo
           };
         } else {
           session.user.id = token.id;
           session.user.role = token.role;
-          session.user.roleCode = token.roleCode;  // 👈 IMPORTANTE
+          session.user.roleCode = token.roleCode;
           session.user.accesoFinanzas = token.accesoFinanzas;
           session.user.campoId = token.campoId;
+          session.user.campoNombre = token.campoNombre || null; // ✅ Fallback del token
         }
       }
 
