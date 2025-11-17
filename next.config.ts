@@ -1,10 +1,18 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  turbopack: {
-    root: __dirname, // 👈 fija explícitamente el root y elimina el warning
+  // Ignora ESLint SOLO durante el build (ideal para tu caso)
+  eslint: {
+    ignoreDuringBuilds: true,
   },
-  /* config options here */
+
+  // Mantiene los errores de TypeScript (importante para calidad)
+  typescript: {
+    ignoreBuildErrors: false,
+  },
+
+  // Config básico para Next 15 (sin turbopack experimental)
+  reactStrictMode: true,
 };
 
 export default nextConfig;

@@ -1,4 +1,6 @@
 'use client'
+export const dynamic = 'force-dynamic' // ✅ AGREGAR ESTA LÍNEA
+
 
 import { useState, useEffect, Suspense } from 'react'
 import { useDatos } from '@/app/contexts/DatosContext'

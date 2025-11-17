@@ -17,36 +17,37 @@ export const authOptions = {
           return null;
         }
 
-        // Buscar usuario por email (findUnique falla si email es nullable)
-const user = await prisma.user.findFirst({
-  where: { email: credentials.email.toLowerCase().trim() },
-  select: {
-    id: true,
-    email: true,
-    password: true,
-    name: true,
-    role: true,
-    accesoFinanzas: true,
-    campoId: true,
-  },
-});
+        // Buscar usuario
+        const user = await prisma.user.findFirst({
+          where: { email: credentials.email.toLowerCase().trim() },
+          select: {
+            id: true,
+            email: true,
+            password: true,
+            name: true,
+            role: true,
+            accesoFinanzas: true,
+            campoId: true,
+          },
+        });
 
-        if (!user || !user.password) {
-          return null;
-        }
+        if (!user || !user.password) return null;
 
-        // Comparar contraseña
-        const isValid = await bcrypt.compare(credentials.password, user.password);
-        if (!isValid) {
-          return null;
-        }
+        const isValid = await bcrypt.compare(
+          credentials.password,
+          user.password
+        );
 
-        // Devuelve datos que van al JWT
+        if (!isValid) return null;
+
+        // Datos que irán al JWT
         return {
           id: user.id,
           email: user.email,
           name: user.name,
           role: user.role,
+          roleCode: user.role,          // 👈 IMPORTANTE
+          accesoFinanzas: user.accesoFinanzas,
           campoId: user.campoId,
         };
       },
@@ -67,14 +68,17 @@ const user = await prisma.user.findFirst({
       if (user) {
         token.id = user.id;
         token.role = user.role;
+        token.roleCode = user.role;           // 👈 IMPORTANTE
+        token.accesoFinanzas = user.accesoFinanzas;
         token.campoId = user.campoId;
       }
       return token;
     },
 
-    // Exponer la data del usuario en session.user
+    // Exponer datos en session.user
     async session({ session, token }: any) {
       if (session.user) {
+        // Cargar datos completos del usuario desde la BD
         const dbUser = await prisma.user.findUnique({
           where: { id: token.id as string },
           select: {
@@ -83,15 +87,22 @@ const user = await prisma.user.findFirst({
             email: true,
             telefono: true,
             role: true,
+            accesoFinanzas: true,
             campoId: true,
           },
         });
 
         if (dbUser) {
-          session.user = { ...session.user, ...dbUser };
+          session.user = {
+            ...session.user,
+            ...dbUser,
+            roleCode: dbUser.role,                // 👈 IMPORTANTE
+          };
         } else {
           session.user.id = token.id;
           session.user.role = token.role;
+          session.user.roleCode = token.roleCode;  // 👈 IMPORTANTE
+          session.user.accesoFinanzas = token.accesoFinanzas;
           session.user.campoId = token.campoId;
         }
       }

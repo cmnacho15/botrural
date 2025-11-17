@@ -1,4 +1,5 @@
 'use client'
+export const dynamic = "force-dynamic"
 
 import { useState } from 'react'
 import Link from 'next/link'
@@ -27,7 +28,7 @@ const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
 export default function LotesPage() {
   // ✅ Usar SWR en lugar de useState + useEffect
-  const { data: lotes = [], isLoading: loading, mutate: revalidate } = useSWR<Lote[]>(
+  const { data: lotes = [], isLoading: loading, mutate: refreshLotes } = useSWR<Lote[]>(
     '/api/lotes',
     fetcher,
     {
@@ -47,7 +48,7 @@ export default function LotesPage() {
       const response = await fetch(`/api/lotes?id=${id}`, { method: 'DELETE' })
       if (response.ok) {
         // ✅ Actualizar la lista local inmediatamente
-        revalidate()
+        refreshLotes()
         alert('Potrero eliminado correctamente')
       } else {
         alert('Error al eliminar el potrero')
