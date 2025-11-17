@@ -1,185 +1,224 @@
 "use client"
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useEffect, Suspense } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 
-export default function RegisterPage() {
+// Componente interno que usa useSearchParams
+function RegisterFormContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const token = searchParams.get("token")
 
+  // Estados del formulario
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
-  const [campoNombre, setCampoNombre] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
+  const [campoNombre, setCampoNombre] = useState("")
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
 
-  const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
+  // Determinar si es registro por invitación o primer usuario
+  const esInvitacion = !!token
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
-    setLoading(true)
 
-    // ✅ VALIDACIÓN 1: Contraseñas coinciden
+    // Validaciones
+    if (!name || !email || !password) {
+      setError("Todos los campos son requeridos")
+      return
+    }
+
     if (password !== confirmPassword) {
       setError("Las contraseñas no coinciden")
-      setLoading(false)
       return
     }
 
-    // ✅ VALIDACIÓN 2: Longitud de contraseña
     if (password.length < 8) {
       setError("La contraseña debe tener al menos 8 caracteres")
-      setLoading(false)
       return
     }
 
-    // ✅ VALIDACIÓN 3: Email válido
-    if (!email.includes("@") || email.length < 5) {
-      setError("Email inválido")
-      setLoading(false)
+    if (!esInvitacion && !campoNombre) {
+      setError("El nombre del campo es requerido")
       return
     }
+
+    setLoading(true)
 
     try {
-      const res = await fetch("/api/register", {
+      // Endpoint diferente según si es invitación o no
+      const endpoint = esInvitacion ? "/api/registro" : "/api/register"
+      
+      const body = esInvitacion
+        ? { token, name, email, password }
+        : { name, email, password, campoNombre }
+
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name,
-          email: email.toLowerCase().trim(),
-          password,
-          campoNombre,
-        }),
+        body: JSON.stringify(body),
       })
 
       const data = await res.json()
 
       if (!res.ok) {
-        setError(data.error || "Error al registrarse")
-        setLoading(false)
-        return
+        throw new Error(data.error || "Error en el registro")
       }
 
-      // ✅ Import dinámico de signIn
+      // Login automático
       const { signIn } = await import("next-auth/react")
-
-      const login = await signIn("credentials", {
+      const loginResult = await signIn("credentials", {
         email: email.toLowerCase().trim(),
         password,
         redirect: false,
       })
 
-      if (login?.error) {
-        setError("Cuenta creada pero error al iniciar sesión.")
-        setLoading(false)
-        return
+      if (loginResult?.ok) {
+        router.push("/dashboard")
+      } else {
+        setError("Cuenta creada pero error al iniciar sesión")
       }
-
-      // ✅ Limpiar formulario antes de redirigir
-      setName("")
-      setEmail("")
-      setPassword("")
-      setConfirmPassword("")
-      setCampoNombre("")
-      
-      // ✅ Redirigir (sin router.refresh)
-      router.push("/dashboard")
-      
-    } catch (err) {
-      console.error(err)
-      setError("Error al registrarse")
+    } catch (error: any) {
+      setError(error.message || "Error al registrarse")
+    } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md">
-        <h1 className="text-3xl font-bold text-center mb-6">🌾 Crear cuenta</h1>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-blue-100 p-4">
+      <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
+        <div className="text-center mb-8">
+          <div className="text-6xl mb-4">🌾</div>
+          <h1 className="text-3xl font-bold text-gray-900">
+            {esInvitacion ? "Completar registro" : "Crear cuenta"}
+          </h1>
+          <p className="text-gray-600 mt-2">
+            {esInvitacion 
+              ? "Fuiste invitado a unirte a un campo" 
+              : "Comienza a gestionar tu campo"}
+          </p>
+        </div>
 
         {error && (
-          <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
             {error}
           </div>
         )}
 
-        <form onSubmit={handleRegister} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-1">Nombre completo</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Nombre completo
+            </label>
             <input
               type="text"
-              required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-4 py-3 border rounded-lg"
-              placeholder="Ej: Juan Pérez"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Juan Pérez"
+              disabled={loading}
+              required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Email</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Email
+            </label>
             <input
               type="email"
-              required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 border rounded-lg"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="email@example.com"
+              disabled={loading}
+              required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Contraseña</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Contraseña
+            </label>
             <input
               type="password"
-              required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 border rounded-lg"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="Mínimo 8 caracteres"
+              disabled={loading}
+              required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Confirmar contraseña</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Confirmar contraseña
+            </label>
             <input
               type="password"
-              required
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full px-4 py-3 border rounded-lg"
-              placeholder="Repite la contraseña"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Repite tu contraseña"
+              disabled={loading}
+              required
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-1">Nombre del campo</label>
-            <input
-              type="text"
-              required
-              value={campoNombre}
-              onChange={(e) => setCampoNombre(e.target.value)}
-              className="w-full px-4 py-3 border rounded-lg"
-              placeholder="Ej: Campo Santa Rosa"
-            />
-          </div>
+          {/* Solo mostrar campo de nombre del campo si NO es invitación */}
+          {!esInvitacion && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Nombre del campo
+              </label>
+              <input
+                type="text"
+                value={campoNombre}
+                onChange={(e) => setCampoNombre(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Ej: Campo Santa Rosa"
+                disabled={loading}
+                required
+              />
+            </div>
+          )}
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-green-600 text-white py-3 rounded-lg font-medium hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? "Creando cuenta..." : "Crear cuenta"}
+            {loading ? "Registrando..." : "Crear cuenta"}
           </button>
         </form>
 
-        <p className="text-center text-sm text-gray-600 mt-6">
-          ¿Ya tienes cuenta?{" "}
-          <a href="/login" className="text-green-600 font-medium hover:underline">
-            Inicia sesión
-          </a>
-        </p>
+        <div className="mt-6 text-center">
+          <p className="text-sm text-gray-600">
+            ¿Ya tienes cuenta?{" "}
+            <a href="/login" className="text-blue-600 hover:text-blue-700 font-medium">
+              Inicia sesión
+            </a>
+          </p>
+        </div>
       </div>
     </div>
+  )
+}
+
+// Componente principal con Suspense
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-300 border-t-blue-600"></div>
+      </div>
+    }>
+      <RegisterFormContent />
+    </Suspense>
   )
 }
