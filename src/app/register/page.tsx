@@ -19,8 +19,23 @@ export default function RegisterPage() {
     setError("")
     setLoading(true)
 
+    // ✅ VALIDACIÓN 1: Contraseñas coinciden
     if (password !== confirmPassword) {
       setError("Las contraseñas no coinciden")
+      setLoading(false)
+      return
+    }
+
+    // ✅ VALIDACIÓN 2: Longitud de contraseña
+    if (password.length < 8) {
+      setError("La contraseña debe tener al menos 8 caracteres")
+      setLoading(false)
+      return
+    }
+
+    // ✅ VALIDACIÓN 3: Email válido
+    if (!email.includes("@") || email.length < 5) {
+      setError("Email inválido")
       setLoading(false)
       return
     }
@@ -45,7 +60,7 @@ export default function RegisterPage() {
         return
       }
 
-      // 👉 IMPORT DINÁMICO — CLAVE
+      // ✅ Import dinámico de signIn
       const { signIn } = await import("next-auth/react")
 
       const login = await signIn("credentials", {
@@ -60,11 +75,19 @@ export default function RegisterPage() {
         return
       }
 
+      // ✅ Limpiar formulario antes de redirigir
+      setName("")
+      setEmail("")
+      setPassword("")
+      setConfirmPassword("")
+      setCampoNombre("")
+      
+      // ✅ Redirigir (sin router.refresh)
       router.push("/dashboard")
+      
     } catch (err) {
       console.error(err)
       setError("Error al registrarse")
-    } finally {
       setLoading(false)
     }
   }
@@ -113,7 +136,7 @@ export default function RegisterPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full px-4 py-3 border rounded-lg"
-              placeholder="Mínimo 6 caracteres"
+              placeholder="Mínimo 8 caracteres"
             />
           </div>
 
