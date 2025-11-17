@@ -8,6 +8,7 @@ import { useState } from "react";
 import { DatosProvider } from "@/app/contexts/DatosContext";
 import { InsumosProvider } from "@/app/contexts/InsumosContext";
 import { GastosProvider } from "@/app/contexts/GastosContext";
+import ModalNuevoDato from "@/app/components/modales/ModalNuevoDato";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -25,11 +26,9 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [nuevoDatoMenuOpen, setNuevoDatoMenuOpen] = useState(false);
 
-  // ❌ IMPORTANTE: YA NO SE USA useSession EN EL LAYOUT
-
-  // El menú ahora será ESTÁTICO. La personalización por rol se hace en cada página.
+  // 🔥 ESTO ES LO QUE FALTABA
+  const [modalTipo, setModalTipo] = useState<string | null>(null);
 
   const menuSections = [
     {
@@ -61,6 +60,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex flex-col h-screen bg-gray-50">
+
       {/* HEADER */}
       <header className="bg-white border-b px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -74,9 +74,9 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
           <span className="text-xl font-bold text-gray-900">BotRural</span>
         </div>
 
-        {/* "Nuevo dato" se oculta en las páginas donde corresponda */}
+        {/* 🔥 BOTÓN QUE ABRE DIRECTO EL MODAL */}
         <button
-          onClick={() => setNuevoDatoMenuOpen(!nuevoDatoMenuOpen)}
+          onClick={() => setModalTipo("gasto")}
           className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
         >
           ＋ Nuevo Dato
@@ -84,6 +84,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
       </header>
 
       <div className="flex flex-1 overflow-hidden">
+
         {/* SIDEBAR */}
         <aside
           className={`fixed lg:static inset-y-0 left-0 w-60 bg-white border-r transition-transform ${
@@ -105,7 +106,6 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                           ? "bg-blue-50 text-blue-600 font-medium"
                           : "text-gray-700 hover:bg-gray-100"
                       }`}
-                      onClick={() => setSidebarOpen(false)}
                     >
                       <span>{item.icon}</span> {item.label}
                     </Link>
@@ -118,6 +118,14 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
 
         <main className="flex-1 overflow-y-auto p-6">{children}</main>
       </div>
+
+      {/* 🔥 MODAL INTEGRADO EN EL LAYOUT (FALTABA ESTO) */}
+      <ModalNuevoDato
+        isOpen={modalTipo !== null}
+        onClose={() => setModalTipo(null)}
+        tipo={modalTipo || ""}
+        onSuccess={() => {}}
+      />
     </div>
   );
 }
