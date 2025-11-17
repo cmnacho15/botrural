@@ -26,12 +26,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
 function LayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { data: session } = useSession();
+  const { data: session, status } = useSession(); // ✅ Agregar status
   
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [modalTipo, setModalTipo] = useState<string | null>(null);
-  // ✅ Simplemente usar el valor de la sesión
+
+  // ✅ Mostrar loading mientras carga la sesión
+  if (status === "loading") {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-300 border-t-blue-600"></div>
+      </div>
+    );
+  }
+
+  // Simplemente usar el valor de la sesión
   const campoNombre = session?.user?.campoNombre || "Mi Campo";
 
   const openModal = (tipo: string) => {
