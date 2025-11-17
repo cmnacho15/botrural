@@ -1,5 +1,5 @@
-
 {
+  "rootDirectory": "src",
   "crons": [
     {
       "path": "/api/whatsapp/renew-token",
