@@ -1,155 +1,203 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { registrarEmpleadoBot, generarMensajeBienvenidaEmpleado } from "@/lib/bot-helpers"
 
+const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || "mi_token_secreto"
+const WHATSAPP_TOKEN = process.env.WHATSAPP_TOKEN
+const WHATSAPP_PHONE_ID = process.env.WHATSAPP_PHONE_ID
+
+/**
+ * GET - Verificación del webhook de WhatsApp
+ */
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url)
+  const mode = searchParams.get("hub.mode")
+  const token = searchParams.get("hub.verify_token")
+  const challenge = searchParams.get("hub.challenge")
+
+  console.log("🔍 Verificación webhook:", { mode, token, challenge })
+
+  if (mode === "subscribe" && token === VERIFY_TOKEN) {
+    console.log("✅ Webhook verificado")
+    return new NextResponse(challenge, { status: 200 })
+  }
+
+  console.log("❌ Verificación fallida")
+  return NextResponse.json({ error: "Verificación fallida" }, { status: 403 })
+}
+
+/**
+ * POST - Recibir mensajes de WhatsApp
+ */
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { telefono, mensaje } = body
 
-    if (!telefono || !mensaje) {
-      return NextResponse.json({ error: "Faltan parámetros" }, { status: 400 })
+    // Extraer mensaje
+    const entry = body.entry?.[0]
+    const changes = entry?.changes?.[0]
+    const value = changes?.value
+
+    if (!value?.messages?.[0]) {
+      return NextResponse.json({ status: "no message" })
     }
 
-    const msg = mensaje.trim()
+    const message = value.messages[0]
+    const from = message.from // Número de teléfono del usuario
+    const messageText = message.text?.body?.trim() || ""
 
-    // =======================================================
-    // 1) Buscar usuario por teléfono
-    // =======================================================
-    const usuario = await prisma.user.findUnique({
-      where: { telefono },
-      include: { campo: true },
-    })
+    console.log(`📱 Mensaje de ${from}: ${messageText}`)
 
-    // =======================================================
-    // 2) Intentar interpretar mensaje como TOKEN de invitación
-    // =======================================================
-    const invitacion = await prisma.invitation.findUnique({
-      where: { token: msg },
-      include: { campo: true },
-    })
-
-    if (invitacion && !invitacion.usedAt && invitacion.expiresAt > new Date()) {
-
-      // ❌ Si el número ya pertenece a un usuario → error
-      if (usuario) {
-        return NextResponse.json({
-          success: false,
-          respuesta: `⚠️ Este número ya está registrado.`,
-        })
-      }
-
-      // COLABORADOR → Registro web
-      if (invitacion.role === "COLABORADOR") {
-        const url = `${process.env.NEXTAUTH_URL}/register?token=${msg}`
-
-        return NextResponse.json({
-          success: true,
-          respuesta: `✅ ¡Invitación válida!
-
-Bienvenido a *${invitacion.campo.nombre}*
-
-Completá tu registro como *Colaborador* aquí:
-🔗 ${url}`,
-        })
-      }
-
-      // EMPLEADO → inicia flujo de nombre
-      if (invitacion.role === "EMPLEADO") {
-        // Guardamos estado temporal del token para este teléfono
-        await prisma.pendingRegistration.upsert({
-          where: { telefono },
-          create: { telefono, token: msg },
-          update: { token: msg },
-        })
-
-        return NextResponse.json({
-          success: true,
-          respuesta: `👋 Bienvenido a *${invitacion.campo.nombre}*
-
-Para completar tu registro como *Empleado*, enviame tu *nombre y apellido*:
-
-Ejemplo: Juan Pérez`,
-        })
-      }
-
-      // CONTADOR → no va por bot
-      return NextResponse.json({
-        success: false,
-        respuesta: `⚠️ Los contadores deben registrarse usando el link web.`,
-      })
+    // 🎯 FASE 1: Detectar si es un token de invitación
+    if (await isToken(messageText)) {
+      await handleTokenRegistration(from, messageText)
+      return NextResponse.json({ status: "token processed" })
     }
 
-    // =======================================================
-    // 3) Si el teléfono está en proceso de registro de empleado
-    // =======================================================
-    const pendiente = await prisma.pendingRegistration.findUnique({
-      where: { telefono },
-    })
+    // 🎯 FASE 2: Procesar carga de datos
+    const parsedData = parseMessage(messageText, from)
+    
+    if (parsedData) {
+      await handleDataEntry(parsedData)
+      await sendWhatsAppMessage(from, "✅ Dato guardado correctamente en el sistema.")
+      return NextResponse.json({ status: "data processed" })
+    }
 
-    if (pendiente) {
-      // Validar nombre y apellido
-const partes = msg.trim().split(" ")
+    // Mensaje no reconocido
+    await sendWhatsAppMessage(
+      from,
+      "No entendí tu mensaje. Podés enviarme cosas como:\n\n" +
+      "• nacieron 3 terneros en potrero norte\n" +
+      "• murieron 2 vacas en lote sur\n" +
+      "• llovieron 25mm\n" +
+      "• gasté $5000 en alimento"
+    )
 
-if (partes.length < 2) {
-  return NextResponse.json({
-    success: false,
-    respuesta: `⚠️ Debes enviar nombre y apellido. Ej: Juan Pérez`,
-  })
+    return NextResponse.json({ status: "ok" })
+  } catch (error) {
+    console.error("💥 Error en webhook:", error)
+    return NextResponse.json({ error: "Error interno" }, { status: 500 })
+  }
 }
 
-// Primer palabra = nombre
-const nombre = partes.shift()!
-// El resto = apellido
-const apellido = partes.join(" ")
+/**
+ * 🔍 Detectar si el mensaje es un token de invitación
+ */
+async function isToken(message: string): Promise<boolean> {
+  if (message.length < 20 || message.length > 50) return false
 
-const nuevoEmpleado = await registrarEmpleadoBot({
-  token: pendiente.token,
-  nombreCompleto: `${nombre} ${apellido}`,
-  telefono,
-})
+  const invitation = await prisma.invitation.findUnique({
+    where: { token: message },
+  })
 
-      const invit = await prisma.invitation.findUnique({
-        where: { token: pendiente.token },
-        include: { campo: true },
-      })
+  return !!invitation
+}
 
-      // Borrar registro temporal
-      await prisma.pendingRegistration.delete({
-        where: { telefono },
-      })
-
-      return NextResponse.json({
-        success: true,
-        respuesta: generarMensajeBienvenidaEmpleado(
-          nuevoEmpleado.name,
-          invit?.campo.nombre || ""
-        ),
-      })
-    }
-
-    // =======================================================
-    // 4) Usuario ya registrado
-    // =======================================================
-    if (usuario) {
-      return NextResponse.json({
-        success: true,
-        respuesta: `Hola ${usuario.name}! ¿En qué puedo ayudarte hoy?`,
-      })
-    }
-
-    // =======================================================
-    // 5) Número desconocido
-    // =======================================================
-    return NextResponse.json({
-      success: false,
-      respuesta: `⚠️ No estás registrado.
-
-Pedile a tu administrador un *código de invitación* y enviámelo por aquí.`,
+/**
+ * 🎫 Manejar registro de empleado por token
+ */
+async function handleTokenRegistration(phone: string, token: string) {
+  try {
+    const invitation = await prisma.invitation.findUnique({
+      where: { token },
+      include: { campo: true },
     })
 
-  } catch (err) {
-    console.error("💥 Error en bot-webhook:", err)
-    return NextResponse.json({ error: "Error interno" }, { status: 500 })
+    if (!invitation) {
+      await sendWhatsAppMessage(phone, "❌ Token inválido o expirado.")
+      return
+    }
+
+    if (invitation.usedAt) {
+      await sendWhatsAppMessage(phone, "❌ Este token ya fue utilizado.")
+      return
+    }
+
+    if (invitation.expiresAt < new Date()) {
+      await sendWhatsAppMessage(phone, "❌ Este token expiró.")
+      return
+    }
+
+    // Solo EMPLEADO se registra por WhatsApp
+    if (invitation.role !== "EMPLEADO") {
+      const webUrl = process.env.NEXTAUTH_URL || "https://botrural.vercel.app"
+      const registerLink = `${webUrl}/register?token=${token}`
+      await sendWhatsAppMessage(
+        phone,
+        `Hola! Para completar tu registro, ingresá acá:\n${registerLink}`
+      )
+      return
+    }
+
+    const existingUser = await prisma.user.findUnique({
+      where: { telefono: phone },
+    })
+
+    if (existingUser) {
+      await sendWhatsAppMessage(phone, "❌ Ya estás registrado con este número.")
+      return
+    }
+
+    await sendWhatsAppMessage(
+      phone,
+      `¡Bienvenido a ${invitation.campo.nombre}! 🌾\n\n` +
+      "Para completar tu registro, enviame tu nombre y apellido.\n" +
+      "Ejemplo: Juan Pérez"
+    )
+
+    await prisma.pendingRegistration.upsert({
+      where: { telefono: phone },
+      create: { telefono: phone, token },
+      update: { token },
+    })
+
+  } catch (error) {
+    console.error("Error en registro:", error)
+    await sendWhatsAppMessage(phone, "❌ Error al procesar el registro.")
+  }
+}
+
+/**
+ * 📝 Parsear mensaje simple (placeholder)
+ */
+function parseMessage(text: string, phone: string): any {
+  // Por ahora retorna null, implementarás la lógica después
+  return null
+}
+
+/**
+ * 💾 Guardar dato (placeholder)
+ */
+async function handleDataEntry(data: any) {
+  // Implementar después
+}
+
+/**
+ * 📤 Enviar mensaje de WhatsApp
+ */
+async function sendWhatsAppMessage(to: string, message: string) {
+  try {
+    const response = await fetch(
+      `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_ID}/messages`,
+      {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${WHATSAPP_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          messaging_product: "whatsapp",
+          to: to,
+          type: "text",
+          text: { body: message },
+        }),
+      }
+    )
+
+    if (!response.ok) {
+      const error = await response.json()
+      console.error("Error enviando mensaje:", error)
+    }
+  } catch (error) {
+    console.error("Error en sendWhatsAppMessage:", error)
   }
 }
