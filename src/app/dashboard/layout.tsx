@@ -302,7 +302,9 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
           <nav className="p-4 space-y-6">
             {menuSections.map((section, i) => (
               <div key={i}>
-                <h3 className="text-xs text-gray-500 px-4 mb-2">{section.title}</h3>
+                <h3 className="text-xs text-gray-500 px-4 mb-2">
+  {section.title === "Mi Campo" ? campoNombre : section.title}
+</h3>
 
                 {section.items.map((item: any) => {
                   const isActive = pathname.startsWith(item.href);
