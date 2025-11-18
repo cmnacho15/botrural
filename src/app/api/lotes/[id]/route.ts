@@ -66,25 +66,41 @@ export async function PUT(
         fechaIngreso: new Date(),
       }));
 
-    // ========================
-    // 🌾 CULTIVOS ELIMINADOS
-    // ========================
-    const cultivosAnteriores = lote.cultivos.map(c => ({
-      tipoCultivo: c.tipoCultivo,
-      hectareas: c.hectareas
-    }));
-    
-    const cultivosNuevos = cultivosValidos.map((c: any) => c.tipoCultivo);
-    
-    const cultivosEliminados = cultivosAnteriores.filter(
-      c => !cultivosNuevos.includes(c.tipoCultivo)
+    console.log("🐮 Animales válidos:", animalesValidos);
+
+    // 🔥 DETECTAR CAMBIOS Y CREAR EVENTOS
+
+    // 1️⃣ Detectar cultivos nuevos y eliminados
+    console.log("🔍 ANTES - Cultivos en BD:", lote.cultivos);
+    console.log("🔍 AHORA - Cultivos válidos a guardar:", cultivosValidos);
+
+    const cultivosAnterioresMap = lote.cultivos.reduce((acc: any, c) => {
+      acc[c.tipoCultivo] = c.hectareas;
+      return acc;
+    }, {});
+
+    const cultivosNuevosMap = cultivosValidos.reduce((acc: any, c: any) => {
+      acc[c.tipoCultivo] = c.hectareas;
+      return acc;
+    }, {});
+
+    console.log("📋 Map de cultivos anteriores:", cultivosAnterioresMap);
+    console.log("📋 Map de cultivos nuevos:", cultivosNuevosMap);
+
+    // Cultivos completamente nuevos (no existían antes)
+    const cultivosNuevos = cultivosValidos.filter(
+      (c: any) => !(c.tipoCultivo in cultivosAnterioresMap)
     );
 
-    console.log("🌾 Cultivos eliminados:", cultivosEliminados);
+    // Cultivos eliminados (existían antes, ya no están)
+    const cultivosEliminados = lote.cultivos.filter(
+      c => !(c.tipoCultivo in cultivosNuevosMap)
+    );
 
-    // ========================
-    // 🐄 ANIMALES ELIMINADOS/REDUCIDOS
-    // ========================
+    console.log("🆕 Cultivos nuevos detectados:", cultivosNuevos);
+    console.log("🗑️ Cultivos eliminados detectados:", cultivosEliminados);
+
+    // 2️⃣ Detectar cambios en animales
     const animalesAnteriores = lote.animalesLote;
     
     const animalesPorCategoria = animalesValidos.reduce((acc: any, a: any) => {
@@ -97,8 +113,8 @@ export async function PUT(
       return acc;
     }, {});
 
-    console.log("🐄 Animales antes:", animalesAnterioresPorCategoria);
-    console.log("🐄 Animales ahora:", animalesPorCategoria);
+    console.log("📊 Animales antes:", animalesAnterioresPorCategoria);
+    console.log("📊 Animales ahora:", animalesPorCategoria);
 
     // ========================
     // 💾 ACTUALIZAR LOTE
@@ -124,11 +140,25 @@ export async function PUT(
       },
     });
 
-    // ========================
-    // 📝 CREAR EVENTOS
-    // ========================
+    // 🔥 CREAR EVENTOS PARA LOS CAMBIOS
 
-    // 1️⃣ Eventos de cultivos eliminados (COSECHA forzada)
+    // 1️⃣ Eventos de cultivos NUEVOS (SIEMBRA)
+    for (const cultivo of cultivosNuevos) {
+      await prisma.evento.create({
+        data: {
+          tipo: 'SIEMBRA',
+          fecha: cultivo.fechaSiembra,
+          descripcion: `Se sembraron ${cultivo.hectareas.toFixed(1)} hectáreas de ${cultivo.tipoCultivo} en el potrero "${nombre}".`,
+          campoId: usuario!.campoId!,
+          loteId: id,
+          usuarioId: session.user.id,
+          cantidad: cultivo.hectareas,
+        },
+      });
+      console.log(`✅ Evento SIEMBRA creado: ${cultivo.tipoCultivo}`);
+    }
+
+    // 2️⃣ Eventos de cultivos ELIMINADOS (COSECHA)
     for (const cultivo of cultivosEliminados) {
       await prisma.evento.create({
         data: {
@@ -144,28 +174,13 @@ export async function PUT(
       console.log(`✅ Evento COSECHA creado: ${cultivo.tipoCultivo}`);
     }
 
-    // 2️⃣ Eventos de animales eliminados/reducidos
-    for (const categoria in animalesAnterioresPorCategoria) {
-      const cantidadNueva = animalesPorCategoria[categoria] || 0;
-      const cantidadAnterior = animalesAnterioresPorCategoria[categoria];
+    // 3️⃣ Eventos de cambios en ANIMALES
+    for (const categoria in animalesPorCategoria) {
+      const cantidadNueva = animalesPorCategoria[categoria];
+      const cantidadAnterior = animalesAnterioresPorCategoria[categoria] || 0;
       const diferencia = cantidadNueva - cantidadAnterior;
 
-      if (diferencia < 0) {
-        // AJUSTE NEGATIVO (eliminación)
-        await prisma.evento.create({
-          data: {
-            tipo: 'AJUSTE',
-            fecha: new Date(),
-            descripcion: `Se eliminaron ${Math.abs(diferencia)} ${categoria.toLowerCase()} del potrero "${nombre}" (ajuste negativo - borrado manual).`,
-            campoId: usuario!.campoId!,
-            loteId: id,
-            usuarioId: session.user.id,
-            cantidad: Math.abs(diferencia),
-            categoria: categoria,
-          },
-        });
-        console.log(`✅ Evento AJUSTE NEGATIVO creado: -${Math.abs(diferencia)} ${categoria}`);
-      } else if (diferencia > 0) {
+      if (diferencia > 0) {
         // AJUSTE POSITIVO (adición)
         await prisma.evento.create({
           data: {
@@ -180,13 +195,27 @@ export async function PUT(
           },
         });
         console.log(`✅ Evento AJUSTE POSITIVO creado: +${diferencia} ${categoria}`);
+      } else if (diferencia < 0) {
+        // AJUSTE NEGATIVO (eliminación)
+        await prisma.evento.create({
+          data: {
+            tipo: 'AJUSTE',
+            fecha: new Date(),
+            descripcion: `Se eliminaron ${Math.abs(diferencia)} ${categoria.toLowerCase()} del potrero "${nombre}" (ajuste negativo - borrado manual).`,
+            campoId: usuario!.campoId!,
+            loteId: id,
+            usuarioId: session.user.id,
+            cantidad: Math.abs(diferencia),
+            categoria: categoria,
+          },
+        });
+        console.log(`✅ Evento AJUSTE NEGATIVO creado: -${Math.abs(diferencia)} ${categoria}`);
       }
     }
 
-    // 3️⃣ Detectar categorías completamente eliminadas
+    // 4️⃣ Detectar categorías completamente eliminadas
     for (const categoria in animalesAnterioresPorCategoria) {
       if (!(categoria in animalesPorCategoria)) {
-        // Categoría completamente eliminada
         const cantidad = animalesAnterioresPorCategoria[categoria];
         await prisma.evento.create({
           data: {
