@@ -150,7 +150,7 @@ export function DatosProvider({ children }: { children: ReactNode }) {
       // 🐄 ANIMALES (ahora correcto)
       if (filtros.animales.length > 0) {
         filtrados = filtrados.filter((d) =>
-          coincideConFiltroAnimal(d.detalles?.categoriaAnimal ?? '', filtros.animales)
+          coincideConFiltroAnimal(d.descripcion ?? '', filtros.animales)
         );
       }
 
