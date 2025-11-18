@@ -220,12 +220,10 @@ model Invitation {
   usedBy      User?          @relation("UsedInvitations", fields: [usedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
 
-model PendingConfirmation {
+model PendingRegistration {
   telefono  String   @id
-  data      String
+  token     String
   createdAt DateTime @default(now())
-  
-  @@map("PendingConfirmation")
 }
 
 model ManoObra {
