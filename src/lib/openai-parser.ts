@@ -89,6 +89,8 @@ Respuesta: {"tipo":"SIEMBRA","cantidad":5,"cultivo":"soja","descripcion":"Siembr
  */
 export async function transcribeAudio(audioUrl: string): Promise<string | null> {
   try {
+    console.log("🎤 Descargando audio desde:", audioUrl)
+    
     // Descargar el audio desde WhatsApp
     const audioResponse = await fetch(audioUrl, {
       headers: {
@@ -97,27 +99,38 @@ export async function transcribeAudio(audioUrl: string): Promise<string | null> 
     })
 
     if (!audioResponse.ok) {
-      console.error("Error descargando audio:", audioResponse.status)
+      console.error("❌ Error descargando audio:", audioResponse.status, await audioResponse.text())
       return null
     }
 
-    // Convertir a File object para Whisper
-    const audioBlob = await audioResponse.blob()
-    const audioFile = new File([audioBlob], 'audio.ogg', { type: 'audio/ogg' })
+    console.log("✅ Audio descargado, tamaño:", audioResponse.headers.get('content-length'))
+
+    // Convertir a buffer
+    const audioBuffer = await audioResponse.arrayBuffer()
+    const audioBlob = new Blob([audioBuffer], { type: 'audio/ogg; codecs=opus' })
+    const audioFile = new File([audioBlob], 'audio.ogg', { type: 'audio/ogg; codecs=opus' })
+
+    console.log("📤 Enviando a Whisper, tamaño archivo:", audioFile.size)
 
     // Transcribir con Whisper
     const transcription = await openai.audio.transcriptions.create({
       file: audioFile,
       model: "whisper-1",
       language: "es",
-      response_format: "text"
     })
 
-    console.log("📝 Transcripción:", transcription)
-    return transcription
+    console.log("✅ Transcripción exitosa:", transcription)
+    
+    // Whisper puede devolver un objeto o string
+    const text = typeof transcription === 'string' ? transcription : transcription.text
+    
+    console.log("📝 Texto transcrito:", text)
+    return text
 
-  } catch (error) {
-    console.error("Error transcribiendo audio:", error)
+  } catch (error: any) {
+    console.error("💥 Error transcribiendo audio:", error)
+    console.error("💥 Error detalles:", error.message)
+    console.error("💥 Error stack:", error.stack)
     return null
   }
 }
