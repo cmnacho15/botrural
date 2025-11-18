@@ -47,13 +47,22 @@ export async function POST(request: Request) {
 
     console.log(`📱 Mensaje de ${from}: ${messageText}`)
 
-    // 🎯 FASE 1: Detectar si es un token de invitación
+    // 🎯 1) Si el mensaje coincide con un token → manejar registro
     if (await isToken(messageText)) {
       await handleTokenRegistration(from, messageText)
       return NextResponse.json({ status: "token processed" })
     }
 
-    // 🎯 FASE 2: Procesar carga de datos
+    // 🎯 2) Si tiene un registro pendiente → procesar nombre
+    const pendiente = await prisma.pendingRegistration.findUnique({
+      where: { telefono: from },
+    })
+
+    if (pendiente && messageText && !(await isToken(messageText))) {
+      return await procesarNombrePendiente(from, messageText, pendiente.token)
+    }
+
+    // 🎯 3) Eventos (por ahora null)
     const parsedData = parseMessage(messageText, from)
     
     if (parsedData) {
@@ -93,7 +102,94 @@ async function isToken(message: string): Promise<boolean> {
 }
 
 /**
- * 🎫 Manejar registro de empleado por token
+ * 👤 Registrar empleado después de recibir nombre
+ */
+async function registrarEmpleadoBot(telefono: string, nombreCompleto: string, token: string) {
+  try {
+    const invitation = await prisma.invitation.findUnique({
+      where: { token },
+      include: { campo: true },
+    })
+
+    if (!invitation) {
+      throw new Error("Invitación no encontrada")
+    }
+
+    // email temporal único
+    const timestamp = Date.now()
+    const email = `empleado_${timestamp}@botrural.temp`
+
+    const nuevoUsuario = await prisma.user.create({
+      data: {
+        name: nombreCompleto,
+        email: email,
+        telefono: telefono,
+        role: "EMPLEADO",
+        campoId: invitation.campoId,
+        accesoFinanzas: false,
+      },
+    })
+
+    await prisma.invitation.update({
+      where: { id: invitation.id },
+      data: {
+        usedAt: new Date(),
+        usedById: nuevoUsuario.id,
+      },
+    })
+
+    await prisma.pendingRegistration.delete({
+      where: { telefono },
+    }).catch(() => {})
+
+    return {
+      usuario: nuevoUsuario,
+      campo: invitation.campo,
+    }
+  } catch (error) {
+    console.error("Error en registrarEmpleadoBot:", error)
+    throw error
+  }
+}
+
+/**
+ * 🧠 Procesar nombre enviado en registro pendiente
+ */
+async function procesarNombrePendiente(phone: string, messageText: string, token: string) {
+  try {
+    const partes = messageText.trim().split(" ")
+
+    if (partes.length < 2) {
+      await sendWhatsAppMessage(
+        phone,
+        "⚠️ Por favor envía tu nombre y apellido.\nEjemplo: Juan Pérez"
+      )
+      return NextResponse.json({ status: "nombre inválido" })
+    }
+
+    // Registrar empleado
+    const resultado = await registrarEmpleadoBot(phone, messageText.trim(), token)
+
+    await sendWhatsAppMessage(
+      phone,
+      `✅ ¡Bienvenido ${resultado.usuario.name}!\n\n` +
+      `Ya estás registrado en *${resultado.campo.nombre}*.\n\n` +
+      `Ahora podés enviarme datos del campo. Por ejemplo:\n` +
+      `• nacieron 3 terneros en potrero norte\n` +
+      `• llovieron 25mm\n` +
+      `• gasté $5000 en alimento`
+    )
+
+    return NextResponse.json({ status: "registrado" })
+  } catch (error) {
+    console.error("Error procesando nombre:", error)
+    await sendWhatsAppMessage(phone, "❌ Error al registrar el usuario.")
+    return NextResponse.json({ status: "error" })
+  }
+}
+
+/**
+ * 🎫 Manejar registro inicial cuando recibe un token
  */
 async function handleTokenRegistration(phone: string, token: string) {
   try {
@@ -117,7 +213,7 @@ async function handleTokenRegistration(phone: string, token: string) {
       return
     }
 
-    // Solo EMPLEADO se registra por WhatsApp
+    // COLABORADOR o CONTADOR → registro web
     if (invitation.role !== "EMPLEADO") {
       const webUrl = process.env.NEXTAUTH_URL || "https://botrural.vercel.app"
       const registerLink = `${webUrl}/register?token=${token}`
@@ -128,6 +224,7 @@ async function handleTokenRegistration(phone: string, token: string) {
       return
     }
 
+    // EMPLEADO → sigue por WhatsApp
     const existingUser = await prisma.user.findUnique({
       where: { telefono: phone },
     })
@@ -151,24 +248,23 @@ async function handleTokenRegistration(phone: string, token: string) {
     })
 
   } catch (error) {
-    console.error("Error en registro:", error)
+    console.error("Error en handleTokenRegistration:", error)
     await sendWhatsAppMessage(phone, "❌ Error al procesar el registro.")
   }
 }
 
 /**
- * 📝 Parsear mensaje simple (placeholder)
+ * 📝 Parseo de mensajes (vacío por ahora)
  */
 function parseMessage(text: string, phone: string): any {
-  // Por ahora retorna null, implementarás la lógica después
   return null
 }
 
 /**
- * 💾 Guardar dato (placeholder)
+ * 💾 Guardar eventos (se implementará después)
  */
 async function handleDataEntry(data: any) {
-  // Implementar después
+  return
 }
 
 /**
