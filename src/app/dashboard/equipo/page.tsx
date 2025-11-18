@@ -24,16 +24,24 @@ export default function EquipoPage() {
   const [actualizando, setActualizando] = useState<string | null>(null)
 
   const cargarUsuarios = async () => {
-    try {
-      const res = await fetch("/api/usuarios")
-      const data = await res.json()
-      setUsuarios(data)
-    } catch (error) {
-      console.error("Error cargando usuarios:", error)
-    } finally {
-      setLoading(false)
-    }
+  try {
+    const res = await fetch("/api/usuarios")
+    const data = await res.json()
+    
+    // ✅ Ordenar: ADMIN_GENERAL primero, luego el resto por fecha
+    const ordenados = data.sort((a: Usuario, b: Usuario) => {
+      if (a.roleCode === "ADMIN_GENERAL") return -1
+      if (b.roleCode === "ADMIN_GENERAL") return 1
+      return new Date(a.fechaRegistro).getTime() - new Date(b.fechaRegistro).getTime()
+    })
+    
+    setUsuarios(ordenados)
+  } catch (error) {
+    console.error("Error cargando usuarios:", error)
+  } finally {
+    setLoading(false)
   }
+}
 
   useEffect(() => {
     cargarUsuarios()
