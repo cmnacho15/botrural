@@ -83,3 +83,41 @@ Respuesta: {"tipo":"SIEMBRA","cantidad":5,"cultivo":"soja","descripcion":"Siembr
     return null
   }
 }
+
+/**
+ * 🎤 Transcribir audio con Whisper
+ */
+export async function transcribeAudio(audioUrl: string): Promise<string | null> {
+  try {
+    // Descargar el audio desde WhatsApp
+    const audioResponse = await fetch(audioUrl, {
+      headers: {
+        'Authorization': `Bearer ${process.env.WHATSAPP_TOKEN}`
+      }
+    })
+
+    if (!audioResponse.ok) {
+      console.error("Error descargando audio:", audioResponse.status)
+      return null
+    }
+
+    // Convertir a File object para Whisper
+    const audioBlob = await audioResponse.blob()
+    const audioFile = new File([audioBlob], 'audio.ogg', { type: 'audio/ogg' })
+
+    // Transcribir con Whisper
+    const transcription = await openai.audio.transcriptions.create({
+      file: audioFile,
+      model: "whisper-1",
+      language: "es",
+      response_format: "text"
+    })
+
+    console.log("📝 Transcripción:", transcription)
+    return transcription
+
+  } catch (error) {
+    console.error("Error transcribiendo audio:", error)
+    return null
+  }
+}

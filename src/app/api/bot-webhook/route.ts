@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { parseMessageWithAI } from "@/lib/openai-parser"
+import { parseMessageWithAI, transcribeAudio } from "@/lib/openai-parser"
+
 
 const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || "mi_token_secreto"
 const WHATSAPP_TOKEN = process.env.WHATSAPP_TOKEN
@@ -40,7 +41,59 @@ export async function POST(request: Request) {
 
     const message = value.messages[0]
     const from = message.from
-    const messageText = message.text?.body?.trim() || ""
+    
+    // ✨ NUEVO: Detectar tipo de mensaje
+    let messageText = ""
+    
+    if (message.type === "text") {
+      messageText = message.text?.body?.trim() || ""
+    } else if (message.type === "audio") {
+      // 🎤 Procesar audio
+      const audioId = message.audio?.id
+      
+      if (!audioId) {
+        await sendWhatsAppMessage(from, "❌ No pude procesar el audio. Intenta de nuevo.")
+        return NextResponse.json({ status: "error" })
+      }
+
+      // Obtener URL del audio desde WhatsApp API
+      const mediaResponse = await fetch(
+        `https://graph.facebook.com/v18.0/${audioId}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${process.env.WHATSAPP_TOKEN}`
+          }
+        }
+      )
+
+      if (!mediaResponse.ok) {
+        await sendWhatsAppMessage(from, "❌ Error obteniendo el audio.")
+        return NextResponse.json({ status: "error" })
+      }
+
+      const mediaData = await mediaResponse.json()
+      const audioUrl = mediaData.url
+
+      // Transcribir audio
+      await sendWhatsAppMessage(from, "🎤 Procesando audio...")
+      
+      const transcription = await transcribeAudio(audioUrl)
+      
+      if (!transcription) {
+        await sendWhatsAppMessage(from, "❌ No pude entender el audio. Intenta de nuevo.")
+        return NextResponse.json({ status: "error" })
+      }
+
+      messageText = transcription
+      console.log(`🎤 Audio transcrito de ${from}: ${messageText}`)
+    } else {
+      // Tipo de mensaje no soportado
+      await sendWhatsAppMessage(
+        from, 
+        "Por ahora solo acepto mensajes de texto y audio. Las imágenes llegarán pronto! 📷"
+      )
+      return NextResponse.json({ status: "unsupported type" })
+    }
 
     console.log(`📱 Mensaje de ${from}: ${messageText}`)
 
@@ -70,7 +123,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ status: "confirmacion processed" })
     }
 
-    // 🎯 FASE 3: Procesar con GPT (en vez de regex) ✨ NUEVO
+    // 🎯 FASE 3: Procesar con GPT
     const parsedData = await parseMessageWithAI(messageText, from)
     
     if (parsedData) {
@@ -85,7 +138,8 @@ export async function POST(request: Request) {
       "• nacieron 3 terneros en potrero norte\n" +
       "• murieron 2 vacas en lote sur\n" +
       "• llovieron 25mm\n" +
-      "• gasté $5000 en alimento"
+      "• gasté $5000 en alimento\n\n" +
+      "También podés enviarme un *audio* 🎤"
     )
 
     return NextResponse.json({ status: "ok" })
