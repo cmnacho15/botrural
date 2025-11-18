@@ -40,14 +40,21 @@ export async function POST(request: Request) {
     }
 
     const message = value.messages[0]
-    const from = message.from
-    
-    // ✨ NUEVO: Detectar tipo de mensaje
-    let messageText = ""
-    
-    if (message.type === "text") {
-      messageText = message.text?.body?.trim() || ""
-    } else if (message.type === "audio") {
+const from = message.from
+
+// ✨ NUEVO: Detectar tipo de mensaje
+let messageText = ""
+
+if (message.type === "text") {
+  messageText = message.text?.body?.trim() || ""
+} else if (message.type === "interactive") {
+  // Usuario clickeó un botón
+  const buttonReply = message.interactive?.button_reply
+  if (buttonReply) {
+    messageText = buttonReply.id // "btn_confirmar", "btn_editar", "btn_cancelar"
+    console.log("🔘 Botón clickeado:", messageText)
+  }
+} else if (message.type === "audio") {
       // 🎤 Procesar audio
       const audioId = message.audio?.id
       
@@ -414,7 +421,7 @@ function parseMessage(text: string, phone: string): any {
  * 🤔 Solicitar confirmación al usuario
  */
 async function solicitarConfirmacion(phone: string, data: any) {
-  let mensaje = "Entendí:\n\n"
+  let mensaje = "*Entendí:*\n\n"
 
   switch (data.tipo) {
     case "LLUVIA":
@@ -443,9 +450,6 @@ async function solicitarConfirmacion(phone: string, data: any) {
       break
   }
 
-  mensaje += "\n\n¿Es correcto? Respondé *sí* o *no*"
-
-  // Guardar confirmación pendiente
   await prisma.pendingConfirmation.create({
     data: {
       telefono: phone,
@@ -453,7 +457,7 @@ async function solicitarConfirmacion(phone: string, data: any) {
     },
   })
 
-  await sendWhatsAppMessage(phone, mensaje)
+  await sendWhatsAppMessageWithButtons(phone, mensaje)
 }
 
 /**
@@ -462,27 +466,68 @@ async function solicitarConfirmacion(phone: string, data: any) {
 async function handleConfirmacion(phone: string, respuesta: string, confirmacion: any) {
   const respuestaLower = respuesta.toLowerCase().trim()
 
-  if (respuestaLower === "si" || respuestaLower === "sí" || respuestaLower === "yes") {
+  // ✅ CONFIRMAR
+  if (
+    respuestaLower === "confirmar" || 
+    respuestaLower === "si" || 
+    respuestaLower === "sí" || 
+    respuestaLower === "yes" ||
+    respuesta.includes("btn_confirmar")
+  ) {
     try {
       const data = JSON.parse(confirmacion.data)
       await handleDataEntry(data)
       
-      await sendWhatsAppMessage(phone, "✅ Dato guardado correctamente en el sistema.")
+      await sendWhatsAppMessage(phone, "✅ *Dato guardado correctamente* en el sistema.")
     } catch (error) {
       console.error("Error guardando dato:", error)
       await sendWhatsAppMessage(phone, "❌ Error al guardar el dato. Intenta de nuevo.")
     }
-  } else if (respuestaLower === "no") {
-    await sendWhatsAppMessage(phone, "❌ Dato cancelado. Podés enviar uno nuevo cuando quieras.")
-  } else {
-    await sendWhatsAppMessage(phone, "Por favor respondé *sí* o *no*")
-    return // No eliminar la confirmación pendiente
+    
+    await prisma.pendingConfirmation.delete({
+      where: { telefono: phone },
+    }).catch(() => {})
+    
+    return
   }
 
-  // Eliminar confirmación pendiente
-  await prisma.pendingConfirmation.delete({
-    where: { telefono: phone },
-  }).catch(() => {})
+  // ✏️ EDITAR
+  if (
+    respuestaLower === "editar" || 
+    respuestaLower === "modificar" ||
+    respuesta.includes("btn_editar")
+  ) {
+    await sendWhatsAppMessage(
+      phone, 
+      "✏️ Ok, enviame los datos corregidos.\n\nEjemplo:\n• llovieron 30mm\n• nacieron 5 terneros"
+    )
+    
+    await prisma.pendingConfirmation.delete({
+      where: { telefono: phone },
+    }).catch(() => {})
+    
+    return
+  }
+
+  // ❌ CANCELAR
+  if (
+    respuestaLower === "cancelar" || 
+    respuestaLower === "no" ||
+    respuesta.includes("btn_cancelar")
+  ) {
+    await sendWhatsAppMessage(phone, "❌ Dato cancelado. Podés enviar uno nuevo cuando quieras.")
+    
+    await prisma.pendingConfirmation.delete({
+      where: { telefono: phone },
+    }).catch(() => {})
+    
+    return
+  }
+
+  await sendWhatsAppMessage(
+    phone, 
+    "Por favor selecciona una opción:\n• *Confirmar* - para guardar\n• *Editar* - para corregir\n• *Cancelar* - para descartar"
+  )
 }
 
 /**
@@ -579,5 +624,69 @@ async function sendWhatsAppMessage(to: string, message: string) {
     }
   } catch (error) {
     console.error("Error en sendWhatsAppMessage:", error)
+  }
+}
+  /**
+ * 📤 Enviar mensaje con botones interactivos
+ */
+async function sendWhatsAppMessageWithButtons(to: string, bodyText: string) {
+  try {
+    const response = await fetch(
+      `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_ID}/messages`,
+      {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${WHATSAPP_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          messaging_product: "whatsapp",
+          to: to,
+          type: "interactive",
+          interactive: {
+            type: "button",
+            body: {
+              text: bodyText
+            },
+            action: {
+              buttons: [
+                {
+                  type: "reply",
+                  reply: {
+                    id: "btn_confirmar",
+                    title: "✅ Confirmar"
+                  }
+                },
+                {
+                  type: "reply",
+                  reply: {
+                    id: "btn_editar",
+                    title: "✏️ Editar"
+                  }
+                },
+                {
+                  type: "reply",
+                  reply: {
+                    id: "btn_cancelar",
+                    title: "❌ Cancelar"
+                  }
+                }
+              ]
+            }
+          }
+        }),
+      }
+    )
+
+    if (!response.ok) {
+      const error = await response.json()
+      console.error("Error enviando botones:", error)
+      
+      await sendWhatsAppMessage(to, bodyText + "\n\n¿Es correcto?\nRespondé: *confirmar*, *editar* o *cancelar*")
+    }
+  } catch (error) {
+    console.error("Error en sendWhatsAppMessageWithButtons:", error)
+    
+    await sendWhatsAppMessage(to, bodyText + "\n\n¿Es correcto?\nRespondé: *confirmar*, *editar* o *cancelar*")
   }
 }
