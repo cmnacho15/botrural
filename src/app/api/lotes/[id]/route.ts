@@ -147,7 +147,7 @@ export async function PUT(
       await prisma.evento.create({
         data: {
           tipo: 'SIEMBRA',
-          fecha: cultivo.fechaSiembra,
+          fecha: new Date(),  // ✅ Fecha actual
           descripcion: `Se sembraron ${cultivo.hectareas.toFixed(1)} hectáreas de ${cultivo.tipoCultivo} en el potrero "${nombre}".`,
           campoId: usuario!.campoId!,
           loteId: id,
