@@ -571,7 +571,7 @@ async function handleDataEntry(data: any) {
     // 💰 GASTO con soporte para pagos a plazo
     await prisma.gasto.create({
       data: {
-        tipo: "EGRESO",
+        tipo: "GASTO",
         monto: data.monto,
         fecha: new Date(),
         descripcion: data.descripcion,
