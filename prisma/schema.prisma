@@ -226,6 +226,12 @@ model PendingRegistration {
   createdAt DateTime @default(now())
 }
 
+model PendingConfirmation {
+  telefono  String   @id
+  data      String
+  createdAt DateTime @default(now())
+}
+
 model ManoObra {
   id                       String  @id @default(cuid())
   nombre                   String
