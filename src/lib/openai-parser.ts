@@ -5,7 +5,7 @@ const openai = new OpenAI({
 })
 
 /**
- * 🤖 Parsear mensaje usando GPT-4o-mini
+ * 🤖 Parsear mensaje usando GPT-4o-mini con detección inteligente de categorías
  */
 export async function parseMessageWithAI(message: string, telefono: string) {
   try {
@@ -20,20 +20,42 @@ TIPOS DE EVENTOS VÁLIDOS:
 - LLUVIA: registros de precipitaciones
 - NACIMIENTO: nacimientos de animales
 - MORTANDAD: muertes de animales
-- GASTO: gastos realizados
+- GASTO: gastos realizados (contado o a plazo)
 - TRATAMIENTO: aplicación de medicamentos/vacunas
 - SIEMBRA: siembra de cultivos
+
+CATEGORÍAS DE GASTOS (MUY IMPORTANTE):
+Cuando el tipo es "GASTO", SIEMPRE deduce la categoría correcta:
+- "Alimento": comida, alimento, balanceado, suplemento, ración, forraje, heno, silo, maíz para consumo, hamburguesas, comida para personal
+- "Veterinario": veterinario, vacuna, medicamento, droga, tratamiento veterinario, consulta veterinaria, ivermectina, antibiótico
+- "Combustible": nafta, gasoil, combustible, diesel, gas oil
+- "Insumos": semillas, fertilizante, agroquímico, herbicida, insecticida, abono
+- "Mantenimiento": arreglo, reparación, mantenimiento, repuesto, herramienta
+- "Salarios": sueldo, jornal, pago empleado, salario, honorario
+- "Servicios": luz, agua, internet, teléfono, servicio
+- "Otros": si no encaja en ninguna categoría anterior
+
+CONDICIONES DE PAGO (PARA GASTOS):
+- Detectá si el gasto es "contado" o "a plazo"
+- Si menciona "a plazo", "en X días", "a X días", "financiado", "cuenta corriente", "crédito", extraé los días
+- Si dice "pagado", "ya pagué", "cancelado" → pagado: true
+- Si dice "debo", "pendiente", "por pagar", "no pagué" → pagado: false
+- Por defecto: contado y pagado
 
 RESPONDE SIEMPRE EN JSON con esta estructura:
 {
   "tipo": "LLUVIA" | "NACIMIENTO" | "MORTANDAD" | "GASTO" | "TRATAMIENTO" | "SIEMBRA" | null,
   "cantidad": número o null,
-  "categoria": string o null (para animales: "ternero", "vaca", "toro", "novillo"),
+  "categoria": string o null (para animales: "ternero", "vaca", "toro", "novillo" | para GASTOS: usar categorías de arriba),
   "lote": string o null (nombre del potrero),
   "monto": número o null (para gastos),
   "descripcion": string,
   "producto": string o null (para tratamientos),
-  "cultivo": string o null (para siembra)
+  "cultivo": string o null (para siembra),
+  "metodoPago": "Contado" | "Plazo" (solo para GASTOS),
+  "diasPlazo": número o null (días de plazo, solo si metodoPago es "Plazo"),
+  "pagado": boolean (solo para GASTOS, true si está pagado, false si está pendiente),
+  "proveedor": string o null (nombre del proveedor/comercio si se menciona)
 }
 
 Si el mensaje NO es sobre ningún evento agrícola, retorna { "tipo": null }.
@@ -49,7 +71,19 @@ Usuario: "Murieron 2 vacas"
 Respuesta: {"tipo":"MORTANDAD","cantidad":2,"categoria":"vaca","descripcion":"Murieron 2 vacas"}
 
 Usuario: "Gasté $5000 en alimento"
-Respuesta: {"tipo":"GASTO","monto":5000,"descripcion":"alimento"}
+Respuesta: {"tipo":"GASTO","monto":5000,"descripcion":"alimento","categoria":"Alimento"}
+
+Usuario: "gasté 2000 pesos en hamburguesas"
+Respuesta: {"tipo":"GASTO","monto":2000,"descripcion":"hamburguesas para el personal","categoria":"Alimento"}
+
+Usuario: "pagué 3000 al veterinario"
+Respuesta: {"tipo":"GASTO","monto":3000,"descripcion":"consulta veterinaria","categoria":"Veterinario"}
+
+Usuario: "compré gasoil por 8000"
+Respuesta: {"tipo":"GASTO","monto":8000,"descripcion":"combustible gasoil","categoria":"Combustible"}
+
+Usuario: "gasté 1500 en cerveza"
+Respuesta: {"tipo":"GASTO","monto":1500,"descripcion":"cerveza","categoria":"Otros"}
 
 Usuario: "Vacuné 10 vacas con ivermectina en lote sur"
 Respuesta: {"tipo":"TRATAMIENTO","cantidad":10,"categoria":"vaca","producto":"ivermectina","lote":"sur","descripcion":"Vacunación de 10 vacas con ivermectina en lote sur"}

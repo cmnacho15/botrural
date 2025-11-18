@@ -436,7 +436,19 @@ async function solicitarConfirmacion(phone: string, data: any) {
       if (data.lote) mensaje += `\n• Potrero: ${data.lote}`
       break
     case "GASTO":
-      mensaje += `💰 *Gasto*\n• Monto: $${data.monto}\n• Concepto: ${data.descripcion}`
+      mensaje += `💰 *Gasto*\n• Monto: $${data.monto}\n• Concepto: ${data.descripcion}\n• Categoría: ${data.categoria}`
+      
+      // 🆕 Mostrar info de pago
+      if (data.proveedor) {
+        mensaje += `\n• Proveedor: ${data.proveedor}`
+      }
+      
+      if (data.metodoPago === "Plazo") {
+        mensaje += `\n• Pago: A plazo (${data.diasPlazo} días)`
+        mensaje += `\n• Estado: ${data.pagado ? '✅ Pagado' : '⏳ Pendiente'}`
+      } else {
+        mensaje += `\n• Pago: Contado ✅`
+      }
       break
     case "TRATAMIENTO":
       mensaje += `💉 *Tratamiento*\n• Cantidad: ${data.cantidad}\n• Producto: ${data.producto}`
@@ -556,15 +568,20 @@ async function handleDataEntry(data: any) {
   }
 
   if (data.tipo === "GASTO") {
+    // 💰 GASTO con soporte para pagos a plazo
     await prisma.gasto.create({
       data: {
         tipo: "EGRESO",
         monto: data.monto,
         fecha: new Date(),
         descripcion: data.descripcion,
-        categoria: "Otros",
+        categoria: data.categoria || "Otros",  // 👈 CAMBIO 1: usa la categoría de la IA
         campoId: user.campoId,
-        pagado: true,
+        // 🆕 NUEVOS CAMPOS
+        metodoPago: data.metodoPago || "Contado",  // 👈 CAMBIO 2
+        diasPlazo: data.diasPlazo || null,         // 👈 CAMBIO 3
+        pagado: data.pagado !== undefined ? data.pagado : true,  // 👈 CAMBIO 4
+        proveedor: data.proveedor || null,         // 👈 CAMBIO 5
       },
     })
   } else if (data.tipo === "LLUVIA") {
