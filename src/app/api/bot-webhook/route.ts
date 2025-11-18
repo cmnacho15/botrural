@@ -194,37 +194,73 @@ async function handleTokenRegistration(phone: string, token: string) {
       return
     }
 
-    if (invitation.role !== "EMPLEADO") {
-      const webUrl = process.env.NEXTAUTH_URL || "https://botrural.vercel.app"
-      const registerLink = `${webUrl}/register?token=${token}`
-      await sendWhatsAppMessage(
-        phone,
-        `Hola! Para completar tu registro, ingresá acá:\n${registerLink}`
-      )
-      return
-    }
+    // COLABORADOR → Guardar teléfono y enviar link web
+if (invitation.role === "COLABORADOR") {
+  const existingUser = await prisma.user.findUnique({
+    where: { telefono: phone },
+  })
 
-    const existingUser = await prisma.user.findUnique({
-      where: { telefono: phone },
-    })
+  if (existingUser) {
+    await sendWhatsAppMessage(phone, "❌ Ya estás registrado con este número.")
+    return
+  }
 
-    if (existingUser) {
-      await sendWhatsAppMessage(phone, "❌ Ya estás registrado con este número.")
-      return
-    }
+  // Guardar teléfono temporalmente
+  await prisma.pendingRegistration.upsert({
+    where: { telefono: phone },
+    create: { telefono: phone, token },
+    update: { token },
+  })
 
-    await sendWhatsAppMessage(
-      phone,
-      `¡Bienvenido a ${invitation.campo.nombre}! 🌾\n\n` +
-      "Para completar tu registro, enviame tu nombre y apellido.\n" +
-      "Ejemplo: Juan Pérez"
-    )
+  const webUrl = process.env.NEXTAUTH_URL || "https://botrural.vercel.app"
+  const registerLink = `${webUrl}/register?token=${token}`
+  
+  await sendWhatsAppMessage(
+    phone,
+    `¡Hola! 👋\n\n` +
+    `Bienvenido a *${invitation.campo.nombre}*\n\n` +
+    `Para completar tu registro como *Colaborador*, ingresá acá:\n` +
+    `🔗 ${registerLink}\n\n` +
+    `Una vez registrado, podrás cargar datos desde WhatsApp también! 📱`
+  )
+  return
+}
 
-    await prisma.pendingRegistration.upsert({
-      where: { telefono: phone },
-      create: { telefono: phone, token },
-      update: { token },
-    })
+// CONTADOR → Solo web
+if (invitation.role === "CONTADOR") {
+  const webUrl = process.env.NEXTAUTH_URL || "https://botrural.vercel.app"
+  const registerLink = `${webUrl}/register?token=${token}`
+  await sendWhatsAppMessage(
+    phone,
+    `Hola! Para completar tu registro como Contador, ingresá acá:\n${registerLink}`
+  )
+  return
+}
+
+// EMPLEADO → Flujo por WhatsApp (ya existe)
+if (invitation.role === "EMPLEADO") {
+  const existingUser = await prisma.user.findUnique({
+    where: { telefono: phone },
+  })
+
+  if (existingUser) {
+    await sendWhatsAppMessage(phone, "❌ Ya estás registrado con este número.")
+    return
+  }
+
+  await sendWhatsAppMessage(
+    phone,
+    `¡Bienvenido a ${invitation.campo.nombre}! 🌾\n\n` +
+    "Para completar tu registro, enviame tu nombre y apellido.\n" +
+    "Ejemplo: Juan Pérez"
+  )
+
+  await prisma.pendingRegistration.upsert({
+    where: { telefono: phone },
+    create: { telefono: phone, token },
+    update: { token },
+  })
+}
 
   } catch (error) {
     console.error("Error en registro:", error)
