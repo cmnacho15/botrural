@@ -15,6 +15,7 @@ function RegisterFormContent() {
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
   const [campoNombre, setCampoNombre] = useState("")
+  const [telefono, setTelefono] = useState("")
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
 
@@ -53,8 +54,8 @@ function RegisterFormContent() {
       const endpoint = esInvitacion ? "/api/registro" : "/api/register"
       
       const body = esInvitacion
-        ? { token, name, email, password }
-        : { name, email, password, campoNombre }
+  ? { token, name, email, password }
+  : { name, email, password, campoNombre, telefono } // ✅ Agregar telefono
 
       const res = await fetch(endpoint, {
         method: "POST",
@@ -170,23 +171,43 @@ function RegisterFormContent() {
             />
           </div>
 
-          {/* Solo mostrar campo de nombre del campo si NO es invitación */}
-          {!esInvitacion && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Nombre del campo
-              </label>
-              <input
-                type="text"
-                value={campoNombre}
-                onChange={(e) => setCampoNombre(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Ej: Campo Santa Rosa"
-                disabled={loading}
-                required
-              />
-            </div>
-          )}
+          {/* Solo mostrar campos adicionales si NO es invitación */}
+{!esInvitacion && (
+  <>
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1">
+        Nombre del campo
+      </label>
+      <input
+        type="text"
+        value={campoNombre}
+        onChange={(e) => setCampoNombre(e.target.value)}
+        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        placeholder="Ej: Campo Santa Rosa"
+        disabled={loading}
+        required
+      />
+    </div>
+
+    {/* ✅ NUEVO: Campo de teléfono */}
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1">
+        Teléfono (WhatsApp)
+      </label>
+      <input
+        type="tel"
+        value={telefono}
+        onChange={(e) => setTelefono(e.target.value)}
+        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        placeholder="+598 99 123 456"
+        disabled={loading}
+      />
+      <p className="text-xs text-gray-500 mt-1">
+        Para usar el bot de WhatsApp (opcional)
+      </p>
+    </div>
+  </>
+)}
 
           <button
             type="submit"
@@ -204,6 +225,13 @@ function RegisterFormContent() {
               Inicia sesión
             </a>
           </p>
+        </div>
+
+        {/* ✅ NUEVO: Links legales */}
+        <div className="mt-4 text-center text-sm text-gray-500">
+          <a href="/privacy" className="hover:text-gray-700">Política de Privacidad</a>
+          {" • "}
+          <a href="/terms" className="hover:text-gray-700">Términos de Uso</a>
         </div>
       </div>
     </div>
