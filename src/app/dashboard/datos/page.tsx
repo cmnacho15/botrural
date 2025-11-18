@@ -676,10 +676,20 @@ function FiltrosDatos() {
     : Array.from(new Set(datos.map((d) => d.lote).filter(Boolean))) as string[]
   // ✅ AGREGA ESTO:
 const ANIMALES_DISPONIBLES = [
-  'Vacas', 'Vaquillonas', 'Novillos', 'Novillitos', 
-  'Terneros', 'Terneras', 'Terneros/as', 'Toros', 
-  'Toritos', 'Borregas', 'Borregos', 'Carneros', 
-  'Corderos', 'Ovejas'
+  'Vacas',
+  'Vaquillonas', 
+  'Novillos',
+  'Toros',
+  'Terneros/as',
+  'Carneros',
+  'Ovejas',
+  'Capones',
+  'Borregas',
+  'Corderos',
+  'Padrillos',
+  'Yeguas',
+  'Caballos',
+  'Potrillos'
 ]
 
 const CULTIVOS_DISPONIBLES = [

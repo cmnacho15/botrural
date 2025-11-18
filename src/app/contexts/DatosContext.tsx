@@ -38,6 +38,46 @@ type DatosContextType = {
   refetch: () => Promise<void>;
 };
 
+// ===============================
+// 🐄 AGRUPACIÓN DE ANIMALES
+// ===============================
+const AGRUPACION_ANIMALES: Record<string, string[]> = {
+  'Novillos': ['Novillos +3 años', 'Novillos 2–3 años', 'Novillos 1–2 años', 'Novillos', 'Novillitos'],
+  'Vaquillonas': ['Vaquillonas +2 años', 'Vaquillonas 1–2 años', 'Vaquillonas'],
+  'Terneros/as': ['Terneros/as', 'Terneros', 'Terneras'],
+  'Corderos': ['Corderos DL', 'Corderas DL', 'Corderos/as Mamones', 'Corderos', 'Corderas'],
+  'Borregas': ['Borregas 2–4 dientes', 'Borregas', 'Borregos'],
+  'Vacas': ['Vacas'],
+  'Toros': ['Toros', 'Toritos'],
+  'Carneros': ['Carneros'],
+  'Ovejas': ['Ovejas'],
+  'Capones': ['Capones'],
+  'Padrillos': ['Padrillos'],
+  'Yeguas': ['Yeguas'],
+  'Caballos': ['Caballos'],
+  'Potrillos': ['Potrillos']
+};
+
+// ===============================
+// 🧠 FUNCIÓN CORRECTA
+// ===============================
+function coincideConFiltroAnimal(
+  categoriaDato: string | undefined,
+  filtrosAnimales: string[]
+): boolean {
+  if (!categoriaDato || filtrosAnimales.length === 0) return true;
+
+  const categoriaLower = categoriaDato.toLowerCase();
+
+  return filtrosAnimales.some(categoriaFiltro => {
+    const subcategorias = AGRUPACION_ANIMALES[categoriaFiltro] || [categoriaFiltro];
+    return subcategorias.some(sub =>
+      categoriaLower.includes(sub.toLowerCase()) ||
+      sub.toLowerCase().includes(categoriaLower)
+    );
+  });
+}
+
 const DatosContext = createContext<DatosContextType | undefined>(undefined);
 
 export function DatosProvider({ children }: { children: ReactNode }) {
@@ -57,46 +97,36 @@ export function DatosProvider({ children }: { children: ReactNode }) {
     cultivos: [],
   });
 
-  // ===========================================
-  // 🔥 FETCH + FILTROS EN EL CLIENTE
-  // ===========================================
   const fetchDatos = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      // 👉 Traés TODOS los datos SIN FILTROS
       const response = await fetch('/api/datos');
       if (!response.ok) throw new Error('Error al cargar datos');
 
       const datosOriginales: DatoUnificado[] = await response.json();
       let filtrados = [...datosOriginales];
 
-      // 👉 Filtro por tipo de dato
+      // Tipo
       if (filtros.tipoDato !== 'todos') {
         filtrados = filtrados.filter((d) => d.tipo === filtros.tipoDato);
       }
 
-      // 👉 Filtro por categoría
+      // Categoría
       if (filtros.categoria !== 'todos') {
         filtrados = filtrados.filter((d) => d.categoria === filtros.categoria);
       }
 
-      // 👉 Filtro fecha desde
+      // Fechas
       if (filtros.fechaDesde) {
-        filtrados = filtrados.filter(
-          (d) => new Date(d.fecha) >= filtros.fechaDesde!
-        );
+        filtrados = filtrados.filter((d) => new Date(d.fecha) >= filtros.fechaDesde!);
       }
-
-      // 👉 Filtro fecha hasta
       if (filtros.fechaHasta) {
-        filtrados = filtrados.filter(
-          (d) => new Date(d.fecha) <= filtros.fechaHasta!
-        );
+        filtrados = filtrados.filter((d) => new Date(d.fecha) <= filtros.fechaHasta!);
       }
 
-      // 👉 Filtro búsqueda
+      // Búsqueda
       if (filtros.busqueda) {
         const b = filtros.busqueda.toLowerCase();
         filtrados = filtrados.filter((d) =>
@@ -107,44 +137,32 @@ export function DatosProvider({ children }: { children: ReactNode }) {
         );
       }
 
-      // 👉 Filtro por usuarios
+      // Usuarios
       if (filtros.usuarios.length > 0) {
-        filtrados = filtrados.filter(
-          (d) => d.usuario && filtros.usuarios.includes(d.usuario)
-        );
+        filtrados = filtrados.filter((d) => d.usuario && filtros.usuarios.includes(d.usuario));
       }
 
-      // 👉 Filtro por potreros/lotes
+      // Potreros
       if (filtros.potreros.length > 0) {
-        filtrados = filtrados.filter(
-          (d) => d.lote && filtros.potreros.includes(d.lote)
+        filtrados = filtrados.filter((d) => d.lote && filtros.potreros.includes(d.lote));
+      }
+
+      // 🐄 ANIMALES (ahora correcto)
+      if (filtros.animales.length > 0) {
+        filtrados = filtrados.filter((d) =>
+          coincideConFiltroAnimal(d.categoria, filtros.animales)
         );
       }
 
-      // 👉 Filtro por animales
-if (filtros.animales.length > 0) {
-  filtrados = filtrados.filter((d) => {
-    const desc = (d.descripcion ?? '').toLowerCase();
-    return filtros.animales.some(animal => 
-      desc.includes(animal.toLowerCase())
-    );
-  });
-}
+      // Cultivos
+      if (filtros.cultivos.length > 0) {
+        filtrados = filtrados.filter((d) => {
+          const desc = (d.descripcion ?? '').toLowerCase();
+          return filtros.cultivos.some(cultivo => desc.includes(cultivo.toLowerCase()));
+        });
+      }
 
-// 👉 Filtro por cultivos
-if (filtros.cultivos.length > 0) {
-  filtrados = filtrados.filter((d) => {
-    const desc = (d.descripcion ?? '').toLowerCase();
-    return filtros.cultivos.some(cultivo => 
-      desc.includes(cultivo.toLowerCase())
-    );
-  });
-}
-
-      // 👉 Orden por fecha (más reciente primero)
-      filtrados.sort(
-        (a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime()
-      );
+      filtrados.sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
 
       setDatos(filtrados);
     } catch (err) {
@@ -154,7 +172,6 @@ if (filtros.cultivos.length > 0) {
     }
   };
 
-  // Ejecuta cada vez que cambian filtros
   useEffect(() => {
     fetchDatos();
   }, [filtros]);
