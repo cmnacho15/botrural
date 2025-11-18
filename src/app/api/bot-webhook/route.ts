@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { parseMessageWithAI } from "@/lib/openai-parser"
 
 const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || "mi_token_secreto"
 const WHATSAPP_TOKEN = process.env.WHATSAPP_TOKEN
@@ -69,8 +70,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ status: "confirmacion processed" })
     }
 
-    // 🎯 FASE 3: Procesar carga de datos con confirmación
-    const parsedData = parseMessage(messageText, from)
+    // 🎯 FASE 3: Procesar con GPT (en vez de regex) ✨ NUEVO
+    const parsedData = await parseMessageWithAI(messageText, from)
     
     if (parsedData) {
       await solicitarConfirmacion(from, parsedData)
