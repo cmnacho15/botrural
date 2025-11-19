@@ -18,6 +18,7 @@ import {
   ModalTacto,
   ModalOtrosLabores,
   ModalCosecha,
+  ModalMonitoreo,
 
 } from '@/app/components/modales'
 
@@ -88,7 +89,8 @@ export default function ModalNuevoDato({
         {tipo === 'tacto' && <ModalTacto onClose={onClose} onSuccess={handleSuccess} />}
         {tipo === 'otros-labores' && <ModalOtrosLabores onClose={onClose} onSuccess={handleSuccess} />}
         {tipo === 'cosecha' && <ModalCosecha onClose={onClose} onSuccess={handleSuccess} />}
-        
+        {tipo === 'cosecha' && <ModalMonitoreo onClose={onClose} onSuccess={handleSuccess} />}
+
         {tipo === 'recategorizacion' && (         
           <ModalRecategorizacion 
             isOpen={isOpen}
