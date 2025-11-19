@@ -13,6 +13,10 @@ import {
   ModalCambioPotrero,
   ModalRecategorizacion,
   ModalTratamiento,
+  ModalMortandad,
+  ModalConsumo,
+  ModalTacto,
+  ModalOtrosLabores,
 } from '@/app/components/modales'
 
 type ModalNuevoDatoProps = {
@@ -77,8 +81,12 @@ export default function ModalNuevoDato({
         {tipo === 'cambio-potrero' && <ModalCambioPotrero onClose={onClose} onSuccess={handleSuccess} />}
         {tipo === 'nacimiento' && <ModalNacimiento onClose={onClose} onSuccess={handleSuccess} />}
         {tipo === 'tratamiento' && <ModalTratamiento onClose={onClose} onSuccess={handleSuccess} />}
+        {tipo === 'mortandad' && <ModalMortandad onClose={onClose} onSuccess={handleSuccess} />}
+        {tipo === 'consumo' && <ModalConsumo onClose={onClose} onSuccess={handleSuccess} />}
+        {tipo === 'tacto' && <ModalTacto onClose={onClose} onSuccess={handleSuccess} />}
+        {tipo === 'otros-labores' && <ModalOtrosLabores onClose={onClose} onSuccess={handleSuccess} />}
         
-        {tipo === 'recategorizacion' && (
+        {tipo === 'recategorizacion' && (         
           <ModalRecategorizacion 
             isOpen={isOpen}
             onClose={onClose} 

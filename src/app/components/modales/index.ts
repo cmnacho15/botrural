@@ -9,6 +9,10 @@ export { default as ModalNacimiento } from './ModalNacimiento'
 export { default as ModalCambioPotrero } from './ModalCambioPotrero'
 export { default as ModalInvitarUsuario } from './ModalInvitarUsuario'
 export { default as ModalTratamiento } from './ModalTratamiento'
+export { default as ModalMortandad } from './ModalMortandad'
+export { default as ModalConsumo } from './ModalConsumo'
+export { default as ModalTacto } from './ModalTacto'
+export { default as ModalOtrosLabores } from './ModalOtrosLabores'
 
 // Importar y re-exportar directamente
 import ModalRecategorizacion from './ModalRecategorizacion'
