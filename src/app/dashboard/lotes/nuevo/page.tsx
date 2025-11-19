@@ -34,8 +34,7 @@ interface Animal {
   cantidad: string
 }
 
-const [cultivosDisponibles, setCultivosDisponibles] = useState<string[]>([])
-const [categoriasDisponibles, setCategoriasDisponibles] = useState<string[]>([])
+
 
 
 
@@ -56,7 +55,8 @@ export default function NuevoLotePage() {
   const [cultivos, setCultivos] = useState<Cultivo[]>([])
   const [animales, setAnimales] = useState<Animal[]>([])
   const [cultivosDisponibles, setCultivosDisponibles] = useState<string[]>([])
-
+  const [categoriasDisponibles, setCategoriasDisponibles] = useState<string[]>([])
+  
   // Cargar lotes
   useEffect(() => {
     cargarLotesExistentes()
