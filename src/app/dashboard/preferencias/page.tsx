@@ -38,6 +38,7 @@ export default function PreferenciasPage() {
     tipoAnimal: 'BOVINO'
   })
   const [savingAnimal, setSavingAnimal] = useState(false)
+  const [categoriasEnUso, setCategoriasEnUso] = useState<Set<string>>(new Set())
 
   // Cargar cultivos al montar
   useEffect(() => {
@@ -50,6 +51,25 @@ export default function PreferenciasPage() {
   useEffect(() => {
     if (activeTab === 'animales') {
       cargarAnimales()
+    }
+  }, [activeTab])
+
+  // Cargar categorías en uso
+  useEffect(() => {
+    if (activeTab === 'animales') {
+      // Cargar qué categorías están siendo usadas
+      fetch('/api/lotes')
+        .then(r => r.json())
+        .then(lotes => {
+          const enUso = new Set<string>()
+          lotes.forEach((lote: any) => {
+            lote.animalesLote?.forEach((animal: any) => {
+              enUso.add(animal.categoria)
+            })
+          })
+          setCategoriasEnUso(enUso)
+        })
+        .catch(err => console.error('Error cargando lotes:', err))
     }
   }, [activeTab])
 
@@ -131,35 +151,43 @@ export default function PreferenciasPage() {
   }
 
   async function handleToggleCategoria(id: string, nuevoEstado: boolean) {
-  // ✅ ACTUALIZACIÓN OPTIMISTA (instantánea en UI)
-  setCategorias(prev => 
-    prev.map(cat => cat.id === id ? { ...cat, activo: nuevoEstado } : cat)
-  )
+    // Buscar la categoría para obtener su nombre
+    const categoria = categorias.find(c => c.id === id)
+    
+    // ❌ Prevenir desmarcado si está en uso
+    if (!nuevoEstado && categoria && categoriasEnUso.has(categoria.nombreSingular)) {
+      alert('No se puede desactivar esta categoría porque hay animales registrados con ella. Primero transfiera o elimine esos animales.')
+      return
+    }
 
-  try {
-    const response = await fetch('/api/categorias-animal', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, activo: nuevoEstado }),
-    })
+    // ✅ ACTUALIZACIÓN OPTIMISTA (instantánea en UI)
+    setCategorias(prev => 
+      prev.map(cat => cat.id === id ? { ...cat, activo: nuevoEstado } : cat)
+    )
 
-    if (!response.ok) {
-      // ❌ Si falla, revertir el cambio
+    try {
+      const response = await fetch('/api/categorias-animal', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, activo: nuevoEstado }),
+      })
+
+      if (!response.ok) {
+        // ❌ Si falla, revertir el cambio
+        setCategorias(prev => 
+          prev.map(cat => cat.id === id ? { ...cat, activo: !nuevoEstado } : cat)
+        )
+        const error = await response.json()
+        alert(error.error || 'Error al actualizar categoría')
+      }
+    } catch (error) {
+      // ❌ Si hay error de red, revertir
       setCategorias(prev => 
         prev.map(cat => cat.id === id ? { ...cat, activo: !nuevoEstado } : cat)
       )
-      const error = await response.json()
-      alert(error.error || 'Error al actualizar categoría')
+      alert('Error al actualizar categoría')
     }
-    // ✅ Si es exitoso, ya está actualizado en la UI
-  } catch (error) {
-    // ❌ Si hay error de red, revertir
-    setCategorias(prev => 
-      prev.map(cat => cat.id === id ? { ...cat, activo: !nuevoEstado } : cat)
-    )
-    alert('Error al actualizar categoría')
   }
-}
 
   async function handleAgregarAnimal() {
     if (!nuevoAnimal.nombreSingular.trim() || !nuevoAnimal.nombrePlural.trim()) {
@@ -373,7 +401,7 @@ export default function PreferenciasPage() {
                     <div className="space-y-3">
                       {categoriasPorTipo.BOVINO.map((cat) => (
                         <div key={cat.id} className="flex items-center justify-between">
-                          <label className="flex items-center gap-3 cursor-pointer">
+                          <label className={`flex items-center gap-3 ${categoriasEnUso.has(cat.nombreSingular) && cat.activo ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
                             <input
                               type="checkbox"
                               checked={cat.activo}
@@ -381,7 +409,12 @@ export default function PreferenciasPage() {
                               disabled={cat.esPredeterminado && cat.id.startsWith('pred-')}
                               className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
                             />
-                            <span className="text-sm text-gray-700">{cat.nombreSingular}</span>
+                            <span className={`text-sm ${categoriasEnUso.has(cat.nombreSingular) && cat.activo ? 'text-gray-900 font-medium' : 'text-gray-700'}`}>
+                              {cat.nombreSingular}
+                              {categoriasEnUso.has(cat.nombreSingular) && cat.activo && (
+                                <span className="ml-2 text-xs text-blue-600">● En uso</span>
+                              )}
+                            </span>
                           </label>
                           {!cat.esPredeterminado && (
                             <button
@@ -402,7 +435,7 @@ export default function PreferenciasPage() {
                     <div className="space-y-3">
                       {categoriasPorTipo.OVINO.map((cat) => (
                         <div key={cat.id} className="flex items-center justify-between">
-                          <label className="flex items-center gap-3 cursor-pointer">
+                          <label className={`flex items-center gap-3 ${categoriasEnUso.has(cat.nombreSingular) && cat.activo ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
                             <input
                               type="checkbox"
                               checked={cat.activo}
@@ -410,7 +443,12 @@ export default function PreferenciasPage() {
                               disabled={cat.esPredeterminado && cat.id.startsWith('pred-')}
                               className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
                             />
-                            <span className="text-sm text-gray-700">{cat.nombreSingular}</span>
+                            <span className={`text-sm ${categoriasEnUso.has(cat.nombreSingular) && cat.activo ? 'text-gray-900 font-medium' : 'text-gray-700'}`}>
+                              {cat.nombreSingular}
+                              {categoriasEnUso.has(cat.nombreSingular) && cat.activo && (
+                                <span className="ml-2 text-xs text-blue-600">● En uso</span>
+                              )}
+                            </span>
                           </label>
                           {!cat.esPredeterminado && (
                             <button
@@ -431,7 +469,7 @@ export default function PreferenciasPage() {
                     <div className="space-y-3">
                       {categoriasPorTipo.EQUINO.map((cat) => (
                         <div key={cat.id} className="flex items-center justify-between">
-                          <label className="flex items-center gap-3 cursor-pointer">
+                          <label className={`flex items-center gap-3 ${categoriasEnUso.has(cat.nombreSingular) && cat.activo ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
                             <input
                               type="checkbox"
                               checked={cat.activo}
@@ -439,7 +477,12 @@ export default function PreferenciasPage() {
                               disabled={cat.esPredeterminado && cat.id.startsWith('pred-')}
                               className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
                             />
-                            <span className="text-sm text-gray-700">{cat.nombreSingular}</span>
+                            <span className={`text-sm ${categoriasEnUso.has(cat.nombreSingular) && cat.activo ? 'text-gray-900 font-medium' : 'text-gray-700'}`}>
+                              {cat.nombreSingular}
+                              {categoriasEnUso.has(cat.nombreSingular) && cat.activo && (
+                                <span className="ml-2 text-xs text-blue-600">● En uso</span>
+                              )}
+                            </span>
                           </label>
                           {!cat.esPredeterminado && (
                             <button
@@ -461,14 +504,19 @@ export default function PreferenciasPage() {
                       <div className="space-y-3">
                         {categoriasPorTipo.OTRO.map((cat) => (
                           <div key={cat.id} className="flex items-center justify-between">
-                            <label className="flex items-center gap-3 cursor-pointer">
+                            <label className={`flex items-center gap-3 ${categoriasEnUso.has(cat.nombreSingular) && cat.activo ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
                               <input
                                 type="checkbox"
                                 checked={cat.activo}
                                 onChange={(e) => handleToggleCategoria(cat.id, e.target.checked)}
                                 className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
                               />
-                              <span className="text-sm text-gray-700">{cat.nombreSingular}</span>
+                              <span className={`text-sm ${categoriasEnUso.has(cat.nombreSingular) && cat.activo ? 'text-gray-900 font-medium' : 'text-gray-700'}`}>
+                                {cat.nombreSingular}
+                                {categoriasEnUso.has(cat.nombreSingular) && cat.activo && (
+                                  <span className="ml-2 text-xs text-blue-600">● En uso</span>
+                                )}
+                              </span>
                             </label>
                             <button
                               onClick={() => handleEliminarAnimal(cat.id)}
