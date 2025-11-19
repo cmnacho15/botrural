@@ -250,37 +250,6 @@ export default function ModalRefertilizacion({ onClose, onSuccess }: ModalRefert
             <p className="text-red-500 text-xs mt-1">El potrero es requerido</p>
           )}
         </div>
-
-        {/* HECTÁREAS */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Hectáreas</label>
-          <div className="flex gap-2">
-            <input
-              type="number"
-              value={hectareas}
-              onChange={(e) => setHectareas(e.target.value)}
-              placeholder="Hectáreas (opcional, por defecto todas)"
-              step="0.01"
-              min="0"
-              max={cultivoSeleccionado?.hectareas || undefined}
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
-            />
-            <button
-              type="button"
-              onClick={handleFertilizarTodo}
-              disabled={!cultivoSeleccionado}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed whitespace-nowrap text-sm"
-            >
-              Todas
-            </button>
-          </div>
-          {cultivoSeleccionado && (
-            <p className="text-xs text-gray-500 mt-1">
-              Total del cultivo: {cultivoSeleccionado.hectareas} ha
-            </p>
-          )}
-        </div>
-
         {/* CULTIVO */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -318,6 +287,38 @@ export default function ModalRefertilizacion({ onClose, onSuccess }: ModalRefert
             </>
           )}
         </div>
+        
+        {/* HECTÁREAS */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Hectáreas</label>
+          <div className="flex gap-2">
+            <input
+              type="number"
+              value={hectareas}
+              onChange={(e) => setHectareas(e.target.value)}
+              placeholder="Hectáreas (opcional, por defecto todas)"
+              step="0.01"
+              min="0"
+              max={cultivoSeleccionado?.hectareas || undefined}
+              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+            />
+            <button
+              type="button"
+              onClick={handleFertilizarTodo}
+              disabled={!cultivoSeleccionado}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed whitespace-nowrap text-sm"
+            >
+              Todas
+            </button>
+          </div>
+          {cultivoSeleccionado && (
+            <p className="text-xs text-gray-500 mt-1">
+              Total del cultivo: {cultivoSeleccionado.hectareas} ha
+            </p>
+          )}
+        </div>
+
+        
 
         {/* FERTILIZANTES */}
         <div>
