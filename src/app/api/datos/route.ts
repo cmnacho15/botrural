@@ -163,7 +163,7 @@ eventos
       // ✅ Campos directos (no en detalles)
       cantidad: evento.cantidad,
       monto: evento.monto,
-      notas: evento.notas || null,  // ← AGREGAR ESTA LÍNEA
+      notas: evento.notas && typeof evento.notas === 'string' && evento.notas.trim() !== '' ? evento.notas : null,
     })
   })
 
@@ -211,7 +211,7 @@ eventos
         insumo: mov.insumo.nombre,
         cantidad: mov.cantidad,
         unidad: mov.insumo.unidad,
-        notas: mov.notas,
+        notas: mov.notas && typeof mov.notas === 'string' && mov.notas.trim() !== '' ? mov.notas : null,
       })
     })
 
