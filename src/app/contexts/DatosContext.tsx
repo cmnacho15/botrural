@@ -44,7 +44,7 @@ type DatosContextType = {
 const AGRUPACION_ANIMALES: Record<string, string[]> = {
   'Novillos': ['Novillos +3 años', 'Novillos 2–3 años', 'Novillos 1–2 años', 'Novillos', 'Novillitos'],
   'Vaquillonas': ['Vaquillonas +2 años', 'Vaquillonas 1–2 años', 'Vaquillonas'],
-  'Terneros/as': ['Terneros/as', 'Terneros', 'Terneras'],
+  'Terneros/as': ['Terneros/as', 'Terneros', 'Terneras', 'Terneros/as Mamones'],
   'Corderos': ['Corderos DL', 'Corderas DL', 'Corderos/as Mamones', 'Corderos', 'Corderas'],
   'Borregas': ['Borregas 2–4 dientes', 'Borregas', 'Borregos'],
   'Vacas': ['Vacas'],
@@ -59,21 +59,48 @@ const AGRUPACION_ANIMALES: Record<string, string[]> = {
 };
 
 // ===============================
-// 🧠 FUNCIÓN CORRECTA
+// 🧠 FUNCIÓN MEJORADA PARA RECATEGORIZACIÓN
 // ===============================
 function coincideConFiltroAnimal(
-  categoriaDato: string | undefined,
+  descripcion: string | undefined,
+  tipo: string,
   filtrosAnimales: string[]
 ): boolean {
-  if (!categoriaDato || filtrosAnimales.length === 0) return true;
+  if (!descripcion || filtrosAnimales.length === 0) return true;
 
-  const categoriaLower = categoriaDato.toLowerCase();
+  const descripcionLower = descripcion.toLowerCase();
 
+  // ✅ CASO ESPECIAL: RECATEGORIZACIÓN
+  // Debe aparecer si filtras por la categoría origen O por la categoría destino
+  if (tipo === 'RECATEGORIZACION') {
+    // Buscar patrón: "Recategorización de X [categoría1] a [categoría2]"
+    const match = descripcionLower.match(/de\s+\d+\s+([^a]+?)\s+a\s+([^e]+?)\s+en/);
+    
+    if (match) {
+      const categoriaOrigen = match[1].trim();
+      const categoriaDestino = match[2].trim();
+      
+      // Verificar si alguno de los filtros coincide con origen o destino
+      return filtrosAnimales.some(categoriaFiltro => {
+        const subcategorias = AGRUPACION_ANIMALES[categoriaFiltro] || [categoriaFiltro];
+        
+        return subcategorias.some(sub => {
+          const subLower = sub.toLowerCase();
+          return categoriaOrigen.includes(subLower) || 
+                 subLower.includes(categoriaOrigen) ||
+                 categoriaDestino.includes(subLower) || 
+                 subLower.includes(categoriaDestino);
+        });
+      });
+    }
+  }
+
+  // ✅ CASO NORMAL: Otros eventos
   return filtrosAnimales.some(categoriaFiltro => {
     const subcategorias = AGRUPACION_ANIMALES[categoriaFiltro] || [categoriaFiltro];
     return subcategorias.some(sub =>
-      categoriaLower.includes(sub.toLowerCase()) ||
-      sub.toLowerCase().includes(categoriaLower)
+      descripcionLower.includes(sub.toLowerCase()) ||
+      sub.toLowerCase().includes(descripcionLower)
     );
   });
 }
@@ -147,10 +174,10 @@ export function DatosProvider({ children }: { children: ReactNode }) {
         filtrados = filtrados.filter((d) => d.lote && filtros.potreros.includes(d.lote));
       }
 
-      // 🐄 ANIMALES (ahora correcto)
+      // 🐄 ANIMALES (ahora con soporte para recategorización)
       if (filtros.animales.length > 0) {
         filtrados = filtrados.filter((d) =>
-          coincideConFiltroAnimal(d.descripcion ?? '', filtros.animales)
+          coincideConFiltroAnimal(d.descripcion ?? '', d.tipo, filtros.animales)
         );
       }
 
