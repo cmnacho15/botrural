@@ -8,19 +8,50 @@ type TipoCultivo = {
   nombre: string
 }
 
+type CategoriaAnimal = {
+  id: string
+  nombreSingular: string
+  nombrePlural: string
+  tipoAnimal: string
+  activo: boolean
+  esPredeterminado: boolean
+}
+
 export default function PreferenciasPage() {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<'cultivos' | 'animales' | 'gastos'>('cultivos')
+  
+  // Estados de cultivos
   const [cultivos, setCultivos] = useState<TipoCultivo[]>([])
-  const [loading, setLoading] = useState(true)
-  const [showModal, setShowModal] = useState(false)
+  const [loadingCultivos, setLoadingCultivos] = useState(true)
+  const [showModalCultivo, setShowModalCultivo] = useState(false)
   const [nuevoCultivo, setNuevoCultivo] = useState('')
   const [savingCultivo, setSavingCultivo] = useState(false)
 
+  // Estados de animales
+  const [categorias, setCategorias] = useState<CategoriaAnimal[]>([])
+  const [loadingAnimales, setLoadingAnimales] = useState(true)
+  const [showModalAnimal, setShowModalAnimal] = useState(false)
+  const [nuevoAnimal, setNuevoAnimal] = useState({
+    nombreSingular: '',
+    nombrePlural: '',
+    tipoAnimal: 'BOVINO'
+  })
+  const [savingAnimal, setSavingAnimal] = useState(false)
+
   // Cargar cultivos al montar
   useEffect(() => {
-    cargarCultivos()
-  }, [])
+    if (activeTab === 'cultivos') {
+      cargarCultivos()
+    }
+  }, [activeTab])
+
+  // Cargar animales al montar
+  useEffect(() => {
+    if (activeTab === 'animales') {
+      cargarAnimales()
+    }
+  }, [activeTab])
 
   async function cargarCultivos() {
     try {
@@ -32,7 +63,21 @@ export default function PreferenciasPage() {
     } catch (error) {
       console.error('Error cargando cultivos:', error)
     } finally {
-      setLoading(false)
+      setLoadingCultivos(false)
+    }
+  }
+
+  async function cargarAnimales() {
+    try {
+      const response = await fetch('/api/categorias-animal')
+      if (response.ok) {
+        const data = await response.json()
+        setCategorias(data)
+      }
+    } catch (error) {
+      console.error('Error cargando categorías:', error)
+    } finally {
+      setLoadingAnimales(false)
     }
   }
 
@@ -53,7 +98,7 @@ export default function PreferenciasPage() {
 
       if (response.ok) {
         setNuevoCultivo('')
-        setShowModal(false)
+        setShowModalCultivo(false)
         cargarCultivos()
       } else {
         const error = await response.json()
@@ -83,6 +128,82 @@ export default function PreferenciasPage() {
     } catch (error) {
       alert('Error al eliminar cultivo')
     }
+  }
+
+  async function handleToggleCategoria(id: string, activo: boolean) {
+    try {
+      const response = await fetch('/api/categorias-animal', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, activo }),
+      })
+
+      if (response.ok) {
+        cargarAnimales()
+      } else {
+        const error = await response.json()
+        alert(error.error || 'Error al actualizar categoría')
+      }
+    } catch (error) {
+      alert('Error al actualizar categoría')
+    }
+  }
+
+  async function handleAgregarAnimal() {
+    if (!nuevoAnimal.nombreSingular.trim() || !nuevoAnimal.nombrePlural.trim()) {
+      alert('Complete todos los campos')
+      return
+    }
+
+    setSavingAnimal(true)
+
+    try {
+      const response = await fetch('/api/categorias-animal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(nuevoAnimal),
+      })
+
+      if (response.ok) {
+        setNuevoAnimal({ nombreSingular: '', nombrePlural: '', tipoAnimal: 'BOVINO' })
+        setShowModalAnimal(false)
+        cargarAnimales()
+      } else {
+        const error = await response.json()
+        alert(error.error || 'Error al crear categoría')
+      }
+    } catch (error) {
+      alert('Error al crear categoría')
+    } finally {
+      setSavingAnimal(false)
+    }
+  }
+
+  async function handleEliminarAnimal(id: string) {
+    if (!confirm('¿Estás seguro de eliminar esta categoría?')) return
+
+    try {
+      const response = await fetch(`/api/categorias-animal/${id}`, {
+        method: 'DELETE',
+      })
+
+      if (response.ok) {
+        cargarAnimales()
+      } else {
+        const error = await response.json()
+        alert(error.error || 'Error al eliminar categoría')
+      }
+    } catch (error) {
+      alert('Error al eliminar categoría')
+    }
+  }
+
+  // Agrupar categorías por tipo
+  const categoriasPorTipo = {
+    BOVINO: categorias.filter(c => c.tipoAnimal === 'BOVINO'),
+    OVINO: categorias.filter(c => c.tipoAnimal === 'OVINO'),
+    EQUINO: categorias.filter(c => c.tipoAnimal === 'EQUINO'),
+    OTRO: categorias.filter(c => c.tipoAnimal === 'OTRO'),
   }
 
   return (
@@ -139,7 +260,7 @@ export default function PreferenciasPage() {
                   <p className="text-sm text-gray-500">Gestiona los tipos de cultivos disponibles</p>
                 </div>
                 <button
-                  onClick={() => setShowModal(true)}
+                  onClick={() => setShowModalCultivo(true)}
                   className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -149,7 +270,7 @@ export default function PreferenciasPage() {
                 </button>
               </div>
 
-              {loading ? (
+              {loadingCultivos ? (
                 <div className="text-center py-12">
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
                   <p className="text-gray-600">Cargando cultivos...</p>
@@ -211,7 +332,145 @@ export default function PreferenciasPage() {
           {/* CONTENIDO TAB ANIMALES */}
           {activeTab === 'animales' && (
             <div className="p-6">
-              <p className="text-gray-500 text-center py-12">Próximamente...</p>
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900">Tipo de animales</h2>
+                  <p className="text-sm text-gray-500">Selecciona las categorías que usas en tu campo</p>
+                </div>
+                <button
+                  onClick={() => setShowModalAnimal(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Nueva Categoría
+                </button>
+              </div>
+
+              {loadingAnimales ? (
+                <div className="text-center py-12">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                  <p className="text-gray-600">Cargando categorías...</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {/* BOVINOS */}
+                  <div>
+                    <h3 className="font-semibold text-gray-900 mb-4">Bovinos</h3>
+                    <div className="space-y-3">
+                      {categoriasPorTipo.BOVINO.map((cat) => (
+                        <div key={cat.id} className="flex items-center justify-between">
+                          <label className="flex items-center gap-3 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={cat.activo}
+                              onChange={(e) => handleToggleCategoria(cat.id, e.target.checked)}
+                              disabled={cat.esPredeterminado && cat.id.startsWith('pred-')}
+                              className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                            />
+                            <span className="text-sm text-gray-700">{cat.nombreSingular}</span>
+                          </label>
+                          {!cat.esPredeterminado && (
+                            <button
+                              onClick={() => handleEliminarAnimal(cat.id)}
+                              className="text-red-600 hover:text-red-900 text-xs"
+                            >
+                              🗑️
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* OVINOS */}
+                  <div>
+                    <h3 className="font-semibold text-gray-900 mb-4">Ovinos</h3>
+                    <div className="space-y-3">
+                      {categoriasPorTipo.OVINO.map((cat) => (
+                        <div key={cat.id} className="flex items-center justify-between">
+                          <label className="flex items-center gap-3 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={cat.activo}
+                              onChange={(e) => handleToggleCategoria(cat.id, e.target.checked)}
+                              disabled={cat.esPredeterminado && cat.id.startsWith('pred-')}
+                              className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                            />
+                            <span className="text-sm text-gray-700">{cat.nombreSingular}</span>
+                          </label>
+                          {!cat.esPredeterminado && (
+                            <button
+                              onClick={() => handleEliminarAnimal(cat.id)}
+                              className="text-red-600 hover:text-red-900 text-xs"
+                            >
+                              🗑️
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* EQUINOS */}
+                  <div>
+                    <h3 className="font-semibold text-gray-900 mb-4">Equinos</h3>
+                    <div className="space-y-3">
+                      {categoriasPorTipo.EQUINO.map((cat) => (
+                        <div key={cat.id} className="flex items-center justify-between">
+                          <label className="flex items-center gap-3 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={cat.activo}
+                              onChange={(e) => handleToggleCategoria(cat.id, e.target.checked)}
+                              disabled={cat.esPredeterminado && cat.id.startsWith('pred-')}
+                              className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                            />
+                            <span className="text-sm text-gray-700">{cat.nombreSingular}</span>
+                          </label>
+                          {!cat.esPredeterminado && (
+                            <button
+                              onClick={() => handleEliminarAnimal(cat.id)}
+                              className="text-red-600 hover:text-red-900 text-xs"
+                            >
+                              🗑️
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* OTROS (si hay categorías personalizadas tipo OTRO) */}
+                  {categoriasPorTipo.OTRO.length > 0 && (
+                    <div>
+                      <h3 className="font-semibold text-gray-900 mb-4">Otros</h3>
+                      <div className="space-y-3">
+                        {categoriasPorTipo.OTRO.map((cat) => (
+                          <div key={cat.id} className="flex items-center justify-between">
+                            <label className="flex items-center gap-3 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={cat.activo}
+                                onChange={(e) => handleToggleCategoria(cat.id, e.target.checked)}
+                                className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                              />
+                              <span className="text-sm text-gray-700">{cat.nombreSingular}</span>
+                            </label>
+                            <button
+                              onClick={() => handleEliminarAnimal(cat.id)}
+                              className="text-red-600 hover:text-red-900 text-xs"
+                            >
+                              🗑️
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
@@ -225,12 +484,12 @@ export default function PreferenciasPage() {
       </div>
 
       {/* MODAL NUEVO CULTIVO */}
-      {showModal && (
+      {showModalCultivo && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
             <div className="p-6 border-b border-gray-200 flex justify-between items-center">
               <h2 className="text-lg font-semibold text-gray-900">Nuevo Cultivo</h2>
-              <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">
+              <button onClick={() => setShowModalCultivo(false)} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">
                 ✕
               </button>
             </div>
@@ -251,7 +510,7 @@ export default function PreferenciasPage() {
 
             <div className="p-6 border-t border-gray-200 flex gap-3">
               <button
-                onClick={() => setShowModal(false)}
+                onClick={() => setShowModalCultivo(false)}
                 className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700 font-medium"
               >
                 Cancelar
@@ -262,6 +521,81 @@ export default function PreferenciasPage() {
                 className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
               >
                 {savingCultivo ? 'Guardando...' : 'Guardar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL NUEVA CATEGORÍA ANIMAL */}
+      {showModalAnimal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
+            <div className="p-6 border-b border-gray-200 flex justify-between items-center">
+              <h2 className="text-lg font-semibold text-gray-900">Nueva Categoría</h2>
+              <button onClick={() => setShowModalAnimal(false)} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">
+                ✕
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Nombre Singular <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={nuevoAnimal.nombreSingular}
+                  onChange={(e) => setNuevoAnimal({ ...nuevoAnimal, nombreSingular: e.target.value })}
+                  placeholder="Ej: Torito"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  autoFocus
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Nombre Plural <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={nuevoAnimal.nombrePlural}
+                  onChange={(e) => setNuevoAnimal({ ...nuevoAnimal, nombrePlural: e.target.value })}
+                  placeholder="Ej: Toritos"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Tipo de Categoría <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={nuevoAnimal.tipoAnimal}
+                  onChange={(e) => setNuevoAnimal({ ...nuevoAnimal, tipoAnimal: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="BOVINO">Bovinos</option>
+                  <option value="OVINO">Ovinos</option>
+                  <option value="EQUINO">Equinos</option>
+                  <option value="OTRO">Otro</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-gray-200 flex gap-3">
+              <button
+                onClick={() => setShowModalAnimal(false)}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700 font-medium"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleAgregarAnimal}
+                disabled={savingAnimal || !nuevoAnimal.nombreSingular.trim() || !nuevoAnimal.nombrePlural.trim()}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+              >
+                {savingAnimal ? 'Guardando...' : 'Guardar'}
               </button>
             </div>
           </div>
