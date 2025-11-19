@@ -41,31 +41,33 @@ export default function ModalSiembra({ onClose, onSuccess }: ModalSiembraProps) 
   const [cultivosDisponibles, setCultivosDisponibles] = useState<string[]>([])
 
   // Cargar potreros al montar
-  useEffect(() => {
-    fetch('/api/lotes')
-      .then((res) => res.json())
-      .then((data) => setPotreros(data))
-      .catch(() => alert('Error al cargar potreros'))
-  }, [])
+useEffect(() => {
+  fetch('/api/lotes')
+    .then((res) => res.json())
+    .then((data) => setPotreros(data))
+    .catch(() => alert('Error al cargar potreros'))
+}, [])
 
-  // Actualizar hectáreas máximas cuando se selecciona potrero
-  useEffect(() => {
-    if (potreroSeleccionado) {
-      const potrero = potreros.find(p => p.id === potreroSeleccionado)
-      setHectareasMax(potrero?.hectareas || null)
-    } else {
-      setHectareasMax(null)
-    }
-  }, [potreroSeleccionado, potreros])
-  // Cargar cultivos disponibles
+// Actualizar hectáreas máximas cuando se selecciona potrero
+useEffect(() => {
+  if (potreroSeleccionado) {
+    const potrero = potreros.find(p => p.id === potreroSeleccionado)
+    setHectareasMax(potrero?.hectareas || null)
+  } else {
+    setHectareasMax(null)
+  }
+}, [potreroSeleccionado, potreros])
+
+// Cargar cultivos disponibles
 useEffect(() => {
   fetch('/api/cultivos-disponibles')
     .then((res) => res.json())
     .then((data) => {
       const cultivosPredefinidos = [
-        'Maíz', 'Soja', 'Trigo', 'Girasol', 'Sorgo', 'Cebada', 
-        'Avena', 'Alfalfa', 'Raigrás', 'Trébol', 'Festuca', 
-        'Lotus', 'Pradera natural', 'Arroz'
+        'Maíz', 'Soja', 'Trigo', 'Girasol', 'Sorgo', 
+        'Cebada', 'Avena', 'Arroz', 'Alfalfa', 
+        'Raigrás', 'Trébol', 'Festuca', 'Lotus', 
+        'Pradera natural'
       ]
       
       const cultivosUsuario = data.map((c: any) => c.tipoCultivo)
@@ -74,9 +76,10 @@ useEffect(() => {
     })
     .catch(() => {
       setCultivosDisponibles([
-        'Maíz', 'Soja', 'Trigo', 'Girasol', 'Sorgo', 'Cebada', 
-        'Avena', 'Alfalfa', 'Raigrás', 'Trébol', 'Festuca', 
-        'Lotus', 'Pradera natural', 'Arroz'
+        'Maíz', 'Soja', 'Trigo', 'Girasol', 'Sorgo', 
+        'Cebada', 'Avena', 'Arroz', 'Alfalfa', 
+        'Raigrás', 'Trébol', 'Festuca', 'Lotus', 
+        'Pradera natural'
       ])
     })
 }, [])
