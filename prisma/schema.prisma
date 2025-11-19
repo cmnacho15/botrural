@@ -77,7 +77,8 @@ model Campo {
   lotes       Lote[]
   usuarios    User[]
   manoObra    ManoObra[]
-  tiposCultivo TipoCultivo[] // ← AGREGAR ESTA LÍNEA
+  tiposCultivo TipoCultivo[]
+  categoriasAnimal CategoriaAnimal[] // ← AGREGAR ESTA LÍNEA
 }
 
 model TipoCultivo {
@@ -90,6 +91,30 @@ model TipoCultivo {
   
   @@unique([nombre, campoId])
   @@index([campoId])
+}
+
+model CategoriaAnimal {
+  id               String   @id @default(cuid())
+  nombreSingular   String
+  nombrePlural     String
+  tipoAnimal       TipoAnimal
+  campoId          String
+  activo           Boolean  @default(true)
+  esPredeterminado Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  
+  campo Campo @relation(fields: [campoId], references: [id], onDelete: Cascade)
+  
+  @@unique([nombreSingular, campoId])
+  @@index([campoId])
+}
+
+enum TipoAnimal {
+  BOVINO
+  OVINO
+  EQUINO
+  OTRO
 }
 
 model Lote {
