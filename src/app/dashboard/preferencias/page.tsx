@@ -130,24 +130,36 @@ export default function PreferenciasPage() {
     }
   }
 
-  async function handleToggleCategoria(id: string, activo: boolean) {
-    try {
-      const response = await fetch('/api/categorias-animal', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, activo }),
-      })
+  async function handleToggleCategoria(id: string, nuevoEstado: boolean) {
+  // ✅ ACTUALIZACIÓN OPTIMISTA (instantánea en UI)
+  setCategorias(prev => 
+    prev.map(cat => cat.id === id ? { ...cat, activo: nuevoEstado } : cat)
+  )
 
-      if (response.ok) {
-        cargarAnimales()
-      } else {
-        const error = await response.json()
-        alert(error.error || 'Error al actualizar categoría')
-      }
-    } catch (error) {
-      alert('Error al actualizar categoría')
+  try {
+    const response = await fetch('/api/categorias-animal', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, activo: nuevoEstado }),
+    })
+
+    if (!response.ok) {
+      // ❌ Si falla, revertir el cambio
+      setCategorias(prev => 
+        prev.map(cat => cat.id === id ? { ...cat, activo: !nuevoEstado } : cat)
+      )
+      const error = await response.json()
+      alert(error.error || 'Error al actualizar categoría')
     }
+    // ✅ Si es exitoso, ya está actualizado en la UI
+  } catch (error) {
+    // ❌ Si hay error de red, revertir
+    setCategorias(prev => 
+      prev.map(cat => cat.id === id ? { ...cat, activo: !nuevoEstado } : cat)
+    )
+    alert('Error al actualizar categoría')
   }
+}
 
   async function handleAgregarAnimal() {
     if (!nuevoAnimal.nombreSingular.trim() || !nuevoAnimal.nombrePlural.trim()) {
