@@ -65,6 +65,7 @@ export async function POST(request: Request) {
         loteId: loteId || null,
         usuarioId: session.user.id,
         campoId: usuario.campoId,
+         notas: notas || null,
       },
     });
 
