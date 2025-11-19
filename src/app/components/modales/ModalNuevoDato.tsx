@@ -1,5 +1,3 @@
-// Modal de Riego - Registro de riego de cultivos con lámina, método y duración
-
 'use client'
 
 import { useState, useEffect } from 'react'
