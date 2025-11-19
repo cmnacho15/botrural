@@ -17,6 +17,8 @@ import {
   ModalConsumo,
   ModalTacto,
   ModalOtrosLabores,
+  ModalCosecha,
+
 } from '@/app/components/modales'
 
 type ModalNuevoDatoProps = {
@@ -85,6 +87,7 @@ export default function ModalNuevoDato({
         {tipo === 'consumo' && <ModalConsumo onClose={onClose} onSuccess={handleSuccess} />}
         {tipo === 'tacto' && <ModalTacto onClose={onClose} onSuccess={handleSuccess} />}
         {tipo === 'otros-labores' && <ModalOtrosLabores onClose={onClose} onSuccess={handleSuccess} />}
+        {tipo === 'cosecha' && <ModalCosecha onClose={onClose} onSuccess={handleSuccess} />}
         
         {tipo === 'recategorizacion' && (         
           <ModalRecategorizacion 

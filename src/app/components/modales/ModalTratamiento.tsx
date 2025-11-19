@@ -19,18 +19,28 @@ type AnimalLote = {
   cantidad: number
 }
 
+type AnimalTratado = {
+  id: string
+  cantidad: string
+  tipo: string
+  peso: string
+}
+
 export default function ModalTratamiento({ onClose, onSuccess }: ModalTratamientoProps) {
   const [fecha, setFecha] = useState(obtenerFechaLocal())
   const [potreros, setPotreros] = useState<Lote[]>([])
   const [potreroSeleccionado, setPotreroSeleccionado] = useState('')
   const [animalesDisponibles, setAnimalesDisponibles] = useState<AnimalLote[]>([])
-  const [categoriaSeleccionada, setCategoriaSeleccionada] = useState('')
   const [tratamiento, setTratamiento] = useState('')
   const [marca, setMarca] = useState('')
   const [notas, setNotas] = useState('')
   const [loading, setLoading] = useState(false)
   const [loadingAnimales, setLoadingAnimales] = useState(false)
   const [errorPotrero, setErrorPotrero] = useState(false)
+  
+  const [animalesTratados, setAnimalesTratados] = useState<AnimalTratado[]>([
+    { id: '1', cantidad: '', tipo: '', peso: '' }
+  ])
 
   // Cargar potreros al montar
   useEffect(() => {
@@ -44,7 +54,6 @@ export default function ModalTratamiento({ onClose, onSuccess }: ModalTratamient
   useEffect(() => {
     if (!potreroSeleccionado) {
       setAnimalesDisponibles([])
-      setCategoriaSeleccionada('')
       return
     }
 
@@ -61,6 +70,25 @@ export default function ModalTratamiento({ onClose, onSuccess }: ModalTratamient
       })
   }, [potreroSeleccionado])
 
+  const agregarAnimal = () => {
+    setAnimalesTratados([
+      ...animalesTratados,
+      { id: Date.now().toString(), cantidad: '', tipo: '', peso: '' }
+    ])
+  }
+
+  const eliminarAnimal = (id: string) => {
+    if (animalesTratados.length > 1) {
+      setAnimalesTratados(animalesTratados.filter(a => a.id !== id))
+    }
+  }
+
+  const actualizarAnimal = (id: string, campo: keyof AnimalTratado, valor: string) => {
+    setAnimalesTratados(animalesTratados.map(a =>
+      a.id === id ? { ...a, [campo]: valor } : a
+    ))
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -74,10 +102,40 @@ export default function ModalTratamiento({ onClose, onSuccess }: ModalTratamient
       return
     }
 
+    // Validar animales tratados
+    const animalesValidos = animalesTratados.filter(a => 
+      a.cantidad && a.tipo && parseInt(a.cantidad) > 0
+    )
+
+    if (animalesValidos.length === 0) {
+      alert('Debe agregar al menos un animal con cantidad y tipo')
+      return
+    }
+
+    // Validar que no exceda cantidades disponibles
+    for (const animal of animalesValidos) {
+      const disponible = animalesDisponibles.find(d => d.categoria === animal.tipo)
+      if (!disponible) {
+        alert(`No hay animales de tipo ${animal.tipo} en este potrero`)
+        return
+      }
+      if (parseInt(animal.cantidad) > disponible.cantidad) {
+        alert(`Solo hay ${disponible.cantidad} ${animal.tipo} disponibles`)
+        return
+      }
+    }
+
     setLoading(true)
 
     try {
       const potreroNombre = potreros.find(p => p.id === potreroSeleccionado)?.nombre
+      
+      // Construir descripción con todos los animales
+      const descripcionAnimales = animalesValidos.map(a => 
+        `${a.cantidad} ${a.tipo}${a.peso ? ` (${a.peso} kg)` : ''}`
+      ).join(', ')
+
+      const descripcionFinal = `Tratamiento: ${tratamiento}${marca ? ` - ${marca}` : ''} aplicado a ${descripcionAnimales} en potrero ${potreroNombre}`
 
       const response = await fetch('/api/eventos', {
         method: 'POST',
@@ -85,9 +143,8 @@ export default function ModalTratamiento({ onClose, onSuccess }: ModalTratamient
         body: JSON.stringify({
           tipo: 'TRATAMIENTO',
           fecha: fecha,
-          descripcion: `Tratamiento: ${tratamiento}${marca ? ` - ${marca}` : ''}${categoriaSeleccionada ? ` en ${categoriaSeleccionada}` : ''} en potrero ${potreroNombre}`,
+          descripcion: descripcionFinal,
           loteId: potreroSeleccionado,
-          categoria: categoriaSeleccionada || null,
           notas: notas || null,
         }),
       })
@@ -99,7 +156,6 @@ export default function ModalTratamiento({ onClose, onSuccess }: ModalTratamient
 
       onSuccess()
       onClose()
-      window.location.reload()
     } catch (error) {
       alert(error instanceof Error ? error.message : 'Error al registrar tratamiento')
     } finally {
@@ -145,7 +201,6 @@ export default function ModalTratamiento({ onClose, onSuccess }: ModalTratamient
             value={potreroSeleccionado}
             onChange={(e) => {
               setPotreroSeleccionado(e.target.value)
-              setCategoriaSeleccionada('')
               setErrorPotrero(false)
             }}
             className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
@@ -202,20 +257,73 @@ export default function ModalTratamiento({ onClose, onSuccess }: ModalTratamient
                 Selecciona un potrero para cargar los animales
               </p>
             ) : (
-              <div>
-                <label className="block text-xs text-gray-600 mb-1">Categoría (Opcional)</label>
-                <select
-                  value={categoriaSeleccionada}
-                  onChange={(e) => setCategoriaSeleccionada(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white text-sm"
+              <div className="space-y-3">
+                {animalesTratados.map((animal, index) => (
+                  <div key={animal.id} className="grid grid-cols-12 gap-2 items-start">
+                    {/* Cantidad */}
+                    <div className="col-span-3">
+                      <label className="block text-xs text-gray-600 mb-1">Cantidad</label>
+                      <input
+                        type="number"
+                        value={animal.cantidad}
+                        onChange={(e) => actualizarAnimal(animal.id, 'cantidad', e.target.value)}
+                        min="1"
+                        placeholder="100"
+                        className="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+                      />
+                    </div>
+
+                    {/* Tipo de animal */}
+                    <div className="col-span-4">
+                      <label className="block text-xs text-gray-600 mb-1">Tipo de animal</label>
+                      <select
+                        value={animal.tipo}
+                        onChange={(e) => actualizarAnimal(animal.id, 'tipo', e.target.value)}
+                        className="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+                      >
+                        <option value="">Tipo</option>
+                        {animalesDisponibles.map((a) => (
+                          <option key={a.id} value={a.categoria}>
+                            {a.categoria} ({a.cantidad})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Peso */}
+                    <div className="col-span-4">
+                      <label className="block text-xs text-gray-600 mb-1">Peso</label>
+                      <input
+                        type="text"
+                        value={animal.peso}
+                        onChange={(e) => actualizarAnimal(animal.id, 'peso', e.target.value)}
+                        placeholder="Peso"
+                        className="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+                      />
+                    </div>
+
+                    {/* Botón eliminar */}
+                    <div className="col-span-1 flex items-end pb-2">
+                      <button
+                        type="button"
+                        onClick={() => eliminarAnimal(animal.id)}
+                        className="text-red-500 hover:text-red-700 text-xl"
+                        disabled={animalesTratados.length === 1}
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                  </div>
+                ))}
+
+                {/* Botón agregar */}
+                <button
+                  type="button"
+                  onClick={agregarAnimal}
+                  className="flex items-center gap-2 text-blue-600 hover:text-blue-800 font-medium text-sm"
                 >
-                  <option value="">Todos los animales</option>
-                  {animalesDisponibles.map((animal) => (
-                    <option key={animal.id} value={animal.categoria}>
-                      {animal.categoria} ({animal.cantidad} disponibles)
-                    </option>
-                  ))}
-                </select>
+                  <span className="text-xl">➕</span> Agregar Más Animales
+                </button>
               </div>
             )}
           </div>

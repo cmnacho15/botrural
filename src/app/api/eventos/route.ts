@@ -267,35 +267,98 @@ export async function POST(request: Request) {
         break;
 
       // ======================================================================
-      // COSECHA
-      // ======================================================================
-      case "COSECHA":
-        if (loteId && tipoCultivo) {
-          await prisma.cultivo.deleteMany({
-            where: { loteId, tipoCultivo, lote: { campoId: usuario.campoId } },
-          });
-        }
+// COSECHA
+// ======================================================================
+case "COSECHA": {
+  // ✅ Validar que tengamos los datos necesarios
+  if (!loteId || !body.cultivoId || !hectareas) {
+    return NextResponse.json(
+      { error: "Se requiere loteId, cultivoId y hectareas" },
+      { status: 400 }
+    );
+  }
 
-        if (monto && parseFloat(monto) > 0) {
-          await prisma.gasto.create({
-            data: {
-              tipo: "INGRESO",
-              monto: parseFloat(monto),
-              fecha: crearFechaConHoraActual(fecha),
-              descripcion: descripcion || `Cosecha de ${tipoCultivo}`,
-              categoria: categoria || "Cosecha",
-              metodoPago: metodoPago || "Contado",
-              iva: iva !== undefined ? parseFloat(String(iva)) : null,
-              comprador: comprador ? comprador.trim().toLowerCase() : null,
-              proveedor: null,
-              diasPlazo: metodoPago === "Plazo" ? parseInt(diasPlazo || "0") : null,
-              pagado: metodoPago === "Contado" ? true : pagado ?? false,
-              campoId: usuario.campoId,
-              loteId: loteId || null,
-            },
-          });
-        }
-        break;
+  // ✅ Buscar el cultivo específico que vamos a cosechar
+  const cultivoActual = await prisma.cultivo.findFirst({
+    where: {
+      id: body.cultivoId,
+      loteId,
+      lote: { campoId: usuario.campoId },
+    },
+  });
+
+  // ✅ Si no existe el cultivo, error
+  if (!cultivoActual) {
+    return NextResponse.json(
+      { error: "Cultivo no encontrado" },
+      { status: 404 }
+    );
+  }
+
+  const hectareasCosechar = parseFloat(hectareas);
+
+  // ✅ Validar que no intente cosechar más de lo que hay
+  if (hectareasCosechar > cultivoActual.hectareas) {
+    return NextResponse.json(
+      { error: `No puedes cosechar más de ${cultivoActual.hectareas} ha disponibles` },
+      { status: 400 }
+    );
+  }
+
+  // ✅ AQUÍ ESTÁ LA LÓGICA CLAVE:
+  // Calculamos cuántas hectáreas quedarían después de la cosecha
+  const hectareasRestantes = cultivoActual.hectareas - hectareasCosechar;
+
+  // Si quedan 0 hectáreas (o casi 0 por decimales), eliminamos el cultivo
+  if (hectareasRestantes === 0 || Math.abs(hectareasRestantes) < 0.01) {
+    await prisma.cultivo.delete({
+      where: { id: cultivoActual.id },
+    });
+  } else {
+    // Si quedan hectáreas, actualizamos el cultivo con las hectáreas restantes
+    await prisma.cultivo.update({
+      where: { id: cultivoActual.id },
+      data: { hectareas: hectareasRestantes },
+    });
+  }
+
+  // ✅ Actualizar la fecha de último cambio del potrero
+  await prisma.lote.update({
+    where: { id: loteId },
+    data: { ultimoCambio: new Date() },
+  });
+
+  // ✅ Guardar notas en el evento si las hay
+  await prisma.evento.update({
+    where: { id: evento.id },
+    data: {
+      notas: notas || null,
+    },
+  });
+
+  // ✅ Si hay un monto de venta, crear el ingreso financiero
+  if (monto && parseFloat(monto) > 0) {
+    await prisma.gasto.create({
+      data: {
+        tipo: "INGRESO",
+        monto: parseFloat(monto),
+        fecha: crearFechaConHoraActual(fecha),
+        descripcion: descripcion || `Cosecha de ${tipoCultivo}`,
+        categoria: categoria || "Cosecha",
+        metodoPago: metodoPago || "Contado",
+        iva: iva !== undefined ? parseFloat(String(iva)) : null,
+        comprador: comprador ? comprador.trim().toLowerCase() : null,
+        proveedor: null,
+        diasPlazo: metodoPago === "Plazo" ? parseInt(diasPlazo || "0") : null,
+        pagado: metodoPago === "Contado" ? true : pagado ?? false,
+        campoId: usuario.campoId,
+        loteId: loteId || null,
+      },
+    });
+  }
+
+  break;
+}
 
       // ======================================================================
       // NACIMIENTO
