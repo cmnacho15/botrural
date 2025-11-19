@@ -13,6 +13,7 @@ export { default as ModalMortandad } from './ModalMortandad'
 export { default as ModalConsumo } from './ModalConsumo'
 export { default as ModalTacto } from './ModalTacto'
 export { default as ModalOtrosLabores } from './ModalOtrosLabores'
+export { default as ModalCosecha } from './ModalCosecha'
 
 // Importar y re-exportar directamente
 import ModalRecategorizacion from './ModalRecategorizacion'
