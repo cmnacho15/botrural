@@ -38,6 +38,7 @@ export default function ModalSiembra({ onClose, onSuccess }: ModalSiembraProps) 
   const [errorPotrero, setErrorPotrero] = useState(false)
   const [errorCultivo, setErrorCultivo] = useState(false)
   const [hectareasMax, setHectareasMax] = useState<number | null>(null)
+  const [cultivosDisponibles, setCultivosDisponibles] = useState<string[]>([])
 
   // Cargar potreros al montar
   useEffect(() => {
@@ -56,6 +57,29 @@ export default function ModalSiembra({ onClose, onSuccess }: ModalSiembraProps) 
       setHectareasMax(null)
     }
   }, [potreroSeleccionado, potreros])
+  // Cargar cultivos disponibles
+useEffect(() => {
+  fetch('/api/cultivos-disponibles')
+    .then((res) => res.json())
+    .then((data) => {
+      const cultivosPredefinidos = [
+        'Maíz', 'Soja', 'Trigo', 'Girasol', 'Sorgo', 'Cebada', 
+        'Avena', 'Alfalfa', 'Raigrás', 'Trébol', 'Festuca', 
+        'Lotus', 'Pradera natural', 'Arroz'
+      ]
+      
+      const cultivosUsuario = data.map((c: any) => c.tipoCultivo)
+      const todosCultivos = [...new Set([...cultivosPredefinidos, ...cultivosUsuario])]
+      setCultivosDisponibles(todosCultivos.sort())
+    })
+    .catch(() => {
+      setCultivosDisponibles([
+        'Maíz', 'Soja', 'Trigo', 'Girasol', 'Sorgo', 'Cebada', 
+        'Avena', 'Alfalfa', 'Raigrás', 'Trébol', 'Festuca', 
+        'Lotus', 'Pradera natural', 'Arroz'
+      ])
+    })
+}, [])
 
   // Agregar fertilizante
   const agregarFertilizante = () => {
@@ -234,27 +258,36 @@ export default function ModalSiembra({ onClose, onSuccess }: ModalSiembraProps) 
         </div>
 
         {/* CULTIVO */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Cultivo <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            value={cultivo}
-            onChange={(e) => {
-              setCultivo(e.target.value)
-              setErrorCultivo(false)
-            }}
-            placeholder="Cultivo *"
-            className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 ${
-              errorCultivo ? 'border-red-500' : 'border-gray-300'
-            }`}
-            required
-          />
-          {errorCultivo && (
-            <p className="text-red-500 text-xs mt-1">El cultivo es obligatorio</p>
-          )}
-        </div>
+<div>
+  <label className="block text-sm font-medium text-gray-700 mb-2">
+    Cultivo <span className="text-red-500">*</span>
+  </label>
+  <input
+    type="text"
+    list="cultivos-predefinidos"
+    value={cultivo}
+    onChange={(e) => {
+      setCultivo(e.target.value)
+      setErrorCultivo(false)
+    }}
+    placeholder="Seleccione o escriba un cultivo"
+    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 ${
+      errorCultivo ? 'border-red-500' : 'border-gray-300'
+    }`}
+    required
+  />
+  <datalist id="cultivos-predefinidos">
+  {cultivosDisponibles.map((c) => (
+    <option key={c} value={c} />
+  ))}
+</datalist>
+  {errorCultivo && (
+    <p className="text-red-500 text-xs mt-1">El cultivo es obligatorio</p>
+  )}
+  <p className="text-xs text-gray-500 mt-1">
+    💡 Seleccione de la lista o escriba un cultivo personalizado
+  </p>
+</div>
 
         {/* DETALLES DE LA SIEMBRA */}
         <div>
