@@ -112,8 +112,7 @@ export default function ModalCambioPotrero({ onClose, onSuccess }: ModalCambioPo
         throw new Error(error.error || 'Error al guardar')
       }
 
-      // ✅ Revalidar cache de SWR para que se actualicen los lotes automáticamente
-      await fetch('/api/lotes?revalidate=true')
+      
       
       onSuccess()
       onClose()
@@ -123,9 +122,6 @@ export default function ModalCambioPotrero({ onClose, onSuccess }: ModalCambioPo
       setLoading(false)
     }
   }
-
-  const potreroOrigenNombre = potreros.find((p) => p.id === potreroOrigen)?.nombre
-  const potreroDestinoNombre = potreros.find((p) => p.id === potreroDestino)?.nombre
 
   return (
     <form onSubmit={handleSubmit} className="p-6">

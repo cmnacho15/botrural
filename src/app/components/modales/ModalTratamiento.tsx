@@ -99,6 +99,7 @@ export default function ModalTratamiento({ onClose, onSuccess }: ModalTratamient
 
       onSuccess()
       onClose()
+      window.location.reload()
     } catch (error) {
       alert(error instanceof Error ? error.message : 'Error al registrar tratamiento')
     } finally {
