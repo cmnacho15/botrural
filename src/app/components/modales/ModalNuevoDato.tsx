@@ -12,6 +12,7 @@ import {
   ModalNacimiento,
   ModalCambioPotrero,
   ModalRecategorizacion,
+  ModalTratamiento,
 } from '@/app/components/modales'
 
 type ModalNuevoDatoProps = {
@@ -75,6 +76,7 @@ export default function ModalNuevoDato({
         {tipo === 'siembra' && <ModalSiembra onClose={onClose} onSuccess={handleSuccess} />}
         {tipo === 'cambio-potrero' && <ModalCambioPotrero onClose={onClose} onSuccess={handleSuccess} />}
         {tipo === 'nacimiento' && <ModalNacimiento onClose={onClose} onSuccess={handleSuccess} />}
+        {tipo === 'tratamiento' && <ModalTratamiento onClose={onClose} onSuccess={handleSuccess} />}
         
         {tipo === 'recategorizacion' && (
           <ModalRecategorizacion 

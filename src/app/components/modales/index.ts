@@ -8,6 +8,7 @@ export { default as ModalSiembra } from './ModalSiembra'
 export { default as ModalNacimiento } from './ModalNacimiento'
 export { default as ModalCambioPotrero } from './ModalCambioPotrero'
 export { default as ModalInvitarUsuario } from './ModalInvitarUsuario'
+export { default as ModalTratamiento } from './ModalTratamiento'
 
 // Importar y re-exportar directamente
 import ModalRecategorizacion from './ModalRecategorizacion'
