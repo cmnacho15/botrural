@@ -34,37 +34,9 @@ interface Animal {
   cantidad: string
 }
 
+const [cultivosDisponibles, setCultivosDisponibles] = useState<string[]>([])
+const [categoriasDisponibles, setCategoriasDisponibles] = useState<string[]>([])
 
-// 🐄 Categorías animales actualizadas (igual que en nuevo/page.tsx)
-const CATEGORIAS_ANIMAL = {
-  'VACUNOS': [
-    'Toros',
-    'Vacas',
-    'Novillos +3 años',
-    'Novillos 2–3 años',
-    'Novillos 1–2 años',
-    'Vaquillonas +2 años',
-    'Vaquillonas 1–2 años',
-    'Terneros/as'
-  ],
-  'OVINOS': [
-    'Carneros',
-    'Ovejas',
-    'Capones',
-    'Borregas 2–4 dientes',
-    'Corderas DL',
-    'Corderos DL',
-    'Corderos/as Mamones'
-  ],
-  'YEGUARIZOS': [
-    'Padrillos',
-    'Yeguas',
-    'Caballos',
-    'Potrillos'
-  ]
-}
-
-console.log('🔍 CATEGORIAS_ANIMAL VERSION:', JSON.stringify(CATEGORIAS_ANIMAL).substring(0, 100))
 
 export default function EditarLotePage() {
   const router = useRouter()
@@ -100,6 +72,21 @@ useEffect(() => {
     })
     .catch(() => {
       console.error('Error cargando cultivos')
+    })
+}, [])
+  // Cargar categorías de animales disponibles
+useEffect(() => {
+  fetch('/api/categorias-animal')
+    .then((res) => res.json())
+    .then((data) => {
+      // Solo categorías activas
+      const activas = data
+        .filter((c: any) => c.activo)
+        .map((c: any) => c.nombreSingular)
+      setCategoriasDisponibles(activas)
+    })
+    .catch(() => {
+      console.error('Error cargando categorías')
     })
 }, [])
 
@@ -415,33 +402,16 @@ useEffect(() => {
                     className="w-24 border border-gray-300 rounded px-3 py-2"
                   />
                   <select
-                    value={a.categoria}
-                    onChange={e => actualizarAnimal(a.id, 'categoria', e.target.value)}
-                    className="flex-1 border border-gray-300 rounded px-3 py-2"
-                  >
-                    <option value="">Seleccionar categoría</option>
-                    
-                    {/* VACUNOS */}
-                    <optgroup label="🐄 VACUNOS">
-                      {CATEGORIAS_ANIMAL.VACUNOS.map(cat => (
-                        <option key={cat} value={cat}>{cat}</option>
-                      ))}
-                    </optgroup>
+  value={a.categoria}
+  onChange={e => actualizarAnimal(a.id, 'categoria', e.target.value)}
+  className="flex-1 border border-gray-300 rounded px-3 py-2"
+>
+  <option value="">Seleccionar categoría</option>
+  {categoriasDisponibles.map((cat) => (
+    <option key={cat} value={cat}>{cat}</option>
+  ))}
+</select>
 
-                    {/* OVINOS */}
-                    <optgroup label="🐑 OVINOS">
-                      {CATEGORIAS_ANIMAL.OVINOS.map(cat => (
-                        <option key={cat} value={cat}>{cat}</option>
-                      ))}
-                    </optgroup>
-
-                    {/* YEGUARIZOS */}
-                    <optgroup label="🐴 YEGUARIZOS">
-                      {CATEGORIAS_ANIMAL.YEGUARIZOS.map(cat => (
-                        <option key={cat} value={cat}>{cat}</option>
-                      ))}
-                    </optgroup>
-                  </select>
                   <button onClick={() => eliminarAnimal(a.id)} type="button" className="text-red-600">🗑️</button>
                 </div>
               ))}

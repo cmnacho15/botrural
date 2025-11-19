@@ -672,6 +672,9 @@ function FiltrosDatos() {
   const [showModalCultivos, setShowModalCultivos] = useState(false)  
   const [showBusqueda, setShowBusqueda] = useState(false)
   const [todosLosPotreros, setTodosLosPotreros] = useState<string[]>([])
+ 
+  const [animalesDisponibles, setAnimalesDisponibles] = useState<string[]>([])
+  const [cultivosDisponibles, setCultivosDisponibles] = useState<string[]>([])
 
   // Cargar potreros desde la API
   useEffect(() => {
@@ -681,33 +684,37 @@ function FiltrosDatos() {
       .catch(err => console.error('Error cargando potreros:', err))
   }, [])
 
+  // Cargar animales activos desde la API
+useEffect(() => {
+  fetch('/api/categorias-animal')
+    .then(r => r.json())
+    .then(categorias => {
+      const activos = categorias
+        .filter((c: any) => c.activo)
+        .map((c: any) => c.nombreSingular)
+      setAnimalesDisponibles(activos)
+    })
+    .catch(err => console.error('Error cargando animales:', err))
+}, [])
+
+// Cargar cultivos desde la API
+useEffect(() => {
+  fetch('/api/tipos-cultivo')
+    .then(r => r.json())
+    .then(cultivos => {
+      const nombres = cultivos.map((c: any) => c.nombre)
+      setCultivosDisponibles(nombres)
+    })
+    .catch(err => console.error('Error cargando cultivos:', err))
+}, [])
+
   // Obtener datos únicos
   const usuariosDisponibles = Array.from(new Set(datos.map((d) => d.usuario).filter(Boolean))) as string[]
   const potrerosDisponibles = todosLosPotreros.length > 0 
     ? todosLosPotreros 
     : Array.from(new Set(datos.map((d) => d.lote).filter(Boolean))) as string[]
   // ✅ AGREGA ESTO:
-const ANIMALES_DISPONIBLES = [
-  'Vacas',
-  'Vaquillonas', 
-  'Novillos',
-  'Toros',
-  'Terneros/as',
-  'Carneros',
-  'Ovejas',
-  'Capones',
-  'Borregas',
-  'Corderos',
-  'Padrillos',
-  'Yeguas',
-  'Caballos',
-  'Potrillos'
-]
 
-const CULTIVOS_DISPONIBLES = [
-  'Maíz', 'Soja', 'Trigo', 'Girasol', 'Sorgo', 
-  'Cebada', 'Alfalfa', 'Natural'
-]
   return (
     <>
       <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
@@ -892,7 +899,7 @@ const CULTIVOS_DISPONIBLES = [
   onClose={() => setShowModalAnimales(false)}
   title="Animales"
   icon="🐄"
-  items={ANIMALES_DISPONIBLES}
+  items={animalesDisponibles}
   selectedItems={filtros.animales}
   onApply={(animales) => setFiltros({ ...filtros, animales })}
 />
@@ -902,7 +909,7 @@ const CULTIVOS_DISPONIBLES = [
   onClose={() => setShowModalCultivos(false)}
   title="Cultivos"
   icon="🌾"
-  items={CULTIVOS_DISPONIBLES}
+  items={cultivosDisponibles}
   selectedItems={filtros.cultivos}
   onApply={(cultivos) => setFiltros({ ...filtros, cultivos })}
 />
