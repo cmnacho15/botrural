@@ -22,13 +22,12 @@ export const EQUIVALENCIAS_UG: Record<string, number> = {
   'Corderos DL': 0.10,
   'Corderos/as Mamones': 0.10,
 
-  // 🐴 YEGUARIZOS (estimados, no oficial)
-  'Padrillos': 1.20,
-  'Yeguas': 1.00,
-  'Caballos': 1.00,
-  'Potrillos': 0.70,
+  // 🐴 YEGUARIZOS (NO se cuentan en UG)
+  'Padrillos': 0,
+  'Yeguas': 0,
+  'Caballos': 0,
+  'Potrillos': 0,
 }
-
 
 // ============================================
 // 🧮 FUNCIONES DE CÁLCULO
@@ -88,7 +87,10 @@ export function calcularCargaInstantanea(
  * Calcula estadísticas completas de un lote
  */
 export function calcularEstadisticasLote(lote: Lote) {
-  const animales = lote.animalesLote || []
+  // ❌ EXCLUIR YEGUARIZOS del cálculo de UG
+  const animales = (lote.animalesLote || []).filter(
+    a => !['Padrillos', 'Yeguas', 'Caballos', 'Potrillos'].includes(a.categoria)
+  )
   const ugTotales = calcularUGTotales(animales)
   const cargaGlobal = calcularCargaGlobal(animales, lote.hectareas)
   const cargaInstantanea = calcularCargaInstantanea(animales, lote.hectareas)
@@ -138,7 +140,10 @@ export function calcularEstadisticasLote(lote: Lote) {
  */
 export function calcularEstadisticasCampo(lotes: Lote[]) {
   const totalHectareas = lotes.reduce((sum, l) => sum + l.hectareas, 0)
-  const todosLosAnimales = lotes.flatMap(l => l.animalesLote || [])
+  // ❌ EXCLUIR YEGUARIZOS del cálculo de UG
+  const todosLosAnimales = lotes
+    .flatMap(l => l.animalesLote || [])
+    .filter(a => !['Padrillos', 'Yeguas', 'Caballos', 'Potrillos'].includes(a.categoria))
   
   const ugTotalesCampo = calcularUGTotales(todosLosAnimales)
   const cargaGlobalCampo = totalHectareas > 0 

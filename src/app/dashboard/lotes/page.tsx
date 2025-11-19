@@ -224,10 +224,12 @@ export default function LotesPage() {
               {hayLotes && (() => {
                 const totalHectareas = lotes.reduce((sum, l) => sum + l.hectareas, 0)
                 const todosAnimales = lotes.flatMap(l => l.animalesLote || [])
-                const ugTotales = todosAnimales.reduce((total, animal) => {
-                  const equivalencia = EQUIVALENCIAS_UG[animal.categoria] || 0
-                  return total + (animal.cantidad * equivalencia)
-                }, 0)
+  .filter(a => !['Padrillos', 'Yeguas', 'Caballos', 'Potrillos'].includes(a.categoria)) // ← EXCLUIR YEGUARIZOS
+
+const ugTotales = todosAnimales.reduce((total, animal) => {
+  const equivalencia = EQUIVALENCIAS_UG[animal.categoria] || 0
+  return total + (animal.cantidad * equivalencia)
+}, 0)
                 const cargaGlobal = totalHectareas > 0 ? ugTotales / totalHectareas : 0
                 
                 if (todosAnimales.length === 0) return null
