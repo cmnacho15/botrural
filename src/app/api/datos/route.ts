@@ -161,6 +161,7 @@ eventos
       // ✅ Campos directos (no en detalles)
       cantidad: evento.cantidad,
       monto: evento.monto,
+      notas: evento.notas || null,
     })
   })
 

@@ -15,6 +15,7 @@ export { default as ModalTacto } from './ModalTacto'
 export { default as ModalOtrosLabores } from './ModalOtrosLabores'
 export { default as ModalCosecha } from './ModalCosecha'
 export { default as ModalMonitoreo } from './ModalMonitoreo'  // ← AGREGAR
+export { default as ModalRiego } from './ModalRiego'
 
 // Importar y re-exportar directamente
 import ModalRecategorizacion from './ModalRecategorizacion'

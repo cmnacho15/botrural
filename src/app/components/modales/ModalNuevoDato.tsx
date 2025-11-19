@@ -19,6 +19,7 @@ import {
   ModalOtrosLabores,
   ModalCosecha,
   ModalMonitoreo,
+  ModalRiego,
 } from '@/app/components/modales'
 
 type ModalNuevoDatoProps = {
@@ -89,7 +90,8 @@ export default function ModalNuevoDato({
         {tipo === 'otros-labores' && <ModalOtrosLabores onClose={onClose} onSuccess={handleSuccess} />}
         {tipo === 'cosecha' && <ModalCosecha onClose={onClose} onSuccess={handleSuccess} />}
         {tipo === 'monitoreo' && <ModalMonitoreo onClose={onClose} onSuccess={handleSuccess} />}  {/* ✅ CORREGIDO */}
-
+        {tipo === 'riego' && <ModalRiego onClose={onClose} onSuccess={handleSuccess} />}
+        
         {tipo === 'recategorizacion' && (         
           <ModalRecategorizacion 
             isOpen={isOpen}
