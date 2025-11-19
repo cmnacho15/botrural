@@ -55,8 +55,8 @@ export default function NuevoLotePage() {
   const [cultivos, setCultivos] = useState<Cultivo[]>([])
   const [animales, setAnimales] = useState<Animal[]>([])
   const [cultivosDisponibles, setCultivosDisponibles] = useState<string[]>([])
-  const [categoriasDisponibles, setCategoriasDisponibles] = useState<string[]>([])
-  
+  const [categoriasDisponibles, setCategoriasDisponibles] = useState<Array<{nombre: string, tipo: string}>>([])
+
   // Cargar lotes
   useEffect(() => {
     cargarLotesExistentes()
@@ -79,10 +79,12 @@ useEffect(() => {
   fetch('/api/categorias-animal')
     .then((res) => res.json())
     .then((data) => {
-      // Solo categorías activas
       const activas = data
         .filter((c: any) => c.activo)
-        .map((c: any) => c.nombreSingular)
+        .map((c: any) => ({
+          nombre: c.nombreSingular,
+          tipo: c.tipoAnimal
+        }))
       setCategoriasDisponibles(activas)
     })
     .catch(() => {
@@ -337,9 +339,27 @@ useEffect(() => {
   className="flex-1 border border-gray-300 rounded px-3 py-2"
 >
   <option value="">Seleccionar categoría</option>
-  {categoriasDisponibles.map((cat) => (
-    <option key={cat} value={cat}>{cat}</option>
-  ))}
+  
+  {/* Agrupar por tipo */}
+  {['BOVINO', 'OVINO', 'EQUINO', 'OTRO'].map(tipo => {
+    const categoriasTipo = categoriasDisponibles.filter(c => c.tipo === tipo)
+    if (categoriasTipo.length === 0) return null
+    
+    const labels = {
+      BOVINO: '🐄 BOVINOS',
+      OVINO: '🐑 OVINOS',
+      EQUINO: '🐴 EQUINOS',
+      OTRO: '📦 OTROS'
+    }
+    
+    return (
+      <optgroup key={tipo} label={labels[tipo as keyof typeof labels]}>
+        {categoriasTipo.map((cat) => (
+          <option key={cat.nombre} value={cat.nombre}>{cat.nombre}</option>
+        ))}
+      </optgroup>
+    )
+  })}
 </select>
 
                   <button onClick={() => eliminarAnimal(a.id)} type="button" className="text-red-600">🗑️</button>
