@@ -580,34 +580,50 @@ function FiltrosActivos() {
     })
   }
 
-  if (filtros.usuarios.length > 0) {
-    filtrosActivos.push({
-      key: 'usuarios',
-      label: `👤 ${filtros.usuarios.length} usuario${filtros.usuarios.length > 1 ? 's' : ''}`,
-      onRemove: () => setFiltros({ ...filtros, usuarios: [] }),
-    })
-  }
+ if (filtros.usuarios.length > 0) {
+  const nombres = filtros.usuarios.join(', ')
+  const label = filtros.usuarios.length === 1
+    ? `👤 ${nombres}`
+    : `👤 ${filtros.usuarios.length} usuarios: ${nombres}`
+  filtrosActivos.push({
+    key: 'usuarios',
+    label,
+    onRemove: () => setFiltros({ ...filtros, usuarios: [] }),
+  })
+}
 
   if (filtros.potreros.length > 0) {
+  const nombres = filtros.potreros.join(', ')
+  const label = filtros.potreros.length === 1 
+    ? `📍 ${nombres}`
+    : `📍 ${filtros.potreros.length} potreros: ${nombres}`
   filtrosActivos.push({
     key: 'potreros',
-    label: `📍 ${filtros.potreros.length} potrero${filtros.potreros.length > 1 ? 's' : ''}`,
+    label,
     onRemove: () => setFiltros({ ...filtros, potreros: [] }),
   })
 }
 
 if (filtros.animales.length > 0) {
+  const nombres = filtros.animales.join(', ')
+  const label = filtros.animales.length === 1
+    ? `🐄 ${nombres}`
+    : `🐄 ${filtros.animales.length} tipos: ${nombres}`
   filtrosActivos.push({
     key: 'animales',
-    label: `🐄 ${filtros.animales.length} animal${filtros.animales.length > 1 ? 'es' : ''}`,
+    label,
     onRemove: () => setFiltros({ ...filtros, animales: [] }),
   })
 }
 
 if (filtros.cultivos.length > 0) {
+  const nombres = filtros.cultivos.join(', ')
+  const label = filtros.cultivos.length === 1
+    ? `🌾 ${nombres}`
+    : `🌾 ${filtros.cultivos.length} cultivos: ${nombres}`
   filtrosActivos.push({
     key: 'cultivos',
-    label: `🌾 ${filtros.cultivos.length} cultivo${filtros.cultivos.length > 1 ? 's' : ''}`,
+    label,
     onRemove: () => setFiltros({ ...filtros, cultivos: [] }),
   })
 }
