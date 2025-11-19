@@ -22,15 +22,53 @@ interface ModalRecategorizacionProps {
   onSuccess: () => void;
 }
 
-const CATEGORIAS_DISPONIBLES = [
+// ✅ CATEGORÍAS COMPLETAS POR ESPECIE
+const CATEGORIAS_VACUNOS = [
   "Vacas",
+  "Vaquillonas +2 años",
+  "Vaquillonas 1–2 años",
   "Vaquillonas",
+  "Novillos +3 años",
+  "Novillos 2–3 años",
+  "Novillos 1–2 años",
   "Novillos",
   "Novillitos",
+  "Terneros/as Mamones",
+  "Terneros/as",
   "Terneros",
   "Terneras",
   "Toros",
+  "Toritos",
 ];
+
+const CATEGORIAS_OVINOS = [
+  "Ovejas",
+  "Borregas 2–4 dientes",
+  "Borregas",
+  "Borregos",
+  "Corderos/as Mamones",
+  "Corderos DL",
+  "Corderas DL",
+  "Corderos",
+  "Corderas",
+  "Capones",
+  "Carneros",
+];
+
+const CATEGORIAS_EQUINOS = [
+  "Yeguas",
+  "Padrillos",
+  "Caballos",
+  "Potrillos",
+];
+
+// ✅ Función para detectar la especie de una categoría
+function obtenerEspecie(categoria: string): 'vacunos' | 'ovinos' | 'equinos' | null {
+  if (CATEGORIAS_VACUNOS.includes(categoria)) return 'vacunos';
+  if (CATEGORIAS_OVINOS.includes(categoria)) return 'ovinos';
+  if (CATEGORIAS_EQUINOS.includes(categoria)) return 'equinos';
+  return null;
+}
 
 export default function ModalRecategorizacion({
   isOpen,
@@ -43,27 +81,27 @@ export default function ModalRecategorizacion({
   const [categoria, setCategoria] = useState("");
   const [categoriaNueva, setCategoriaNueva] = useState("");
   const [cantidad, setCantidad] = useState("");
-  const [fecha, setFecha] = useState(
-  new Date().toLocaleDateString('en-CA') // en-CA da formato YYYY-MM-DD en tu zona horaria
-);
+  const [fecha, setFecha] = useState(obtenerFechaLocal());
   const [notas, setNotas] = useState("");
 
   const [categoriasDisponibles, setCategoriasDisponibles] = useState<string[]>([]);
+  const [categoriasNuevasDisponibles, setCategoriasNuevasDisponibles] = useState<string[]>([]);
   const [cantidadMaxima, setCantidadMaxima] = useState(0);
 
   // Resetear formulario cuando se abre/cierra
   useEffect(() => {
-  if (isOpen) {
-    setLoteId("");
-    setCategoria("");
-    setCategoriaNueva("");
-    setCantidad("");
-    setFecha(new Date().toLocaleDateString('en-CA'));
-    setNotas("");
-    setCategoriasDisponibles([]);
-    setCantidadMaxima(0);
-  }
-}, [isOpen]);
+    if (isOpen) {
+      setLoteId("");
+      setCategoria("");
+      setCategoriaNueva("");
+      setCantidad("");
+      setFecha(obtenerFechaLocal());
+      setNotas("");
+      setCategoriasDisponibles([]);
+      setCategoriasNuevasDisponibles([]);
+      setCantidadMaxima(0);
+    }
+  }, [isOpen]);
 
   // Actualizar categorías disponibles cuando se selecciona un lote
   useEffect(() => {
@@ -72,7 +110,7 @@ export default function ModalRecategorizacion({
       if (loteSeleccionado) {
         const cats = loteSeleccionado.animalesLote.map((a) => a.categoria);
         setCategoriasDisponibles(cats);
-        setCategoria(""); // Resetear categoría seleccionada
+        setCategoria("");
         setCategoriaNueva("");
         setCantidad("");
       }
@@ -84,6 +122,31 @@ export default function ModalRecategorizacion({
     }
   }, [loteId, lotes]);
 
+  // ✅ Actualizar categorías nuevas disponibles según la especie seleccionada
+  useEffect(() => {
+    if (categoria) {
+      const especie = obtenerEspecie(categoria);
+      
+      let categoriasPermitidas: string[] = [];
+      if (especie === 'vacunos') {
+        categoriasPermitidas = CATEGORIAS_VACUNOS;
+      } else if (especie === 'ovinos') {
+        categoriasPermitidas = CATEGORIAS_OVINOS;
+      } else if (especie === 'equinos') {
+        categoriasPermitidas = CATEGORIAS_EQUINOS;
+      }
+
+      // Filtrar para no incluir la categoría actual
+      setCategoriasNuevasDisponibles(
+        categoriasPermitidas.filter(cat => cat !== categoria)
+      );
+      setCategoriaNueva("");
+    } else {
+      setCategoriasNuevasDisponibles([]);
+      setCategoriaNueva("");
+    }
+  }, [categoria]);
+
   // Actualizar cantidad máxima cuando se selecciona una categoría
   useEffect(() => {
     if (loteId && categoria) {
@@ -92,7 +155,7 @@ export default function ModalRecategorizacion({
         (a) => a.categoria === categoria
       );
       setCantidadMaxima(animal?.cantidad || 0);
-      setCantidad(""); // Resetear cantidad
+      setCantidad("");
     } else {
       setCantidadMaxima(0);
       setCantidad("");
@@ -100,45 +163,45 @@ export default function ModalRecategorizacion({
   }, [loteId, categoria, lotes]);
 
   const handleSubmit = (e: React.FormEvent) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  if (!loteId || !categoria || !categoriaNueva || !cantidad) {
-    alert("Por favor complete todos los campos obligatorios");
-    return;
-  }
+    if (!loteId || !categoria || !categoriaNueva || !cantidad) {
+      alert("Por favor complete todos los campos obligatorios");
+      return;
+    }
 
-  if (categoria === categoriaNueva) {
-    alert("La categoría nueva debe ser diferente a la actual");
-    return;
-  }
+    if (categoria === categoriaNueva) {
+      alert("La categoría nueva debe ser diferente a la actual");
+      return;
+    }
 
-  const cantidadNum = parseInt(cantidad);
-  if (cantidadNum <= 0 || cantidadNum > cantidadMaxima) {
-    alert(`La cantidad debe ser entre 1 y ${cantidadMaxima}`);
-    return;
-  }
+    const cantidadNum = parseInt(cantidad);
+    if (cantidadNum <= 0 || cantidadNum > cantidadMaxima) {
+      alert(`La cantidad debe ser entre 1 y ${cantidadMaxima}`);
+      return;
+    }
 
-  const loteSeleccionado = lotes.find((l) => l.id === loteId);
-  const nombrePotrero = loteSeleccionado?.nombre || "desconocido";
+    const loteSeleccionado = lotes.find((l) => l.id === loteId);
+    const nombrePotrero = loteSeleccionado?.nombre || "desconocido";
 
-  const catActualLabel = cantidadNum === 1 ? categoria.replace(/s$/, "") : categoria;
-  const catNuevaLabel = cantidadNum === 1 ? categoriaNueva.replace(/s$/, "") : categoriaNueva;
-  const descripcion = `Recategorización de ${cantidadNum} ${catActualLabel} a ${catNuevaLabel} en potrero "${nombrePotrero}"`;
+    const catActualLabel = cantidadNum === 1 ? categoria.replace(/s$/, "") : categoria;
+    const catNuevaLabel = cantidadNum === 1 ? categoriaNueva.replace(/s$/, "") : categoriaNueva;
+    const descripcion = `Recategorización de ${cantidadNum} ${catActualLabel} a ${catNuevaLabel} en potrero "${nombrePotrero}"`;
 
-  onSubmit({
-    tipo: "RECATEGORIZACION",
-    loteId,
-    categoria,
-    categoriaNueva,
-    cantidad: cantidadNum,
-    fecha: new Date(fecha + 'T12:00:00').toISOString(), // ✅ FORZAR MEDIODÍA PARA EVITAR CAMBIO DE DÍA
-    descripcion,
-    notas: notas.trim() || null,
-  });
+    onSubmit({
+      tipo: "RECATEGORIZACION",
+      loteId,
+      categoria,
+      categoriaNueva,
+      cantidad: cantidadNum,
+      fecha: fecha,
+      descripcion,
+      notas: notas.trim() || null,
+    });
 
-  onSuccess();
-  onClose();
-};
+    onSuccess();
+    onClose();
+  };
 
   if (!isOpen) return null;
 
@@ -235,13 +298,11 @@ export default function ModalRecategorizacion({
               required
             >
               <option value="">Seleccione categoría nueva</option>
-              {CATEGORIAS_DISPONIBLES.filter((cat) => cat !== categoria).map(
-                (cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
-                  </option>
-                )
-              )}
+              {categoriasNuevasDisponibles.map((cat) => (
+                <option key={cat} value={cat}>
+                  {cat}
+                </option>
+              ))}
             </select>
           </div>
 
