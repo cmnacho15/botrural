@@ -21,6 +21,7 @@ import {
   ModalMonitoreo,
   ModalRiego,
   ModalRefertilizacion,
+  ModalPulverizacion,
 
 } from '@/app/components/modales'
 
@@ -94,6 +95,7 @@ export default function ModalNuevoDato({
         {tipo === 'monitoreo' && <ModalMonitoreo onClose={onClose} onSuccess={handleSuccess} />}  {/* ✅ CORREGIDO */}
         {tipo === 'riego' && <ModalRiego onClose={onClose} onSuccess={handleSuccess} />}
         {tipo === 'refertilizacion' && <ModalRefertilizacion onClose={onClose} onSuccess={handleSuccess} />}
+        {tipo === 'pulverizacion' && <ModalPulverizacion onClose={onClose} onSuccess={handleSuccess} />}
         
         {tipo === 'recategorizacion' && (         
           <ModalRecategorizacion 
