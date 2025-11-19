@@ -4,6 +4,8 @@ export const dynamic = "force-dynamic"
 import { useState } from 'react'
 import Link from 'next/link'
 import useSWR from 'swr'
+// ✅ AGREGAR ESTA LÍNEA - Componentes de cálculo UG
+import { CargaUGDisplay, CargaGlobalCampo } from '@/app/components/CargaUGDisplay'
 
 interface Lote {
   id: string
@@ -16,7 +18,8 @@ interface Lote {
     hectareas: number
     fechaSiembra: string
   }>
-  animalesLote: Array<{ 
+  animalesLote?: Array<{  // ← Agregar ?
+    id: string            // ← Agregar id
     cantidad: number
     categoria: string 
   }>
@@ -239,6 +242,13 @@ export default function LotesPage() {
           )}
         </div>
 
+        {/* ✅ NUEVO: RESUMEN GLOBAL DE CARGA DEL CAMPO */}
+        {hayLotes && (
+          <div className="mb-8">
+            <CargaGlobalCampo lotes={lotes} />
+          </div>
+        )}
+
         {/* CONTENIDO */}
         <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
           {!hayLotes ? (
@@ -292,6 +302,9 @@ export default function LotesPage() {
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
                       Animales
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                      Carga UG
                     </th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">
                       Acciones
@@ -371,6 +384,11 @@ export default function LotesPage() {
                             </div>
                           </div>
                         )}
+                      </td>
+
+                      {/* ✅ NUEVA COLUMNA: Carga UG compacta */}
+                      <td className="px-6 py-4">
+                        <CargaUGDisplay lote={lote} />
                       </td>
 
                       <td className="px-6 py-4 text-right">

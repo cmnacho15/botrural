@@ -89,39 +89,17 @@ export default function EditarLotePage() {
     cargarLote()
     cargarLotesExistentes()
   }, [loteId])
+  
   // Cargar cultivos disponibles
 useEffect(() => {
-  console.log('🌾 Iniciando carga de cultivos...')
-  
-  fetch('/api/cultivos-disponibles')
-    .then((res) => {
-      console.log('📥 Response status:', res.status)
-      return res.json()
-    })
+  fetch('/api/tipos-cultivo')
+    .then((res) => res.json())
     .then((data) => {
-      console.log('📦 Data recibida:', data)
-      
-      const cultivosPredefinidos = [
-        'Maíz', 'Soja', 'Trigo', 'Girasol', 'Sorgo', 'Cebada', 
-        'Avena', 'Alfalfa', 'Raigrás', 'Trébol', 'Festuca', 
-        'Lotus', 'Pradera natural', 'Arroz'
-      ]
-      
-      const cultivosUsuario = data.map((c: any) => c.tipoCultivo)
-      console.log('👤 Cultivos del usuario:', cultivosUsuario)
-      
-      const todosCultivos = [...new Set([...cultivosPredefinidos, ...cultivosUsuario])]
-      console.log('✅ Lista final:', todosCultivos)
-      
-      setCultivosDisponibles(todosCultivos.sort())
+      const nombres = data.map((c: any) => c.nombre)
+      setCultivosDisponibles(nombres)
     })
-    .catch((error) => {
-      console.error('❌ Error cargando cultivos:', error)
-      setCultivosDisponibles([
-        'Maíz', 'Soja', 'Trigo', 'Girasol', 'Sorgo', 'Cebada', 
-        'Avena', 'Alfalfa', 'Raigrás', 'Trébol', 'Festuca', 
-        'Lotus', 'Pradera natural', 'Arroz'
-      ])
+    .catch(() => {
+      console.error('Error cargando cultivos')
     })
 }, [])
 
@@ -388,19 +366,16 @@ useEffect(() => {
             <div className="space-y-3">
               {cultivos.map(c => (
                 <div key={c.id} className="flex gap-2 bg-white p-3 rounded-lg items-center">
-                  <input
-  type="text"
-  list={`cultivos-${c.id}`}
+                  <select
   value={c.tipoCultivo}
   onChange={e => actualizarCultivo(c.id, 'tipoCultivo', e.target.value)}
-  placeholder="Tipo de cultivo"
   className="flex-1 border border-gray-300 rounded px-3 py-2"
-/>
-<datalist id={`cultivos-${c.id}`}>
-  {cultivosDisponibles.map((cult) => (
-    <option key={cult} value={cult} />
+>
+  <option value="">Tipo de cultivo</option>
+  {cultivosDisponibles.map((cultivo) => (
+    <option key={cultivo} value={cultivo}>{cultivo}</option>
   ))}
-</datalist>
+</select>
                   <input
                     type="date"
                     value={c.fechaSiembra}
