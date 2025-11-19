@@ -60,26 +60,36 @@ useEffect(() => {
 
 // Cargar cultivos disponibles
 useEffect(() => {
+  console.log('🌾 Iniciando carga de cultivos...')
+  
   fetch('/api/cultivos-disponibles')
-    .then((res) => res.json())
+    .then((res) => {
+      console.log('📥 Response status:', res.status)
+      return res.json()
+    })
     .then((data) => {
+      console.log('📦 Data recibida:', data)
+      
       const cultivosPredefinidos = [
-        'Maíz', 'Soja', 'Trigo', 'Girasol', 'Sorgo', 
-        'Cebada', 'Avena', 'Arroz', 'Alfalfa', 
-        'Raigrás', 'Trébol', 'Festuca', 'Lotus', 
-        'Pradera natural'
+        'Maíz', 'Soja', 'Trigo', 'Girasol', 'Sorgo', 'Cebada', 
+        'Avena', 'Alfalfa', 'Raigrás', 'Trébol', 'Festuca', 
+        'Lotus', 'Pradera natural', 'Arroz'
       ]
       
       const cultivosUsuario = data.map((c: any) => c.tipoCultivo)
+      console.log('👤 Cultivos del usuario:', cultivosUsuario)
+      
       const todosCultivos = [...new Set([...cultivosPredefinidos, ...cultivosUsuario])]
+      console.log('✅ Lista final:', todosCultivos)
+      
       setCultivosDisponibles(todosCultivos.sort())
     })
-    .catch(() => {
+    .catch((error) => {
+      console.error('❌ Error cargando cultivos:', error)
       setCultivosDisponibles([
-        'Maíz', 'Soja', 'Trigo', 'Girasol', 'Sorgo', 
-        'Cebada', 'Avena', 'Arroz', 'Alfalfa', 
-        'Raigrás', 'Trébol', 'Festuca', 'Lotus', 
-        'Pradera natural'
+        'Maíz', 'Soja', 'Trigo', 'Girasol', 'Sorgo', 'Cebada', 
+        'Avena', 'Alfalfa', 'Raigrás', 'Trébol', 'Festuca', 
+        'Lotus', 'Pradera natural', 'Arroz'
       ])
     })
 }, [])
