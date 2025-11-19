@@ -4,6 +4,7 @@ export const dynamic = "force-dynamic"
 import { useState } from 'react'
 import Link from 'next/link'
 import useSWR from 'swr'
+import { EQUIVALENCIAS_UG } from '@/lib/ugCalculator'
 
 interface Lote {
   id: string
@@ -214,9 +215,36 @@ export default function LotesPage() {
         {/* HEADER */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8 gap-6">
           <div className="text-center md:text-left space-y-1">
-            <h1 className="text-3xl font-bold text-gray-900 leading-tight">
-              Potreros en Rodazo
-            </h1>
+            <div className="flex items-center gap-3 flex-wrap justify-center md:justify-start">
+              <h1 className="text-3xl font-bold text-gray-900 leading-tight">
+                Potreros en Rodazo
+              </h1>
+              
+              {/* 🌾 CARGA GLOBAL DEL CAMPO */}
+              {hayLotes && (() => {
+                const totalHectareas = lotes.reduce((sum, l) => sum + l.hectareas, 0)
+                const todosAnimales = lotes.flatMap(l => l.animalesLote || [])
+                const ugTotales = todosAnimales.reduce((total, animal) => {
+                  const equivalencia = EQUIVALENCIAS_UG[animal.categoria] || 0
+                  return total + (animal.cantidad * equivalencia)
+                }, 0)
+                const cargaGlobal = totalHectareas > 0 ? ugTotales / totalHectareas : 0
+                
+                if (todosAnimales.length === 0) return null
+                
+                const color = 
+                  cargaGlobal < 0.7 ? 'bg-blue-100 text-blue-700' :
+                  cargaGlobal <= 1.5 ? 'bg-green-100 text-green-700' :
+                  cargaGlobal <= 2.0 ? 'bg-orange-100 text-orange-700' :
+                  'bg-red-100 text-red-700'
+                
+                return (
+                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${color}`}>
+                    {cargaGlobal.toFixed(2)} UG/ha
+                  </span>
+                )
+              })()}
+            </div>
             <p className="text-gray-600 text-sm">
               Gestión de potreros y lotes del campo
             </p>
@@ -337,13 +365,36 @@ export default function LotesPage() {
                       <td className="px-6 py-4 text-sm text-gray-700">
                         {lote.animalesLote.length > 0 ? (
                           <div className="space-y-2">
-                            <div className="relative group">
-                              <div className="inline-block px-3 py-1 bg-blue-600 text-white rounded-full text-sm font-semibold cursor-pointer">
-                                {lote.animalesLote.reduce((sum, a) => sum + a.cantidad, 0)} ({lote.diasPastoreo || 0} días)
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <div className="relative group">
+                                <div className="inline-block px-3 py-1 bg-blue-600 text-white rounded-full text-sm font-semibold cursor-pointer">
+                                  {lote.animalesLote.reduce((sum, a) => sum + a.cantidad, 0)} ({lote.diasPastoreo || 0} días)
+                                </div>
+                                <div className="hidden group-hover:block absolute z-10 px-3 py-2 text-sm text-white bg-gray-900 rounded-lg shadow-lg -top-10 left-0 whitespace-nowrap">
+                                  {lote.animalesLote.reduce((sum, a) => sum + a.cantidad, 0)} animales, {lote.diasPastoreo || 0} días de pastoreo
+                                </div>
                               </div>
-                              <div className="hidden group-hover:block absolute z-10 px-3 py-2 text-sm text-white bg-gray-900 rounded-lg shadow-lg -top-10 left-0 whitespace-nowrap">
-                                {lote.animalesLote.reduce((sum, a) => sum + a.cantidad, 0)} animales, {lote.diasPastoreo || 0} días de pastoreo
-                              </div>
+                              
+                              {/* 🌾 CARGA UG/ha DEL POTRERO */}
+                              {(() => {
+                                const ugTotales = lote.animalesLote.reduce((total, animal) => {
+                                  const equivalencia = EQUIVALENCIAS_UG[animal.categoria] || 0
+                                  return total + (animal.cantidad * equivalencia)
+                                }, 0)
+                                const cargaUG = lote.hectareas > 0 ? ugTotales / lote.hectareas : 0
+                                
+                                const color = 
+                                  cargaUG < 0.7 ? 'bg-blue-100 text-blue-700' :
+                                  cargaUG <= 1.5 ? 'bg-green-100 text-green-700' :
+                                  cargaUG <= 2.0 ? 'bg-orange-100 text-orange-700' :
+                                  'bg-red-100 text-red-700'
+                                
+                                return (
+                                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${color}`}>
+                                    {cargaUG.toFixed(2)} UG/ha
+                                  </span>
+                                )
+                              })()}
                             </div>
                             
                             <div className="flex flex-wrap gap-2">
