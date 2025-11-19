@@ -580,17 +580,13 @@ function FiltrosActivos() {
     })
   }
 
- if (filtros.usuarios.length > 0) {
-  const nombres = filtros.usuarios.join(', ')
-  const label = filtros.usuarios.length === 1
-    ? `👤 ${nombres}`
-    : `👤 ${filtros.usuarios.length} usuarios: ${nombres}`
-  filtrosActivos.push({
-    key: 'usuarios',
-    label,
-    onRemove: () => setFiltros({ ...filtros, usuarios: [] }),
-  })
-}
+  if (filtros.usuarios.length > 0) {
+    filtrosActivos.push({
+      key: 'usuarios',
+      label: `👤 ${filtros.usuarios.length} usuario${filtros.usuarios.length > 1 ? 's' : ''}`,
+      onRemove: () => setFiltros({ ...filtros, usuarios: [] }),
+    })
+  }
 
   if (filtros.potreros.length > 0) {
   const nombres = filtros.potreros.join(', ')
@@ -1069,15 +1065,15 @@ function TarjetaDato({ dato }: { dato: any }) {
 
           {dato.descripcion && <p className="text-gray-700 text-sm mb-3">{dato.descripcion}</p>}
 
-          <div className="flex flex-wrap gap-2 mb-2">{renderDetalles()}</div>
+<div className="flex flex-wrap gap-2 mb-2">{renderDetalles()}</div>
 
-          <div className="flex flex-wrap gap-2 text-xs text-gray-500">
-            {dato.usuario && <span className="bg-gray-100 px-2 py-1 rounded">👤 {dato.usuario}</span>}
-            {dato.lote && <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded">📍 {dato.lote}</span>}
-            <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded capitalize">{dato.categoria}</span>
-          </div>
+<div className="flex flex-wrap gap-2 text-xs text-gray-500">
+  {dato.usuario && <span className="bg-gray-100 px-2 py-1 rounded">👤 {dato.usuario}</span>}
+  {dato.lote && <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded">📍 {dato.lote}</span>}
+  <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded capitalize">{dato.categoria}</span>
+</div>
 
-          {dato.notas && <p className="text-xs text-gray-500 mt-2 italic">📝 {dato.notas}</p>}
+{dato.notas && <p className="text-xs text-gray-500 mt-2 italic">📝 {dato.notas}</p>}
         </div>
       </div>
     </div>

@@ -16,6 +16,7 @@ export { default as ModalOtrosLabores } from './ModalOtrosLabores'
 export { default as ModalCosecha } from './ModalCosecha'
 export { default as ModalMonitoreo } from './ModalMonitoreo'  // ← AGREGAR
 export { default as ModalRiego } from './ModalRiego'
+export { default as ModalRefertilizacion } from './ModalRefertilizacion'
 
 // Importar y re-exportar directamente
 import ModalRecategorizacion from './ModalRecategorizacion'
