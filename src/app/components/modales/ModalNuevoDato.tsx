@@ -19,7 +19,6 @@ import {
   ModalOtrosLabores,
   ModalCosecha,
   ModalMonitoreo,
-
 } from '@/app/components/modales'
 
 type ModalNuevoDatoProps = {
@@ -55,21 +54,21 @@ export default function ModalNuevoDato({
   }
 
   const handleSubmit = async (data: any) => {
-  try {
-    const response = await fetch('/api/eventos', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    })
+    try {
+      const response = await fetch('/api/eventos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      })
 
-    if (!response.ok) throw new Error('Error al crear evento')
+      if (!response.ok) throw new Error('Error al crear evento')
 
-    handleSuccess()
-  } catch (error) {
-    console.error('Error:', error)
-    // No mostrar alert, solo registrar en consola
+      handleSuccess()
+    } catch (error) {
+      console.error('Error:', error)
+      // No mostrar alert, solo registrar en consola
+    }
   }
-}
 
   return (
     <div className="fixed inset-0 backdrop-blur-md bg-white/30 flex items-center justify-center z-50 p-4">
@@ -89,7 +88,7 @@ export default function ModalNuevoDato({
         {tipo === 'tacto' && <ModalTacto onClose={onClose} onSuccess={handleSuccess} />}
         {tipo === 'otros-labores' && <ModalOtrosLabores onClose={onClose} onSuccess={handleSuccess} />}
         {tipo === 'cosecha' && <ModalCosecha onClose={onClose} onSuccess={handleSuccess} />}
-        {tipo === 'cosecha' && <ModalMonitoreo onClose={onClose} onSuccess={handleSuccess} />}
+        {tipo === 'monitoreo' && <ModalMonitoreo onClose={onClose} onSuccess={handleSuccess} />}  {/* ✅ CORREGIDO */}
 
         {tipo === 'recategorizacion' && (         
           <ModalRecategorizacion 
