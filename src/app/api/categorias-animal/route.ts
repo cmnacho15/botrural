@@ -50,8 +50,8 @@ export async function GET() {
       return NextResponse.json({ error: 'Usuario sin campo' }, { status: 400 })
     }
 
-    // Obtener categorías personalizadas del usuario
-    const categoriasPersonalizadas = await prisma.categoriaAnimal.findMany({
+    // ✅ SOLO devolver categorías de la base de datos
+    const categorias = await prisma.categoriaAnimal.findMany({
       where: {
         campoId: usuario.campoId,
       },
@@ -63,30 +63,13 @@ export async function GET() {
         activo: true,
         esPredeterminado: true,
       },
-      orderBy: {
-        nombreSingular: 'asc',
-      },
+      orderBy: [
+        { tipoAnimal: 'asc' },
+        { nombreSingular: 'asc' }
+      ],
     })
 
-    // Crear categorías predeterminadas con ID ficticio
-    const categoriasPredefinidas = Object.entries(CATEGORIAS_PREDETERMINADAS).flatMap(
-      ([tipo, categorias]) =>
-        categorias.map((cat) => ({
-          id: `pred-${tipo.toLowerCase()}-${cat.singular.toLowerCase().replace(/\s+/g, '-')}`,
-          nombreSingular: cat.singular,
-          nombrePlural: cat.plural,
-          tipoAnimal: tipo,
-          activo: true, // Por defecto todas activas
-          esPredeterminado: true,
-        }))
-    )
-
-    // Combinar predeterminadas + personalizadas
-    const todasCategorias = [...categoriasPredefinidas, ...categoriasPersonalizadas].sort((a, b) =>
-      a.nombreSingular.localeCompare(b.nombreSingular)
-    )
-
-    return NextResponse.json(todasCategorias)
+    return NextResponse.json(categorias)
   } catch (error) {
     console.error('Error obteniendo categorías de animales:', error)
     return NextResponse.json(
@@ -95,6 +78,7 @@ export async function GET() {
     )
   }
 }
+
 
 // POST - Crear nueva categoría personalizada
 export async function POST(request: Request) {
