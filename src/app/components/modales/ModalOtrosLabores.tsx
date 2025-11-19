@@ -11,17 +11,25 @@ type ModalOtrosLaboresProps = {
 type Lote = {
   id: string
   nombre: string
+  cultivos?: Array<{
+    id: string
+    tipoCultivo: string
+  }>
 }
 
 export default function ModalOtrosLabores({ onClose, onSuccess }: ModalOtrosLaboresProps) {
   const [fecha, setFecha] = useState(obtenerFechaLocal())
   const [potreros, setPotreros] = useState<Lote[]>([])
   const [potreroSeleccionado, setPotreroSeleccionado] = useState('')
+  const [cultivosDisponibles, setCultivosDisponibles] = useState<string[]>([])
   const [laborRealizado, setLaborRealizado] = useState('')
   const [hectareas, setHectareas] = useState('')
   const [cultivo, setCultivo] = useState('')
+  const [cultivoPersonalizado, setCultivoPersonalizado] = useState('')
+  const [usarCultivoPersonalizado, setUsarCultivoPersonalizado] = useState(false)
   const [notas, setNotas] = useState('')
   const [loading, setLoading] = useState(false)
+  const [loadingCultivos, setLoadingCultivos] = useState(false)
   const [errorLabor, setErrorLabor] = useState(false)
   const [errorPotrero, setErrorPotrero] = useState(false)
   const [errorCultivo, setErrorCultivo] = useState(false)

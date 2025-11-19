@@ -174,8 +174,8 @@ export default function ModalTacto({ onClose, onSuccess }: ModalTactoProps) {
               />
             </div>
 
-            {/* Animales Preñados y Porcentaje */}
-            <div className="grid grid-cols-2 gap-4 items-start">
+            {/* Animales Preñados y Porcentaje en el mismo renglón */}
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Animales preñados
@@ -186,24 +186,19 @@ export default function ModalTacto({ onClose, onSuccess }: ModalTactoProps) {
                   onChange={(e) => setAnimalesPreñados(e.target.value)}
                   min="0"
                   max={animalesTactados}
-                  placeholder="111"
+                  placeholder="Animales preñados"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   required
                 />
               </div>
 
-              <div className="flex items-center justify-center pt-8">
-                <span className="text-gray-500 text-xl">⟷</span>
-              </div>
-            </div>
-
-            {/* Porcentaje de Preñez (solo lectura) */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Porcentaje de preñez
-              </label>
-              <div className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-900 font-semibold">
-                {porcentajePreñez}%
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Porcentaje de preñez
+                </label>
+                <div className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-900 font-semibold">
+                  {porcentajePreñez}%
+                </div>
               </div>
             </div>
           </div>
