@@ -76,7 +76,20 @@ model Campo {
   invitations Invitation[]
   lotes       Lote[]
   usuarios    User[]
-  manoObra    ManoObra[] // 👈 ESTA LÍNEA ES LA QUE FALTABA
+  manoObra    ManoObra[]
+  tiposCultivo TipoCultivo[] // ← AGREGAR ESTA LÍNEA
+}
+
+model TipoCultivo {
+  id        String   @id @default(cuid())
+  nombre    String
+  campoId   String
+  campo     Campo    @relation(fields: [campoId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@unique([nombre, campoId])
+  @@index([campoId])
 }
 
 model Lote {
