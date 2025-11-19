@@ -1064,6 +1064,13 @@ function TarjetaDato({ dato }: { dato: any }) {
           </div>
 
           {dato.descripcion && <p className="text-gray-700 text-sm mb-3">{dato.descripcion}</p>}
+          {/* ⬇️ AGREGAR ESTO TEMPORALMENTE PARA DEBUG ⬇️ */}
+<div className="bg-red-100 p-2 text-xs">
+  <p>DEBUG: tipo={dato.tipo}</p>
+  <p>DEBUG: notas existe? {dato.notas ? 'SÍ' : 'NO'}</p>
+  <p>DEBUG: notas valor: "{dato.notas}"</p>
+  <p>DEBUG: notas tipo: {typeof dato.notas}</p>
+</div>
 
 <div className="flex flex-wrap gap-2 mb-2">{renderDetalles()}</div>
 
