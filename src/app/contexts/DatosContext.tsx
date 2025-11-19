@@ -41,6 +41,9 @@ type DatosContextType = {
 // ===============================
 // 🐄 AGRUPACIÓN DE ANIMALES
 // ===============================
+// Nota: Esta agrupación se usa para matching flexible en filtros.
+// Por ejemplo: si un usuario filtra por "Novillos", debe ver eventos que mencionen
+// "Novillos +3 años", "Novillos 2–3 años", etc.
 const AGRUPACION_ANIMALES: Record<string, string[]> = {
   'Novillos': ['Novillos +3 años', 'Novillos 2–3 años', 'Novillos 1–2 años', 'Novillos', 'Novillitos'],
   'Vaquillonas': ['Vaquillonas +2 años', 'Vaquillonas 1–2 años', 'Vaquillonas'],
@@ -112,6 +115,10 @@ export function DatosProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // ✅ Estados para categorías y cultivos activos
+  const [categoriasActivas, setCategoriasActivas] = useState<string[]>([])
+  const [cultivosActivos, setCultivosActivos] = useState<string[]>([])
+
   const [filtros, setFiltros] = useState<FiltrosType>({
     categoria: 'todos',
     tipoDato: 'todos',
@@ -123,6 +130,29 @@ export function DatosProvider({ children }: { children: ReactNode }) {
     animales: [],
     cultivos: [],
   });
+
+  // ✅ Cargar categorías y cultivos activos al montar
+  useEffect(() => {
+    // Cargar categorías activas de animales
+    fetch('/api/categorias-animal')
+      .then(r => r.json())
+      .then(categorias => {
+        const activas = categorias
+          .filter((c: any) => c.activo)
+          .map((c: any) => c.nombreSingular)
+        setCategoriasActivas(activas)
+      })
+      .catch(err => console.error('Error cargando categorías:', err))
+
+    // Cargar cultivos activos
+    fetch('/api/tipos-cultivo')
+      .then(r => r.json())
+      .then(cultivos => {
+        const nombres = cultivos.map((c: any) => c.nombre)
+        setCultivosActivos(nombres)
+      })
+      .catch(err => console.error('Error cargando cultivos:', err))
+  }, [])
 
   const fetchDatos = async () => {
     try {
@@ -174,17 +204,38 @@ export function DatosProvider({ children }: { children: ReactNode }) {
         filtrados = filtrados.filter((d) => d.lote && filtros.potreros.includes(d.lote));
       }
 
-      // 🐄 ANIMALES (ahora con soporte para recategorización)
+      // 🐄 ANIMALES (con soporte para recategorización y solo activos)
       if (filtros.animales.length > 0) {
-        filtrados = filtrados.filter((d) =>
-          coincideConFiltroAnimal(d.descripcion ?? '', d.tipo, filtros.animales)
-        );
+        filtrados = filtrados.filter((d) => {
+          const descripcion = d.descripcion ?? ''
+          
+          // Verificar que mencione un animal activo
+          const mencionaAnimalActivo = categoriasActivas.some(cat => 
+            descripcion.toLowerCase().includes(cat.toLowerCase())
+          )
+          
+          // Si es evento de animales y no menciona ningún animal activo, no mostrar
+          if (!mencionaAnimalActivo && d.categoria === 'animales') return false
+          
+          // Si menciona un animal activo, verificar si coincide con el filtro
+          return coincideConFiltroAnimal(descripcion, d.tipo, filtros.animales)
+        });
       }
 
-      // Cultivos
+      // 🌾 CULTIVOS (solo mostrar si están activos)
       if (filtros.cultivos.length > 0) {
         filtrados = filtrados.filter((d) => {
           const desc = (d.descripcion ?? '').toLowerCase();
+          
+          // Verificar que el cultivo mencionado esté activo
+          const mencionaCultivoActivo = cultivosActivos.some(cultivo =>
+            desc.includes(cultivo.toLowerCase())
+          )
+          
+          // Si es evento de agricultura y no menciona ningún cultivo activo, no mostrar
+          if (!mencionaCultivoActivo && d.categoria === 'agricultura') return false
+          
+          // Si menciona un cultivo activo, verificar si coincide con el filtro
           return filtros.cultivos.some(cultivo => desc.includes(cultivo.toLowerCase()));
         });
       }
