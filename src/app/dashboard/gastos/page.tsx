@@ -403,10 +403,11 @@ export default function GastosPage() {
                 >
                   <div className="flex items-center gap-2">
                     {proveedorFiltro ? (
-                      <>
-                        <span className="text-sm font-medium text-gray-900">Paquete {proveedorFiltro}</span>
-                      </>
-                    ) : (
+  <>
+    <span className="text-lg">📦</span>
+    <span className="text-sm font-medium text-gray-900">{proveedorFiltro}</span>
+  </>
+) : (
                       <>
                         <span className="text-sm text-gray-500">Seleccionar proveedor...</span>
                       </>
@@ -440,9 +441,9 @@ export default function GastosPage() {
                         }`}
                       >
                         <div className="flex items-center gap-2">
-                          <span className="text-lg">Globo</span>
-                          <span className="text-sm">Todos los proveedores</span>
-                        </div>
+  <span className="text-lg">🌐</span>
+  <span className="text-sm">Todos los proveedores</span>
+</div>
                       </button>
 
                       {proveedoresCargados.length > 0 ? (
@@ -465,13 +466,13 @@ export default function GastosPage() {
                             >
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2">
-                                  <span className="text-lg">Paquete</span>
-                                  <span className={`text-sm ${
-                                    proveedorFiltro === prov ? 'font-semibold text-blue-700' : 'text-gray-700'
-                                  }`}>
-                                    {prov}
-                                  </span>
-                                </div>
+  <span className="text-lg">📦</span>
+  <span className={`text-sm ${
+    proveedorFiltro === prov ? 'font-semibold text-blue-700' : 'text-gray-700'
+  }`}>
+    {prov}
+  </span>
+</div>
                                 <div className="flex items-center gap-2">
                                   {tienePendientes && (
                                     <span className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse" title="Tiene pagos pendientes" />
