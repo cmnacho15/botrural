@@ -57,7 +57,7 @@ function Tooltip({ children, content }: TooltipProps) {
     const tooltipHeight = 280 // altura aproximada
     
     // Decidir posición vertical
-    const vertical = spaceAbove > tooltipHeight + 20 || spaceAbove > spaceBelow ? 'top' : 'bottom'
+    const vertical: 'top' = 'top'
     
     // Decidir posición horizontal
     let horizontal: 'left' | 'center' | 'right' = 'center'
@@ -72,7 +72,7 @@ function Tooltip({ children, content }: TooltipProps) {
     }
     
     // Calcular top
-    const top = vertical === 'top' 
+      const top = rect.top - tooltipHeight - 8
       ? rect.top - tooltipHeight - 8
       : rect.bottom + 8
     
