@@ -1,8 +1,9 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { UserPlus, Shield, DollarSign } from "lucide-react"
+import { UserPlus, Shield, DollarSign, Trash2 } from "lucide-react"
 import ModalInvitarUsuario from "@/app/components/modales/ModalInvitarUsuario"
+
 interface Usuario {
   id: string
   nombre: string
@@ -24,24 +25,24 @@ export default function EquipoPage() {
   const [actualizando, setActualizando] = useState<string | null>(null)
 
   const cargarUsuarios = async () => {
-  try {
-    const res = await fetch("/api/usuarios")
-    const data = await res.json()
-    
-    // ✅ Ordenar: ADMIN_GENERAL primero, luego el resto por fecha
-    const ordenados = data.sort((a: Usuario, b: Usuario) => {
-      if (a.roleCode === "ADMIN_GENERAL") return -1
-      if (b.roleCode === "ADMIN_GENERAL") return 1
-      return new Date(a.fechaRegistro).getTime() - new Date(b.fechaRegistro).getTime()
-    })
-    
-    setUsuarios(ordenados)
-  } catch (error) {
-    console.error("Error cargando usuarios:", error)
-  } finally {
-    setLoading(false)
+    try {
+      const res = await fetch("/api/usuarios")
+      const data = await res.json()
+      
+      // ✅ Ordenar: ADMIN_GENERAL primero, luego el resto por fecha
+      const ordenados = data.sort((a: Usuario, b: Usuario) => {
+        if (a.roleCode === "ADMIN_GENERAL") return -1
+        if (b.roleCode === "ADMIN_GENERAL") return 1
+        return new Date(a.fechaRegistro).getTime() - new Date(b.fechaRegistro).getTime()
+      })
+      
+      setUsuarios(ordenados)
+    } catch (error) {
+      console.error("Error cargando usuarios:", error)
+    } finally {
+      setLoading(false)
+    }
   }
-}
 
   useEffect(() => {
     cargarUsuarios()
@@ -69,11 +70,44 @@ export default function EquipoPage() {
         throw new Error(data.error)
       }
 
-      // Recargar usuarios
       await cargarUsuarios()
       alert("Permisos actualizados correctamente")
     } catch (error: any) {
       alert(error.message || "Error actualizando permisos")
+    } finally {
+      setActualizando(null)
+    }
+  }
+
+  const handleEliminarUsuario = async (usuario: Usuario) => {
+    const confirmar = confirm(
+      `¿Estás seguro de eliminar a ${usuario.nombre} ${usuario.apellido}?\n\n` +
+      `Esto eliminará:\n` +
+      `• Su acceso a la plataforma\n` +
+      `• Su conexión al bot de WhatsApp\n\n` +
+      `Los datos que cargó (gastos, eventos, etc.) se mantendrán en el sistema.\n\n` +
+      `Esta acción NO se puede deshacer.`
+    )
+
+    if (!confirmar) return
+
+    setActualizando(usuario.id)
+
+    try {
+      const res = await fetch(`/api/usuarios/${usuario.id}`, {
+        method: "DELETE",
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        throw new Error(data.error)
+      }
+
+      await cargarUsuarios()
+      alert(`✅ ${usuario.nombre} ${usuario.apellido} eliminado correctamente`)
+    } catch (error: any) {
+      alert(`❌ Error: ${error.message}`)
     } finally {
       setActualizando(null)
     }
@@ -126,6 +160,9 @@ export default function EquipoPage() {
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Registro
+              </th>
+              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Acciones
               </th>
             </tr>
           </thead>
@@ -198,6 +235,18 @@ export default function EquipoPage() {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {usuario.fechaRegistro}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-right">
+                  {usuario.roleCode !== "ADMIN_GENERAL" && (
+                    <button
+                      onClick={() => handleEliminarUsuario(usuario)}
+                      disabled={actualizando === usuario.id}
+                      className="text-red-600 hover:text-red-800 transition-colors disabled:opacity-50"
+                      title="Eliminar usuario"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}
