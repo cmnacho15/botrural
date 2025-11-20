@@ -41,8 +41,8 @@ export default function GastosPage() {
   const [proveedoresCargados, setProveedoresCargados] = useState<string[]>([])
   const [mostrarMenuProveedor, setMostrarMenuProveedor] = useState(false)
   // NUEVOS ESTADOS para el gráfico circular
-const [sectorHover, setSectorHover] = useState<string | null>(null)
-const [sectorActivo, setSectorActivo] = useState<string | null>(null)
+  const [sectorHover, setSectorHover] = useState<string | null>(null)
+  const [sectorActivo, setSectorActivo] = useState<string | null>(null)
 
   // Estados para Editar
   const [modalEditOpen, setModalEditOpen] = useState(false)
@@ -52,6 +52,12 @@ const [sectorActivo, setSectorActivo] = useState<string | null>(null)
   const [modalDeleteOpen, setModalDeleteOpen] = useState(false)
   const [gastoAEliminar, setGastoAEliminar] = useState<Gasto | null>(null)
   const [loadingDelete, setLoadingDelete] = useState(false)
+
+  // Estados para filtro de fechas
+  const [modalFechaOpen, setModalFechaOpen] = useState(false)
+  const [fechaInicio, setFechaInicio] = useState('')
+  const [fechaFin, setFechaFin] = useState('')
+  const [rangoSeleccionado, setRangoSeleccionado] = useState('Último Año')
 
   // Datos reales
   const [gastosData, setGastosData] = useState<Gasto[]>([])
@@ -114,15 +120,66 @@ const [sectorActivo, setSectorActivo] = useState<string | null>(null)
     fetchProveedores()
   }, [])
 
+  // Función para aplicar rangos de fecha predefinidos
+  const aplicarRangoFecha = (tipo: string) => {
+    const hoy = new Date()
+    let inicio = new Date()
+    let fin = new Date()
+
+    switch (tipo) {
+      case 'Hoy':
+        inicio = hoy
+        fin = hoy
+        break
+      case 'Últimos 7 Días':
+        inicio = new Date(hoy.getTime() - 7 * 24 * 60 * 60 * 1000)
+        break
+      case 'Últimos 30 Días':
+        inicio = new Date(hoy.getTime() - 30 * 24 * 60 * 60 * 1000)
+        break
+      case 'Últimos 90 Días':
+        inicio = new Date(hoy.getTime() - 90 * 24 * 60 * 60 * 1000)
+        break
+      case 'Último Año':
+        inicio = new Date(hoy.getTime() - 365 * 24 * 60 * 60 * 1000)
+        break
+      case 'Todos los tiempos':
+        setFechaInicio('')
+        setFechaFin('')
+        setRangoSeleccionado(tipo)
+        return
+    }
+
+    setFechaInicio(inicio.toISOString().split('T')[0])
+    setFechaFin(fin.toISOString().split('T')[0])
+    setRangoSeleccionado(tipo)
+  }
+
+  // Función para limpiar filtros
+  const limpiarFiltroFecha = () => {
+    setFechaInicio('')
+    setFechaFin('')
+    setRangoSeleccionado('Todos los tiempos')
+  }
+
   const gastosFiltrados = gastosData.filter((g) => {
-  const coincideCategoria = categoriaSeleccionada ? g.categoria === categoriaSeleccionada : true
-  
-  const coincideProveedor = proveedorFiltro
-    ? (g.proveedor?.trim().toLowerCase() === proveedorFiltro.trim().toLowerCase())
-    : true
-  
-  return coincideCategoria && coincideProveedor
-})
+    const coincideCategoria = categoriaSeleccionada ? g.categoria === categoriaSeleccionada : true
+    
+    const coincideProveedor = proveedorFiltro
+      ? (g.proveedor?.trim().toLowerCase() === proveedorFiltro.trim().toLowerCase())
+      : true
+    
+    // Filtro por fecha
+    let coincideFecha = true
+    if (fechaInicio && fechaFin) {
+      const fechaGasto = new Date(g.fecha)
+      const inicio = new Date(fechaInicio)
+      const fin = new Date(fechaFin)
+      coincideFecha = fechaGasto >= inicio && fechaGasto <= fin
+    }
+    
+    return coincideCategoria && coincideProveedor && coincideFecha
+  })
 
   const categoriasConDatos = categorias.map((cat) => {
     const gastosCategoria = gastosData.filter((g) => g.tipo === 'GASTO' && g.categoria === cat.nombre)
@@ -164,14 +221,14 @@ const [sectorActivo, setSectorActivo] = useState<string | null>(null)
   const totalPendiente = proveedoresConPendientes.reduce((sum, [_, data]) => sum + data.pendiente, 0)
 
   const datosPieChart = categoriasConDatos
-  .filter(c => c.total > 0)
-  .map(cat => ({
-    nombre: cat.nombre,
-    total: cat.total,
-    color: cat.color,
-    porcentaje: ((cat.total / totalGastos) * 100).toFixed(1),
-    isSelected: categoriaSeleccionada === cat.nombre
-  }))
+    .filter(c => c.total > 0)
+    .map(cat => ({
+      nombre: cat.nombre,
+      total: cat.total,
+      color: cat.color,
+      porcentaje: ((cat.total / totalGastos) * 100).toFixed(1),
+      isSelected: categoriaSeleccionada === cat.nombre
+    }))
 
   const datosBarChart = (() => {
     const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
@@ -309,8 +366,14 @@ const [sectorActivo, setSectorActivo] = useState<string | null>(null)
               ))}
             </div>
 
-            <button className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-700 hover:bg-gray-50 text-sm">
-              Último Año
+            <button 
+              onClick={() => setModalFechaOpen(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-700 hover:bg-gray-50 text-sm font-medium"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              {rangoSeleccionado}
             </button>
           </div>
         </div>
@@ -320,153 +383,153 @@ const [sectorActivo, setSectorActivo] = useState<string | null>(null)
       <div className="px-4 sm:px-6 lg:px-8 py-4 space-y-4">
         
         {/* BARRA DE FILTROS */}
-<div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4">
-  <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
-    
-    {/* Lado izquierdo: Filtro de proveedor */}
-    <div className="flex items-center gap-3 flex-1">
-      <div className="flex items-center gap-2">
-        <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-        </svg>
-        <span className="text-sm font-semibold text-gray-700">Filtrar gastos:</span>
-      </div>
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4">
+          <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+            
+            {/* Lado izquierdo: Filtro de proveedor */}
+            <div className="flex items-center gap-3 flex-1">
+              <div className="flex items-center gap-2">
+                <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                </svg>
+                <span className="text-sm font-semibold text-gray-700">Filtrar gastos:</span>
+              </div>
 
-      {/* Dropdown de proveedores */}
-      <div className="relative flex-1 min-w-[250px] max-w-sm">
-        <button
-          onClick={() => setMostrarMenuProveedor(!mostrarMenuProveedor)}
-          className="w-full flex items-center justify-between px-4 py-2.5 bg-gray-50 border-2 border-gray-300 rounded-xl hover:border-blue-400 hover:bg-blue-50 transition-all group"
-        >
-          <div className="flex items-center gap-2">
-            {proveedorFiltro ? (
-              <>
-                <span className="text-sm font-medium text-gray-900">📦 {proveedorFiltro}</span>
-              </>
-            ) : (
-              <>
-                <span className="text-sm text-gray-500">Seleccionar proveedor...</span>
-              </>
-            )}
-          </div>
-          <svg
-            className={`w-5 h-5 text-gray-400 group-hover:text-blue-600 transition-transform ${
-              mostrarMenuProveedor ? 'rotate-180' : ''
-            }`}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
-        </button>
+              {/* Dropdown de proveedores */}
+              <div className="relative flex-1 min-w-[250px] max-w-sm">
+                <button
+                  onClick={() => setMostrarMenuProveedor(!mostrarMenuProveedor)}
+                  className="w-full flex items-center justify-between px-4 py-2.5 bg-gray-50 border-2 border-gray-300 rounded-xl hover:border-blue-400 hover:bg-blue-50 transition-all group"
+                >
+                  <div className="flex items-center gap-2">
+                    {proveedorFiltro ? (
+                      <>
+                        <span className="text-sm font-medium text-gray-900">Paquete {proveedorFiltro}</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-sm text-gray-500">Seleccionar proveedor...</span>
+                      </>
+                    )}
+                  </div>
+                  <svg
+                    className={`w-5 h-5 text-gray-400 group-hover:text-blue-600 transition-transform ${
+                      mostrarMenuProveedor ? 'rotate-180' : ''
+                    }`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
 
-        {/* Menú desplegable */}
-        {mostrarMenuProveedor && (
-          <>
-            <div className="fixed inset-0 z-40" onClick={() => setMostrarMenuProveedor(false)} />
-            <div className="absolute z-50 w-full mt-2 bg-white border-2 border-blue-500 rounded-xl shadow-2xl max-h-64 overflow-y-auto">
-              {/* Opción "Todos" */}
-              <button
-                onClick={() => {
-                  setProveedorFiltro('')
-                  setMostrarMenuProveedor(false)
-                }}
-                className={`w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors border-b ${
-                  !proveedorFiltro ? 'bg-blue-50 font-semibold text-blue-700' : 'text-gray-700'
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <span className="text-lg">🌐</span>
-                  <span className="text-sm">Todos los proveedores</span>
-                </div>
-              </button>
-
-              {proveedoresCargados.length > 0 ? (
-                proveedoresCargados.map((prov) => {
-                  const tienePendientes = estadoPagosPorProveedor[prov]?.pendiente > 0
-                  const gastosTotales = gastosData.filter(g => 
-  g.proveedor?.trim().toLowerCase() === prov.trim().toLowerCase()
-).length
-
-                  return (
-                    <button
-                      key={prov}
-                      onClick={() => {
-                        setProveedorFiltro(prov)
-                        setMostrarMenuProveedor(false)
-                      }}
-                      className={`w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors border-b last:border-b-0 ${
-                        proveedorFiltro === prov ? 'bg-blue-50' : ''
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
+                {/* Menú desplegable */}
+                {mostrarMenuProveedor && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setMostrarMenuProveedor(false)} />
+                    <div className="absolute z-50 w-full mt-2 bg-white border-2 border-blue-500 rounded-xl shadow-2xl max-h-64 overflow-y-auto">
+                      {/* Opción "Todos" */}
+                      <button
+                        onClick={() => {
+                          setProveedorFiltro('')
+                          setMostrarMenuProveedor(false)
+                        }}
+                        className={`w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors border-b ${
+                          !proveedorFiltro ? 'bg-blue-50 font-semibold text-blue-700' : 'text-gray-700'
+                        }`}
+                      >
                         <div className="flex items-center gap-2">
-                          <span className="text-lg">📦</span>
-                          <span className={`text-sm ${
-                            proveedorFiltro === prov ? 'font-semibold text-blue-700' : 'text-gray-700'
-                          }`}>
-                            {prov}
-                          </span>
+                          <span className="text-lg">Globo</span>
+                          <span className="text-sm">Todos los proveedores</span>
                         </div>
-                        <div className="flex items-center gap-2">
-                          {tienePendientes && (
-                            <span className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse" title="Tiene pagos pendientes" />
-                          )}
-                          <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full font-medium">
-                            {gastosTotales}
-                          </span>
+                      </button>
+
+                      {proveedoresCargados.length > 0 ? (
+                        proveedoresCargados.map((prov) => {
+                          const tienePendientes = estadoPagosPorProveedor[prov]?.pendiente > 0
+                          const gastosTotales = gastosData.filter(g => 
+                            g.proveedor?.trim().toLowerCase() === prov.trim().toLowerCase()
+                          ).length
+
+                          return (
+                            <button
+                              key={prov}
+                              onClick={() => {
+                                setProveedorFiltro(prov)
+                                setMostrarMenuProveedor(false)
+                              }}
+                              className={`w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors border-b last:border-b-0 ${
+                                proveedorFiltro === prov ? 'bg-blue-50' : ''
+                              }`}
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-lg">Paquete</span>
+                                  <span className={`text-sm ${
+                                    proveedorFiltro === prov ? 'font-semibold text-blue-700' : 'text-gray-700'
+                                  }`}>
+                                    {prov}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  {tienePendientes && (
+                                    <span className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse" title="Tiene pagos pendientes" />
+                                  )}
+                                  <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full font-medium">
+                                    {gastosTotales}
+                                  </span>
+                                </div>
+                              </div>
+                            </button>
+                          )
+                        })
+                      ) : (
+                        <div className="px-4 py-8 text-center text-gray-500">
+                          <p className="text-sm">No hay proveedores registrados</p>
                         </div>
-                      </div>
-                    </button>
-                  )
-                })
-              ) : (
-                <div className="px-4 py-8 text-center text-gray-500">
-                  <p className="text-sm">No hay proveedores registrados</p>
-                </div>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Botón limpiar filtro */}
+              {proveedorFiltro && (
+                <button
+                  onClick={() => setProveedorFiltro('')}
+                  className="px-4 py-2.5 bg-red-100 text-red-700 rounded-xl hover:bg-red-200 transition-colors text-sm font-medium flex items-center gap-2 shadow-sm"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  Limpiar
+                </button>
               )}
             </div>
-          </>
-        )}
+
+            {/* Lado derecho: Badge de pagos pendientes */}
+            {proveedoresConPendientes.length > 0 && (
+              <div className="relative">
+                <button
+                  onClick={() => setMostrarMenuProveedor(true)}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-yellow-100 border border-yellow-400 rounded-xl hover:bg-yellow-200 transition-all shadow-sm group"
+                >
+                  <div className="w-2 h-2 bg-yellow-600 rounded-full animate-pulse" />
+                  <span className="text-sm font-semibold text-yellow-800">
+                    {proveedoresConPendientes.length} {proveedoresConPendientes.length === 1 ? 'pago pendiente' : 'pagos pendientes'}
+                  </span>
+                  <span className="px-2 py-0.5 bg-yellow-600 text-white rounded-full text-xs font-bold">
+                    {totalPendiente.toFixed(0)} {moneda}
+                  </span>
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
-      {/* Botón limpiar filtro */}
-      {proveedorFiltro && (
-        <button
-          onClick={() => setProveedorFiltro('')}
-          className="px-4 py-2.5 bg-red-100 text-red-700 rounded-xl hover:bg-red-200 transition-colors text-sm font-medium flex items-center gap-2 shadow-sm"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-          Limpiar
-        </button>
-      )}
-    </div>
-
-    {/* Lado derecho: Badge de pagos pendientes */}
-    {proveedoresConPendientes.length > 0 && (
-      <div className="relative">
-        <button
-          onClick={() => setMostrarMenuProveedor(true)}
-          className="flex items-center gap-2 px-4 py-2.5 bg-yellow-100 border border-yellow-400 rounded-xl hover:bg-yellow-200 transition-all shadow-sm group"
-        >
-          <div className="w-2 h-2 bg-yellow-600 rounded-full animate-pulse" />
-          <span className="text-sm font-semibold text-yellow-800">
-            {proveedoresConPendientes.length} {proveedoresConPendientes.length === 1 ? 'pago pendiente' : 'pagos pendientes'}
-          </span>
-          <span className="px-2 py-0.5 bg-yellow-600 text-white rounded-full text-xs font-bold">
-  {totalPendiente.toFixed(0)} {moneda}
-</span>
-        </button>
-      </div>
-    )}
-  </div>
-</div>
-</div>
-
-{/* CONTENIDO */}
+      {/* CONTENIDO */}
       <div className="px-4 sm:px-6 lg:px-8 py-6 space-y-6">
         
         {mostrarTodasCategorias ? (
@@ -557,12 +620,11 @@ const [sectorActivo, setSectorActivo] = useState<string | null>(null)
                             const isSelected = entry.isSelected
                             const shouldHighlight = isHovered || isSelected
                             
-                            // Si hay categoría seleccionada, apagar las demás
                             let opacity = 1
                             if (categoriaSeleccionada && !isSelected && !isHovered) {
-                              opacity = 0.25 // Apagado cuando hay selección
+                              opacity = 0.25
                             } else if (sectorHover && !shouldHighlight) {
-                              opacity = 0.3 // Apagado en hover
+                              opacity = 0.3
                             }
                             
                             return (
@@ -709,12 +771,11 @@ const [sectorActivo, setSectorActivo] = useState<string | null>(null)
                             const isSelected = entry.isSelected
                             const shouldHighlight = isHovered || isSelected
                             
-                            // Si hay categoría seleccionada, apagar las demás
                             let opacity = 1
                             if (categoriaSeleccionada && !isSelected && !isHovered) {
-                              opacity = 0.25 // Apagado cuando hay selección
+                              opacity = 0.25
                             } else if (sectorHover && !shouldHighlight) {
-                              opacity = 0.3 // Apagado en hover
+                              opacity = 0.3
                             }
                             
                             return (
@@ -732,7 +793,6 @@ const [sectorActivo, setSectorActivo] = useState<string | null>(null)
                               />
                             )
                           })}
-                          
                         </Pie>
                         <Tooltip content={<CustomTooltip />} />
                         <Legend
@@ -798,15 +858,15 @@ const [sectorActivo, setSectorActivo] = useState<string | null>(null)
 
                   return (
                     <tr
-  key={t.id}
-  className={`hover:bg-gray-50 transition ${
-    !pagado && metodoPago === 'Plazo'
-      ? esGasto 
-        ? 'bg-yellow-50' 
-        : 'bg-cyan-50'
-      : ''
-  }`}
->
+                      key={t.id}
+                      className={`hover:bg-gray-50 transition ${
+                        !pagado && metodoPago === 'Plazo'
+                          ? esGasto 
+                            ? 'bg-yellow-50' 
+                            : 'bg-cyan-50'
+                          : ''
+                      }`}
+                    >
                       {/* FECHA */}
                       <td className="px-4 sm:px-6 py-3">{t.fecha}</td>
 
@@ -831,46 +891,46 @@ const [sectorActivo, setSectorActivo] = useState<string | null>(null)
                       <td className="px-4 sm:px-6 py-3">{t.item}</td>
 
                       {/* CATEGORÍA */}
-<td className="px-4 sm:px-6 py-3">
-  <span className="inline-block px-3 py-1 rounded-lg text-xs font-medium" style={{ backgroundColor: `${t.color}15`, color: t.color }}>
-    {t.categoria}
-  </span>
-</td>
+                      <td className="px-4 sm:px-6 py-3">
+                        <span className="inline-block px-3 py-1 rounded-lg text-xs font-medium" style={{ backgroundColor: `${t.color}15`, color: t.color }}>
+                          {t.categoria}
+                        </span>
+                      </td>
 
-{/* PROVEEDOR/COMPRADOR */}
-<td className="px-4 sm:px-6 py-3">
-  <span className="text-sm text-gray-700">
-    {t.gastoCompleto?.proveedor || '-'}
-  </span>
-</td>
+                      {/* PROVEEDOR/COMPRADOR */}
+                      <td className="px-4 sm:px-6 py-3">
+                        <span className="text-sm text-gray-700">
+                          {t.gastoCompleto?.proveedor || '-'}
+                        </span>
+                      </td>
 
-{/* USUARIO */}
-<td className="px-4 sm:px-6 py-3">{t.usuario}</td>
+                      {/* USUARIO */}
+                      <td className="px-4 sm:px-6 py-3">{t.usuario}</td>
 
                       {/* ESTADO DE PAGO */}
-<td className="px-4 sm:px-6 py-3 text-sm">
-  {pagado ? (
-    <span className="inline-flex items-center gap-1 text-green-700 bg-green-50 border border-green-200 px-2 py-1 rounded-md">
-      <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-      </svg>
-      {esIngreso ? 'Cobrado' : 'Pagado'}
-    </span>
-  ) : metodoPago === 'Plazo' ? (
-    <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-md ${
-  esIngreso 
-    ? 'text-cyan-700 bg-cyan-100 border border-cyan-300'
-    : 'text-yellow-700 bg-yellow-100 border border-yellow-300'
-}`}>
-  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3" />
-  </svg>
-  {esIngreso ? 'Por cobrar' : 'Pendiente'}
-</span>
-  ) : (
-    <span className="text-gray-500">—</span>
-  )}
-</td>
+                      <td className="px-4 sm:px-6 py-3 text-sm">
+                        {pagado ? (
+                          <span className="inline-flex items-center gap-1 text-green-700 bg-green-50 border border-green-200 px-2 py-1 rounded-md">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                            {esIngreso ? 'Cobrado' : 'Pagado'}
+                          </span>
+                        ) : metodoPago === 'Plazo' ? (
+                          <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-md ${
+                            esIngreso 
+                              ? 'text-cyan-700 bg-cyan-100 border border-cyan-300'
+                              : 'text-yellow-700 bg-yellow-100 border border-yellow-300'
+                          }`}>
+                            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3" />
+                            </svg>
+                            {esIngreso ? 'Por cobrar' : 'Pendiente'}
+                          </span>
+                        ) : (
+                          <span className="text-gray-500">—</span>
+                        )}
+                      </td>
 
                       {/* ACCIONES */}
                       <td className="px-4 sm:px-6 py-3 text-right">
@@ -1012,7 +1072,7 @@ const [sectorActivo, setSectorActivo] = useState<string | null>(null)
         </div>
       )}
 
-      {/* MODAL ELIMINAR - ESTILO PROFESIONAL */}
+      {/* MODAL ELIMINAR */}
       {modalDeleteOpen && gastoAEliminar && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-8">
@@ -1064,6 +1124,102 @@ const [sectorActivo, setSectorActivo] = useState<string | null>(null)
                 className="flex-1 px-6 py-3 bg-red-600 text-white rounded-xl hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition shadow-sm"
               >
                 {loadingDelete ? 'Eliminando...' : 'Eliminar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL FILTRAR POR FECHA */}
+      {modalFechaOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full p-8">
+            <div className="flex justify-between items-center mb-8">
+              <h2 className="text-2xl font-bold text-gray-900">Filtrar por Fecha</h2>
+              <button
+                onClick={() => setModalFechaOpen(false)}
+                className="text-gray-400 hover:text-gray-600 transition"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Rango de Fechas</h3>
+                
+                <div className="grid grid-cols-2 gap-4 mb-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Comienzo</label>
+                    <input
+                      type="date"
+                      value={fechaInicio}
+                      onChange={(e) => {
+                        setFechaInicio(e.target.value)
+                        setRangoSeleccionado('Personalizado')
+                      }}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Fin</label>
+                    <input
+                      type="date"
+                      value={fechaFin}
+                      onChange={(e) => {
+                        setFechaFin(e.target.value)
+                        setRangoSeleccionado('Personalizado')
+                      }}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2 mb-6">
+                  {['Hoy', 'Últimos 7 Días', 'Últimos 30 Días', 'Últimos 90 Días', 'Último Año', 'Todos los tiempos'].map((rango) => (
+                    <button
+                      key={rango}
+                      onClick={() => aplicarRangoFecha(rango)}
+                      className={`px-4 py-2 rounded-full text-sm font-medium transition ${
+                        rangoSeleccionado === rango
+                          ? 'bg-blue-600 text-white shadow-md'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      {rango}
+                    </button>
+                  ))}
+                </div>
+
+                {fechaInicio && fechaFin && (
+                  <div className="bg-gray-50 rounded-xl p-4">
+                    <p className="text-sm text-gray-600">
+                      <span className="font-semibold">Rango Seleccionado:</span>{' '}
+                      {new Date(fechaInicio).toLocaleDateString('es-UY')} - {new Date(fechaFin).toLocaleDateString('es-UY')}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="mt-8 flex gap-3">
+              <button
+                onClick={() => {
+                  limpiarFiltroFecha()
+                }}
+                className="flex-1 px-6 py-3 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 font-medium transition"
+              >
+                Limpiar
+              </button>
+              <button
+                onClick={() => {
+                  setModalFechaOpen(false)
+                }}
+                className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-medium transition shadow-sm"
+              >
+                Aplicar Filtro
               </button>
             </div>
           </div>
