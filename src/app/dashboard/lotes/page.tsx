@@ -33,19 +33,39 @@ interface TooltipProps {
 
 function Tooltip({ children, content }: TooltipProps) {
   const [isVisible, setIsVisible] = useState(false)
+  const [position, setPosition] = useState<'top' | 'bottom'>('top')
+  const triggerRef = useState<HTMLDivElement | null>(null)[0]
+
+  const handleMouseEnter = (e: React.MouseEvent<HTMLDivElement>) => {
+    const element = e.currentTarget
+    const rect = element.getBoundingClientRect()
+    const spaceAbove = rect.top
+    const spaceBelow = window.innerHeight - rect.bottom
+    
+    // Si hay más espacio abajo o muy poco espacio arriba, mostrar abajo
+    setPosition(spaceAbove < 300 || spaceBelow > spaceAbove ? 'bottom' : 'top')
+    setIsVisible(true)
+  }
 
   return (
     <div className="relative inline-block">
       <div
-        onMouseEnter={() => setIsVisible(true)}
+        onMouseEnter={handleMouseEnter}
         onMouseLeave={() => setIsVisible(false)}
         className="cursor-help"
       >
         {children}
       </div>
       {isVisible && (
-        <div className="absolute z-50 w-96 p-4 bg-gray-900 text-white text-sm rounded-lg shadow-2xl bottom-full left-1/2 transform -translate-x-1/2 mb-2 pointer-events-none">
-          <div className="absolute w-3 h-3 bg-gray-900 transform rotate-45 left-1/2 -translate-x-1/2 -bottom-1.5"></div>
+        <div className={`
+          absolute z-50 w-96 p-4 bg-gray-900 text-white text-sm rounded-lg shadow-2xl 
+          left-1/2 transform -translate-x-1/2 pointer-events-none
+          ${position === 'top' ? 'bottom-full mb-2' : 'top-full mt-2'}
+        `}>
+          <div className={`
+            absolute w-3 h-3 bg-gray-900 transform rotate-45 left-1/2 -translate-x-1/2
+            ${position === 'top' ? '-bottom-1.5' : '-top-1.5'}
+          `}></div>
           {content}
         </div>
       )}
@@ -122,8 +142,8 @@ function TooltipCargaPotrero() {
           <div>• Vaca: <strong>1.00 UG</strong></div>
           <div>• Toro: <strong>1.20 UG</strong></div>
           <div>• Novillo +3a: <strong>1.00 UG</strong></div>
-          <div>• Ternero: <strong>0.50 UG</strong></div>
-          <div>• Oveja: <strong>0.15 UG</strong></div>
+          <div>• Ternero: <strong>0.40 UG</strong></div>
+          <div>• Oveja: <strong>0.16 UG</strong></div>
           <div>• Cordero: <strong>0.10 UG</strong></div>
         </div>
       </div>
