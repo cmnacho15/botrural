@@ -40,6 +40,9 @@ export default function GastosPage() {
   // NUEVOS ESTADOS
   const [proveedoresCargados, setProveedoresCargados] = useState<string[]>([])
   const [mostrarMenuProveedor, setMostrarMenuProveedor] = useState(false)
+  // NUEVOS ESTADOS para el gráfico circular
+const [sectorHover, setSectorHover] = useState<string | null>(null)
+const [sectorActivo, setSectorActivo] = useState<string | null>(null)
 
   // Estados para Editar
   const [modalEditOpen, setModalEditOpen] = useState(false)
@@ -174,16 +177,25 @@ export default function GastosPage() {
           {
             nombre: categoriaSeleccionada,
             total: totalCategoria,
-            color: categorias.find(c => c.nombre === categoriaSeleccionada)?.color || '#3b82f6'
+            color: categorias.find(c => c.nombre === categoriaSeleccionada)?.color || '#3b82f6',
+            porcentaje: ((totalCategoria / totalGastos) * 100).toFixed(1)
           },
           {
             nombre: 'Resto',
             total: totalResto,
-            color: '#e5e7eb'
+            color: '#e5e7eb',
+            porcentaje: ((totalResto / totalGastos) * 100).toFixed(1)
           }
         ]
       })()
-    : categoriasConDatos.filter(c => c.total > 0)
+    : categoriasConDatos
+        .filter(c => c.total > 0)
+        .map(cat => ({
+          nombre: cat.nombre,
+          total: cat.total,
+          color: cat.color,
+          porcentaje: ((cat.total / totalGastos) * 100).toFixed(1)
+        }))
 
   const datosBarChart = (() => {
     const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
@@ -252,6 +264,25 @@ export default function GastosPage() {
     } finally {
       setLoadingDelete(false)
     }
+  }
+  
+  // Componente para el tooltip personalizado del PieChart
+  const CustomTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+      const data = payload[0].payload
+      return (
+        <div className="bg-white px-4 py-3 rounded-xl shadow-2xl border-2 border-blue-500">
+          <p className="font-bold text-gray-900 mb-1">{data.nombre}</p>
+          <p className="text-sm text-gray-600">
+            <span className="font-semibold text-blue-600">{data.total.toFixed(0)}</span> {moneda}
+          </p>
+          <p className="text-xs text-gray-500 mt-1">
+            {data.porcentaje}% del total
+          </p>
+        </div>
+      )
+    }
+    return null
   }
 
   // LOADING
@@ -535,14 +566,45 @@ export default function GastosPage() {
                           cx="50%"
                           cy="50%"
                           outerRadius={120}
-                          label={({ nombre, total }: any) => `${nombre}: ${total}`}
+                          innerRadius={80}
+                          paddingAngle={2}
+                          animationBegin={0}
+                          animationDuration={800}
+                          onMouseEnter={(_, index) => {
+                            const categoria = datosPieChart[index].nombre
+                            setSectorHover(categoria)
+                          }}
+                          onMouseLeave={() => setSectorHover(null)}
                         >
-                          {datosPieChart.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.color} />
-                          ))}
+                          {datosPieChart.map((entry, index) => {
+                            const isHovered = sectorHover === entry.nombre
+                            const isSelected = categoriaSeleccionada === entry.nombre
+                            const shouldHighlight = isHovered || isSelected
+                            
+                            return (
+                              <Cell
+                                key={`cell-${index}`}
+                                fill={entry.color}
+                                opacity={
+                                  sectorHover === null || shouldHighlight ? 1 : 0.3
+                                }
+                                stroke={shouldHighlight ? '#ffffff' : 'none'}
+                                strokeWidth={shouldHighlight ? 4 : 0}
+                                style={{
+                                  filter: shouldHighlight ? 'drop-shadow(0 4px 8px rgba(0,0,0,0.3))' : 'none',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.3s ease'
+                                }}
+                              />
+                            )
+                          })}
                         </Pie>
-                        <Tooltip formatter={(value) => `${value} ${moneda}`} />
-                        <Legend />
+                        <Tooltip content={<CustomTooltip />} />
+                        <Legend
+                          verticalAlign="bottom"
+                          height={36}
+                          iconType="circle"
+                        />
                       </PieChart>
                     </ResponsiveContainer>
                   ) : (
@@ -650,14 +712,45 @@ export default function GastosPage() {
                           cx="50%"
                           cy="50%"
                           outerRadius={100}
-                          label={({ nombre, total }: any) => `${nombre}: ${total}`}
+                          innerRadius={65}
+                          paddingAngle={2}
+                          animationBegin={0}
+                          animationDuration={800}
+                          onMouseEnter={(_, index) => {
+                            const categoria = datosPieChart[index].nombre
+                            setSectorHover(categoria)
+                          }}
+                          onMouseLeave={() => setSectorHover(null)}
                         >
-                          {datosPieChart.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.color} />
-                          ))}
+                          {datosPieChart.map((entry, index) => {
+                            const isHovered = sectorHover === entry.nombre
+                            const isSelected = categoriaSeleccionada === entry.nombre
+                            const shouldHighlight = isHovered || isSelected
+                            
+                            return (
+                              <Cell
+                                key={`cell-${index}`}
+                                fill={entry.color}
+                                opacity={
+                                  sectorHover === null || shouldHighlight ? 1 : 0.3
+                                }
+                                stroke={shouldHighlight ? '#ffffff' : 'none'}
+                                strokeWidth={shouldHighlight ? 3 : 0}
+                                style={{
+                                  filter: shouldHighlight ? 'drop-shadow(0 4px 8px rgba(0,0,0,0.3))' : 'none',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.3s ease'
+                                }}
+                              />
+                            )
+                          })}
                         </Pie>
-                        <Tooltip formatter={(value) => `${value} ${moneda}`} />
-                        <Legend />
+                        <Tooltip content={<CustomTooltip />} />
+                        <Legend
+                          verticalAlign="bottom"
+                          height={36}
+                          iconType="circle"
+                        />
                       </PieChart>
                     </ResponsiveContainer>
                   ) : (
