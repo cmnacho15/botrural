@@ -35,73 +35,34 @@ interface TooltipProps {
 function Tooltip({ children, content }: TooltipProps) {
   const [isVisible, setIsVisible] = useState(false)
   const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 })
-  const [arrowPosition, setArrowPosition] = useState<{ vertical: 'top' | 'bottom', horizontal: 'left' | 'center' | 'right' }>({
-    vertical: 'top',
-    horizontal: 'center'
-  })
+  const [arrowLeft, setArrowLeft] = useState(0)
   const triggerRef = useRef<HTMLDivElement>(null)
 
   const handleMouseEnter = () => {
     if (!triggerRef.current) return
 
     const rect = triggerRef.current.getBoundingClientRect()
-    
-    // Espacio disponible en cada dirección
-    const spaceAbove = rect.top
-    const spaceBelow = window.innerHeight - rect.bottom
-    const spaceLeft = rect.left
-    const spaceRight = window.innerWidth - rect.right
-    
-    // Tamaño del tooltip
     const tooltipWidth = 384 // w-96 = 384px
-    const tooltipHeight = 280 // altura aproximada
     
-    // Decidir posición vertical
-    const vertical: 'top' = 'top'
+    // Siempre posicionar DEBAJO del elemento
+    const top = rect.bottom + 12 // 12px de separación
     
-    // Decidir posición horizontal
-    let horizontal: 'left' | 'center' | 'right' = 'center'
+    // Centrar horizontalmente respecto al trigger
     let left = rect.left + rect.width / 2 - tooltipWidth / 2
     
+    // Ajustar si se sale de la pantalla
     if (left < 10) {
-      horizontal = 'left'
-      left = rect.left
+      left = 10
     } else if (left + tooltipWidth > window.innerWidth - 10) {
-      horizontal = 'right'
-      left = rect.right - tooltipWidth
+      left = window.innerWidth - tooltipWidth - 10
     }
     
-    // Calcular top
-      const top = rect.top - tooltipHeight - 8
-      ? rect.top - tooltipHeight - 8
-      : rect.bottom + 8
+    // Calcular posición de la flecha para que apunte al centro del trigger
+    const arrowLeftPosition = rect.left + rect.width / 2 - left
     
     setTooltipPosition({ top, left })
-    setArrowPosition({ vertical, horizontal })
+    setArrowLeft(arrowLeftPosition)
     setIsVisible(true)
-  }
-
-  const getArrowClasses = () => {
-    let classes = 'absolute w-3 h-3 bg-gray-900 transform rotate-45 '
-    
-    if (arrowPosition.vertical === 'top') {
-      classes += 'bottom-[-6px] '
-    } else {
-      classes += 'top-[-6px] '
-    }
-    
-    switch (arrowPosition.horizontal) {
-      case 'left':
-        if (!triggerRef.current) return classes + 'left-4'
-        const leftOffset = triggerRef.current.getBoundingClientRect().left - tooltipPosition.left + triggerRef.current.offsetWidth / 2
-        return classes + `left-[${Math.max(16, Math.min(leftOffset, 368))}px]`
-      case 'right':
-        if (!triggerRef.current) return classes + 'right-4'
-        const rightOffset = tooltipPosition.left + 384 - triggerRef.current.getBoundingClientRect().right + triggerRef.current.offsetWidth / 2
-        return classes + `right-[${Math.max(16, Math.min(rightOffset, 368))}px]`
-      default:
-        return classes + 'left-1/2 -translate-x-1/2'
-    }
   }
 
   const tooltipContent = isVisible && (
@@ -114,7 +75,11 @@ function Tooltip({ children, content }: TooltipProps) {
       }}
       className="w-96 p-4 bg-gray-900 text-white text-sm rounded-lg shadow-2xl pointer-events-none"
     >
-      <div className={getArrowClasses()}></div>
+      {/* Flecha siempre arriba, apuntando al trigger */}
+      <div 
+        className="absolute w-3 h-3 bg-gray-900 transform rotate-45 top-[-6px]"
+        style={{ left: `${arrowLeft}px`, marginLeft: '-6px' }}
+      ></div>
       {content}
     </div>
   )
