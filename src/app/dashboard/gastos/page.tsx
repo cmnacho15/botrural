@@ -20,7 +20,7 @@ type Gasto = {
   descripcion?: string
   metodoPago?: string
   pagado?: boolean
-  proveedor?: string
+  proveedor?: string       // 👈 AGREGAR ESTA LÍNEA
   imageUrl?: string        // 👈 AGREGAR ESTA LÍNEA
   imageName?: string       // 👈 AGREGAR ESTA LÍNEA
 
