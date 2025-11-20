@@ -1,7 +1,7 @@
 'use client';
 export const dynamic = "force-dynamic"
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import useSWR from 'swr'
 import { EQUIVALENCIAS_UG } from '@/lib/ugCalculator'
@@ -137,6 +137,18 @@ export default function LotesPage() {
     }
   )
   const [nombreCampo, setNombreCampo] = useState('')
+  
+  // Cargar nombre del campo
+useEffect(() => {
+  fetch('/api/campos')
+    .then(r => r.json())
+    .then(data => {
+      if (data.nombre) {
+        setNombreCampo(data.nombre)
+      }
+    })
+    .catch(err => console.error('Error cargando campo:', err))
+}, [])
 
   const [modalBorrado, setModalBorrado] = useState<{
     isOpen: boolean
