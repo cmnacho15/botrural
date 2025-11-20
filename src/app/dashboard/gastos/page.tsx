@@ -182,13 +182,13 @@ export default function GastosPage() {
   })
 
   const categoriasConDatos = categorias.map((cat) => {
-    const gastosCategoria = gastosData.filter((g) => g.tipo === 'GASTO' && g.categoria === cat.nombre)
-    return {
-      ...cat,
-      cantidad: gastosCategoria.length,
-      total: gastosCategoria.reduce((sum, g) => sum + g.monto, 0),
-    }
-  })
+  const gastosCategoria = gastosFiltrados.filter((g) => g.tipo === 'GASTO' && g.categoria === cat.nombre)
+  return {
+    ...cat,
+    cantidad: gastosCategoria.length,
+    total: gastosCategoria.reduce((sum, g) => sum + g.monto, 0),
+  }
+})
 
   const categoriasVisibles = mostrarTodasCategorias
     ? categoriasConDatos
