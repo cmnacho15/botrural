@@ -237,6 +237,10 @@ model Gasto {
   updatedAt       DateTime  @updatedAt
   animalLoteId    String?
   cantidadVendida Int?
+  
+  // ✨ NUEVOS CAMPOS PARA FACTURAS
+  imageUrl        String?   // URL pública de Supabase Storage
+  imageName       String?   // Path del archivo en el bucket
 
   @@index([campoId])
   @@index([fecha])

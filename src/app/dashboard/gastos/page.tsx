@@ -8,6 +8,8 @@ import {
 } from 'recharts'
 import ModalEditarGasto from '@/components/ModalEditarGasto'
 import ModalEditarIngreso from '@/components/ModalEditarIngreso'
+import { FileText } from 'lucide-react' // 👈 NUEVO: Para el ícono de factura
+import ModalFactura from '@/components/modales/ModalFactura' // 👈 NUEVO: Modal de factura
 
 type Gasto = {
   id: string
@@ -19,6 +21,9 @@ type Gasto = {
   metodoPago?: string
   pagado?: boolean
   proveedor?: string
+  imageUrl?: string        // 👈 AGREGAR ESTA LÍNEA
+  imageName?: string       // 👈 AGREGAR ESTA LÍNEA
+
 }
 
 type Categoria = {
@@ -61,6 +66,8 @@ export default function GastosPage() {
 
   // Datos reales
   const [gastosData, setGastosData] = useState<Gasto[]>([])
+  const [modalFacturaOpen, setModalFacturaOpen] = useState(false) // 👈 AGREGAR
+  const [facturaSeleccionada, setFacturaSeleccionada] = useState<any>(null) // 👈 AGREGAR
   const [loading, setLoading] = useState(true)
 
   const [categorias, setCategorias] = useState<Categoria[]>([
@@ -934,27 +941,51 @@ export default function GastosPage() {
                       </td>
 
                       {/* ACCIONES */}
-                      <td className="px-4 sm:px-6 py-3 text-right">
-                        <div className="flex items-center justify-end gap-3">
-                          <button
-                            onClick={() => handleEditarGasto(t.gastoCompleto)}
-                            className="text-blue-600 hover:text-blue-800 transition text-sm font-medium"
-                            title="Editar"
-                          >
-                            Editar
-                          </button>
-                          <button
-                            onClick={() => {
-                              setGastoAEliminar(t.gastoCompleto)
-                              setModalDeleteOpen(true)
-                            }}
-                            className="text-red-600 hover:text-red-800 transition text-sm font-medium"
-                            title="Eliminar"
-                          >
-                            Eliminar
-                          </button>
-                        </div>
-                      </td>
+<td className="px-4 sm:px-6 py-3 text-right">
+  <div className="flex items-center justify-end gap-3">
+    
+    {/* 👇 NUEVO: Botón Ver Factura (solo si existe imageUrl) */}
+    {t.gastoCompleto?.imageUrl && (
+      <button
+        onClick={() => {
+          setFacturaSeleccionada({
+            imageUrl: t.gastoCompleto.imageUrl!,
+            proveedor: t.gastoCompleto.proveedor,
+            fecha: t.gastoCompleto.fecha,
+            monto: t.gastoCompleto.monto,
+            descripcion: t.gastoCompleto.descripcion
+          })
+          setModalFacturaOpen(true)
+        }}
+        className="text-purple-600 hover:text-purple-800 transition"
+        title="Ver factura"
+      >
+        <FileText className="w-5 h-5" />
+      </button>
+    )}
+
+    {/* Editar (ya existía) */}
+    <button
+      onClick={() => handleEditarGasto(t.gastoCompleto)}
+      className="text-blue-600 hover:text-blue-800 transition text-sm font-medium"
+      title="Editar"
+    >
+      Editar
+    </button>
+
+    {/* Eliminar (ya existía) */}
+    <button
+      onClick={() => {
+        setGastoAEliminar(t.gastoCompleto)
+        setModalDeleteOpen(true)
+      }}
+      className="text-red-600 hover:text-red-800 transition text-sm font-medium"
+      title="Eliminar"
+    >
+      Eliminar
+    </button>
+  </div>
+</td>
                     </tr>
                   )
                 })}
@@ -1226,6 +1257,19 @@ export default function GastosPage() {
           </div>
         </div>
       )}
+      {/* 👇 NUEVO: MODAL VER FACTURA */}
+      {modalFacturaOpen && facturaSeleccionada && (
+        <ModalFactura
+          isOpen={modalFacturaOpen}
+          onClose={() => {
+            setModalFacturaOpen(false)
+            setFacturaSeleccionada(null)
+          }}
+          imageUrl={facturaSeleccionada.imageUrl || ''}
+          gastoData={facturaSeleccionada}
+        />
+      )}
     </div>
   )
 }
+    

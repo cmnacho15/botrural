@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { parseMessageWithAI, transcribeAudio } from "@/lib/openai-parser"
-
+import { processInvoiceImage } from "@/lib/vision-parser"
+import {
+  downloadWhatsAppImage,
+  uploadInvoiceToSupabase,
+} from "@/lib/supabase-storage"
 
 const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || "mi_token_secreto"
 const WHATSAPP_TOKEN = process.env.WHATSAPP_TOKEN
@@ -40,24 +44,39 @@ export async function POST(request: Request) {
     }
 
     const message = value.messages[0]
-const from = message.from
+    const from = message.from
+    const messageType = message.type
 
-// ✨ NUEVO: Detectar tipo de mensaje
-let messageText = ""
+    console.log(`📩 Mensaje recibido: ${messageType} de ${from}`)
 
-if (message.type === "text") {
-  messageText = message.text?.body?.trim() || ""
-} else if (message.type === "interactive") {
-  // Usuario clickeó un botón
-  const buttonReply = message.interactive?.button_reply
-  if (buttonReply) {
-    messageText = buttonReply.id // "btn_confirmar", "btn_editar", "btn_cancelar"
-    console.log("🔘 Botón clickeado:", messageText)
-  }
-} else if (message.type === "audio") {
+    // 🖼️ NUEVO: Procesar IMÁGENES (facturas)
+    if (messageType === "image") {
+      await handleImageMessage(message, from)
+      return NextResponse.json({ status: "image processed" })
+    }
+
+    // ✨ Detectar tipo de mensaje (texto, audio, botones)
+    let messageText = ""
+
+    if (messageType === "text") {
+      messageText = message.text?.body?.trim() || ""
+    } else if (messageType === "interactive") {
+      // Usuario clickeó un botón
+      const buttonReply = message.interactive?.button_reply
+      if (buttonReply) {
+        messageText = buttonReply.id // "btn_confirmar", "invoice_confirm", etc.
+        console.log("🔘 Botón clickeado:", messageText)
+
+        // 📄 Manejar botones de FACTURA por separado
+        if (messageText.startsWith("invoice_")) {
+          await handleInvoiceButtonResponse(from, messageText)
+          return NextResponse.json({ status: "invoice button processed" })
+        }
+      }
+    } else if (messageType === "audio") {
       // 🎤 Procesar audio
       const audioId = message.audio?.id
-      
+
       if (!audioId) {
         await sendWhatsAppMessage(from, "❌ No pude procesar el audio. Intenta de nuevo.")
         return NextResponse.json({ status: "error" })
@@ -68,8 +87,8 @@ if (message.type === "text") {
         `https://graph.facebook.com/v18.0/${audioId}`,
         {
           headers: {
-            'Authorization': `Bearer ${process.env.WHATSAPP_TOKEN}`
-          }
+            "Authorization": `Bearer ${process.env.WHATSAPP_TOKEN}`,
+          },
         }
       )
 
@@ -83,9 +102,9 @@ if (message.type === "text") {
 
       // Transcribir audio
       await sendWhatsAppMessage(from, "🎤 Procesando audio...")
-      
+
       const transcription = await transcribeAudio(audioUrl)
-      
+
       if (!transcription) {
         await sendWhatsAppMessage(from, "❌ No pude entender el audio. Intenta de nuevo.")
         return NextResponse.json({ status: "error" })
@@ -96,8 +115,8 @@ if (message.type === "text") {
     } else {
       // Tipo de mensaje no soportado
       await sendWhatsAppMessage(
-        from, 
-        "Por ahora solo acepto mensajes de texto y audio. Las imágenes llegarán pronto! 📷"
+        from,
+        "Por ahora solo acepto mensajes de texto, audio e imágenes de facturas 📷"
       )
       return NextResponse.json({ status: "unsupported type" })
     }
@@ -120,7 +139,7 @@ if (message.type === "text") {
       return NextResponse.json({ status: "nombre processed" })
     }
 
-    // 🎯 FASE 2: Verificar si hay una confirmación pendiente
+    // 🎯 FASE 2: Verificar si hay una confirmación pendiente (TEXTO/AUDIO)
     const confirmacionPendiente = await prisma.pendingConfirmation.findUnique({
       where: { telefono: from },
     })
@@ -130,9 +149,9 @@ if (message.type === "text") {
       return NextResponse.json({ status: "confirmacion processed" })
     }
 
-    // 🎯 FASE 3: Procesar con GPT
+    // 🎯 FASE 3: Procesar con GPT (texto/audio)
     const parsedData = await parseMessageWithAI(messageText, from)
-    
+
     if (parsedData) {
       await solicitarConfirmacion(from, parsedData)
       return NextResponse.json({ status: "awaiting confirmation" })
@@ -142,11 +161,11 @@ if (message.type === "text") {
     await sendWhatsAppMessage(
       from,
       "No entendí tu mensaje. Podés enviarme cosas como:\n\n" +
-      "• nacieron 3 terneros en potrero norte\n" +
-      "• murieron 2 vacas en lote sur\n" +
-      "• llovieron 25mm\n" +
-      "• gasté $5000 en alimento\n\n" +
-      "También podés enviarme un *audio* 🎤"
+        "• nacieron 3 terneros en potrero norte\n" +
+        "• murieron 2 vacas en lote sur\n" +
+        "• llovieron 25mm\n" +
+        "• gasté $5000 en alimento\n\n" +
+        "También podés enviarme un *audio* 🎤 o una *foto de factura* 📸"
     )
 
     return NextResponse.json({ status: "ok" })
@@ -155,6 +174,238 @@ if (message.type === "text") {
     return NextResponse.json({ error: "Error interno" }, { status: 500 })
   }
 }
+
+/* ===============================
+   🧾 FACTURAS POR IMAGEN
+   =============================== */
+
+/**
+ * 🖼️ Handler para IMÁGENES DE FACTURAS
+ */
+async function handleImageMessage(message: any, phoneNumber: string) {
+  try {
+    const mediaId = message.image.id
+    const caption = message.image.caption || ""
+
+    // Buscar usuario y campo asociado
+    const user = await prisma.user.findUnique({
+      where: { telefono: phoneNumber },
+      include: { campo: true },
+    })
+
+    if (!user || !user.campoId) {
+      await sendWhatsAppMessage(
+        phoneNumber,
+        "❌ No encontré tu cuenta asociada. Registrate primero."
+      )
+      return
+    }
+
+    // Mensaje de procesamiento
+    await sendWhatsAppMessage(
+      phoneNumber,
+      "📸 Procesando factura... un momento"
+    )
+
+    // 1️⃣ Descargar imagen de WhatsApp
+    const imageData = await downloadWhatsAppImage(mediaId)
+    if (!imageData) {
+      await sendWhatsAppMessage(
+        phoneNumber,
+        "❌ Error descargando la imagen. Intenta de nuevo."
+      )
+      return
+    }
+
+    // 2️⃣ Subir a Supabase Storage (para tener URL permanente)
+    const uploadResult = await uploadInvoiceToSupabase(
+      imageData.buffer,
+      imageData.mimeType,
+      user.campoId
+    )
+
+    if (!uploadResult) {
+      await sendWhatsAppMessage(phoneNumber, "❌ Error guardando la imagen.")
+      return
+    }
+
+    // 3️⃣ Procesar con Vision API
+    const invoiceData = await processInvoiceImage(uploadResult.url)
+
+    if (!invoiceData || !invoiceData.items || invoiceData.items.length === 0) {
+      await sendWhatsAppMessage(
+        phoneNumber,
+        "❌ No pude leer la factura. ¿La imagen está clara?\n\nProbá con mejor iluminación o más cerca."
+      )
+      return
+    }
+
+    // 4️⃣ Guardar SOLO en pendingConfirmation (NO guardar gastos todavía)
+    const invoiceConfirmationData = {
+      tipo: "INVOICE", // marcador especial
+      invoiceData,
+      imageUrl: uploadResult.url,
+      imageName: uploadResult.fileName,
+      campoId: user.campoId,
+      telefono: phoneNumber,
+      caption,
+    }
+
+    await prisma.pendingConfirmation.create({
+      data: {
+        telefono: phoneNumber,
+        data: JSON.stringify(invoiceConfirmationData),
+      },
+    })
+
+    // 5️⃣ Enviar resumen con botones de confirmación
+    await sendInvoiceConfirmation(phoneNumber, invoiceData)
+  } catch (error) {
+    console.error("❌ Error en handleImageMessage:", error)
+    await sendWhatsAppMessage(
+      phoneNumber,
+      "❌ Ocurrió un error procesando tu factura. Intenta nuevamente."
+    )
+  }
+}
+
+/**
+ * 🆕 Manejar respuestas de botones de FACTURA
+ * IDs: "invoice_confirm", "invoice_edit", "invoice_cancel"
+ */
+async function handleInvoiceButtonResponse(
+  phoneNumber: string,
+  buttonId: string
+) {
+  try {
+    const confirmacionPendiente = await prisma.pendingConfirmation.findUnique({
+      where: { telefono: phoneNumber },
+    })
+
+    if (!confirmacionPendiente) {
+      await sendWhatsAppMessage(
+        phoneNumber,
+        "❌ No hay ninguna factura pendiente de confirmación."
+      )
+      return
+    }
+
+    const savedData = JSON.parse(confirmacionPendiente.data)
+
+    // Verificar que sea una factura
+    if (savedData.tipo !== "INVOICE") {
+      await sendWhatsAppMessage(
+        phoneNumber,
+        "❌ Error: esta confirmación no corresponde a una factura."
+      )
+      return
+    }
+
+    const action = buttonId.replace("invoice_", "") // "confirm" | "cancel" | "edit"
+
+    // ✅ CONFIRMAR FACTURA → recién acá guardamos gastos
+    if (action === "confirm") {
+      const { invoiceData, imageUrl, imageName, campoId } = savedData
+
+      for (const item of invoiceData.items) {
+        await prisma.gasto.create({
+          data: {
+            tipo: invoiceData.tipo,
+            monto: item.precio,
+            fecha: new Date(invoiceData.fecha),
+            descripcion: item.descripcion,
+            categoria: item.categoria,
+            proveedor: invoiceData.proveedor,
+            metodoPago: invoiceData.metodoPago,
+            pagado: invoiceData.pagado,
+            diasPlazo: invoiceData.diasPlazo || null,
+            iva: item.iva,
+            campoId,
+            imageUrl,
+            imageName,
+          },
+        })
+      }
+
+      await sendWhatsAppMessage(
+        phoneNumber,
+        "✅ ¡Factura confirmada y guardada correctamente!"
+      )
+
+      await prisma.pendingConfirmation.delete({
+        where: { telefono: phoneNumber },
+      })
+      return
+    }
+
+    // ❌ CANCELAR FACTURA
+    if (action === "cancel") {
+      await sendWhatsAppMessage(
+        phoneNumber,
+        "❌ Factura cancelada. No se guardó nada."
+      )
+
+      await prisma.pendingConfirmation.delete({
+        where: { telefono: phoneNumber },
+      })
+      return
+    }
+
+    // ✏️ EDITAR FACTURA
+    if (action === "edit") {
+      await sendWhatsAppMessage(
+        phoneNumber,
+        "✏️ Para corregir la factura, enviá los datos corregidos por texto o reenviá otra foto."
+      )
+
+      await prisma.pendingConfirmation.delete({
+        where: { telefono: phoneNumber },
+      })
+      return
+    }
+  } catch (error) {
+    console.error("❌ Error en handleInvoiceButtonResponse:", error)
+    await sendWhatsAppMessage(
+      phoneNumber,
+      "❌ Error procesando tu respuesta sobre la factura."
+    )
+  }
+}
+
+/**
+ * 📄 Enviar resumen de factura con botones (usa ids invoice_*)
+ */
+async function sendInvoiceConfirmation(phoneNumber: string, data: any) {
+  const itemsList = data.items
+    .map(
+      (item: any, i: number) =>
+        `${i + 1}. ${item.descripcion} - $${item.precioFinal.toFixed(
+          2
+        )} (${item.categoria})`
+    )
+    .join("\n")
+
+  const bodyText =
+    `📄 *Factura procesada:*\n\n` +
+    `🏪 Proveedor: ${data.proveedor}\n` +
+    `📅 Fecha: ${data.fecha}\n` +
+    `💰 Total: $${data.montoTotal.toFixed(2)}\n` +
+    `💳 Pago: ${data.metodoPago}${
+      data.diasPlazo ? ` (${data.diasPlazo} días)` : ""
+    }\n\n` +
+    `*Ítems:*\n${itemsList}\n\n` +
+    `¿Todo correcto?`
+
+  await sendCustomButtons(phoneNumber, bodyText, [
+    { id: "invoice_confirm", title: "✅ Confirmar" },
+    { id: "invoice_edit", title: "✏️ Editar" },
+    { id: "invoice_cancel", title: "❌ Cancelar" },
+  ])
+}
+
+/* ===============================
+   🎫 INVITACIONES / REGISTRO
+   =============================== */
 
 /**
  * 🔍 Detectar si el mensaje es un token
@@ -195,73 +446,77 @@ async function handleTokenRegistration(phone: string, token: string) {
     }
 
     // COLABORADOR → Guardar teléfono y enviar link web
-if (invitation.role === "COLABORADOR") {
-  const existingUser = await prisma.user.findUnique({
-    where: { telefono: phone },
-  })
+    if (invitation.role === "COLABORADOR") {
+      const existingUser = await prisma.user.findUnique({
+        where: { telefono: phone },
+      })
 
-  if (existingUser) {
-    await sendWhatsAppMessage(phone, "❌ Ya estás registrado con este número.")
-    return
-  }
+      if (existingUser) {
+        await sendWhatsAppMessage(
+          phone,
+          "❌ Ya estás registrado con este número."
+        )
+        return
+      }
 
-  // Guardar teléfono temporalmente
-  await prisma.pendingRegistration.upsert({
-    where: { telefono: phone },
-    create: { telefono: phone, token },
-    update: { token },
-  })
+      await prisma.pendingRegistration.upsert({
+        where: { telefono: phone },
+        create: { telefono: phone, token },
+        update: { token },
+      })
 
-  const webUrl = process.env.NEXTAUTH_URL || "https://botrural.vercel.app"
-  const registerLink = `${webUrl}/register?token=${token}`
-  
-  await sendWhatsAppMessage(
-    phone,
-    `¡Hola! 👋\n\n` +
-    `Bienvenido a *${invitation.campo.nombre}*\n\n` +
-    `Para completar tu registro como *Colaborador*, ingresá acá:\n` +
-    `🔗 ${registerLink}\n\n` +
-    `Una vez registrado, podrás cargar datos desde WhatsApp también! 📱`
-  )
-  return
-}
+      const webUrl = process.env.NEXTAUTH_URL || "https://botrural.vercel.app"
+      const registerLink = `${webUrl}/register?token=${token}`
 
-// CONTADOR → Solo web
-if (invitation.role === "CONTADOR") {
-  const webUrl = process.env.NEXTAUTH_URL || "https://botrural.vercel.app"
-  const registerLink = `${webUrl}/register?token=${token}`
-  await sendWhatsAppMessage(
-    phone,
-    `Hola! Para completar tu registro como Contador, ingresá acá:\n${registerLink}`
-  )
-  return
-}
+      await sendWhatsAppMessage(
+        phone,
+        `¡Hola! 👋\n\n` +
+          `Bienvenido a *${invitation.campo.nombre}*\n\n` +
+          `Para completar tu registro como *Colaborador*, ingresá acá:\n` +
+          `🔗 ${registerLink}\n\n` +
+          `Una vez registrado, podrás cargar datos desde WhatsApp también! 📱`
+      )
+      return
+    }
 
-// EMPLEADO → Flujo por WhatsApp (ya existe)
-if (invitation.role === "EMPLEADO") {
-  const existingUser = await prisma.user.findUnique({
-    where: { telefono: phone },
-  })
+    // CONTADOR → Solo web
+    if (invitation.role === "CONTADOR") {
+      const webUrl = process.env.NEXTAUTH_URL || "https://botrural.vercel.app"
+      const registerLink = `${webUrl}/register?token=${token}`
+      await sendWhatsAppMessage(
+        phone,
+        `Hola! Para completar tu registro como Contador, ingresá acá:\n${registerLink}`
+      )
+      return
+    }
 
-  if (existingUser) {
-    await sendWhatsAppMessage(phone, "❌ Ya estás registrado con este número.")
-    return
-  }
+    // EMPLEADO → Flujo por WhatsApp
+    if (invitation.role === "EMPLEADO") {
+      const existingUser = await prisma.user.findUnique({
+        where: { telefono: phone },
+      })
 
-  await sendWhatsAppMessage(
-    phone,
-    `¡Bienvenido a ${invitation.campo.nombre}! 🌾\n\n` +
-    "Para completar tu registro, enviame tu nombre y apellido.\n" +
-    "Ejemplo: Juan Pérez"
-  )
+      if (existingUser) {
+        await sendWhatsAppMessage(
+          phone,
+          "❌ Ya estás registrado con este número."
+        )
+        return
+      }
 
-  await prisma.pendingRegistration.upsert({
-    where: { telefono: phone },
-    create: { telefono: phone, token },
-    update: { token },
-  })
-}
+      await sendWhatsAppMessage(
+        phone,
+        `¡Bienvenido a ${invitation.campo.nombre}! 🌾\n\n` +
+          "Para completar tu registro, enviame tu nombre y apellido.\n" +
+          "Ejemplo: Juan Pérez"
+      )
 
+      await prisma.pendingRegistration.upsert({
+        where: { telefono: phone },
+        create: { telefono: phone, token },
+        update: { token },
+      })
+    }
   } catch (error) {
     console.error("Error en registro:", error)
     await sendWhatsAppMessage(phone, "❌ Error al procesar el registro.")
@@ -271,10 +526,14 @@ if (invitation.role === "EMPLEADO") {
 /**
  * 👤 Manejar nombre del empleado
  */
-async function handleNombreRegistro(phone: string, nombreCompleto: string, token: string) {
+async function handleNombreRegistro(
+  phone: string,
+  nombreCompleto: string,
+  token: string
+) {
   try {
     const partes = nombreCompleto.trim().split(" ")
-    
+
     if (partes.length < 2) {
       await sendWhatsAppMessage(
         phone,
@@ -283,16 +542,21 @@ async function handleNombreRegistro(phone: string, nombreCompleto: string, token
       return
     }
 
-    const resultado = await registrarEmpleadoBot(phone, nombreCompleto.trim(), token)
+    const resultado = await registrarEmpleadoBot(
+      phone,
+      nombreCompleto.trim(),
+      token
+    )
 
     await sendWhatsAppMessage(
       phone,
       `✅ ¡Bienvenido ${resultado.usuario.name}!\n\n` +
-      `Ya estás registrado en *${resultado.campo.nombre}*.\n\n` +
-      `Ahora podés enviarme datos del campo. Por ejemplo:\n` +
-      `• nacieron 3 terneros en potrero norte\n` +
-      `• llovieron 25mm\n` +
-      `• gasté $5000 en alimento`
+        `Ya estás registrado en *${resultado.campo.nombre}*.\n\n` +
+        `Ahora podés enviarme datos del campo. Por ejemplo:\n` +
+        `• nacieron 3 terneros en potrero norte\n` +
+        `• llovieron 25mm\n` +
+        `• gasté $5000 en alimento\n` +
+        `• foto de factura 📸`
     )
   } catch (error) {
     console.error("Error procesando nombre:", error)
@@ -303,7 +567,11 @@ async function handleNombreRegistro(phone: string, nombreCompleto: string, token
 /**
  * 📝 Registrar empleado en la BD
  */
-async function registrarEmpleadoBot(telefono: string, nombreCompleto: string, token: string) {
+async function registrarEmpleadoBot(
+  telefono: string,
+  nombreCompleto: string,
+  token: string
+) {
   const invitation = await prisma.invitation.findUnique({
     where: { token },
     include: { campo: true },
@@ -319,8 +587,8 @@ async function registrarEmpleadoBot(telefono: string, nombreCompleto: string, to
   const nuevoUsuario = await prisma.user.create({
     data: {
       name: nombreCompleto,
-      email: email,
-      telefono: telefono,
+      email,
+      telefono,
       role: "EMPLEADO",
       campoId: invitation.campoId,
       accesoFinanzas: false,
@@ -335,9 +603,11 @@ async function registrarEmpleadoBot(telefono: string, nombreCompleto: string, to
     },
   })
 
-  await prisma.pendingRegistration.delete({
-    where: { telefono },
-  }).catch(() => {})
+  await prisma.pendingRegistration
+    .delete({
+      where: { telefono },
+    })
+    .catch(() => {})
 
   return {
     usuario: nuevoUsuario,
@@ -345,116 +615,12 @@ async function registrarEmpleadoBot(telefono: string, nombreCompleto: string, to
   }
 }
 
-/**
- * 📝 Parsear mensaje con regex mejorado
- */
-function parseMessage(text: string, phone: string): any {
-  const textLower = text.toLowerCase()
-
-  // 🌧️ LLUVIA - Mejorado
-  if (textLower.includes("lluv") || textLower.match(/\d+\s*mm/)) {
-    const match = text.match(/(\d+)\s*mm/i)
-    
-    if (match) {
-      return {
-        tipo: "LLUVIA",
-        cantidad: parseInt(match[1]),
-        telefono: phone,
-        descripcion: `Llovieron ${match[1]}mm`,
-      }
-    }
-  }
-
-  // 🐄 NACIMIENTO
-  if (textLower.includes("nacieron") || textLower.includes("nació") || textLower.includes("nacimiento")) {
-    const match = text.match(/(\d+)\s*(ternero|ternera|vaca|toro|novillo|vaquillona)/i)
-    const loteMatch = text.match(/(?:en|potrero|lote)\s+(\w+)/i)
-    
-    if (match) {
-      return {
-        tipo: "NACIMIENTO",
-        cantidad: parseInt(match[1]),
-        categoria: match[2],
-        lote: loteMatch?.[1] || null,
-        telefono: phone,
-        descripcion: `Nacieron ${match[1]} ${match[2]}${loteMatch ? ` en ${loteMatch[1]}` : ''}`,
-      }
-    }
-  }
-
-  // 💀 MORTANDAD
-  if (textLower.includes("murieron") || textLower.includes("murió") || textLower.includes("muerto") || textLower.includes("mortandad")) {
-    const match = text.match(/(\d+)\s*(ternero|ternera|vaca|toro|novillo|vaquillona|animal)/i)
-    const loteMatch = text.match(/(?:en|potrero|lote)\s+(\w+)/i)
-    
-    if (match) {
-      return {
-        tipo: "MORTANDAD",
-        cantidad: parseInt(match[1]),
-        categoria: match[2],
-        lote: loteMatch?.[1] || null,
-        telefono: phone,
-        descripcion: `Murieron ${match[1]} ${match[2]}${loteMatch ? ` en ${loteMatch[1]}` : ''}`,
-      }
-    }
-  }
-
-  // 💰 GASTO
-  if (textLower.includes("gast") || textLower.includes("compré") || textLower.includes("pagué")) {
-    const match = text.match(/\$?\s*(\d+)/i)
-    const descripcionMatch = text.match(/(?:en|de|para)\s+(.+)/i)
-    
-    if (match) {
-      return {
-        tipo: "GASTO",
-        monto: parseInt(match[1]),
-        descripcion: descripcionMatch?.[1] || "Gasto registrado",
-        telefono: phone,
-      }
-    }
-  }
-
-  // 💉 TRATAMIENTO
-  if (textLower.includes("tratamiento") || textLower.includes("vacun") || textLower.includes("inyect") || textLower.includes("apliqué")) {
-    const cantidadMatch = text.match(/(\d+)\s*(vaca|ternero|animal|cabeza)/i)
-    const productoMatch = text.match(/(?:con|de)\s+(\w+)/i)
-    const loteMatch = text.match(/(?:en|potrero|lote)\s+(\w+)/i)
-    
-    if (cantidadMatch) {
-      return {
-        tipo: "TRATAMIENTO",
-        cantidad: parseInt(cantidadMatch[1]),
-        producto: productoMatch?.[1] || "Sin especificar",
-        lote: loteMatch?.[1] || null,
-        telefono: phone,
-        descripcion: `Tratamiento a ${cantidadMatch[1]} ${cantidadMatch[2]} con ${productoMatch?.[1] || 'producto'}`,
-      }
-    }
-  }
-
-  // 🌾 SIEMBRA
-  if (textLower.includes("sembr") || textLower.includes("plant")) {
-    const cantidadMatch = text.match(/(\d+)\s*(hectárea|ha|hectarea)/i)
-    const cultivoMatch = text.match(/(?:de|siembra|planté)\s+(\w+)/i)
-    const loteMatch = text.match(/(?:en|potrero|lote)\s+(\w+)/i)
-    
-    if (cantidadMatch || cultivoMatch) {
-      return {
-        tipo: "SIEMBRA",
-        cantidad: cantidadMatch ? parseInt(cantidadMatch[1]) : null,
-        cultivo: cultivoMatch?.[1] || "Sin especificar",
-        lote: loteMatch?.[1] || null,
-        telefono: phone,
-        descripcion: `Siembra${cantidadMatch ? ` de ${cantidadMatch[1]}ha` : ''}${cultivoMatch ? ` de ${cultivoMatch[1]}` : ''}`,
-      }
-    }
-  }
-
-  return null
-}
+/* ===============================
+   ✅ CONFIRMACIÓN TEXTO / AUDIO
+   =============================== */
 
 /**
- * 🤔 Solicitar confirmación al usuario
+ * 🤔 Solicitar confirmación al usuario (para texto/audio)
  */
 async function solicitarConfirmacion(phone: string, data: any) {
   let mensaje = "*Entendí:*\n\n"
@@ -473,15 +639,16 @@ async function solicitarConfirmacion(phone: string, data: any) {
       break
     case "GASTO":
       mensaje += `💰 *Gasto*\n• Monto: $${data.monto}\n• Concepto: ${data.descripcion}\n• Categoría: ${data.categoria}`
-      
-      // 🆕 Mostrar info de pago
+
       if (data.proveedor) {
         mensaje += `\n• Proveedor: ${data.proveedor}`
       }
-      
+
       if (data.metodoPago === "Plazo") {
         mensaje += `\n• Pago: A plazo (${data.diasPlazo} días)`
-        mensaje += `\n• Estado: ${data.pagado ? '✅ Pagado' : '⏳ Pendiente'}`
+        mensaje += `\n• Estado: ${
+          data.pagado ? "✅ Pagado" : "⏳ Pendiente"
+        }`
       } else {
         mensaje += `\n• Pago: Contado ✅`
       }
@@ -509,77 +676,105 @@ async function solicitarConfirmacion(phone: string, data: any) {
 }
 
 /**
- * ✅ Manejar confirmación del usuario
+ * ✅ Manejar confirmación del usuario (SOLO texto/audio, NO facturas)
  */
-async function handleConfirmacion(phone: string, respuesta: string, confirmacion: any) {
+async function handleConfirmacion(
+  phone: string,
+  respuesta: string,
+  confirmacion: any
+) {
   const respuestaLower = respuesta.toLowerCase().trim()
+
+  const data = JSON.parse(confirmacion.data)
+
+  // 🛡️ Si es una factura, no se maneja acá
+  if (data.tipo === "INVOICE") {
+    await sendWhatsAppMessage(
+      phone,
+      "⚠️ Para la factura usá los botones de confirmación que te envié."
+    )
+    return
+  }
 
   // ✅ CONFIRMAR
   if (
-    respuestaLower === "confirmar" || 
-    respuestaLower === "si" || 
-    respuestaLower === "sí" || 
+    respuestaLower === "confirmar" ||
+    respuestaLower === "si" ||
+    respuestaLower === "sí" ||
     respuestaLower === "yes" ||
-    respuesta.includes("btn_confirmar")
+    respuesta === "btn_confirmar"
   ) {
     try {
-      const data = JSON.parse(confirmacion.data)
       await handleDataEntry(data)
-      
-      await sendWhatsAppMessage(phone, "✅ *Dato guardado correctamente* en el sistema.")
+      await sendWhatsAppMessage(
+        phone,
+        "✅ *Dato guardado correctamente* en el sistema."
+      )
     } catch (error) {
       console.error("Error guardando dato:", error)
-      await sendWhatsAppMessage(phone, "❌ Error al guardar el dato. Intenta de nuevo.")
+      await sendWhatsAppMessage(
+        phone,
+        "❌ Error al guardar el dato. Intenta de nuevo."
+      )
     }
-    
-    await prisma.pendingConfirmation.delete({
-      where: { telefono: phone },
-    }).catch(() => {})
-    
+
+    await prisma.pendingConfirmation
+      .delete({
+        where: { telefono: phone },
+      })
+      .catch(() => {})
+
     return
   }
 
   // ✏️ EDITAR
   if (
-    respuestaLower === "editar" || 
+    respuestaLower === "editar" ||
     respuestaLower === "modificar" ||
-    respuesta.includes("btn_editar")
+    respuesta === "btn_editar"
   ) {
     await sendWhatsAppMessage(
-      phone, 
+      phone,
       "✏️ Ok, enviame los datos corregidos.\n\nEjemplo:\n• llovieron 30mm\n• nacieron 5 terneros"
     )
-    
-    await prisma.pendingConfirmation.delete({
-      where: { telefono: phone },
-    }).catch(() => {})
-    
+
+    await prisma.pendingConfirmation
+      .delete({
+        where: { telefono: phone },
+      })
+      .catch(() => {})
+
     return
   }
 
   // ❌ CANCELAR
   if (
-    respuestaLower === "cancelar" || 
+    respuestaLower === "cancelar" ||
     respuestaLower === "no" ||
-    respuesta.includes("btn_cancelar")
+    respuesta === "btn_cancelar"
   ) {
-    await sendWhatsAppMessage(phone, "❌ Dato cancelado. Podés enviar uno nuevo cuando quieras.")
-    
-    await prisma.pendingConfirmation.delete({
-      where: { telefono: phone },
-    }).catch(() => {})
-    
+    await sendWhatsAppMessage(
+      phone,
+      "❌ Dato cancelado. Podés enviar uno nuevo cuando quieras."
+    )
+
+    await prisma.pendingConfirmation
+      .delete({
+        where: { telefono: phone },
+      })
+      .catch(() => {})
+
     return
   }
 
   await sendWhatsAppMessage(
-    phone, 
+    phone,
     "Por favor selecciona una opción:\n• *Confirmar* - para guardar\n• *Editar* - para corregir\n• *Cancelar* - para descartar"
   )
 }
 
 /**
- * 💾 Guardar dato en la BD
+ * 💾 Guardar dato en la BD (texto/audio)
  */
 async function handleDataEntry(data: any) {
   const user = await prisma.user.findUnique({
@@ -591,7 +786,7 @@ async function handleDataEntry(data: any) {
     throw new Error("Usuario no encontrado")
   }
 
-  let loteId = null
+  let loteId: string | null = null
   if (data.lote) {
     const lote = await prisma.lote.findFirst({
       where: {
@@ -604,20 +799,18 @@ async function handleDataEntry(data: any) {
   }
 
   if (data.tipo === "GASTO") {
-    // 💰 GASTO con soporte para pagos a plazo
     await prisma.gasto.create({
       data: {
         tipo: "GASTO",
         monto: data.monto,
         fecha: new Date(),
         descripcion: data.descripcion,
-        categoria: data.categoria || "Otros",  // 👈 CAMBIO 1: usa la categoría de la IA
+        categoria: data.categoria || "Otros",
         campoId: user.campoId,
-        // 🆕 NUEVOS CAMPOS
-        metodoPago: data.metodoPago || "Contado",  // 👈 CAMBIO 2
-        diasPlazo: data.diasPlazo || null,         // 👈 CAMBIO 3
-        pagado: data.pagado !== undefined ? data.pagado : true,  // 👈 CAMBIO 4
-        proveedor: data.proveedor || null,         // 👈 CAMBIO 5
+        metodoPago: data.metodoPago || "Contado",
+        diasPlazo: data.diasPlazo || null,
+        pagado: data.pagado !== undefined ? data.pagado : true,
+        proveedor: data.proveedor || null,
       },
     })
   } else if (data.tipo === "LLUVIA") {
@@ -649,8 +842,12 @@ async function handleDataEntry(data: any) {
   console.log(`✅ Dato guardado: ${data.tipo}`)
 }
 
+/* ===============================
+   📤 ENVÍO DE MENSAJES
+   =============================== */
+
 /**
- * 📤 Enviar mensaje de WhatsApp
+ * 📤 Enviar mensaje de WhatsApp (texto simple)
  */
 async function sendWhatsAppMessage(to: string, message: string) {
   try {
@@ -664,7 +861,7 @@ async function sendWhatsAppMessage(to: string, message: string) {
         },
         body: JSON.stringify({
           messaging_product: "whatsapp",
-          to: to,
+          to,
           type: "text",
           text: { body: message },
         }),
@@ -679,10 +876,14 @@ async function sendWhatsAppMessage(to: string, message: string) {
     console.error("Error en sendWhatsAppMessage:", error)
   }
 }
-  /**
- * 📤 Enviar mensaje con botones interactivos
+
+/**
+ * 📤 Enviar mensaje con botones interactivos (para texto/audio)
  */
-async function sendWhatsAppMessageWithButtons(to: string, bodyText: string) {
+async function sendWhatsAppMessageWithButtons(
+  to: string,
+  bodyText: string
+) {
   try {
     const response = await fetch(
       `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_ID}/messages`,
@@ -694,12 +895,12 @@ async function sendWhatsAppMessageWithButtons(to: string, bodyText: string) {
         },
         body: JSON.stringify({
           messaging_product: "whatsapp",
-          to: to,
+          to,
           type: "interactive",
           interactive: {
             type: "button",
             body: {
-              text: bodyText
+              text: bodyText,
             },
             action: {
               buttons: [
@@ -707,26 +908,26 @@ async function sendWhatsAppMessageWithButtons(to: string, bodyText: string) {
                   type: "reply",
                   reply: {
                     id: "btn_confirmar",
-                    title: "✅ Confirmar"
-                  }
+                    title: "✅ Confirmar",
+                  },
                 },
                 {
                   type: "reply",
                   reply: {
                     id: "btn_editar",
-                    title: "✏️ Editar"
-                  }
+                    title: "✏️ Editar",
+                  },
                 },
                 {
                   type: "reply",
                   reply: {
                     id: "btn_cancelar",
-                    title: "❌ Cancelar"
-                  }
-                }
-              ]
-            }
-          }
+                    title: "❌ Cancelar",
+                  },
+                },
+              ],
+            },
+          },
         }),
       }
     )
@@ -734,12 +935,81 @@ async function sendWhatsAppMessageWithButtons(to: string, bodyText: string) {
     if (!response.ok) {
       const error = await response.json()
       console.error("Error enviando botones:", error)
-      
-      await sendWhatsAppMessage(to, bodyText + "\n\n¿Es correcto?\nRespondé: *confirmar*, *editar* o *cancelar*")
+
+      await sendWhatsAppMessage(
+        to,
+        bodyText +
+          "\n\n¿Es correcto?\nRespondé: *confirmar*, *editar* o *cancelar*"
+      )
     }
   } catch (error) {
     console.error("Error en sendWhatsAppMessageWithButtons:", error)
-    
-    await sendWhatsAppMessage(to, bodyText + "\n\n¿Es correcto?\nRespondé: *confirmar*, *editar* o *cancelar*")
+
+    await sendWhatsAppMessage(
+      to,
+      bodyText +
+        "\n\n¿Es correcto?\nRespondé: *confirmar*, *editar* o *cancelar*"
+    )
+  }
+}
+
+/**
+ * 📤 NUEVO: Enviar mensaje con botones personalizados (para facturas)
+ */
+async function sendCustomButtons(
+  to: string,
+  bodyText: string,
+  buttons: Array<{ id: string; title: string }>
+) {
+  try {
+    const response = await fetch(
+      `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_ID}/messages`,
+      {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${WHATSAPP_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          messaging_product: "whatsapp",
+          to,
+          type: "interactive",
+          interactive: {
+            type: "button",
+            body: {
+              text: bodyText,
+            },
+            action: {
+              buttons: buttons.map((btn) => ({
+                type: "reply",
+                reply: {
+                  id: btn.id,
+                  title: btn.title,
+                },
+              })),
+            },
+          },
+        }),
+      }
+    )
+
+    if (!response.ok) {
+      const error = await response.json()
+      console.error("Error enviando botones personalizados:", error)
+
+      await sendWhatsAppMessage(
+        to,
+        bodyText +
+          "\n\n¿Es correcto?\nRespondé: *confirmar*, *editar* o *cancelar*"
+      )
+    }
+  } catch (error) {
+    console.error("Error en sendCustomButtons:", error)
+
+    await sendWhatsAppMessage(
+      to,
+      bodyText +
+        "\n\n¿Es correcto?\nRespondé: *confirmar*, *editar* o *cancelar*"
+    )
   }
 }
