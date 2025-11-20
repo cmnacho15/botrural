@@ -116,6 +116,14 @@ export default function GastosPage() {
     const coincideProveedor = proveedorFiltro
       ? g.proveedor === proveedorFiltro
       : true
+      // 🔍 DEBUG
+  if (proveedorFiltro) {
+    console.log('Gasto:', g.descripcion)
+    console.log('Proveedor en gasto:', g.proveedor)
+    console.log('Proveedor filtro:', proveedorFiltro)
+    console.log('Coincide?:', coincideProveedor)
+    console.log('---')
+  }
     return coincideCategoria && coincideProveedor
   })
 
