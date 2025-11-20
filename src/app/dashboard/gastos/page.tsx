@@ -9,7 +9,7 @@ import {
 import ModalEditarGasto from '@/components/ModalEditarGasto'
 import ModalEditarIngreso from '@/components/ModalEditarIngreso'
 import { FileText } from 'lucide-react' // 👈 NUEVO: Para el ícono de factura
-import ModalFactura from '@/components/modales/ModalFactura' // 👈 NUEVO: Modal de factura
+import ModalFactura from '@/app/components/modales/ModalFactura'
 
 type Gasto = {
   id: string
