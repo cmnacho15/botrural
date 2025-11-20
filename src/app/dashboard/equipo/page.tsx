@@ -29,7 +29,7 @@ export default function EquipoPage() {
       const res = await fetch("/api/usuarios")
       const data = await res.json()
       
-      // ✅ Ordenar: ADMIN_GENERAL primero, luego el resto por fecha
+      // Ordenar: ADMIN_GENERAL primero, luego el resto por fecha
       const ordenados = data.sort((a: Usuario, b: Usuario) => {
         if (a.roleCode === "ADMIN_GENERAL") return -1
         if (b.roleCode === "ADMIN_GENERAL") return 1
@@ -79,6 +79,7 @@ export default function EquipoPage() {
     }
   }
 
+  // FUNCIÓN REEMPLAZADA Y MEJORADA
   const handleEliminarUsuario = async (usuario: Usuario) => {
     const confirmar = confirm(
       `¿Estás seguro de eliminar a ${usuario.nombre} ${usuario.apellido}?\n\n` +
@@ -98,16 +99,25 @@ export default function EquipoPage() {
         method: "DELETE",
       })
 
-      const data = await res.json()
+      // Verificar si hay contenido antes de parsear
+      let data
+      const text = await res.text()
+      
+      try {
+        data = text ? JSON.parse(text) : {}
+      } catch {
+        data = { error: "Error en la respuesta del servidor" }
+      }
 
       if (!res.ok) {
-        throw new Error(data.error)
+        throw new Error(data.error || "Error al eliminar usuario")
       }
 
       await cargarUsuarios()
-      alert(`✅ ${usuario.nombre} ${usuario.apellido} eliminado correctamente`)
+      alert(`${usuario.nombre} ${usuario.apellido} eliminado correctamente`)
     } catch (error: any) {
-      alert(`❌ Error: ${error.message}`)
+      console.error("Error eliminando usuario:", error)
+      alert(`Error: ${error.message}`)
     } finally {
       setActualizando(null)
     }
@@ -201,7 +211,7 @@ export default function EquipoPage() {
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   <div>{usuario.email || "-"}</div>
                   {usuario.telefono && (
-                    <div className="text-xs text-gray-400">📱 {usuario.telefono}</div>
+                    <div className="text-xs text-gray-400">{usuario.telefono}</div>
                   )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -228,7 +238,7 @@ export default function EquipoPage() {
                       )}
                     </button>
                   ) : usuario.roleCode === "ADMIN_GENERAL" || usuario.roleCode === "CONTADOR" ? (
-                    <span className="text-xs text-gray-500">✓ Siempre habilitado</span>
+                    <span className="text-xs text-gray-500">Siempre habilitado</span>
                   ) : (
                     <span className="text-xs text-gray-500">N/A</span>
                   )}
