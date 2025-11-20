@@ -112,20 +112,14 @@ export default function GastosPage() {
   }, [])
 
   const gastosFiltrados = gastosData.filter((g) => {
-    const coincideCategoria = categoriaSeleccionada ? g.categoria === categoriaSeleccionada : true
-    const coincideProveedor = proveedorFiltro
-      ? g.proveedor === proveedorFiltro
-      : true
-      // 🔍 DEBUG
-  if (proveedorFiltro) {
-    console.log('Gasto:', g.descripcion)
-    console.log('Proveedor en gasto:', g.proveedor)
-    console.log('Proveedor filtro:', proveedorFiltro)
-    console.log('Coincide?:', coincideProveedor)
-    console.log('---')
-  }
-    return coincideCategoria && coincideProveedor
-  })
+  const coincideCategoria = categoriaSeleccionada ? g.categoria === categoriaSeleccionada : true
+  
+  const coincideProveedor = proveedorFiltro
+    ? (g.proveedor?.trim().toLowerCase() === proveedorFiltro.trim().toLowerCase())
+    : true
+  
+  return coincideCategoria && coincideProveedor
+})
 
   const categoriasConDatos = categorias.map((cat) => {
     const gastosCategoria = gastosData.filter((g) => g.tipo === 'GASTO' && g.categoria === cat.nombre)
