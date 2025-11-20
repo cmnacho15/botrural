@@ -23,6 +23,114 @@ interface Lote {
   }>
 }
 
+// ==========================================
+// 💡 COMPONENTE TOOLTIP
+// ==========================================
+interface TooltipProps {
+  children: React.ReactNode
+  content: React.ReactNode
+}
+
+function Tooltip({ children, content }: TooltipProps) {
+  const [isVisible, setIsVisible] = useState(false)
+
+  return (
+    <div className="relative inline-block">
+      <div
+        onMouseEnter={() => setIsVisible(true)}
+        onMouseLeave={() => setIsVisible(false)}
+        className="cursor-help"
+      >
+        {children}
+      </div>
+      {isVisible && (
+        <div className="absolute z-50 w-96 p-4 bg-gray-900 text-white text-sm rounded-lg shadow-2xl bottom-full left-1/2 transform -translate-x-1/2 mb-2 pointer-events-none">
+          <div className="absolute w-3 h-3 bg-gray-900 transform rotate-45 left-1/2 -translate-x-1/2 -bottom-1.5"></div>
+          {content}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ==========================================
+// 📊 CONTENIDO TOOLTIP CARGA GLOBAL
+// ==========================================
+function TooltipCargaGlobal() {
+  return (
+    <div className="space-y-3">
+      <div>
+        <p className="font-semibold mb-1">🌍 Carga Global (UG/ha)</p>
+        <p className="text-gray-300 text-xs leading-relaxed">
+          Promedio de UG por hectárea considerando todos los potreros del campo.
+        </p>
+      </div>
+      
+      <div className="border-t border-gray-700 pt-2">
+        <p className="font-semibold mb-1">📏 ¿Qué es una UG?</p>
+        <p className="text-gray-300 text-xs leading-relaxed mb-2">
+          <strong>Unidad Ganadera (UG):</strong> Equivale a una vaca de 380 kg de peso vivo.
+        </p>
+        <ul className="text-gray-300 text-xs space-y-1 list-disc list-inside">
+          <li>Consume aprox. <strong>2.800 kg MS/año</strong> (≈ 7,6 kg MS/día)</li>
+          <li>Permite comparar diferentes categorías de animales</li>
+        </ul>
+      </div>
+
+      <div className="border-t border-gray-700 pt-2">
+        <p className="font-semibold mb-1">🐄 Ejemplos de equivalencias:</p>
+        <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-gray-300">
+          <div>• Vaca: <strong>1.00 UG</strong></div>
+          <div>• Toro: <strong>1.20 UG</strong></div>
+          <div>• Novillo +3a: <strong>1.00 UG</strong></div>
+          <div>• Ternero: <strong>0.50 UG</strong></div>
+          <div>• Oveja: <strong>0.15 UG</strong></div>
+          <div>• Cordero: <strong>0.10 UG</strong></div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ==========================================
+// 📊 CONTENIDO TOOLTIP CARGA POTRERO
+// ==========================================
+function TooltipCargaPotrero() {
+  return (
+    <div className="space-y-3">
+      <div>
+        <p className="font-semibold mb-1">📍 Carga del Potrero (UG/ha)</p>
+        <p className="text-gray-300 text-xs leading-relaxed">
+          UG por hectárea en este potrero específico según los animales actuales.
+        </p>
+      </div>
+      
+      <div className="border-t border-gray-700 pt-2">
+        <p className="font-semibold mb-1">📏 ¿Qué es una UG?</p>
+        <p className="text-gray-300 text-xs leading-relaxed mb-2">
+          <strong>Unidad Ganadera (UG):</strong> Equivale a una vaca de 380 kg de peso vivo.
+        </p>
+        <ul className="text-gray-300 text-xs space-y-1 list-disc list-inside">
+          <li>Consume aprox. <strong>2.800 kg MS/año</strong> (≈ 7,6 kg MS/día)</li>
+          <li>Permite comparar diferentes categorías de animales</li>
+        </ul>
+      </div>
+
+      <div className="border-t border-gray-700 pt-2">
+        <p className="font-semibold mb-1">🐄 Ejemplos de equivalencias:</p>
+        <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-gray-300">
+          <div>• Vaca: <strong>1.00 UG</strong></div>
+          <div>• Toro: <strong>1.20 UG</strong></div>
+          <div>• Novillo +3a: <strong>1.00 UG</strong></div>
+          <div>• Ternero: <strong>0.50 UG</strong></div>
+          <div>• Oveja: <strong>0.15 UG</strong></div>
+          <div>• Cordero: <strong>0.10 UG</strong></div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // Modal de confirmación
 interface ModalConfirmarBorradoProps {
   isOpen: boolean
@@ -139,16 +247,16 @@ export default function LotesPage() {
   const [nombreCampo, setNombreCampo] = useState('')
   
   // Cargar nombre del campo
-useEffect(() => {
-  fetch('/api/campos')
-    .then(r => r.json())
-    .then(data => {
-      if (data.nombre) {
-        setNombreCampo(data.nombre)
-      }
-    })
-    .catch(err => console.error('Error cargando campo:', err))
-}, [])
+  useEffect(() => {
+    fetch('/api/campos')
+      .then(r => r.json())
+      .then(data => {
+        if (data.nombre) {
+          setNombreCampo(data.nombre)
+        }
+      })
+      .catch(err => console.error('Error cargando campo:', err))
+  }, [])
 
   const [modalBorrado, setModalBorrado] = useState<{
     isOpen: boolean
@@ -230,19 +338,19 @@ useEffect(() => {
           <div className="text-center md:text-left space-y-1">
             <div className="flex items-center gap-3 flex-wrap justify-center md:justify-start">
               <h1 className="text-3xl font-bold text-gray-900 leading-tight">
-  {nombreCampo ? `Potreros en ${nombreCampo}` : 'Potreros'}
-</h1>
+                {nombreCampo ? `Potreros en ${nombreCampo}` : 'Potreros'}
+              </h1>
               
-              {/* 🌾 CARGA GLOBAL DEL CAMPO */}
+              {/* 🌾 CARGA GLOBAL DEL CAMPO CON TOOLTIP */}
               {hayLotes && (() => {
                 const totalHectareas = lotes.reduce((sum, l) => sum + l.hectareas, 0)
                 const todosAnimales = lotes.flatMap(l => l.animalesLote || [])
-  .filter(a => !['Padrillos', 'Yeguas', 'Caballos', 'Potrillos'].includes(a.categoria)) // ← EXCLUIR YEGUARIZOS
+                  .filter(a => !['Padrillos', 'Yeguas', 'Caballos', 'Potrillos'].includes(a.categoria))
 
-const ugTotales = todosAnimales.reduce((total, animal) => {
-  const equivalencia = EQUIVALENCIAS_UG[animal.categoria] || 0
-  return total + (animal.cantidad * equivalencia)
-}, 0)
+                const ugTotales = todosAnimales.reduce((total, animal) => {
+                  const equivalencia = EQUIVALENCIAS_UG[animal.categoria] || 0
+                  return total + (animal.cantidad * equivalencia)
+                }, 0)
                 const cargaGlobal = totalHectareas > 0 ? ugTotales / totalHectareas : 0
                 
                 if (todosAnimales.length === 0) return null
@@ -254,9 +362,11 @@ const ugTotales = todosAnimales.reduce((total, animal) => {
                   'bg-red-100 text-red-700'
                 
                 return (
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${color}`}>
-                    {cargaGlobal.toFixed(2)} UG/ha
-                  </span>
+                  <Tooltip content={<TooltipCargaGlobal />}>
+                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${color}`}>
+                      {cargaGlobal.toFixed(2)} UG/ha
+                    </span>
+                  </Tooltip>
                 )
               })()}
             </div>
@@ -287,8 +397,8 @@ const ugTotales = todosAnimales.reduce((total, animal) => {
           {!hayLotes ? (
             <div className="p-10 text-center">
               <h3 className="text-xl font-semibold text-gray-900 mb-2">
-  {nombreCampo ? `Potreros en ${nombreCampo}` : 'Potreros'}
-</h3>
+                {nombreCampo ? `Potreros en ${nombreCampo}` : 'Potreros'}
+              </h3>
               <p className="text-gray-600 mb-8">
                 Ingresá los potreros de tu campo para empezar a usar la app.
               </p>
@@ -390,14 +500,14 @@ const ugTotales = todosAnimales.reduce((total, animal) => {
                                 </div>
                               </div>
                               
-                              {/* 🌾 CARGA UG/ha DEL POTRERO */}
+                              {/* 🌾 CARGA UG/ha DEL POTRERO CON TOOLTIP */}
                               {(() => {
                                 const ugTotales = lote.animalesLote
-  .filter(a => !['Padrillos', 'Yeguas', 'Caballos', 'Potrillos'].includes(a.categoria)) // ← EXCLUIR YEGUARIZOS
-  .reduce((total, animal) => {
-    const equivalencia = EQUIVALENCIAS_UG[animal.categoria] || 0
-    return total + (animal.cantidad * equivalencia)
-  }, 0)
+                                  .filter(a => !['Padrillos', 'Yeguas', 'Caballos', 'Potrillos'].includes(a.categoria))
+                                  .reduce((total, animal) => {
+                                    const equivalencia = EQUIVALENCIAS_UG[animal.categoria] || 0
+                                    return total + (animal.cantidad * equivalencia)
+                                  }, 0)
                                 const cargaUG = lote.hectareas > 0 ? ugTotales / lote.hectareas : 0
                                 
                                 const color = 
@@ -407,9 +517,11 @@ const ugTotales = todosAnimales.reduce((total, animal) => {
                                   'bg-red-100 text-red-700'
                                 
                                 return (
-                                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${color}`}>
-                                    {cargaUG.toFixed(2)} UG/ha
-                                  </span>
+                                  <Tooltip content={<TooltipCargaPotrero />}>
+                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${color}`}>
+                                      {cargaUG.toFixed(2)} UG/ha
+                                    </span>
+                                  </Tooltip>
                                 )
                               })()}
                             </div>
