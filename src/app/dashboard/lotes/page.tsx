@@ -33,18 +33,74 @@ interface TooltipProps {
 
 function Tooltip({ children, content }: TooltipProps) {
   const [isVisible, setIsVisible] = useState(false)
-  const [position, setPosition] = useState<'top' | 'bottom'>('top')
-  const triggerRef = useState<HTMLDivElement | null>(null)[0]
+  const [position, setPosition] = useState<{ vertical: 'top' | 'bottom', horizontal: 'left' | 'center' | 'right' }>({
+    vertical: 'top',
+    horizontal: 'center'
+  })
 
   const handleMouseEnter = (e: React.MouseEvent<HTMLDivElement>) => {
     const element = e.currentTarget
     const rect = element.getBoundingClientRect()
+    
+    // Espacio disponible en cada dirección
     const spaceAbove = rect.top
     const spaceBelow = window.innerHeight - rect.bottom
+    const spaceLeft = rect.left
+    const spaceRight = window.innerWidth - rect.right
     
-    // Si hay más espacio abajo o muy poco espacio arriba, mostrar abajo
-    setPosition(spaceAbove < 300 || spaceBelow > spaceAbove ? 'bottom' : 'top')
+    // Tamaño aproximado del tooltip
+    const tooltipWidth = 384 // w-96 = 384px
+    const tooltipHeight = 250 // altura aproximada
+    
+    // Decidir posición vertical
+    const vertical = spaceAbove > tooltipHeight + 20 || spaceAbove > spaceBelow ? 'top' : 'bottom'
+    
+    // Decidir posición horizontal
+    let horizontal: 'left' | 'center' | 'right' = 'center'
+    const halfWidth = tooltipWidth / 2
+    
+    if (spaceLeft < halfWidth) {
+      horizontal = 'left'
+    } else if (spaceRight < halfWidth) {
+      horizontal = 'right'
+    }
+    
+    setPosition({ vertical, horizontal })
     setIsVisible(true)
+  }
+
+  const getHorizontalClasses = () => {
+    switch (position.horizontal) {
+      case 'left':
+        return 'left-0'
+      case 'right':
+        return 'right-0'
+      default:
+        return 'left-1/2 transform -translate-x-1/2'
+    }
+  }
+
+  const getArrowClasses = () => {
+    let classes = 'absolute w-3 h-3 bg-gray-900 transform rotate-45 '
+    
+    if (position.vertical === 'top') {
+      classes += '-bottom-1.5 '
+    } else {
+      classes += '-top-1.5 '
+    }
+    
+    switch (position.horizontal) {
+      case 'left':
+        classes += 'left-4'
+        break
+      case 'right':
+        classes += 'right-4'
+        break
+      default:
+        classes += 'left-1/2 -translate-x-1/2'
+    }
+    
+    return classes
   }
 
   return (
@@ -59,13 +115,11 @@ function Tooltip({ children, content }: TooltipProps) {
       {isVisible && (
         <div className={`
           absolute z-50 w-96 p-4 bg-gray-900 text-white text-sm rounded-lg shadow-2xl 
-          left-1/2 transform -translate-x-1/2 pointer-events-none
-          ${position === 'top' ? 'bottom-full mb-2' : 'top-full mt-2'}
+          pointer-events-none
+          ${position.vertical === 'top' ? 'bottom-full mb-2' : 'top-full mt-2'}
+          ${getHorizontalClasses()}
         `}>
-          <div className={`
-            absolute w-3 h-3 bg-gray-900 transform rotate-45 left-1/2 -translate-x-1/2
-            ${position === 'top' ? '-bottom-1.5' : '-top-1.5'}
-          `}></div>
+          <div className={getArrowClasses()}></div>
           {content}
         </div>
       )}
