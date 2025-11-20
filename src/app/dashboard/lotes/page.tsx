@@ -1,7 +1,8 @@
 'use client';
 export const dynamic = "force-dynamic"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import useSWR from 'swr'
 import { EQUIVALENCIAS_UG } from '@/lib/ugCalculator'
@@ -33,14 +34,17 @@ interface TooltipProps {
 
 function Tooltip({ children, content }: TooltipProps) {
   const [isVisible, setIsVisible] = useState(false)
-  const [position, setPosition] = useState<{ vertical: 'top' | 'bottom', horizontal: 'left' | 'center' | 'right' }>({
+  const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 })
+  const [arrowPosition, setArrowPosition] = useState<{ vertical: 'top' | 'bottom', horizontal: 'left' | 'center' | 'right' }>({
     vertical: 'top',
     horizontal: 'center'
   })
+  const triggerRef = useRef<HTMLDivElement>(null)
 
-  const handleMouseEnter = (e: React.MouseEvent<HTMLDivElement>) => {
-    const element = e.currentTarget
-    const rect = element.getBoundingClientRect()
+  const handleMouseEnter = () => {
+    if (!triggerRef.current) return
+
+    const rect = triggerRef.current.getBoundingClientRect()
     
     // Espacio disponible en cada dirección
     const spaceAbove = rect.top
@@ -48,82 +52,87 @@ function Tooltip({ children, content }: TooltipProps) {
     const spaceLeft = rect.left
     const spaceRight = window.innerWidth - rect.right
     
-    // Tamaño aproximado del tooltip
+    // Tamaño del tooltip
     const tooltipWidth = 384 // w-96 = 384px
-    const tooltipHeight = 250 // altura aproximada
+    const tooltipHeight = 280 // altura aproximada
     
     // Decidir posición vertical
     const vertical = spaceAbove > tooltipHeight + 20 || spaceAbove > spaceBelow ? 'top' : 'bottom'
     
     // Decidir posición horizontal
     let horizontal: 'left' | 'center' | 'right' = 'center'
-    const halfWidth = tooltipWidth / 2
+    let left = rect.left + rect.width / 2 - tooltipWidth / 2
     
-    if (spaceLeft < halfWidth) {
+    if (left < 10) {
       horizontal = 'left'
-    } else if (spaceRight < halfWidth) {
+      left = rect.left
+    } else if (left + tooltipWidth > window.innerWidth - 10) {
       horizontal = 'right'
+      left = rect.right - tooltipWidth
     }
     
-    setPosition({ vertical, horizontal })
+    // Calcular top
+    const top = vertical === 'top' 
+      ? rect.top - tooltipHeight - 8
+      : rect.bottom + 8
+    
+    setTooltipPosition({ top, left })
+    setArrowPosition({ vertical, horizontal })
     setIsVisible(true)
-  }
-
-  const getHorizontalClasses = () => {
-    switch (position.horizontal) {
-      case 'left':
-        return 'left-0'
-      case 'right':
-        return 'right-0'
-      default:
-        return 'left-1/2 transform -translate-x-1/2'
-    }
   }
 
   const getArrowClasses = () => {
     let classes = 'absolute w-3 h-3 bg-gray-900 transform rotate-45 '
     
-    if (position.vertical === 'top') {
-      classes += '-bottom-1.5 '
+    if (arrowPosition.vertical === 'top') {
+      classes += 'bottom-[-6px] '
     } else {
-      classes += '-top-1.5 '
+      classes += 'top-[-6px] '
     }
     
-    switch (position.horizontal) {
+    switch (arrowPosition.horizontal) {
       case 'left':
-        classes += 'left-4'
-        break
+        if (!triggerRef.current) return classes + 'left-4'
+        const leftOffset = triggerRef.current.getBoundingClientRect().left - tooltipPosition.left + triggerRef.current.offsetWidth / 2
+        return classes + `left-[${Math.max(16, Math.min(leftOffset, 368))}px]`
       case 'right':
-        classes += 'right-4'
-        break
+        if (!triggerRef.current) return classes + 'right-4'
+        const rightOffset = tooltipPosition.left + 384 - triggerRef.current.getBoundingClientRect().right + triggerRef.current.offsetWidth / 2
+        return classes + `right-[${Math.max(16, Math.min(rightOffset, 368))}px]`
       default:
-        classes += 'left-1/2 -translate-x-1/2'
+        return classes + 'left-1/2 -translate-x-1/2'
     }
-    
-    return classes
   }
 
+  const tooltipContent = isVisible && (
+    <div 
+      style={{
+        position: 'fixed',
+        top: `${tooltipPosition.top}px`,
+        left: `${tooltipPosition.left}px`,
+        zIndex: 9999
+      }}
+      className="w-96 p-4 bg-gray-900 text-white text-sm rounded-lg shadow-2xl pointer-events-none"
+    >
+      <div className={getArrowClasses()}></div>
+      {content}
+    </div>
+  )
+
   return (
-    <div className="relative inline-block">
-      <div
+    <>
+      <div 
+        ref={triggerRef}
+        className="relative inline-block"
         onMouseEnter={handleMouseEnter}
         onMouseLeave={() => setIsVisible(false)}
-        className="cursor-help"
       >
-        {children}
-      </div>
-      {isVisible && (
-        <div className={`
-          absolute z-50 w-96 p-4 bg-gray-900 text-white text-sm rounded-lg shadow-2xl 
-          pointer-events-none
-          ${position.vertical === 'top' ? 'bottom-full mb-2' : 'top-full mt-2'}
-          ${getHorizontalClasses()}
-        `}>
-          <div className={getArrowClasses()}></div>
-          {content}
+        <div className="cursor-help">
+          {children}
         </div>
-      )}
-    </div>
+      </div>
+      {typeof window !== 'undefined' && createPortal(tooltipContent, document.body)}
+    </>
   )
 }
 
