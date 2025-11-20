@@ -291,16 +291,7 @@ useEffect(() => {
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
-                🌾 Cultivos
-              </button>
-              <button
-                onClick={() => setActiveTab('animales')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm transition ${
-                  activeTab === 'animales'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
+                
                 🐄 Animales
               </button>
               <button
@@ -311,6 +302,18 @@ useEffect(() => {
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
+                
+             🌾 Cultivos
+              </button>
+              <button
+                onClick={() => setActiveTab('animales')}
+                className={`py-4 px-1 border-b-2 font-medium text-sm transition ${
+                  activeTab === 'animales'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+
                 💰 Gastos
               </button>
             </nav>

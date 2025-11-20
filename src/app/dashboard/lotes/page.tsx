@@ -136,6 +136,7 @@ export default function LotesPage() {
       refreshInterval: 30000,
     }
   )
+  const [nombreCampo, setNombreCampo] = useState('')
 
   const [modalBorrado, setModalBorrado] = useState<{
     isOpen: boolean
@@ -217,8 +218,8 @@ export default function LotesPage() {
           <div className="text-center md:text-left space-y-1">
             <div className="flex items-center gap-3 flex-wrap justify-center md:justify-start">
               <h1 className="text-3xl font-bold text-gray-900 leading-tight">
-                Potreros en Rodazo
-              </h1>
+  {nombreCampo ? `Potreros en ${nombreCampo}` : 'Potreros'}
+</h1>
               
               {/* 🌾 CARGA GLOBAL DEL CAMPO */}
               {hayLotes && (() => {
@@ -274,8 +275,8 @@ const ugTotales = todosAnimales.reduce((total, animal) => {
           {!hayLotes ? (
             <div className="p-10 text-center">
               <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                Potreros en Rodazo
-              </h3>
+  {nombreCampo ? `Potreros en ${nombreCampo}` : 'Potreros'}
+</h3>
               <p className="text-gray-600 mb-8">
                 Ingresá los potreros de tu campo para empezar a usar la app.
               </p>
@@ -379,10 +380,12 @@ const ugTotales = todosAnimales.reduce((total, animal) => {
                               
                               {/* 🌾 CARGA UG/ha DEL POTRERO */}
                               {(() => {
-                                const ugTotales = lote.animalesLote.reduce((total, animal) => {
-                                  const equivalencia = EQUIVALENCIAS_UG[animal.categoria] || 0
-                                  return total + (animal.cantidad * equivalencia)
-                                }, 0)
+                                const ugTotales = lote.animalesLote
+  .filter(a => !['Padrillos', 'Yeguas', 'Caballos', 'Potrillos'].includes(a.categoria)) // ← EXCLUIR YEGUARIZOS
+  .reduce((total, animal) => {
+    const equivalencia = EQUIVALENCIAS_UG[animal.categoria] || 0
+    return total + (animal.cantidad * equivalencia)
+  }, 0)
                                 const cargaUG = lote.hectareas > 0 ? ugTotales / lote.hectareas : 0
                                 
                                 const color = 
