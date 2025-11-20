@@ -144,9 +144,9 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
       {/* MENÚ GIGANTE DE EVENTOS - Solo para ADMIN_GENERAL y COLABORADOR */}
       {menuOpen && !isContador && (
         <div 
-          className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40 flex justify-center items-start pt-10 p-4"
-          onClick={() => setMenuOpen(false)}
-        >
+  className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50 flex justify-center items-start pt-10 p-4"
+  onClick={() => setMenuOpen(false)}
+>
           <div 
             className="bg-white rounded-xl shadow-2xl p-8 max-w-5xl w-full relative"
             onClick={(e) => e.stopPropagation()}

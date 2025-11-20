@@ -279,7 +279,7 @@ useEffect(() => {
       {/* CONTENIDO PRINCIPAL */}
       <div className="flex-1 flex overflow-hidden">
         {/* MAPA */}
-        <div className="flex-1 relative">
+        <div className="flex-1 relative z-0">
           {lotes.length === 0 ? (
             <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
               <div className="text-center p-8">

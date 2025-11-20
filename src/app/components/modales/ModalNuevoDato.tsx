@@ -75,7 +75,7 @@ export default function ModalNuevoDato({
   }
 
   return (
-    <div className="fixed inset-0 backdrop-blur-md bg-white/30 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 backdrop-blur-md bg-white/30 flex items-center justify-center z-[60] p-4">
       <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         {tipo === 'lluvia' && <ModalLluvia onClose={onClose} onSuccess={handleSuccess} />}
         {tipo === 'helada' && <ModalHelada onClose={onClose} onSuccess={handleSuccess} />}
@@ -96,7 +96,7 @@ export default function ModalNuevoDato({
         {tipo === 'riego' && <ModalRiego onClose={onClose} onSuccess={handleSuccess} />}
         {tipo === 'refertilizacion' && <ModalRefertilizacion onClose={onClose} onSuccess={handleSuccess} />}
         {tipo === 'pulverizacion' && <ModalPulverizacion onClose={onClose} onSuccess={handleSuccess} />}
-        
+
         {tipo === 'recategorizacion' && (         
           <ModalRecategorizacion 
             isOpen={isOpen}
