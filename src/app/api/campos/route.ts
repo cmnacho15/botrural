@@ -83,7 +83,9 @@ export async function GET() {
         campo: {
           include: {
             lotes: true,
-            usuarios: { select: { id: true, name: true, email: true, role: true } },
+            usuarios: {
+              select: { id: true, name: true, email: true, role: true },
+            },
           },
         },
       },
@@ -101,6 +103,59 @@ export async function GET() {
     console.error("💥 Error obteniendo campo:", error);
     return NextResponse.json(
       { error: "Error interno al obtener campo", details: String(error) },
+      { status: 500 }
+    );
+  }
+}
+
+// 📝 PATCH → Actualizar nombre del campo
+export async function PATCH(req: Request) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+    }
+
+    const { nombre } = await req.json();
+
+    // Validar nombre
+    if (!nombre || nombre.trim().length < 2) {
+      return NextResponse.json(
+        { error: "El nombre del campo es requerido (mínimo 2 caracteres)" },
+        { status: 400 }
+      );
+    }
+
+    // Buscar usuario y su campo
+    const usuario = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { campoId: true },
+    });
+
+    if (!usuario?.campoId) {
+      return NextResponse.json(
+        { error: "El usuario no tiene un campo asociado" },
+        { status: 404 }
+      );
+    }
+
+    // Actualizar nombre del campo
+    const campoActualizado = await prisma.campo.update({
+      where: { id: usuario.campoId },
+      data: { nombre: nombre.trim() },
+    });
+
+    console.log(`✅ Campo actualizado: ${campoActualizado.nombre}`);
+
+    return NextResponse.json({
+      success: true,
+      message: "Nombre del campo actualizado correctamente ✅",
+      campo: campoActualizado,
+    });
+  } catch (error) {
+    console.error("💥 Error actualizando campo:", error);
+    return NextResponse.json(
+      { error: "Error interno al actualizar campo", details: String(error) },
       { status: 500 }
     );
   }

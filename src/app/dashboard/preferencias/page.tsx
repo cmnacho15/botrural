@@ -19,8 +19,11 @@ type CategoriaAnimal = {
 
 export default function PreferenciasPage() {
   const router = useRouter()
-  const [activeTab, setActiveTab] = useState<'cultivos' | 'animales' | 'gastos'>('cultivos')
-  
+  const [activeTab, setActiveTab] = useState<'campo' | 'cultivos' | 'animales' | 'gastos'>('campo')
+  // Estados de campo
+const [nombreCampo, setNombreCampo] = useState('')
+const [guardandoCampo, setGuardandoCampo] = useState(false)
+
   // Estados de cultivos
   const [cultivos, setCultivos] = useState<TipoCultivo[]>([])
   const [loadingCultivos, setLoadingCultivos] = useState(true)
@@ -39,6 +42,18 @@ export default function PreferenciasPage() {
   })
   const [savingAnimal, setSavingAnimal] = useState(false)
   const [categoriasEnUso, setCategoriasEnUso] = useState<Set<string>>(new Set())
+  
+  // Cargar nombre del campo
+useEffect(() => {
+  fetch('/api/campos')
+    .then(r => r.json())
+    .then(data => {
+      if (data.nombre) {
+        setNombreCampo(data.nombre)
+      }
+    })
+    .catch(err => console.error('Error cargando campo:', err))
+}, [])
 
   // Cargar cultivos al montar
   useEffect(() => {
@@ -258,8 +273,18 @@ export default function PreferenciasPage() {
         <div className="bg-white rounded-lg shadow-sm mb-6">
           <div className="border-b border-gray-200">
             <nav className="flex gap-8 px-6">
-              <button
-                onClick={() => setActiveTab('cultivos')}
+  <button
+    onClick={() => setActiveTab('campo')}
+    className={`py-4 px-1 border-b-2 font-medium text-sm transition ${
+      activeTab === 'campo'
+        ? 'border-blue-500 text-blue-600'
+        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+    }`}
+  >
+    🏡 Campo
+  </button>
+  <button
+    onClick={() => setActiveTab('cultivos')}
                 className={`py-4 px-1 border-b-2 font-medium text-sm transition ${
                   activeTab === 'cultivos'
                     ? 'border-blue-500 text-blue-600'
@@ -290,6 +315,69 @@ export default function PreferenciasPage() {
               </button>
             </nav>
           </div>
+          {/* CONTENIDO TAB CAMPO */}
+{activeTab === 'campo' && (
+  <div className="p-6">
+    <div className="flex justify-between items-center mb-6">
+      <div>
+        <h2 className="text-lg font-semibold text-gray-900">Configuración de Campo</h2>
+        <p className="text-sm text-gray-500">Actualizá la información básica de tu campo</p>
+      </div>
+    </div>
+
+    <div className="bg-white border border-gray-200 rounded-lg p-6 max-w-2xl">
+      <div className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Nombre del campo
+          </label>
+          <input
+            type="text"
+            value={nombreCampo}
+            onChange={(e) => setNombreCampo(e.target.value)}
+            placeholder="Ej: Estancia San Pedro"
+            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            Este nombre aparecerá en tus reportes y documentos
+          </p>
+        </div>
+
+        <button
+          onClick={async () => {
+            if (!nombreCampo.trim()) {
+              alert('El nombre del campo no puede estar vacío')
+              return
+            }
+
+            setGuardandoCampo(true)
+            try {
+              const response = await fetch('/api/campos', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nombre: nombreCampo.trim() })
+              })
+
+              if (response.ok) {
+                alert('¡Nombre del campo actualizado!')
+              } else {
+                alert('Error al actualizar el nombre')
+              }
+            } catch (error) {
+              alert('Error al actualizar el nombre')
+            } finally {
+              setGuardandoCampo(false)
+            }
+          }}
+          disabled={guardandoCampo}
+          className="w-full sm:w-auto px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition shadow-sm"
+        >
+          {guardandoCampo ? 'Guardando...' : 'Guardar cambios'}
+        </button>
+      </div>
+    </div>
+  </div>
+)}
 
           {/* CONTENIDO TAB CULTIVOS */}
           {activeTab === 'cultivos' && (
