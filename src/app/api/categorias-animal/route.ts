@@ -103,6 +103,8 @@ export async function POST(request: Request) {
     if (!nombreSingular || !nombrePlural || !tipoAnimal) {
       return NextResponse.json({ error: 'Campos requeridos' }, { status: 400 })
     }
+    
+    console.log('✅ Validación OK, creando categoría...')
 
     // Verificar si ya existe
     const existePersonalizado = await prisma.categoriaAnimal.findFirst({
@@ -133,7 +135,8 @@ export async function POST(request: Request) {
         esPredeterminado: false,
       },
     })
-
+    
+    console.log('✅ Categoría creada:', nuevaCategoria)
     return NextResponse.json(nuevaCategoria, { status: 201 })
   } catch (error) {
     console.error('Error creando categoría de animal:', error)
