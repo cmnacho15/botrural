@@ -163,39 +163,15 @@ const [sectorActivo, setSectorActivo] = useState<string | null>(null)
 
   const totalPendiente = proveedoresConPendientes.reduce((sum, [_, data]) => sum + data.pendiente, 0)
 
-  const datosPieChart = categoriaSeleccionada
-    ? (() => {
-        const totalCategoria = gastosData
-          .filter(g => g.tipo === 'GASTO' && g.categoria === categoriaSeleccionada)
-          .reduce((sum, g) => sum + g.monto, 0)
-
-        const totalResto = gastosData
-          .filter(g => g.tipo === 'GASTO' && g.categoria !== categoriaSeleccionada)
-          .reduce((sum, g) => sum + g.monto, 0)
-
-        return [
-          {
-            nombre: categoriaSeleccionada,
-            total: totalCategoria,
-            color: categorias.find(c => c.nombre === categoriaSeleccionada)?.color || '#3b82f6',
-            porcentaje: ((totalCategoria / totalGastos) * 100).toFixed(1)
-          },
-          {
-            nombre: 'Resto',
-            total: totalResto,
-            color: '#e5e7eb',
-            porcentaje: ((totalResto / totalGastos) * 100).toFixed(1)
-          }
-        ]
-      })()
-    : categoriasConDatos
-        .filter(c => c.total > 0)
-        .map(cat => ({
-          nombre: cat.nombre,
-          total: cat.total,
-          color: cat.color,
-          porcentaje: ((cat.total / totalGastos) * 100).toFixed(1)
-        }))
+  const datosPieChart = categoriasConDatos
+  .filter(c => c.total > 0)
+  .map(cat => ({
+    nombre: cat.nombre,
+    total: cat.total,
+    color: cat.color,
+    porcentaje: ((cat.total / totalGastos) * 100).toFixed(1),
+    isSelected: categoriaSeleccionada === cat.nombre
+  }))
 
   const datosBarChart = (() => {
     const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
@@ -578,16 +554,22 @@ const [sectorActivo, setSectorActivo] = useState<string | null>(null)
                         >
                           {datosPieChart.map((entry, index) => {
                             const isHovered = sectorHover === entry.nombre
-                            const isSelected = categoriaSeleccionada === entry.nombre
+                            const isSelected = entry.isSelected
                             const shouldHighlight = isHovered || isSelected
+                            
+                            // Si hay categoría seleccionada, apagar las demás
+                            let opacity = 1
+                            if (categoriaSeleccionada && !isSelected && !isHovered) {
+                              opacity = 0.25 // Apagado cuando hay selección
+                            } else if (sectorHover && !shouldHighlight) {
+                              opacity = 0.3 // Apagado en hover
+                            }
                             
                             return (
                               <Cell
                                 key={`cell-${index}`}
                                 fill={entry.color}
-                                opacity={
-                                  sectorHover === null || shouldHighlight ? 1 : 0.3
-                                }
+                                opacity={opacity}
                                 stroke={shouldHighlight ? '#ffffff' : 'none'}
                                 strokeWidth={shouldHighlight ? 4 : 0}
                                 style={{
@@ -724,16 +706,22 @@ const [sectorActivo, setSectorActivo] = useState<string | null>(null)
                         >
                           {datosPieChart.map((entry, index) => {
                             const isHovered = sectorHover === entry.nombre
-                            const isSelected = categoriaSeleccionada === entry.nombre
+                            const isSelected = entry.isSelected
                             const shouldHighlight = isHovered || isSelected
+                            
+                            // Si hay categoría seleccionada, apagar las demás
+                            let opacity = 1
+                            if (categoriaSeleccionada && !isSelected && !isHovered) {
+                              opacity = 0.25 // Apagado cuando hay selección
+                            } else if (sectorHover && !shouldHighlight) {
+                              opacity = 0.3 // Apagado en hover
+                            }
                             
                             return (
                               <Cell
                                 key={`cell-${index}`}
                                 fill={entry.color}
-                                opacity={
-                                  sectorHover === null || shouldHighlight ? 1 : 0.3
-                                }
+                                opacity={opacity}
                                 stroke={shouldHighlight ? '#ffffff' : 'none'}
                                 strokeWidth={shouldHighlight ? 3 : 0}
                                 style={{
@@ -744,6 +732,7 @@ const [sectorActivo, setSectorActivo] = useState<string | null>(null)
                               />
                             )
                           })}
+                          
                         </Pie>
                         <Tooltip content={<CustomTooltip />} />
                         <Legend
