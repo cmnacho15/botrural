@@ -378,7 +378,9 @@ export default function GastosPage() {
               {proveedoresCargados.length > 0 ? (
                 proveedoresCargados.map((prov) => {
                   const tienePendientes = estadoPagosPorProveedor[prov]?.pendiente > 0
-                  const gastosTotales = gastosData.filter(g => g.proveedor === prov).length
+                  const gastosTotales = gastosData.filter(g => 
+  g.proveedor?.trim().toLowerCase() === prov.trim().toLowerCase()
+).length
 
                   return (
                     <button

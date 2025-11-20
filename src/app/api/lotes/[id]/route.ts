@@ -186,7 +186,7 @@ export async function PUT(
           data: {
             tipo: 'AJUSTE',
             fecha: new Date(),
-            descripcion: `Se agregaron ${diferencia} ${categoria.toLowerCase()} al potrero "${nombre}" (ajuste positivo).`,
+            descripcion: `Se realizaron los siguientes ajustes en ${nombre}: ${diferencia} ${categoria} (ajuste positivo)`,
             campoId: usuario!.campoId!,
             loteId: id,
             usuarioId: session.user.id,
@@ -201,7 +201,7 @@ export async function PUT(
           data: {
             tipo: 'AJUSTE',
             fecha: new Date(),
-            descripcion: `Se eliminaron ${Math.abs(diferencia)} ${categoria.toLowerCase()} del potrero "${nombre}" (ajuste negativo - borrado manual).`,
+            descripcion: `Se realizaron los siguientes ajustes en ${nombre}: ${Math.abs(diferencia)} ${categoria} (ajuste negativo)`,
             campoId: usuario!.campoId!,
             loteId: id,
             usuarioId: session.user.id,
