@@ -283,40 +283,40 @@ useEffect(() => {
   >
     🏡 Campo
   </button>
+  
+  <button
+    onClick={() => setActiveTab('animales')}
+    className={`py-4 px-1 border-b-2 font-medium text-sm transition ${
+      activeTab === 'animales'
+        ? 'border-blue-500 text-blue-600'
+        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+    }`}
+  >
+    🐄 Animales
+  </button>
+  
   <button
     onClick={() => setActiveTab('cultivos')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm transition ${
-                  activeTab === 'cultivos'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                
-                🐄 Animales
-              </button>
-              <button
-                onClick={() => setActiveTab('gastos')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm transition ${
-                  activeTab === 'gastos'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                
-             🌾 Cultivos
-              </button>
-              <button
-                onClick={() => setActiveTab('animales')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm transition ${
-                  activeTab === 'animales'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-
-                💰 Gastos
-              </button>
-            </nav>
+    className={`py-4 px-1 border-b-2 font-medium text-sm transition ${
+      activeTab === 'cultivos'
+        ? 'border-blue-500 text-blue-600'
+        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+    }`}
+  >
+    🌾 Cultivos
+  </button>
+  
+  <button
+    onClick={() => setActiveTab('gastos')}
+    className={`py-4 px-1 border-b-2 font-medium text-sm transition ${
+      activeTab === 'gastos'
+        ? 'border-blue-500 text-blue-600'
+        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+    }`}
+  >
+    💰 Gastos
+  </button>
+</nav>
           </div>
           {/* CONTENIDO TAB CAMPO */}
 {activeTab === 'campo' && (

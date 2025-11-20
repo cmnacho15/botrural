@@ -166,7 +166,7 @@ model Evento {
   categoria       String?
   categoriaNueva  String?
   loteId          String?
-  usuarioId       String
+  usuarioId       String?     // ✅ AGREGAR "?" ACÁ
   campoId         String
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
@@ -182,10 +182,11 @@ model Evento {
   loteDestinoId   String?
   notas           String?
   intensidad      String?
+  
   animalLote      AnimalLote? @relation(fields: [animalLoteId], references: [id])
   campo           Campo       @relation(fields: [campoId], references: [id], onDelete: Cascade)
   lote            Lote?       @relation(fields: [loteId], references: [id])
-  usuario         User        @relation(fields: [usuarioId], references: [id])
+  usuario         User?       @relation(fields: [usuarioId], references: [id])  // ✅ AGREGAR "?" ACÁ TAMBIÉN
 }
 
 model Insumo {
