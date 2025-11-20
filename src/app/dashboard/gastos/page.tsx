@@ -194,8 +194,8 @@ export default function GastosPage() {
     ? categoriasConDatos
     : categoriasConDatos.slice(0, 9)
 
-  const totalGastos = gastosData.filter(g => g.tipo === 'GASTO').reduce((sum, g) => sum + g.monto, 0)
-  const totalIngresos = gastosData.filter(g => g.tipo === 'INGRESO').reduce((sum, g) => sum + g.monto, 0)
+  const totalGastos = gastosFiltrados.filter(g => g.tipo === 'GASTO').reduce((sum, g) => sum + g.monto, 0)
+  const totalIngresos = gastosFiltrados.filter(g => g.tipo === 'INGRESO').reduce((sum, g) => sum + g.monto, 0)
 
   // NUEVOS CÁLCULOS: Estado de pagos por proveedor
   const estadoPagosPorProveedor = gastosData
