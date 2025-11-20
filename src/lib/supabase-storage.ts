@@ -6,7 +6,7 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY! // Usa SERVICE_ROLE para bypass de RLS
 );
 
-const WHATSAPP_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN!;
+const WHATSAPP_TOKEN = process.env.WHATSAPP_TOKEN!;
 
 /**
  * Descarga imagen desde WhatsApp Media API
