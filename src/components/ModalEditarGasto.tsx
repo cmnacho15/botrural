@@ -36,7 +36,7 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
   const [notas, setNotas] = useState('')
   const [loading, setLoading] = useState(false)
   const [pagado, setPagado] = useState(gasto.pagado ?? true)
-  const [iva, setIva] = useState(gasto.iva || 22)
+  const [iva, setIva] = useState(gasto.iva ?? 22)
   const [item, setItem] = useState('')
   
   // 🆕 MONEDA Y CONVERSIÓN
@@ -48,10 +48,12 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
   const calcularPrecioBaseInicial = () => {
     // Si el gasto tiene montoOriginal, usarlo
     if (gasto.montoOriginal) {
-      return gasto.montoOriginal / (1 + (gasto.iva || 22) / 100)
+      const ivaActual = gasto.iva ?? 22
+      return gasto.montoOriginal / (1 + ivaActual / 100)
     }
     // Fallback: calcular desde monto
-    return gasto.monto / (1 + (gasto.iva || 22) / 100)
+    const ivaActual = gasto.iva ?? 22
+    return gasto.monto / (1 + ivaActual / 100)
   }
   
   const [precioBase, setPrecioBase] = useState(calcularPrecioBaseInicial())

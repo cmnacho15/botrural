@@ -62,10 +62,11 @@ export default function ModalEditarIngreso({ gasto, onClose, onSuccess }: ModalE
 
   // 🆕 CALCULAR PRECIO BASE INICIAL CORRECTAMENTE
   const calcularPrecioBaseInicial = () => {
+    const ivaActual = gasto.iva ?? 22
     if (gasto.montoOriginal) {
-      return gasto.montoOriginal / (1 + (gasto.iva || 22) / 100)
+      return gasto.montoOriginal / (1 + ivaActual / 100)
     }
-    return gasto.monto / (1 + (gasto.iva || 22) / 100)
+    return gasto.monto / (1 + ivaActual / 100)
   }
 
   const [items, setItems] = useState<ItemIngreso[]>([
@@ -73,7 +74,7 @@ export default function ModalEditarIngreso({ gasto, onClose, onSuccess }: ModalE
       id: '1',
       item: gasto.descripcion?.split(' - ')[0] || '',
       precio: calcularPrecioBaseInicial(),
-      iva: gasto.iva || 22,
+      iva: gasto.iva ?? 22,
       precioFinal: gasto.montoOriginal || gasto.monto,
     },
   ])
