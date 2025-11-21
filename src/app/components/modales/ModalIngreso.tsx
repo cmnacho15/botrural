@@ -48,8 +48,8 @@ export default function ModalIngreso({ onClose, onSuccess }: ModalIngresoProps) 
   const [animalesDisponibles, setAnimalesDisponibles] = useState<any[]>([])
 
   const [items, setItems] = useState<ItemIngreso[]>([
-    { id: '1', item: '', precio: 0, iva: 22, precioFinal: 0, tipoItem: 'manual' },
-  ])
+  { id: '1', item: '', precio: 0, iva: 0, precioFinal: 0, tipoItem: 'manual' },
+])
 
   // ✅ Cuando cambia a "Contado", marcar como pagado automáticamente
   useEffect(() => {
@@ -110,18 +110,18 @@ export default function ModalIngreso({ onClose, onSuccess }: ModalIngresoProps) 
   }
 
   const agregarItem = () => {
-    setItems((prev) => [
-      ...prev,
-      {
-        id: Date.now().toString(),
-        item: '',
-        precio: 0,
-        iva: 22,
-        precioFinal: 0,
-        tipoItem: 'manual',
-      },
-    ])
-  }
+  setItems((prev) => [
+    ...prev,
+    {
+      id: Date.now().toString(),
+      item: '',
+      precio: 0,
+      iva: 0,
+      precioFinal: 0,
+      tipoItem: 'manual',
+    },
+  ])
+}
 
   const eliminarItem = (id: string) => {
     if (items.length === 1) return
