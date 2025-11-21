@@ -139,44 +139,12 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
   for (let i = 0; i < items.length; i++) {
   const item = items[i]
 
-  // Crear fecha de manera más robusta
-  let fechaConHora
-  
-  try {
-    // Obtener fecha actual para comparar
-    const hoy = new Date()
-    const hoyStr = hoy.toISOString().split('T')[0] // "2025-11-21"
-    
-    // Si la fecha seleccionada es hoy
-    if (fecha === hoyStr) {
-      // Usar hora actual
-      fechaConHora = new Date()
-      fechaConHora.setSeconds(fechaConHora.getSeconds() + i)
-    } else {
-      // Usar mediodía en la fecha seleccionada
-      fechaConHora = new Date(fecha + 'T12:00:00.000Z')
-      fechaConHora.setSeconds(i) // Pequeña diferencia entre items
-    }
-    
-    // Validar que la fecha sea válida
-    if (isNaN(fechaConHora.getTime())) {
-      throw new Error('Fecha inválida')
-    }
-  } catch (error) {
-    console.error('Error creando fecha:', error)
-    alert('❌ Error con la fecha seleccionada. Por favor intentá nuevamente.')
-    setLoading(false)
-    return
-  }
-
-  console.log('📅 Fecha a enviar:', fechaConHora.toISOString()) // Para debug
-
   const response = await fetch('/api/eventos', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       tipo: 'GASTO',
-      fecha: fechaConHora.toISOString(),
+      fecha: fecha, // 👈 VOLVER A ESTO (solo la fecha, sin hora)
       descripcion: `${item.item}${notas ? ` - ${notas}` : ''}`,
       categoria: item.categoria,
       monto: item.precioFinal,
@@ -191,7 +159,7 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => null)
-    console.error('Error completo:', errorData)
+    console.error('Error response:', errorData)
     throw new Error(errorData?.error || 'Error al guardar')
   }
   
