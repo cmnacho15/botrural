@@ -194,25 +194,34 @@ export default function GastosPage() {
   }
 
   const getMontoVista = (g: Gasto): number => {
-    const baseUYU = getMontoBaseUYU(g)
+  // monto base en UYU (montoEnUYU viene del backend)
+  const montoUYU = g.montoEnUYU ?? g.monto ?? 0;
 
-    if (moneda === 'UYU') {
-      return baseUYU
-    }
+  // quitar IVA si corresponde
+  const baseUYU = iva === 'sin' && g.iva && g.iva > 0
+    ? montoUYU / (1 + g.iva / 100)
+    : montoUYU;
 
-    // Vista en USD
-    if (g.moneda === 'USD' && typeof g.montoOriginal === 'number') {
-      if (iva === 'sin' && g.iva && g.iva > 0) {
-        const factor = 1 + g.iva / 100
-        return g.montoOriginal / factor
-      }
-      return g.montoOriginal
-    }
-
-    // Gasto original en UYU → aproximamos a USD con tasaCambio o 40 por defecto
-    const tasa = g.tasaCambio && g.tasaCambio > 0 ? g.tasaCambio : 40
-    return baseUYU / tasa
+  // Si estamos viendo en UYU → retornar base
+  if (moneda === 'UYU') {
+    return baseUYU;
   }
+
+  // Si estamos viendo en USD:
+  if (g.moneda === 'USD') {
+    let baseUSD = g.montoOriginal ?? g.monto ?? 0;
+
+    if (iva === 'sin' && g.iva && g.iva > 0) {
+      baseUSD = baseUSD / (1 + g.iva / 100);
+    }
+
+    return baseUSD;
+  }
+
+  // Gasto creado en UYU → convertir a USD
+  const tasa = g.tasaCambio && g.tasaCambio > 0 ? g.tasaCambio : 40;
+  return baseUYU / tasa;
+}
 
   const gastosFiltrados = gastosData.filter((g) => {
     const coincideCategoria = categoriaSeleccionada ? g.categoria === categoriaSeleccionada : true
