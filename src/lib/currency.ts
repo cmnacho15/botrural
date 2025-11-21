@@ -26,3 +26,32 @@ export async function getUSDToUYU(): Promise<number> {
     return 40; // fallback razonable
   }
 }
+
+// ---------------------------------------------------------------------------
+// 🔥 Conversión según moneda ingresada (USD o UYU)
+// ---------------------------------------------------------------------------
+
+/**
+ * Convierte un monto a UYU dependiendo de la moneda.
+ * Si es USD → convierte usando la cotización actual.
+ * Si es UYU → retorna el mismo monto.
+ */
+export async function convertirAUYU(monto: number, moneda: string): Promise<number> {
+  if (moneda === "USD") {
+    const tasa = await getUSDToUYU();
+    return monto * tasa;
+  }
+  return monto;
+}
+
+/**
+ * Retorna la tasa de cambio usada para el registro.
+ * Si es USD → retorna la cotización.
+ * Si es UYU → retorna null.
+ */
+export async function obtenerTasaCambio(moneda: string): Promise<number | null> {
+  if (moneda === "USD") {
+    return await getUSDToUYU();
+  }
+  return null;
+}

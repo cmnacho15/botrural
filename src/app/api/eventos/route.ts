@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../auth/[...nextauth]/route";
+import { convertirAUYU, obtenerTasaCambio } from '@/lib/currency'
 
 // Función para combinar fecha del usuario con hora actual
 function crearFechaConHoraActual(fechaUsuario: string | undefined): Date {
@@ -96,23 +97,32 @@ export async function POST(request: Request) {
         });
 
         if (monto && parseFloat(monto) > 0) {
-          await prisma.gasto.create({
-            data: {
-              tipo: "GASTO",
-              monto: parseFloat(monto),
-              fecha: crearFechaConHoraActual(fecha),
-              descripcion: descripcion || `Gasto en ${categoria}`,
-              categoria: categoria || "Otros",
-              metodoPago: metodoPago || "Contado",
-              iva: iva !== undefined ? parseFloat(String(iva)) : null,
-              proveedor: proveedor ? proveedor.trim().toLowerCase() : null,
-              comprador: null,
-              diasPlazo: metodoPago === "Plazo" ? parseInt(diasPlazo || "0") : null,
-              pagado: metodoPago === "Contado" ? true : pagado ?? false,
-              campoId: usuario.campoId,
-              loteId: loteId || null,
-            },
-          });
+          const montoFloat = parseFloat(monto);
+const monedaGasto = body.moneda || 'UYU'; // Obtener del body
+const montoEnUYU = await convertirAUYU(montoFloat, monedaGasto);
+const tasaCambio = await obtenerTasaCambio(monedaGasto);
+
+await prisma.gasto.create({
+  data: {
+    tipo: "GASTO",
+    monto: montoFloat,
+    montoOriginal: montoFloat,
+    moneda: monedaGasto,
+    montoEnUYU,
+    tasaCambio,
+    fecha: crearFechaConHoraActual(fecha),
+    descripcion: descripcion || `Gasto en ${categoria}`,
+    categoria: categoria || "Otros",
+    metodoPago: metodoPago || "Contado",
+    iva: iva !== undefined ? parseFloat(String(iva)) : null,
+    proveedor: proveedor ? proveedor.trim().toLowerCase() : null,
+    comprador: null,
+    diasPlazo: metodoPago === "Plazo" ? parseInt(diasPlazo || "0") : null,
+    pagado: metodoPago === "Contado" ? true : pagado ?? false,
+    campoId: usuario.campoId,
+    loteId: loteId || null,
+  },
+});
         }
         break;
 
@@ -145,23 +155,32 @@ export async function POST(request: Request) {
         }
 
         if (monto && parseFloat(monto) > 0) {
-          await prisma.gasto.create({
-            data: {
-              tipo: "INGRESO",
-              monto: parseFloat(monto),
-              fecha: crearFechaConHoraActual(fecha),
-              descripcion: descripcion || `Venta de ${categoria}`,
-              categoria: categoria || "Otros",
-              metodoPago: metodoPago || "Contado",
-              iva: iva !== undefined ? parseFloat(String(iva)) : null,
-              comprador: comprador ? comprador.trim().toLowerCase() : null,
-              proveedor: null,
-              diasPlazo: metodoPago === "Plazo" ? parseInt(diasPlazo || "0") : null,
-              pagado: metodoPago === "Contado" ? true : pagado ?? false,
-              campoId: usuario.campoId,
-              loteId: loteId || null,
-            },
-          });
+          const montoFloat = parseFloat(monto);
+const monedaGasto = body.moneda || 'UYU'; // Obtener del body
+const montoEnUYU = await convertirAUYU(montoFloat, monedaGasto);
+const tasaCambio = await obtenerTasaCambio(monedaGasto);
+
+await prisma.gasto.create({
+  data: {
+    tipo: "GASTO",
+    monto: montoFloat,
+    montoOriginal: montoFloat,
+    moneda: monedaGasto,
+    montoEnUYU,
+    tasaCambio,
+    fecha: crearFechaConHoraActual(fecha),
+    descripcion: descripcion || `Gasto en ${categoria}`,
+    categoria: categoria || "Otros",
+    metodoPago: metodoPago || "Contado",
+    iva: iva !== undefined ? parseFloat(String(iva)) : null,
+    proveedor: proveedor ? proveedor.trim().toLowerCase() : null,
+    comprador: null,
+    diasPlazo: metodoPago === "Plazo" ? parseInt(diasPlazo || "0") : null,
+    pagado: metodoPago === "Contado" ? true : pagado ?? false,
+    campoId: usuario.campoId,
+    loteId: loteId || null,
+  },
+});
         }
         break;
 
@@ -229,23 +248,33 @@ export async function POST(request: Request) {
         });
 
         if (monto && parseFloat(monto) > 0) {
-          await prisma.gasto.create({
-            data: {
-              tipo: "GASTO",
-              monto: parseFloat(monto),
-              fecha: crearFechaConHoraActual(fecha),
-              descripcion: `Compra de ${insumo.nombre}`,
-              categoria: "Insumos",
-              metodoPago: metodoPago || "Contado",
-              iva: iva !== undefined ? parseFloat(String(iva)) : null,
-              proveedor: proveedor ? proveedor.trim().toLowerCase() : null,
-              comprador: null,
-              diasPlazo: metodoPago === "Plazo" ? parseInt(diasPlazo || "0") : null,
-              pagado: metodoPago === "Contado" ? true : pagado ?? false,
-              campoId: usuario.campoId,
-              loteId: loteId || null,
-            },
-          });
+          const montoFloat = parseFloat(monto);
+const monedaGasto = body.moneda || 'UYU'; // Obtener del body
+
+const montoEnUYU = await convertirAUYU(montoFloat, monedaGasto);
+const tasaCambio = await obtenerTasaCambio(monedaGasto);
+
+await prisma.gasto.create({
+  data: {
+    tipo: "GASTO",
+    monto: montoFloat,
+    montoOriginal: montoFloat,
+    moneda: monedaGasto,
+    montoEnUYU,
+    tasaCambio,
+    fecha: crearFechaConHoraActual(fecha),
+    descripcion: descripcion || `Gasto en ${categoria}`,
+    categoria: categoria || "Otros",
+    metodoPago: metodoPago || "Contado",
+    iva: iva !== undefined ? parseFloat(String(iva)) : null,
+    proveedor: proveedor ? proveedor.trim().toLowerCase() : null,
+    comprador: null,
+    diasPlazo: metodoPago === "Plazo" ? parseInt(diasPlazo || "0") : null,
+    pagado: metodoPago === "Contado" ? true : pagado ?? false,
+    campoId: usuario.campoId,
+    loteId: loteId || null,
+  },
+});
         }
 
         break;
@@ -339,23 +368,32 @@ case "COSECHA": {
 
   // ✅ Si hay un monto de venta, crear el ingreso financiero
   if (monto && parseFloat(monto) > 0) {
-    await prisma.gasto.create({
-      data: {
-        tipo: "INGRESO",
-        monto: parseFloat(monto),
-        fecha: crearFechaConHoraActual(fecha),
-        descripcion: descripcion || `Cosecha de ${tipoCultivo}`,
-        categoria: categoria || "Cosecha",
-        metodoPago: metodoPago || "Contado",
-        iva: iva !== undefined ? parseFloat(String(iva)) : null,
-        comprador: comprador ? comprador.trim().toLowerCase() : null,
-        proveedor: null,
-        diasPlazo: metodoPago === "Plazo" ? parseInt(diasPlazo || "0") : null,
-        pagado: metodoPago === "Contado" ? true : pagado ?? false,
-        campoId: usuario.campoId,
-        loteId: loteId || null,
-      },
-    });
+    const montoFloat = parseFloat(monto);
+const monedaGasto = body.moneda || 'UYU'; // Obtener del body
+const montoEnUYU = await convertirAUYU(montoFloat, monedaGasto);
+const tasaCambio = await obtenerTasaCambio(monedaGasto);
+
+await prisma.gasto.create({
+  data: {
+    tipo: "GASTO",
+    monto: montoFloat,
+    montoOriginal: montoFloat,
+    moneda: monedaGasto,
+    montoEnUYU,
+    tasaCambio,
+    fecha: crearFechaConHoraActual(fecha),
+    descripcion: descripcion || `Gasto en ${categoria}`,
+    categoria: categoria || "Otros",
+    metodoPago: metodoPago || "Contado",
+    iva: iva !== undefined ? parseFloat(String(iva)) : null,
+    proveedor: proveedor ? proveedor.trim().toLowerCase() : null,
+    comprador: null,
+    diasPlazo: metodoPago === "Plazo" ? parseInt(diasPlazo || "0") : null,
+    pagado: metodoPago === "Contado" ? true : pagado ?? false,
+    campoId: usuario.campoId,
+    loteId: loteId || null,
+  },
+});
   }
 
   break;
@@ -475,23 +513,32 @@ case "COSECHA": {
         }
 
         if (monto && parseFloat(monto) > 0) {
-          await prisma.gasto.create({
-            data: {
-              tipo: "GASTO",
-              monto: parseFloat(monto),
-              fecha: crearFechaConHoraActual(fecha),
-              descripcion: descripcion || `Compra de ${categoria}`,
-              categoria: categoria || "Otros",
-              metodoPago: metodoPago || "Contado",
-              iva: iva !== undefined ? parseFloat(String(iva)) : null,
-              proveedor: proveedor ? proveedor.trim().toLowerCase() : null,
-              comprador: null,
-              diasPlazo: metodoPago === "Plazo" ? parseInt(diasPlazo || "0") : null,
-              pagado: metodoPago === "Contado" ? true : pagado ?? false,
-              campoId: usuario.campoId,
-              loteId: loteId || null,
-            },
-          });
+          const montoFloat = parseFloat(monto);
+const monedaGasto = body.moneda || 'UYU'; // Obtener del body
+const montoEnUYU = await convertirAUYU(montoFloat, monedaGasto);
+const tasaCambio = await obtenerTasaCambio(monedaGasto);
+
+await prisma.gasto.create({
+  data: {
+    tipo: "GASTO",
+    monto: montoFloat,
+    montoOriginal: montoFloat,
+    moneda: monedaGasto,
+    montoEnUYU,
+    tasaCambio,
+    fecha: crearFechaConHoraActual(fecha),
+    descripcion: descripcion || `Gasto en ${categoria}`,
+    categoria: categoria || "Otros",
+    metodoPago: metodoPago || "Contado",
+    iva: iva !== undefined ? parseFloat(String(iva)) : null,
+    proveedor: proveedor ? proveedor.trim().toLowerCase() : null,
+    comprador: null,
+    diasPlazo: metodoPago === "Plazo" ? parseInt(diasPlazo || "0") : null,
+    pagado: metodoPago === "Contado" ? true : pagado ?? false,
+    campoId: usuario.campoId,
+    loteId: loteId || null,
+  },
+});
         }
         break;
 
@@ -612,23 +659,33 @@ case "COSECHA": {
         });
 
         if (monto && parseFloat(monto) > 0) {
-          await prisma.gasto.create({
-            data: {
-              tipo: "INGRESO",
-              monto: parseFloat(monto),
-              fecha: crearFechaConHoraActual(fecha),
-              descripcion: descripcion || "Ingreso",
-              categoria: categoria || "Otros",
-              metodoPago: metodoPago || "Contado",
-              iva: iva !== undefined ? parseFloat(String(iva)) : null,
-              comprador: comprador ? comprador.trim().toLowerCase() : null,
-              proveedor: null,
-              diasPlazo: metodoPago === "Plazo" ? parseInt(diasPlazo || "0") : null,
-              pagado: metodoPago === "Contado" ? true : pagado ?? false,
-              campoId: usuario.campoId,
-              loteId: loteId || null,
-            },
-          });
+          const montoFloat = parseFloat(monto);
+const monedaGasto = body.moneda || 'UYU'; // Obtener del body
+
+const montoEnUYU = await convertirAUYU(montoFloat, monedaGasto);
+const tasaCambio = await obtenerTasaCambio(monedaGasto);
+
+await prisma.gasto.create({
+  data: {
+    tipo: "GASTO",
+    monto: montoFloat,
+    montoOriginal: montoFloat,
+    montoEnUYU,
+    tasaCambio,
+    moneda: monedaGasto,
+    fecha: crearFechaConHoraActual(fecha),
+    descripcion: descripcion || `Gasto en ${categoria}`,
+    categoria: categoria || "Otros",
+    metodoPago: metodoPago || "Contado",
+    iva: iva !== undefined ? parseFloat(String(iva)) : null,
+    proveedor: proveedor ? proveedor.trim().toLowerCase() : null,
+    comprador: null,
+    diasPlazo: metodoPago === "Plazo" ? parseInt(diasPlazo || "0") : null,
+    pagado: metodoPago === "Contado" ? true : pagado ?? false,
+    campoId: usuario.campoId,
+    loteId: loteId || null,
+  },
+});
         }
         break;
 

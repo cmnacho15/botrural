@@ -2,8 +2,11 @@ import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
+import { convertirAUYU, obtenerTasaCambio } from '@/lib/currency'
 
-// ✅ GET - Obtener solo INGRESOS del usuario autenticado
+// ===========================================================
+// GET - Obtener INGRESOS del usuario autenticado
+// ===========================================================
 export async function GET(request: Request) {
   try {
     const session = await getServerSession(authOptions)
@@ -48,7 +51,9 @@ export async function GET(request: Request) {
   }
 }
 
-// ✅ POST - Crear nuevo INGRESO
+// ===========================================================
+// POST - Crear nuevo INGRESO
+// ===========================================================
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions)
@@ -81,11 +86,24 @@ export async function POST(request: Request) {
       diasPlazo,
       pagado,
       loteId,
-      animalLoteId, // ✅ NUEVO
-      cantidadVendida, // ✅ NUEVO
+      animalLoteId,
+      cantidadVendida,
+      moneda, // viene del frontend
     } = body
 
-    // ✅ VALIDAR SI ES VENTA DE ANIMAL
+    // -----------------------------------------------------
+    // 💰 CONVERSIÓN DE MONEDA (ASYNC)
+    // -----------------------------------------------------
+    const montoFloat = parseFloat(monto)
+    const monedaIngreso = moneda || 'UYU'
+
+    // 🔥 ESTO ES LO QUE EVITA EL ERROR EN data:
+    const montoEnUYU = await convertirAUYU(montoFloat, monedaIngreso)
+    const tasaCambio = await obtenerTasaCambio(monedaIngreso)
+
+    // -----------------------------------------------------
+    // 🐄 VALIDAR Y ACTUALIZAR STOCK DE VENTA DE ANIMAL
+    // -----------------------------------------------------
     if (animalLoteId && cantidadVendida) {
       const animalLote = await prisma.animalLote.findUnique({
         where: { id: animalLoteId },
@@ -107,7 +125,7 @@ export async function POST(request: Request) {
         )
       }
 
-      // ✅ ACTUALIZAR STOCK
+      // Actualizar stock
       await prisma.animalLote.update({
         where: { id: animalLoteId },
         data: {
@@ -116,7 +134,7 @@ export async function POST(request: Request) {
       })
 
       console.log(
-        `✅ Stock actualizado: ${animalLote.categoria} - Nuevo stock: ${
+        `✅ Stock actualizado. Nuevo stock: ${
           animalLote.cantidad - cantidadVendida
         }`
       )
@@ -126,27 +144,43 @@ export async function POST(request: Request) {
       ? comprador.trim().toLowerCase()
       : null
 
+    // -----------------------------------------------------
+    // 🧱 DATA FINAL PARA CREAR INGRESO (SIN PROMISES)
+    // -----------------------------------------------------
     const dataToCreate = {
-  tipo: 'INGRESO',
-  monto: parseFloat(monto),
-  fecha: new Date(fecha),
-  descripcion,
-  categoria: categoria || 'Otros',
-  comprador: compradorNormalizado,
-  proveedor: null,
-  metodoPago: metodoPago || 'Contado',
-  diasPlazo: diasPlazo ? parseInt(diasPlazo) : null,
-  pagado: pagado ?? (metodoPago === 'Contado' ? true : false),
-  iva: iva ? parseFloat(iva) : null,
-  campoId: usuario.campoId,
-  loteId: loteId || null,
-  // ✅ AGREGAR ESTAS 2 LÍNEAS:
-  animalLoteId: animalLoteId || null,
-  cantidadVendida: cantidadVendida || null,
-}
+      tipo: 'INGRESO',
+
+      // 💰 Campos obligatorios nuevos
+      monto: montoFloat,
+      montoOriginal: montoFloat,
+      moneda: monedaIngreso,
+      montoEnUYU: montoEnUYU,
+      tasaCambio: tasaCambio,
+
+      fecha: new Date(fecha),
+      descripcion,
+      categoria: categoria || 'Otros',
+
+      comprador: compradorNormalizado,
+      proveedor: null,
+      metodoPago: metodoPago || 'Contado',
+      diasPlazo: diasPlazo ? parseInt(diasPlazo) : null,
+      pagado: pagado ?? (metodoPago === 'Contado' ? true : false),
+      iva: iva ? parseFloat(iva) : null,
+
+      campoId: usuario.campoId,
+      loteId: loteId || null,
+
+      // 🐄 Venta de animales
+      animalLoteId: animalLoteId || null,
+      cantidadVendida: cantidadVendida || null,
+    }
 
     console.log('📤 Data a crear:', dataToCreate)
 
+    // -----------------------------------------------------
+    // 📌 CREAR INGRESO EN BASE DE DATOS
+    // -----------------------------------------------------
     const ingreso = await prisma.gasto.create({
       data: dataToCreate,
       include: { lote: true },
