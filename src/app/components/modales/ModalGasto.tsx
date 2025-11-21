@@ -137,66 +137,69 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
 
   try {
   for (let i = 0; i < items.length; i++) {
-    const item = items[i]
+  const item = items[i]
 
-    // Si la fecha seleccionada es HOY, usar hora actual
-    const fechaSeleccionada = new Date(fecha + 'T00:00:00')
+  // Crear fecha de manera más robusta
+  let fechaConHora
+  
+  try {
+    // Obtener fecha actual para comparar
     const hoy = new Date()
-    hoy.setHours(0, 0, 0, 0)
+    const hoyStr = hoy.toISOString().split('T')[0] // "2025-11-21"
     
-    let fechaConHora
-    if (fechaSeleccionada.getTime() === hoy.getTime()) {
-      // Es hoy: usar hora actual + segundos incrementales
+    // Si la fecha seleccionada es hoy
+    if (fecha === hoyStr) {
+      // Usar hora actual
       fechaConHora = new Date()
       fechaConHora.setSeconds(fechaConHora.getSeconds() + i)
     } else {
-      // Es otra fecha: usar mediodía
-      const [year, month, day] = fecha.split('-')
-      fechaConHora = new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), 12, 0, i))
+      // Usar mediodía en la fecha seleccionada
+      fechaConHora = new Date(fecha + 'T12:00:00.000Z')
+      fechaConHora.setSeconds(i) // Pequeña diferencia entre items
     }
-    console.log('📤 Enviando gasto:', {
-  tipo: 'GASTO',
-  fecha: fechaConHora.toISOString(),
-  descripcion: `${item.item}${notas ? ` - ${notas}` : ''}`,
-  categoria: item.categoria,
-  monto: item.precioFinal,
-  moneda: moneda,
-  metodoPago: esPlazo ? 'Plazo' : 'Contado',
-  iva: item.iva,
-  diasPlazo: esPlazo ? diasPlazo : null,
-  pagado: esPlazo ? pagado : true,
-  proveedor: proveedor.trim() || null,
-})
+    
+    // Validar que la fecha sea válida
+    if (isNaN(fechaConHora.getTime())) {
+      throw new Error('Fecha inválida')
+    }
+  } catch (error) {
+    console.error('Error creando fecha:', error)
+    alert('❌ Error con la fecha seleccionada. Por favor intentá nuevamente.')
+    setLoading(false)
+    return
+  }
 
-    const response = await fetch('/api/eventos', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        tipo: 'GASTO',
-        fecha: fechaConHora.toISOString(),
-          descripcion: `${item.item}${notas ? ` - ${notas}` : ''}`,
-          categoria: item.categoria,
-          monto: item.precioFinal,
-          moneda: moneda, // ✅ AGREGAR ESTA LÍNEA
-          metodoPago: esPlazo ? 'Plazo' : 'Contado',
-          iva: item.iva,
-          diasPlazo: esPlazo ? diasPlazo : null,
-          pagado: esPlazo ? pagado : true,
-          proveedor: proveedor.trim() || null,
-        }),
-      })
+  console.log('📅 Fecha a enviar:', fechaConHora.toISOString()) // Para debug
 
-      if (!response.ok) {
-  const errorData = await response.json().catch(() => null)
-  console.error('Error completo:', errorData)
-  throw new Error(errorData?.error || errorData?.message || 'Error al guardar')
+  const response = await fetch('/api/eventos', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      tipo: 'GASTO',
+      fecha: fechaConHora.toISOString(),
+      descripcion: `${item.item}${notas ? ` - ${notas}` : ''}`,
+      categoria: item.categoria,
+      monto: item.precioFinal,
+      moneda: moneda,
+      metodoPago: esPlazo ? 'Plazo' : 'Contado',
+      iva: item.iva,
+      diasPlazo: esPlazo ? diasPlazo : null,
+      pagado: esPlazo ? pagado : true,
+      proveedor: proveedor.trim() || null,
+    }),
+  })
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null)
+    console.error('Error completo:', errorData)
+    throw new Error(errorData?.error || 'Error al guardar')
+  }
+  
+  // ⏱️ Pequeña pausa entre items
+  if (i < items.length - 1) {
+    await new Promise(resolve => setTimeout(resolve, 100))
+  }
 }
-      
-      // ⏱️ Pequeña pausa entre items para que tengan timestamps diferentes
-      if (i < items.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, 100))
-      }
-    }
 
     onSuccess()
     onClose()
