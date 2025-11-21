@@ -280,15 +280,16 @@ export default function GastosPage() {
 
   const totalPendiente = proveedoresConPendientes.reduce((sum, [_, data]) => sum + data.pendiente, 0)
 
-  const datosPieChart = categoriasConDatos
-    .filter((c) => c.total > 0)
-    .map((cat) => ({
-      nombre: cat.nombre,
-      total: cat.total,
-      color: cat.color,
-      porcentaje: totalGastos > 0 ? ((cat.total / totalGastos) * 100).toFixed(1) : '0.0',
-      isSelected: categoriaSeleccionada === cat.nombre,
-    }))
+  // ✅ DESPUÉS (mantiene todas las categorías)
+const datosPieChart = categoriasConDatos
+  .filter((c) => c.total > 0 || categoriaSeleccionada === c.nombre)  // 👈 Incluye la seleccionada aunque tenga 0
+  .map((cat) => ({
+    nombre: cat.nombre,
+    total: cat.total,
+    color: cat.color,
+    porcentaje: totalGastos > 0 ? ((cat.total / totalGastos) * 100).toFixed(1) : '0.0',
+    isSelected: categoriaSeleccionada === cat.nombre,
+  }))
 
   const datosBarChart = (() => {
     const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
