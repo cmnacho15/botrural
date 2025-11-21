@@ -509,11 +509,11 @@ export default function ModalIngreso({ onClose, onSuccess }: ModalIngresoProps) 
 
       {/* TOTAL */}
       <div className="mb-6 p-4 bg-green-50 border-2 border-green-500 rounded-xl flex justify-between items-center">
-        <span className="font-semibold text-gray-900 text-lg">💰 Monto Total</span>
-        <span className="text-3xl font-bold text-green-600">
-          ${montoTotal.toFixed(2)}
-        </span>
-      </div>
+  <span className="font-semibold text-gray-900 text-lg">💰 Monto Total</span>
+  <span className="text-3xl font-bold text-green-600">
+    ${montoTotal.toFixed(2)} {moneda}
+  </span>
+</div>
 
       {/* NOTAS */}
       <div className="mb-6">
