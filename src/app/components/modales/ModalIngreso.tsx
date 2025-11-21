@@ -154,27 +154,41 @@ export default function ModalIngreso({ onClose, onSuccess }: ModalIngresoProps) 
         const fechaConHora = new Date(baseDate)
         fechaConHora.setSeconds(i)
 
-        const response = await fetch('/api/ingresos', {
+        const precioFinal = item.precioFinal; // total con IVA en la moneda seleccionada
+const montoOriginal = precioFinal; // lo que ingresó el usuario (USD o UYU)
+
+const montoEnUYU =
+  moneda === "USD"
+    ? precioFinal * tasa       // convertir USD → UYU
+    : precioFinal;             // ya está en pesos
+
+const tasaCambioFinal = moneda === "USD" ? tasa : null;
+
+const response = await fetch('/api/ingresos', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
     fecha: fechaConHora.toISOString(),
     descripcion: `${item.item}${notas ? ` - ${notas}` : ''}`,
     categoria: 'Otros',
-    monto: moneda === "USD" ? item.precioFinal * tasa : item.precioFinal,
-    montoOriginal: item.precioFinal,
-    moneda: moneda,
-    tasaCambio: moneda === "USD" ? tasa : null,
-    montoEnUYU: moneda === "USD" ? item.precioFinal * tasa : item.precioFinal,
+
+    // 💰 VALORES CORREGIDOS
+    monto: montoEnUYU,          // SIEMPRE en UYU (para dashboard)
+    montoOriginal,              // en la moneda del usuario
+    moneda,                     // "USD" o "UYU"
+    tasaCambio: tasaCambioFinal,
+    montoEnUYU,                 // igual al monto
+
     iva: item.iva,
     comprador: comprador ? comprador.trim() : null,
     metodoPago,
     diasPlazo: metodoPago === 'Plazo' ? diasPlazo : null,
     pagado: metodoPago === 'Contado' ? true : pagado,
+
     animalLoteId: item.tipoItem === 'animal' ? item.animalLoteId : null,
     cantidadVendida: item.tipoItem === 'animal' ? item.cantidad : null,
   }),
-})
+});
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => null)
