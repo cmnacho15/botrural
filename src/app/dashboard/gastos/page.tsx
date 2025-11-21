@@ -981,22 +981,49 @@ const datosPieChart = categoriasConDatos
 
                       {/* MONTO */}
 <td className="px-4 sm:px-6 py-3">
-  <div
-    className={`font-semibold ${
-      esIngreso
-        ? "text-green-600"
-        : esGasto
-        ? "text-red-600"
-        : "text-gray-600"
-    }`}
-  >
-    {esIngreso ? "+" : "-"}
-    {t.monto.toFixed(0)}
-  </div>
+  {(() => {
+    const g = t.gastoCompleto;
+    let montoMostrar = 0;
 
-  <div className="text-xs text-gray-500">
-    {moneda}
-  </div>
+    if (moneda === "UYU") {
+      // Mostrar siempre en UYU
+      montoMostrar = g.montoEnUYU ?? g.monto ?? 0;
+    } else {
+      // Mostrar en USD
+      if (g.moneda === "USD") {
+        // Gasto creado en USD → usar montoOriginal
+        montoMostrar = g.montoOriginal ?? g.monto ?? 0;
+      } else {
+        // Gasto creado en UYU → convertir a USD
+        const tasa = g.tasaCambio && g.tasaCambio > 0 ? g.tasaCambio : 40;
+        montoMostrar = (g.montoOriginal ?? g.monto ?? 0) / tasa;
+      }
+    }
+
+    const esIngreso = g.tipo === "INGRESO";
+    const esGasto = g.tipo === "GASTO";
+
+    return (
+      <>
+        <div
+          className={`font-semibold ${
+            esIngreso
+              ? "text-green-600"
+              : esGasto
+              ? "text-red-600"
+              : "text-gray-600"
+          }`}
+        >
+          {esIngreso ? "+" : "-"}
+          {montoMostrar.toFixed(0)}
+        </div>
+
+        <div className="text-xs text-gray-500">
+          {moneda}
+        </div>
+      </>
+    );
+  })()}
 </td>
 
                       {/* ÍTEM */}
@@ -1121,20 +1148,65 @@ const datosPieChart = categoriasConDatos
           </div>
 
           {/* Totales */}
-          <div className="mt-6 pt-6 border-t border-gray-200 grid grid-cols-2 gap-4">
-            <div className="bg-red-50 rounded-lg p-4">
-              <div className="text-sm text-red-700 font-medium mb-1">Total Gastos</div>
-              <div className="text-2xl font-bold text-red-600">
-                -{totalGastos.toFixed(0)} {moneda}
-              </div>
-            </div>
-            <div className="bg-green-50 rounded-lg p-4">
-              <div className="text-sm text-green-700 font-medium mb-1">Total Ingresos</div>
-              <div className="text-2xl font-bold text-green-600">
-                +{totalIngresos.toFixed(0)} {moneda}
-              </div>
-            </div>
-          </div>
+<div className="mt-6 pt-6 border-t border-gray-200 grid grid-cols-2 gap-4">
+  {/* TOTAL GASTOS */}
+  <div className="bg-red-50 rounded-lg p-4">
+    <div className="text-sm text-red-700 font-medium mb-1">Total Gastos</div>
+    <div className="text-2xl font-bold text-red-600">
+      -{(() => {
+        const total = gastosFiltrados
+          .filter((g) => g.tipo === 'GASTO')
+          .reduce((sum, g) => {
+            let montoMostrar = 0;
+
+            if (moneda === "UYU") {
+              montoMostrar = g.montoEnUYU ?? g.monto ?? 0;
+            } else {
+              if (g.moneda === "USD") {
+                montoMostrar = g.montoOriginal ?? g.monto ?? 0;
+              } else {
+                const tasa = g.tasaCambio && g.tasaCambio > 0 ? g.tasaCambio : 40;
+                montoMostrar = (g.montoOriginal ?? g.monto ?? 0) / tasa;
+              }
+            }
+
+            return sum + montoMostrar;
+          }, 0);
+
+        return total.toFixed(0);
+      })()} {moneda}
+    </div>
+  </div>
+
+  {/* TOTAL INGRESOS */}
+  <div className="bg-green-50 rounded-lg p-4">
+    <div className="text-sm text-green-700 font-medium mb-1">Total Ingresos</div>
+    <div className="text-2xl font-bold text-green-600">
+      +{(() => {
+        const total = gastosFiltrados
+          .filter((g) => g.tipo === 'INGRESO')
+          .reduce((sum, g) => {
+            let montoMostrar = 0;
+
+            if (moneda === "UYU") {
+              montoMostrar = g.montoEnUYU ?? g.monto ?? 0;
+            } else {
+              if (g.moneda === "USD") {
+                montoMostrar = g.montoOriginal ?? g.monto ?? 0;
+              } else {
+                const tasa = g.tasaCambio && g.tasaCambio > 0 ? g.tasaCambio : 40;
+                montoMostrar = (g.montoOriginal ?? g.monto ?? 0) / tasa;
+              }
+            }
+
+            return sum + montoMostrar;
+          }, 0);
+
+        return total.toFixed(0);
+      })()} {moneda}
+    </div>
+  </div>
+</div>
         </div>
       </div>
 
