@@ -2,8 +2,11 @@ import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
+import { convertirAUYU, obtenerTasaCambio } from '@/lib/currency'
 
-// ✅ PUT - Actualizar INGRESO
+// ===========================================================
+// PUT - Actualizar INGRESO
+// ===========================================================
 export async function PUT(
   request: Request,
   context: { params: Promise<{ id: string }> }
@@ -27,7 +30,7 @@ export async function PUT(
       )
     }
 
-    // Verificar que el ingreso pertenece al mismo campo
+    // Verificar que el ingreso existe y pertenece al usuario
     const ingresoExistente = await prisma.gasto.findUnique({
       where: { id: params.id },
     })
@@ -39,7 +42,7 @@ export async function PUT(
       )
     }
 
-    // ✅ Verificar que sea un INGRESO
+    // Debe ser un INGRESO
     if (ingresoExistente.tipo !== 'INGRESO') {
       return NextResponse.json(
         { error: 'Este registro no es un ingreso' },
@@ -47,7 +50,7 @@ export async function PUT(
       )
     }
 
-    // Parsear el body del request
+    // Body recibido del frontend
     const body = await request.json()
     const {
       monto,
@@ -59,30 +62,49 @@ export async function PUT(
       pagado,
       diasPlazo,
       comprador,
+      moneda, // necesario para mantener USD si edita
     } = body
 
-    // ⚠️ Las ediciones de ingresos con animales NO modifican el stock
-    // (el stock ya se ajustó al crear el ingreso)
+    // ---------------------------------------------------------
+    // 🔥 Convertir a pesos siempre (igual que en POST)
+    // ---------------------------------------------------------
+    const montoFloat = parseFloat(monto)
+    const monedaIngreso = moneda || ingresoExistente.moneda || 'UYU'
 
+    const montoEnUYU = await convertirAUYU(montoFloat, monedaIngreso)
+    const tasaCambio = await obtenerTasaCambio(monedaIngreso)
+
+    const compradorNormalizado = comprador
+      ? comprador.trim().toLowerCase()
+      : null
+
+    // ---------------------------------------------------------
+    // 🧱 Armado de data final para actualizar
+    // ---------------------------------------------------------
     const dataUpdate: any = {
       tipo: 'INGRESO',
-      monto: parseFloat(monto),
+
+      // Montos corregidos
+      monto: montoEnUYU,            // SIEMPRE en pesos
+      montoOriginal: montoFloat,    // el valor ingresado por el usuario
+      moneda: monedaIngreso,
+      montoEnUYU: montoEnUYU,
+      tasaCambio: tasaCambio,
+
       fecha: new Date(fecha),
       descripcion,
       categoria,
+
       metodoPago,
       iva: iva !== undefined ? parseFloat(String(iva)) : null,
       diasPlazo: diasPlazo ? parseInt(diasPlazo) : null,
       pagado: pagado ?? ingresoExistente.pagado,
-      comprador:
-        comprador !== undefined
-          ? comprador
-            ? comprador.trim().toLowerCase()
-            : null
-          : ingresoExistente.comprador,
+
+      comprador: comprador !== undefined ? compradorNormalizado : ingresoExistente.comprador,
       proveedor: null,
     }
 
+    // Fecha de pago
     if (!ingresoExistente.pagado && pagado === true) {
       dataUpdate.fechaPago = new Date()
     }
@@ -93,7 +115,7 @@ export async function PUT(
       include: { lote: true },
     })
 
-    console.log(`✅ Ingreso actualizado: ${ingresoActualizado.id}`)
+    console.log(`✅ Ingreso actualizado correctamente: ${ingresoActualizado.id}`)
     return NextResponse.json(ingresoActualizado)
   } catch (error) {
     console.error('💥 Error actualizando ingreso:', error)
@@ -104,7 +126,9 @@ export async function PUT(
   }
 }
 
-// ✅ DELETE - Eliminar INGRESO con restauración de stock
+// ===========================================================
+// DELETE - Eliminar ingreso + restaurar stock animal
+// ===========================================================
 export async function DELETE(
   request: Request,
   context: { params: Promise<{ id: string }> }
@@ -146,7 +170,7 @@ export async function DELETE(
       )
     }
 
-    // ✅ Restaurar stock si fue venta de animales
+    // Restaurar stock si es venta de animales
     if (ingreso.animalLoteId && ingreso.cantidadVendida) {
       await prisma.animalLote.update({
         where: { id: ingreso.animalLoteId },
@@ -154,11 +178,11 @@ export async function DELETE(
           cantidad: { increment: ingreso.cantidadVendida },
         },
       })
-      console.log(`✅ Stock restaurado: +${ingreso.cantidadVendida} animales`)
+      console.log(`🐄 Stock restaurado correctamente`)
     }
 
     await prisma.gasto.delete({ where: { id: params.id } })
-    console.log(`🗑️ Ingreso eliminado: ${ingreso.id}`)
+    console.log(`🗑️ Ingreso eliminado correctamente`)
 
     return NextResponse.json({ success: true })
   } catch (error) {

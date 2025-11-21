@@ -9,6 +9,10 @@ type ModalEditarGastoProps = {
     tipo: 'GASTO' | 'INGRESO'
     fecha: string
     monto: number
+    montoOriginal?: number
+    moneda?: string
+    tasaCambio?: number | null
+    montoEnUYU?: number
     categoria: string
     descripcion?: string
     metodoPago?: string
@@ -33,8 +37,24 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
   const [loading, setLoading] = useState(false)
   const [pagado, setPagado] = useState(gasto.pagado ?? true)
   const [iva, setIva] = useState(gasto.iva || 22)
-  const [precioBase, setPrecioBase] = useState(gasto.monto / (1 + (gasto.iva || 22) / 100))
   const [item, setItem] = useState('')
+  
+  // 🆕 MONEDA Y CONVERSIÓN
+  const [moneda, setMoneda] = useState(gasto.moneda || 'UYU')
+  const [monedaOriginal] = useState(gasto.moneda || 'UYU') // Para saber si cambió
+  const [tasaCambio, setTasaCambio] = useState<number | null>(null)
+  
+  // 🆕 CALCULAR PRECIO BASE CORRECTAMENTE SEGÚN MONEDA ORIGINAL
+  const calcularPrecioBaseInicial = () => {
+    // Si el gasto tiene montoOriginal, usarlo
+    if (gasto.montoOriginal) {
+      return gasto.montoOriginal / (1 + (gasto.iva || 22) / 100)
+    }
+    // Fallback: calcular desde monto
+    return gasto.monto / (1 + (gasto.iva || 22) / 100)
+  }
+  
+  const [precioBase, setPrecioBase] = useState(calcularPrecioBaseInicial())
 
   // Parsear descripción
   useEffect(() => {
@@ -61,6 +81,36 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
     fetchProveedores()
   }, [])
 
+  // 🆕 CARGAR TASA DE CAMBIO AL MONTAR
+  useEffect(() => {
+    const cargarTasa = async () => {
+      try {
+        const res = await fetch('/api/tasa-cambio')
+        if (res.ok) {
+          const data = await res.json()
+          setTasaCambio(data.tasa)
+        }
+      } catch (err) {
+        console.error('Error cargando tasa:', err)
+      }
+    }
+    cargarTasa()
+  }, [])
+
+  // 🆕 CONVERTIR PRECIO BASE CUANDO CAMBIA LA MONEDA
+  useEffect(() => {
+    if (!tasaCambio || moneda === monedaOriginal) return
+
+    // Si cambió de UYU → USD
+    if (monedaOriginal === 'UYU' && moneda === 'USD') {
+      setPrecioBase(prev => prev / tasaCambio)
+    }
+    // Si cambió de USD → UYU
+    else if (monedaOriginal === 'USD' && moneda === 'UYU') {
+      setPrecioBase(prev => prev * tasaCambio)
+    }
+  }, [moneda, tasaCambio, monedaOriginal])
+
   const precioFinal = precioBase + (precioBase * iva) / 100
 
   const proveedoresFiltrados = proveedores.filter(p =>
@@ -82,6 +132,10 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
           descripcion: gasto.descripcion,
           categoria: gasto.categoria,
           monto: gasto.monto,
+          montoOriginal: gasto.montoOriginal,
+          moneda: gasto.moneda,
+          tasaCambio: gasto.tasaCambio,
+          montoEnUYU: gasto.montoEnUYU,
           metodoPago: gasto.metodoPago,
           iva: gasto.iva,
           diasPlazo: gasto.diasPlazo,
@@ -117,8 +171,18 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
       return
     }
 
+    if (moneda === 'USD' && !tasaCambio) {
+      alert('❌ No se pudo obtener la tasa de cambio')
+      return
+    }
+
     setLoading(true)
     try {
+      // 🆕 CALCULAR VALORES SEGÚN MONEDA
+      const montoOriginal = precioFinal
+      const montoEnUYU = moneda === 'USD' ? precioFinal * (tasaCambio || 1) : precioFinal
+      const tasaCambioFinal = moneda === 'USD' ? tasaCambio : null
+
       const response = await fetch(`/api/gastos/${gasto.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -127,7 +191,11 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
           fecha,
           descripcion: `${item.trim()}${notas ? ` - ${notas}` : ''}`,
           categoria,
-          monto: precioFinal,
+          monto: montoEnUYU, // Para compatibilidad vieja
+          montoOriginal, // 🆕
+          moneda, // 🆕
+          tasaCambio: tasaCambioFinal, // 🆕
+          montoEnUYU, // 🆕
           metodoPago,
           iva,
           diasPlazo: metodoPago === 'Plazo' ? diasPlazo : null,
@@ -278,6 +346,31 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
               ))}
             </select>
           </div>
+
+          {/* 🆕 MONEDA */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Moneda
+              {monedaOriginal !== moneda && (
+                <span className="ml-2 text-xs text-orange-600 font-semibold">
+                  (Original: {monedaOriginal})
+                </span>
+              )}
+            </label>
+            <select
+              value={moneda}
+              onChange={(e) => setMoneda(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+            >
+              <option value="UYU">UYU (Pesos Uruguayos)</option>
+              <option value="USD">USD (Dólares)</option>
+            </select>
+            {monedaOriginal !== moneda && tasaCambio && (
+              <p className="text-xs text-gray-600 mt-1">
+                💱 Tasa de cambio actual: {tasaCambio.toFixed(2)} UYU por USD
+              </p>
+            )}
+          </div>
         </div>
       </div>
 
@@ -305,7 +398,9 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
           {/* PRECIO + IVA + TOTAL */}
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Precio Base</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Precio Base ({moneda})
+              </label>
               <input
                 type="number"
                 step="0.01"
@@ -331,7 +426,9 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Total</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Total ({moneda})
+              </label>
               <input
                 type="text"
                 value={precioFinal.toFixed(2)}
@@ -340,6 +437,15 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
               />
             </div>
           </div>
+
+          {/* 🆕 CONVERSIÓN A UYU SI ES USD */}
+          {moneda === 'USD' && tasaCambio && (
+            <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+              <p className="text-sm text-green-800">
+                💵 Equivalente en UYU: <span className="font-bold">{(precioFinal * tasaCambio).toFixed(2)} UYU</span>
+              </p>
+            </div>
+          )}
         </div>
       </div>
 

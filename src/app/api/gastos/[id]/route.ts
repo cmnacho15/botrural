@@ -1,46 +1,28 @@
-import { prisma } from '@/lib/prisma'
-import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/app/api/auth/[...nextauth]/route'
+import { NextResponse } from "next/server"
+import { prisma } from "@/lib/prisma"
+import { requireAuth, canWriteFinanzas } from "@/lib/auth-helpers"
+import { convertirAUYU, obtenerTasaCambio } from "@/lib/currency"
 
-const allowedWrite = ["ADMIN_GENERAL", "ADMIN_CON_FINANZAS"]
-
-// ------------------------------------------
-// PUT - Actualizar gasto / ingreso
-// ------------------------------------------
+/**
+ * ✏️ PUT - Actualizar gasto (compatible con USD / UYU)
+ */
 export async function PUT(
   request: Request,
-  context: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const params = await context.params
-    const session = await getServerSession(authOptions)
+    const { error, user } = await requireAuth()
+    if (error) return error
 
-    if (!session?.user?.id)
-      return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
-
-    if (!allowedWrite.includes(session.user.role)) {
+    if (!canWriteFinanzas(user!)) {
       return NextResponse.json(
-        { error: 'No tienes permisos para modificar gastos' },
+        { error: "No tienes permisos para modificar gastos" },
         { status: 403 }
       )
     }
 
-    const usuario = await prisma.user.findUnique({
-      where: { id: session.user.id },
-    })
-
-    const gastoExistente = await prisma.gasto.findUnique({
-      where: { id: params.id },
-    })
-
-    if (!gastoExistente || gastoExistente.campoId !== usuario?.campoId) {
-      return NextResponse.json({ error: 'Gasto no encontrado' }, { status: 404 })
-    }
-
     const body = await request.json()
     const {
-      tipo,
       monto,
       fecha,
       descripcion,
@@ -50,89 +32,104 @@ export async function PUT(
       pagado,
       diasPlazo,
       proveedor,
-      comprador,
+      moneda
     } = body
 
-    const dataUpdate: any = {
-      tipo,
-      monto: parseFloat(monto),
-      fecha: new Date(fecha),
+    // Verificar existencia
+    const gastoExistente = await prisma.gasto.findUnique({
+      where: { id: params.id },
+    })
+
+    if (!gastoExistente || gastoExistente.campoId !== user!.campoId) {
+      return NextResponse.json(
+        { error: "Gasto no encontrado" },
+        { status: 404 }
+      )
+    }
+
+    // ---------------------------------------------------------
+    // 💵 Conversión de moneda
+    // ---------------------------------------------------------
+    const montoFloat = parseFloat(monto)
+    const monedaFinal = moneda || gastoExistente.moneda || "UYU"
+
+    const montoEnUYU = await convertirAUYU(montoFloat, monedaFinal)
+    const tasaCambio = await obtenerTasaCambio(monedaFinal)
+
+    // ---------------------------------------------------------
+    // 🧱 Data para actualizar
+    // ---------------------------------------------------------
+    const dataToUpdate: any = {
+      monto: montoEnUYU,          // SIEMPRE en UYU
+      montoOriginal: montoFloat,   // valor ingresado
+      moneda: monedaFinal,
+      montoEnUYU: montoEnUYU,
+      tasaCambio,
+
+      fecha: fecha ? new Date(fecha) : gastoExistente.fecha,
       descripcion,
       categoria,
       metodoPago,
-      iva: iva !== undefined ? parseFloat(String(iva)) : null,
-      diasPlazo: diasPlazo ? parseInt(diasPlazo) : gastoExistente.diasPlazo,
+      iva: iva !== undefined ? parseFloat(String(iva)) : gastoExistente.iva,
+      diasPlazo: diasPlazo ? parseInt(diasPlazo) : null,
       pagado: pagado ?? gastoExistente.pagado,
-    }
-
-    if (tipo === 'GASTO') {
-      dataUpdate.proveedor = proveedor?.trim().toLowerCase() || null
-      dataUpdate.comprador = null
-    }
-
-    if (tipo === 'INGRESO') {
-      dataUpdate.comprador = comprador?.trim().toLowerCase() || null
-      dataUpdate.proveedor = null
-    }
-
-    if (!gastoExistente.pagado && pagado === true) {
-      dataUpdate.fechaPago = new Date()
+      proveedor: proveedor?.trim() || null,
     }
 
     const gastoActualizado = await prisma.gasto.update({
       where: { id: params.id },
-      data: dataUpdate,
-      include: { lote: true },
+      data: dataToUpdate,
     })
 
     return NextResponse.json(gastoActualizado)
   } catch (error) {
-    console.error('💥 Error actualizando gasto:', error)
-    return NextResponse.json({ error: 'Error actualizando gasto' }, { status: 500 })
+    console.error("💥 Error actualizando gasto:", error)
+    return NextResponse.json(
+      { error: "Error actualizando gasto" },
+      { status: 500 }
+    )
   }
 }
 
-// ------------------------------------------
-// DELETE - Eliminar gasto
-// ------------------------------------------
+/**
+ * ❌ DELETE - Eliminar gasto
+ */
 export async function DELETE(
   request: Request,
-  context: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const params = await context.params
-    const session = await getServerSession(authOptions)
+    const { error, user } = await requireAuth()
+    if (error) return error
 
-    if (!session?.user?.id)
-      return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
-
-    if (!allowedWrite.includes(session.user.role)) {
+    if (!canWriteFinanzas(user!)) {
       return NextResponse.json(
-        { error: 'No tienes permisos para eliminar gastos' },
+        { error: "No tienes permisos para eliminar gastos" },
         { status: 403 }
       )
     }
 
-    const usuario = await prisma.user.findUnique({
-      where: { id: session.user.id },
-    })
-
-    const gasto = await prisma.gasto.findUnique({
+    const gastoExistente = await prisma.gasto.findUnique({
       where: { id: params.id },
     })
 
-    if (!gasto || gasto.campoId !== usuario?.campoId) {
+    if (!gastoExistente || gastoExistente.campoId !== user!.campoId) {
       return NextResponse.json(
-        { error: 'No autorizado para eliminar este gasto' },
-        { status: 403 }
+        { error: "Gasto no encontrado" },
+        { status: 404 }
       )
     }
 
-    await prisma.gasto.delete({ where: { id: params.id } })
+    await prisma.gasto.delete({
+      where: { id: params.id },
+    })
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('💥 Error eliminando gasto:', error)
-    return NextResponse.json({ error: 'Error eliminando gasto' }, { status: 500 })
+    console.error("💥 Error eliminando gasto:", error)
+    return NextResponse.json(
+      { error: "Error eliminando gasto" },
+      { status: 500 }
+    )
   }
 }

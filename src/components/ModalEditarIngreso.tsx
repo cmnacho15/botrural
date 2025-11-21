@@ -8,6 +8,10 @@ type ModalEditarIngresoProps = {
     tipo: 'GASTO' | 'INGRESO'
     fecha: string
     monto: number
+    montoOriginal?: number
+    moneda?: string
+    tasaCambio?: number | null
+    montoEnUYU?: number
     categoria: string
     descripcion?: string
     iva?: number
@@ -31,14 +35,20 @@ type ItemIngreso = {
 export default function ModalEditarIngreso({ gasto, onClose, onSuccess }: ModalEditarIngresoProps) {
   const [fecha, setFecha] = useState(new Date(gasto.fecha).toISOString().split('T')[0])
   const [comprador, setComprador] = useState(gasto.comprador || '')
-  const [moneda, setMoneda] = useState('UYU')
+  const [notas, setNotas] = useState('')
+  const [loading, setLoading] = useState(false)
+  
+  // 🆕 MONEDA Y CONVERSIÓN
+  const [moneda, setMoneda] = useState(gasto.moneda || 'UYU')
+  const [monedaOriginal] = useState(gasto.moneda || 'UYU')
+  const [tasaCambio, setTasaCambio] = useState<number | null>(null)
+  
+  // MÉTODO DE PAGO
   const [metodoPago, setMetodoPago] = useState<'Contado' | 'Plazo'>(
     gasto.metodoPago === 'Plazo' ? 'Plazo' : 'Contado'
   )
   const [diasPlazo, setDiasPlazo] = useState<number>(gasto.diasPlazo || 0)
   const [pagado, setPagado] = useState(gasto.pagado ?? true)
-  const [notas, setNotas] = useState('')
-  const [loading, setLoading] = useState(false)
 
   // ✅ Auto-marcar como cobrado si es contado
   useEffect(() => {
@@ -50,6 +60,25 @@ export default function ModalEditarIngreso({ gasto, onClose, onSuccess }: ModalE
     }
   }, [metodoPago])
 
+  // 🆕 CALCULAR PRECIO BASE INICIAL CORRECTAMENTE
+  const calcularPrecioBaseInicial = () => {
+    if (gasto.montoOriginal) {
+      return gasto.montoOriginal / (1 + (gasto.iva || 22) / 100)
+    }
+    return gasto.monto / (1 + (gasto.iva || 22) / 100)
+  }
+
+  const [items, setItems] = useState<ItemIngreso[]>([
+    {
+      id: '1',
+      item: gasto.descripcion?.split(' - ')[0] || '',
+      precio: calcularPrecioBaseInicial(),
+      iva: gasto.iva || 22,
+      precioFinal: gasto.montoOriginal || gasto.monto,
+    },
+  ])
+
+  // Parsear notas de la descripción
   useEffect(() => {
     if (gasto.descripcion) {
       const partes = gasto.descripcion.split(' - ')
@@ -59,15 +88,45 @@ export default function ModalEditarIngreso({ gasto, onClose, onSuccess }: ModalE
     }
   }, [gasto.descripcion])
 
-  const [items, setItems] = useState<ItemIngreso[]>([
-    {
-      id: '1',
-      item: gasto.descripcion?.split(' - ')[0] || '',
-      precio: gasto.monto / (1 + (gasto.iva || 22) / 100),
-      iva: gasto.iva || 22,
-      precioFinal: gasto.monto,
-    },
-  ])
+  // 🆕 CARGAR TASA DE CAMBIO
+  useEffect(() => {
+    const cargarTasa = async () => {
+      try {
+        const res = await fetch('/api/tasa-cambio')
+        if (res.ok) {
+          const data = await res.json()
+          setTasaCambio(data.tasa)
+        }
+      } catch (err) {
+        console.error('Error cargando tasa:', err)
+      }
+    }
+    cargarTasa()
+  }, [])
+
+  // 🆕 CONVERTIR PRECIO BASE CUANDO CAMBIA LA MONEDA
+  useEffect(() => {
+    if (!tasaCambio || moneda === monedaOriginal) return
+
+    setItems((prev) => prev.map((item) => {
+      let nuevoPrecio = item.precio
+
+      // Si cambió de UYU → USD
+      if (monedaOriginal === 'UYU' && moneda === 'USD') {
+        nuevoPrecio = item.precio / tasaCambio
+      }
+      // Si cambió de USD → UYU
+      else if (monedaOriginal === 'USD' && moneda === 'UYU') {
+        nuevoPrecio = item.precio * tasaCambio
+      }
+
+      return {
+        ...item,
+        precio: nuevoPrecio,
+        precioFinal: calcularPrecioFinal(nuevoPrecio, item.iva)
+      }
+    }))
+  }, [moneda, tasaCambio, monedaOriginal])
 
   const calcularPrecioFinal = (precio: number, iva: number) => {
     return precio + (precio * iva) / 100
@@ -113,6 +172,10 @@ export default function ModalEditarIngreso({ gasto, onClose, onSuccess }: ModalE
           descripcion: gasto.descripcion,
           categoria: gasto.categoria,
           monto: gasto.monto,
+          montoOriginal: gasto.montoOriginal,
+          moneda: gasto.moneda,
+          tasaCambio: gasto.tasaCambio,
+          montoEnUYU: gasto.montoEnUYU,
           iva: gasto.iva,
           comprador: gasto.comprador,
           metodoPago: gasto.metodoPago,
@@ -147,11 +210,21 @@ export default function ModalEditarIngreso({ gasto, onClose, onSuccess }: ModalE
       return
     }
 
+    if (moneda === 'USD' && !tasaCambio) {
+      alert('❌ No se pudo obtener la tasa de cambio')
+      return
+    }
+
     setLoading(true)
 
     try {
       const item = items[0]
       
+      // 🆕 CALCULAR VALORES SEGÚN MONEDA
+      const montoOriginal = item.precioFinal
+      const montoEnUYU = moneda === 'USD' ? item.precioFinal * (tasaCambio || 1) : item.precioFinal
+      const tasaCambioFinal = moneda === 'USD' ? tasaCambio : null
+
       const response = await fetch(`/api/ingresos/${gasto.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -159,7 +232,11 @@ export default function ModalEditarIngreso({ gasto, onClose, onSuccess }: ModalE
           fecha: fecha,
           descripcion: `${item.item}${notas ? ` - ${notas}` : ''}`,
           categoria: gasto.categoria,
-          monto: item.precioFinal,
+          monto: montoEnUYU, // Para compatibilidad vieja
+          montoOriginal, // 🆕
+          moneda, // 🆕
+          tasaCambio: tasaCambioFinal, // 🆕
+          montoEnUYU, // 🆕
           iva: item.iva,
           comprador: comprador ? comprador.trim() : null,
           metodoPago,
@@ -263,8 +340,16 @@ export default function ModalEditarIngreso({ gasto, onClose, onSuccess }: ModalE
             />
           </div>
 
+          {/* 🆕 MONEDA CON INDICADOR DE CAMBIO */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Moneda</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Moneda
+              {monedaOriginal !== moneda && (
+                <span className="ml-2 text-xs text-orange-600 font-semibold">
+                  (Original: {monedaOriginal})
+                </span>
+              )}
+            </label>
             <select
               value={moneda}
               onChange={(e) => setMoneda(e.target.value)}
@@ -273,6 +358,11 @@ export default function ModalEditarIngreso({ gasto, onClose, onSuccess }: ModalE
               <option value="UYU">🇺🇾 UYU - Pesos Uruguayos</option>
               <option value="USD">🇺🇸 USD - Dólares</option>
             </select>
+            {monedaOriginal !== moneda && tasaCambio && (
+              <p className="text-xs text-gray-600 mt-1">
+                💱 Tasa de cambio actual: {tasaCambio.toFixed(2)} UYU por USD
+              </p>
+            )}
           </div>
         </div>
 
@@ -316,9 +406,6 @@ export default function ModalEditarIngreso({ gasto, onClose, onSuccess }: ModalE
                     onChange={(e) => setDiasPlazo(parseInt(e.target.value) || 0)}
                     className="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 transition"
                   />
-                  <span className="text-xs text-gray-600">
-                    (se marcará automáticamente como cobrado)
-                  </span>
                 </div>
 
                 <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
@@ -361,7 +448,9 @@ export default function ModalEditarIngreso({ gasto, onClose, onSuccess }: ModalE
 
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Precio Base</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Precio Base ({moneda})
+              </label>
               <input
                 type="number"
                 step="0.01"
@@ -387,7 +476,9 @@ export default function ModalEditarIngreso({ gasto, onClose, onSuccess }: ModalE
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Total</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Total ({moneda})
+              </label>
               <input
                 type="text"
                 value={items[0].precioFinal.toFixed(2)}
@@ -396,13 +487,24 @@ export default function ModalEditarIngreso({ gasto, onClose, onSuccess }: ModalE
               />
             </div>
           </div>
+
+          {/* 🆕 CONVERSIÓN A UYU SI ES USD */}
+          {moneda === 'USD' && tasaCambio && (
+            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm text-blue-800">
+                💵 Equivalente en UYU: <span className="font-bold">{(items[0].precioFinal * tasaCambio).toFixed(2)} UYU</span>
+              </p>
+            </div>
+          )}
         </div>
       </div>
 
       {/* TOTAL */}
       <div className="mb-6 p-4 bg-green-50 border-2 border-green-500 rounded-xl flex justify-between items-center">
         <span className="font-semibold text-gray-900 text-lg">💰 Monto Total</span>
-        <span className="text-3xl font-bold text-green-600">${montoTotal.toFixed(2)}</span>
+        <span className="text-3xl font-bold text-green-600">
+          {montoTotal.toLocaleString('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {moneda}
+        </span>
       </div>
 
       {/* NOTAS */}

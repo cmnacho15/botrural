@@ -88,21 +88,20 @@ export async function POST(request: Request) {
       loteId,
       animalLoteId,
       cantidadVendida,
-      moneda, // viene del frontend
+      moneda,
     } = body
 
     // -----------------------------------------------------
-    // 💰 CONVERSIÓN DE MONEDA (ASYNC)
+    // 💰 CONVERSIÓN DE MONEDA
     // -----------------------------------------------------
     const montoFloat = parseFloat(monto)
     const monedaIngreso = moneda || 'UYU'
 
-    // 🔥 ESTO ES LO QUE EVITA EL ERROR EN data:
     const montoEnUYU = await convertirAUYU(montoFloat, monedaIngreso)
     const tasaCambio = await obtenerTasaCambio(monedaIngreso)
 
     // -----------------------------------------------------
-    // 🐄 VALIDAR Y ACTUALIZAR STOCK DE VENTA DE ANIMAL
+    // 🐄 VALIDAR Y ACTUALIZAR STOCK ANIMAL
     // -----------------------------------------------------
     if (animalLoteId && cantidadVendida) {
       const animalLote = await prisma.animalLote.findUnique({
@@ -125,19 +124,12 @@ export async function POST(request: Request) {
         )
       }
 
-      // Actualizar stock
       await prisma.animalLote.update({
         where: { id: animalLoteId },
         data: {
           cantidad: animalLote.cantidad - cantidadVendida,
         },
       })
-
-      console.log(
-        `✅ Stock actualizado. Nuevo stock: ${
-          animalLote.cantidad - cantidadVendida
-        }`
-      )
     }
 
     const compradorNormalizado = comprador
@@ -145,16 +137,23 @@ export async function POST(request: Request) {
       : null
 
     // -----------------------------------------------------
-    // 🧱 DATA FINAL PARA CREAR INGRESO (SIN PROMISES)
+    // 💰 MONTOS CORRECTOS
+    // -----------------------------------------------------
+    const montoOriginalFinal = montoFloat // puede ser USD o UYU
+    const montoEnUYUFinal = montoEnUYU    // convertido siempre a pesos
+    const montoPrincipal = montoEnUYUFinal // dashboard SIEMPRE usa este
+
+    // -----------------------------------------------------
+    // 🧱 DATA FINAL PARA CREAR INGRESO
     // -----------------------------------------------------
     const dataToCreate = {
       tipo: 'INGRESO',
 
-      // 💰 Campos obligatorios nuevos
-      monto: montoFloat,
-      montoOriginal: montoFloat,
+      // 💰 MONTOS CORREGIDOS
+      monto: montoPrincipal,            // SIEMPRE en UYU
+      montoOriginal: montoOriginalFinal,
       moneda: monedaIngreso,
-      montoEnUYU: montoEnUYU,
+      montoEnUYU: montoEnUYUFinal,
       tasaCambio: tasaCambio,
 
       fecha: new Date(fecha),
@@ -171,7 +170,6 @@ export async function POST(request: Request) {
       campoId: usuario.campoId,
       loteId: loteId || null,
 
-      // 🐄 Venta de animales
       animalLoteId: animalLoteId || null,
       cantidadVendida: cantidadVendida || null,
     }
@@ -179,7 +177,7 @@ export async function POST(request: Request) {
     console.log('📤 Data a crear:', dataToCreate)
 
     // -----------------------------------------------------
-    // 📌 CREAR INGRESO EN BASE DE DATOS
+    // 📌 CREAR INGRESO EN BD
     // -----------------------------------------------------
     const ingreso = await prisma.gasto.create({
       data: dataToCreate,
@@ -187,11 +185,9 @@ export async function POST(request: Request) {
     })
 
     console.log('✅ Ingreso creado:', ingreso.id)
-
     return NextResponse.json(ingreso, { status: 201 })
   } catch (error) {
     console.error('💥 Error completo:', error)
-    console.error('💥 Stack trace:', (error as Error).stack)
     return NextResponse.json(
       {
         error: 'Error creando ingreso',
