@@ -5,7 +5,7 @@ export async function GET(request: Request) {
   try {
     // 🔒 Verificar autorización (seguridad)
     const authHeader = request.headers.get('authorization')
-    if (authHeader !== `Bearer ${process.env.CRON_SECRETT}`) {
+    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
