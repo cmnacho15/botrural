@@ -4,6 +4,18 @@ import { useState, useEffect } from 'react'
 import { CATEGORIAS_GASTOS, METODOS_PAGO } from '@/lib/constants'
 import { obtenerFechaLocal } from '@/lib/fechas'
 
+async function obtenerTasaCambioUSD() {
+  try {
+    const res = await fetch('/api/currency')
+    if (!res.ok) throw new Error('Error al obtener moneda')
+    const data = await res.json()
+    return data?.USD ?? 40
+  } catch (error) {
+    console.error('Error obteniendo tasa USD:', error)
+    return 40 // fallback
+  }
+}
+
 type ModalGastoProps = {
   onClose: () => void
   onSuccess: () => void
@@ -143,17 +155,33 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          tipo: 'GASTO',
-          fecha: fecha,
-          descripcion: `${item.item}${notas ? ` - ${notas}` : ''}`,
-          categoria: item.categoria,
-          monto: item.precioFinal,
-          metodoPago: esPlazo ? 'Plazo' : 'Contado',
-          iva: item.iva,
-          diasPlazo: esPlazo ? diasPlazo : null,
-          pagado: esPlazo ? pagado : true,
-          proveedor: proveedor.trim() || null,
-        }),
+  tipo: 'GASTO',
+  fecha: fecha,
+  descripcion: `${item.item}${notas ? ` - ${notas}` : ''}`,
+  categoria: item.categoria,
+
+  // 💵 MONTO ORIGINAL INGRESADO
+  montoOriginal: item.precioFinal,
+
+  // 💸 MONEDA SELECCIONADA
+  moneda: moneda,
+
+  // 💱 TASA DE CAMBIO (si es USD → usás la API)
+  tasaCambio: moneda === 'USD' ? await obtenerTasaCambioUSD() : null,
+
+  // 💵 MONTO EN UYU (si es USD → convertir)
+  montoEnUYU:
+    moneda === 'USD'
+      ? item.precioFinal * (await obtenerTasaCambioUSD())
+      : item.precioFinal,
+
+  // ⚠️ LO QUE YA TENÍAS
+  metodoPago: esPlazo ? 'Plazo' : 'Contado',
+  iva: item.iva,
+  diasPlazo: esPlazo ? diasPlazo : null,
+  pagado: esPlazo ? pagado : true,
+  proveedor: proveedor.trim() || null,
+}),
       })
 
       if (!response.ok) throw new Error('Error al guardar')
