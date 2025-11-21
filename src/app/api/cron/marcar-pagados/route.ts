@@ -21,8 +21,7 @@ export async function GET(request: Request) {
         tipo: 'GASTO',
         metodoPago: 'Plazo',
         pagado: false,
-        fecha: { not: null },
-        diasPlazo: { not: null },
+        // ✅ Quitamos las validaciones not: null de aquí
       },
     })
 
@@ -55,8 +54,7 @@ export async function GET(request: Request) {
         tipo: 'INGRESO',
         metodoPago: 'Plazo',
         pagado: false,
-        fecha: { not: null },
-        diasPlazo: { not: null },
+        // ✅ Quitamos las validaciones not: null de aquí
       },
     })
 
