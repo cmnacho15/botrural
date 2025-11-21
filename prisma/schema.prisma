@@ -218,7 +218,7 @@ model MovimientoInsumo {
 model Gasto {
   id              String    @id @default(cuid())
   tipo            String
-  monto           Float
+  monto           Float            // ❌ LO VAMOS A DEJAR POR COMPATIBILIDAD (pero ya no se usa para cálculos)
   fecha           DateTime
   descripcion     String?
   categoria       String
@@ -237,10 +237,16 @@ model Gasto {
   updatedAt       DateTime  @updatedAt
   animalLoteId    String?
   cantidadVendida Int?
-  
+
   // ✨ NUEVOS CAMPOS PARA FACTURAS
-  imageUrl        String?   // URL pública de Supabase Storage
-  imageName       String?   // Path del archivo en el bucket
+  imageUrl        String?
+  imageName       String?
+
+  // 💵 NUEVOS CAMPOS PARA MONEDA Y CONVERSIÓN
+  moneda        String     // "USD" | "UYU"
+  montoOriginal Float      // Tal cual aparece en la factura
+  tasaCambio    Float?     // Si moneda = "USD" → tasa del día; si "UYU" = null
+  montoEnUYU    Float      // montoOriginal * tasaCambio o montoOriginal si es en UYU
 
   @@index([campoId])
   @@index([fecha])

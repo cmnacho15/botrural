@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { getUSDToUYU } from "@/lib/currency"
 import { prisma } from "@/lib/prisma"
 import { parseMessageWithAI, transcribeAudio } from "@/lib/openai-parser"
 import { processInvoiceImage } from "@/lib/vision-parser"
@@ -6,10 +7,13 @@ import {
   downloadWhatsAppImage,
   uploadInvoiceToSupabase,
 } from "@/lib/supabase-storage"
+import crypto from "crypto"
 
 const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || "mi_token_secreto"
 const WHATSAPP_TOKEN = process.env.WHATSAPP_TOKEN
 const WHATSAPP_PHONE_ID = process.env.WHATSAPP_PHONE_ID
+// NUEVA LÍNEA
+const FLOW_GASTO_ID = process.env.FLOW_GASTO_ID
 
 /**
  * GET - Verificación del webhook de WhatsApp
@@ -21,7 +25,7 @@ export async function GET(request: Request) {
   const challenge = searchParams.get("hub.challenge")
 
   if (mode === "subscribe" && token === VERIFY_TOKEN) {
-    console.log("✅ Webhook verificado")
+    console.log("Webhook verificado")
     return new NextResponse(challenge, { status: 200 })
   }
 
@@ -47,9 +51,9 @@ export async function POST(request: Request) {
     const from = message.from
     const messageType = message.type
 
-    console.log(`📩 Mensaje recibido: ${messageType} de ${from}`)
+    console.log(`Mensaje recibido: ${messageType} de ${from}`)
 
-    // 🖼️ NUEVO: Procesar IMÁGENES (facturas)
+    // NUEVO: Procesar IMÁGENES (facturas)
     if (messageType === "image") {
       await handleImageMessage(message, from)
       return NextResponse.json({ status: "image processed" })
@@ -65,20 +69,20 @@ export async function POST(request: Request) {
       const buttonReply = message.interactive?.button_reply
       if (buttonReply) {
         messageText = buttonReply.id // "btn_confirmar", "invoice_confirm", etc.
-        console.log("🔘 Botón clickeado:", messageText)
+        console.log("Botón clickeado:", messageText)
 
-        // 📄 Manejar botones de FACTURA por separado
+        // Manejar botones de FACTURA por separado
         if (messageText.startsWith("invoice_")) {
           await handleInvoiceButtonResponse(from, messageText)
           return NextResponse.json({ status: "invoice button processed" })
         }
       }
     } else if (messageType === "audio") {
-      // 🎤 Procesar audio
+      // Procesar audio
       const audioId = message.audio?.id
 
       if (!audioId) {
-        await sendWhatsAppMessage(from, "❌ No pude procesar el audio. Intenta de nuevo.")
+        await sendWhatsAppMessage(from, "No pude procesar el audio. Intenta de nuevo.")
         return NextResponse.json({ status: "error" })
       }
 
@@ -93,7 +97,7 @@ export async function POST(request: Request) {
       )
 
       if (!mediaResponse.ok) {
-        await sendWhatsAppMessage(from, "❌ Error obteniendo el audio.")
+        await sendWhatsAppMessage(from, "Error obteniendo el audio.")
         return NextResponse.json({ status: "error" })
       }
 
@@ -101,35 +105,35 @@ export async function POST(request: Request) {
       const audioUrl = mediaData.url
 
       // Transcribir audio
-      await sendWhatsAppMessage(from, "🎤 Procesando audio...")
+      await sendWhatsAppMessage(from, "Procesando audio...")
 
       const transcription = await transcribeAudio(audioUrl)
 
       if (!transcription) {
-        await sendWhatsAppMessage(from, "❌ No pude entender el audio. Intenta de nuevo.")
+        await sendWhatsAppMessage(from, "No pude entender el audio. Intenta de nuevo.")
         return NextResponse.json({ status: "error" })
       }
 
       messageText = transcription
-      console.log(`🎤 Audio transcrito de ${from}: ${messageText}`)
+      console.log(`Audio transcrito de ${from}: ${messageText}`)
     } else {
       // Tipo de mensaje no soportado
       await sendWhatsAppMessage(
         from,
-        "Por ahora solo acepto mensajes de texto, audio e imágenes de facturas 📷"
+        "Por ahora solo acepto mensajes de texto, audio e imágenes de facturas"
       )
       return NextResponse.json({ status: "unsupported type" })
     }
 
-    console.log(`📱 Mensaje de ${from}: ${messageText}`)
+    console.log(`Mensaje de ${from}: ${messageText}`)
 
-    // 🎯 FASE 1: Detectar si es un token de invitación
+    // FASE 1: Detectar si es un token de invitación
     if (await isToken(messageText)) {
       await handleTokenRegistration(from, messageText)
       return NextResponse.json({ status: "token processed" })
     }
 
-    // 🎯 FASE 1.5: Si tiene registro pendiente, procesar nombre
+    // FASE 1.5: Si tiene registro pendiente, procesar nombre
     const pendiente = await prisma.pendingRegistration.findUnique({
       where: { telefono: from },
     })
@@ -139,7 +143,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ status: "nombre processed" })
     }
 
-    // 🎯 FASE 2: Verificar si hay una confirmación pendiente (TEXTO/AUDIO)
+    // FASE 2: Verificar si hay una confirmación pendiente (TEXTO/AUDIO)
     const confirmacionPendiente = await prisma.pendingConfirmation.findUnique({
       where: { telefono: from },
     })
@@ -149,11 +153,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ status: "confirmacion processed" })
     }
 
-    // 🎯 FASE 3: Procesar con GPT (texto/audio)
+    // FASE 3: Procesar con GPT (texto/audio)
     const parsedData = await parseMessageWithAI(messageText, from)
 
     if (parsedData) {
-      await solicitarConfirmacion(from, parsedData)
+      // DECIDIR: Flow para GASTOS, botones para el resto
+      if (parsedData.tipo === "GASTO") {
+        await solicitarConfirmacionConFlow(from, parsedData)
+      } else {
+        await solicitarConfirmacion(from, parsedData)
+      }
       return NextResponse.json({ status: "awaiting confirmation" })
     }
 
@@ -165,13 +174,126 @@ export async function POST(request: Request) {
         "• murieron 2 vacas en lote sur\n" +
         "• llovieron 25mm\n" +
         "• gasté $5000 en alimento\n\n" +
-        "También podés enviarme un *audio* 🎤 o una *foto de factura* 📸"
+        "También podés enviarme un *audio* o una *foto de factura*"
     )
 
     return NextResponse.json({ status: "ok" })
   } catch (error) {
-    console.error("💥 Error en webhook:", error)
+    console.error("Error en webhook:", error)
     return NextResponse.json({ error: "Error interno" }, { status: 500 })
+  }
+}
+
+/* ===============================
+   FLOW PARA GASTOS
+   =============================== */
+
+/**
+ * Solicitar confirmación con Flow (solo para GASTOS)
+ */
+async function solicitarConfirmacionConFlow(phone: string, data: any) {
+  try {
+    // Si no está configurado el Flow, usar botones tradicionales
+    if (!FLOW_GASTO_ID) {
+      console.log("Flow no configurado, usando botones")
+      await solicitarConfirmacion(phone, data)
+      return
+    }
+
+    const flowToken = crypto.randomBytes(16).toString('hex')
+
+    // Guardar datos del gasto en pendingConfirmation
+    await prisma.pendingConfirmation.upsert({
+      where: { telefono: phone },
+      create: {
+        telefono: phone,
+        data: JSON.stringify({
+          tipo: "GASTO_FLOW",
+          flowToken,
+          gastoData: data
+        })
+      },
+      update: {
+        data: JSON.stringify({
+          tipo: "GASTO_FLOW",
+          flowToken,
+          gastoData: data
+        })
+      }
+    })
+
+    const response = await fetch(
+      `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_ID}/messages`,
+      {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${WHATSAPP_TOKEN}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          messaging_product: "whatsapp",
+          recipient_type: "individual",
+          to: phone,
+          type: "interactive",
+          interactive: {
+            type: "flow",
+            header: {
+              type: "text",
+              text: "Gasto Detectado"
+            },
+            body: {
+              text: `Entendí este gasto:\n\n` +
+                    `• ${data.descripcion}\n` +
+                    `• Monto: $${data.monto}\n` +
+                    `• Categoría: ${data.categoria}\n\n` +
+                    `Tocá "Ver menú" para revisar y completar:`
+            },
+            footer: {
+              text: "FieldData"
+            },
+            action: {
+              name: "flow",
+              parameters: {
+                flow_message_version: "3",
+                flow_token: flowToken,
+                flow_id: FLOW_GASTO_ID,
+                flow_cta: "Ver menú",
+                flow_action: "navigate",
+                flow_action_payload: {
+                  screen: "EDIT_INVOICE",
+                  data: {
+                    phone_number: phone,
+                    proveedor: data.proveedor || "",
+                    fecha: new Date().toISOString().split('T')[0],
+                    moneda: "UYU",
+                    item_nombre: data.descripcion || "",
+                    item_categoria: data.categoria || "Otros",
+                    item_precio: data.monto?.toString() || "0",
+                    item_iva: "0"
+                  }
+                }
+              }
+            }
+          }
+        })
+      }
+    )
+
+    if (!response.ok) {
+      const error = await response.json()
+      console.error("Error enviando Flow:", error)
+      
+      // Fallback a botones si falla
+      await solicitarConfirmacion(phone, data)
+      return
+    }
+
+    console.log("Flow de gasto enviado")
+
+  } catch (error) {
+    console.error("Error en solicitarConfirmacionConFlow:", error)
+    // Fallback a botones si hay error
+    await solicitarConfirmacion(phone, data)
   }
 }
 
@@ -180,7 +302,7 @@ export async function POST(request: Request) {
    =============================== */
 
 /**
- * 🖼️ Handler para IMÁGENES DE FACTURAS
+ * Handler para IMÁGENES DE FACTURAS
  */
 async function handleImageMessage(message: any, phoneNumber: string) {
   try {
@@ -196,7 +318,7 @@ async function handleImageMessage(message: any, phoneNumber: string) {
     if (!user || !user.campoId) {
       await sendWhatsAppMessage(
         phoneNumber,
-        "❌ No encontré tu cuenta asociada. Registrate primero."
+        "No encontré tu cuenta asociada. Registrate primero."
       )
       return
     }
@@ -204,7 +326,7 @@ async function handleImageMessage(message: any, phoneNumber: string) {
     // Mensaje de procesamiento
     await sendWhatsAppMessage(
       phoneNumber,
-      "📸 Procesando factura... un momento"
+      "Procesando factura... un momento"
     )
 
     // 1️⃣ Descargar imagen de WhatsApp
@@ -212,7 +334,7 @@ async function handleImageMessage(message: any, phoneNumber: string) {
     if (!imageData) {
       await sendWhatsAppMessage(
         phoneNumber,
-        "❌ Error descargando la imagen. Intenta de nuevo."
+        "Error descargando la imagen. Intenta de nuevo."
       )
       return
     }
@@ -225,7 +347,7 @@ async function handleImageMessage(message: any, phoneNumber: string) {
     )
 
     if (!uploadResult) {
-      await sendWhatsAppMessage(phoneNumber, "❌ Error guardando la imagen.")
+      await sendWhatsAppMessage(phoneNumber, "Error guardando la imagen.")
       return
     }
 
@@ -235,7 +357,7 @@ async function handleImageMessage(message: any, phoneNumber: string) {
     if (!invoiceData || !invoiceData.items || invoiceData.items.length === 0) {
       await sendWhatsAppMessage(
         phoneNumber,
-        "❌ No pude leer la factura. ¿La imagen está clara?\n\nProbá con mejor iluminación o más cerca."
+        "No pude leer la factura. ¿La imagen está clara?\n\nProbá con mejor iluminación o más cerca."
       )
       return
     }
@@ -258,19 +380,132 @@ async function handleImageMessage(message: any, phoneNumber: string) {
       },
     })
 
-    // 5️⃣ Enviar resumen con botones de confirmación
-    await sendInvoiceConfirmation(phoneNumber, invoiceData)
+    // 5️⃣ Enviar Flow en lugar de botones
+    await sendInvoiceFlowMessage(phoneNumber, invoiceData)
   } catch (error) {
-    console.error("❌ Error en handleImageMessage:", error)
+    console.error("Error en handleImageMessage:", error)
     await sendWhatsAppMessage(
       phoneNumber,
-      "❌ Ocurrió un error procesando tu factura. Intenta nuevamente."
+      "Ocurrió un error procesando tu factura. Intenta nuevamente."
     )
   }
 }
 
 /**
- * 🆕 Manejar respuestas de botones de FACTURA
+ * Enviar Flow para editar factura
+ */
+async function sendInvoiceFlowMessage(
+  phoneNumber: string,
+  invoiceData: any
+) {
+  try {
+    // Si no está configurado el Flow, usar botones tradicionales
+    if (!FLOW_GASTO_ID) {
+      console.error("FLOW_GASTO_ID no configurado")
+      await sendInvoiceConfirmation(phoneNumber, invoiceData)
+      return false
+    }
+
+    const flowToken = crypto.randomBytes(16).toString('hex')
+
+    // Actualizar pendingConfirmation con el token del Flow
+    await prisma.pendingConfirmation.upsert({
+      where: { telefono: phoneNumber },
+      create: {
+        telefono: phoneNumber,
+        data: JSON.stringify({
+          tipo: "INVOICE_FLOW",
+          flowToken,
+          invoiceData
+        })
+      },
+      update: {
+        data: JSON.stringify({
+          tipo: "INVOICE_FLOW",
+          flowToken,
+          invoiceData
+        })
+      }
+    })
+
+    const response = await fetch(
+      `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_ID}/messages`,
+      {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${WHATSAPP_TOKEN}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          messaging_product: "whatsapp",
+          recipient_type: "individual",
+          to: phoneNumber,
+          type: "interactive",
+          interactive: {
+            type: "flow",
+            header: {
+              type: "text",
+              text: "Factura Procesada"
+            },
+            body: {
+              text: `Detecté estos datos:\n\n` +
+                    `• Proveedor: ${invoiceData.proveedor || 'N/A'}\n` +
+                    `• Fecha: ${invoiceData.fecha}\n` +
+                    `• Total: $${invoiceData.montoTotal?.toFixed(2) || '0.00'}\n\n` +
+                    `Tocá "Ver menú" para revisar y editar:`
+            },
+            footer: {
+              text: "FieldData"
+            },
+            action: {
+              name: "flow",
+              parameters: {
+                flow_message_version: "3",
+                flow_token: flowToken,
+                flow_id: FLOW_GASTO_ID,
+                flow_cta: "Ver menú",
+                flow_action: "navigate",
+                flow_action_payload: {
+                  screen: "EDIT_INVOICE",
+                  data: {
+                    phone_number: phoneNumber,
+                    proveedor: invoiceData.proveedor || "",
+                    fecha: invoiceData.fecha || new Date().toISOString().split('T')[0],
+                    moneda: invoiceData.moneda || "UYU",
+                    item_nombre: invoiceData.items?.[0]?.descripcion || "",
+                    item_categoria: invoiceData.items?.[0]?.categoria || "Otros",
+                    item_precio: invoiceData.items?.[0]?.precioSinIva?.toString() || "0",
+                    item_iva: invoiceData.items?.[0]?.iva?.toString() || "0"
+                  }
+                }
+              }
+            }
+          }
+        })
+      }
+    )
+
+    if (!response.ok) {
+      const error = await response.json()
+      console.error("Error enviando Flow:", error)
+      
+      // Fallback a botones tradicionales
+      await sendInvoiceConfirmation(phoneNumber, invoiceData)
+      return false
+    }
+
+    console.log("Flow enviado correctamente")
+    return true
+
+  } catch (error) {
+    console.error("Error en sendInvoiceFlowMessage:", error)
+    await sendInvoiceConfirmation(phoneNumber, invoiceData)
+    return false
+  }
+}
+
+/**
+ * Manejar respuestas de botones de FACTURA
  * IDs: "invoice_confirm", "invoice_edit", "invoice_cancel"
  */
 async function handleInvoiceButtonResponse(
@@ -285,33 +520,51 @@ async function handleInvoiceButtonResponse(
     if (!confirmacionPendiente) {
       await sendWhatsAppMessage(
         phoneNumber,
-        "❌ No hay ninguna factura pendiente de confirmación."
+        "No hay ninguna factura pendiente de confirmación."
       )
       return
     }
 
     const savedData = JSON.parse(confirmacionPendiente.data)
 
-    // Verificar que sea una factura
     if (savedData.tipo !== "INVOICE") {
       await sendWhatsAppMessage(
         phoneNumber,
-        "❌ Error: esta confirmación no corresponde a una factura."
+        "Error: esta confirmación no corresponde a una factura."
       )
       return
     }
 
-    const action = buttonId.replace("invoice_", "") // "confirm" | "cancel" | "edit"
+    const action = buttonId.replace("invoice_", "") // confirm | edit | cancel
 
-    // ✅ CONFIRMAR FACTURA → recién acá guardamos gastos
+    // ============================
+    // CONFIRMAR FACTURA
+    // ============================
     if (action === "confirm") {
       const { invoiceData, imageUrl, imageName, campoId } = savedData
 
+      const monedaFactura = invoiceData.moneda === "USD" ? "USD" : "UYU"
+
+      let tasaCambio = null
+
+      if (monedaFactura === "USD") {
+        try {
+          tasaCambio = await getUSDToUYU()
+        } catch (err) {
+          console.log("Error obteniendo dólar → uso 40")
+          tasaCambio = 40
+        }
+      }
+
+      // Guardar cada ítem como gasto
       for (const item of invoiceData.items) {
+        const montoOriginal = item.precioFinal
+        const montoEnUYU =
+          monedaFactura === "USD" ? montoOriginal * tasaCambio : montoOriginal
+
         await prisma.gasto.create({
           data: {
             tipo: invoiceData.tipo,
-            monto: item.precio,
             fecha: new Date(invoiceData.fecha),
             descripcion: item.descripcion,
             categoria: item.categoria,
@@ -323,26 +576,38 @@ async function handleInvoiceButtonResponse(
             campoId,
             imageUrl,
             imageName,
+
+            // nuevos campos
+            moneda: monedaFactura,
+            montoOriginal,
+            tasaCambio,
+            montoEnUYU,
+
+            // compatibilidad
+            monto: montoEnUYU,
           },
         })
       }
 
       await sendWhatsAppMessage(
         phoneNumber,
-        "✅ ¡Factura confirmada y guardada correctamente!"
+        "¡Factura confirmada y guardada correctamente!"
       )
 
       await prisma.pendingConfirmation.delete({
         where: { telefono: phoneNumber },
       })
+
       return
     }
 
-    // ❌ CANCELAR FACTURA
+    // ============================
+    // CANCELAR FACTURA
+    // ============================
     if (action === "cancel") {
       await sendWhatsAppMessage(
         phoneNumber,
-        "❌ Factura cancelada. No se guardó nada."
+        "Factura cancelada. No se guardó nada."
       )
 
       await prisma.pendingConfirmation.delete({
@@ -351,11 +616,13 @@ async function handleInvoiceButtonResponse(
       return
     }
 
-    // ✏️ EDITAR FACTURA
+    // ============================
+    // EDITAR FACTURA
+    // ============================
     if (action === "edit") {
       await sendWhatsAppMessage(
         phoneNumber,
-        "✏️ Para corregir la factura, enviá los datos corregidos por texto o reenviá otra foto."
+        "Ok, enviame los datos corregidos o reenviá otra foto."
       )
 
       await prisma.pendingConfirmation.delete({
@@ -364,16 +631,16 @@ async function handleInvoiceButtonResponse(
       return
     }
   } catch (error) {
-    console.error("❌ Error en handleInvoiceButtonResponse:", error)
+    console.error("Error en handleInvoiceButtonResponse:", error)
     await sendWhatsAppMessage(
       phoneNumber,
-      "❌ Error procesando tu respuesta sobre la factura."
+      "Error procesando tu respuesta."
     )
   }
 }
 
 /**
- * 📄 Enviar resumen de factura con botones (usa ids invoice_*)
+ * Enviar resumen de factura con botones (usa ids invoice_*)
  */
 async function sendInvoiceConfirmation(phoneNumber: string, data: any) {
   const itemsList = data.items
@@ -386,29 +653,29 @@ async function sendInvoiceConfirmation(phoneNumber: string, data: any) {
     .join("\n")
 
   const bodyText =
-    `📄 *Factura procesada:*\n\n` +
-    `🏪 Proveedor: ${data.proveedor}\n` +
-    `📅 Fecha: ${data.fecha}\n` +
-    `💰 Total: $${data.montoTotal.toFixed(2)}\n` +
-    `💳 Pago: ${data.metodoPago}${
+    `*Factura procesada:*\n\n` +
+    `Proveedor: ${data.proveedor}\n` +
+    `Fecha: ${data.fecha}\n` +
+    `Total: $${data.montoTotal.toFixed(2)}\n` +
+    `Pago: ${data.metodoPago}${
       data.diasPlazo ? ` (${data.diasPlazo} días)` : ""
     }\n\n` +
     `*Ítems:*\n${itemsList}\n\n` +
     `¿Todo correcto?`
 
   await sendCustomButtons(phoneNumber, bodyText, [
-    { id: "invoice_confirm", title: "✅ Confirmar" },
-    { id: "invoice_edit", title: "✏️ Editar" },
-    { id: "invoice_cancel", title: "❌ Cancelar" },
+    { id: "invoice_confirm", title: "Confirmar" },
+    { id: "invoice_edit", title: "Editar" },
+    { id: "invoice_cancel", title: "Cancelar" },
   ])
 }
 
 /* ===============================
-   🎫 INVITACIONES / REGISTRO
+   INVITACIONES / REGISTRO
    =============================== */
 
 /**
- * 🔍 Detectar si el mensaje es un token
+ * Detectar si el mensaje es un token
  */
 async function isToken(message: string): Promise<boolean> {
   if (message.length < 20 || message.length > 50) return false
@@ -421,7 +688,7 @@ async function isToken(message: string): Promise<boolean> {
 }
 
 /**
- * 🎫 Manejar registro por token
+ * Manejar registro por token
  */
 async function handleTokenRegistration(phone: string, token: string) {
   try {
@@ -431,17 +698,17 @@ async function handleTokenRegistration(phone: string, token: string) {
     })
 
     if (!invitation) {
-      await sendWhatsAppMessage(phone, "❌ Token inválido o expirado.")
+      await sendWhatsAppMessage(phone, "Token inválido o expirado.")
       return
     }
 
     if (invitation.usedAt) {
-      await sendWhatsAppMessage(phone, "❌ Este token ya fue utilizado.")
+      await sendWhatsAppMessage(phone, "Este token ya fue utilizado.")
       return
     }
 
     if (invitation.expiresAt < new Date()) {
-      await sendWhatsAppMessage(phone, "❌ Este token expiró.")
+      await sendWhatsAppMessage(phone, "Este token expiró.")
       return
     }
 
@@ -454,7 +721,7 @@ async function handleTokenRegistration(phone: string, token: string) {
       if (existingUser) {
         await sendWhatsAppMessage(
           phone,
-          "❌ Ya estás registrado con este número."
+          "Ya estás registrado con este número."
         )
         return
       }
@@ -470,11 +737,11 @@ async function handleTokenRegistration(phone: string, token: string) {
 
       await sendWhatsAppMessage(
         phone,
-        `¡Hola! 👋\n\n` +
+        `¡Hola!\n\n` +
           `Bienvenido a *${invitation.campo.nombre}*\n\n` +
           `Para completar tu registro como *Colaborador*, ingresá acá:\n` +
-          `🔗 ${registerLink}\n\n` +
-          `Una vez registrado, podrás cargar datos desde WhatsApp también! 📱`
+          `${registerLink}\n\n` +
+          `Una vez registrado, podrás cargar datos desde WhatsApp también!`
       )
       return
     }
@@ -499,14 +766,14 @@ async function handleTokenRegistration(phone: string, token: string) {
       if (existingUser) {
         await sendWhatsAppMessage(
           phone,
-          "❌ Ya estás registrado con este número."
+          "Ya estás registrado con este número."
         )
         return
       }
 
       await sendWhatsAppMessage(
         phone,
-        `¡Bienvenido a ${invitation.campo.nombre}! 🌾\n\n` +
+        `¡Bienvenido a ${invitation.campo.nombre}!\n\n` +
           "Para completar tu registro, enviame tu nombre y apellido.\n" +
           "Ejemplo: Juan Pérez"
       )
@@ -519,12 +786,12 @@ async function handleTokenRegistration(phone: string, token: string) {
     }
   } catch (error) {
     console.error("Error en registro:", error)
-    await sendWhatsAppMessage(phone, "❌ Error al procesar el registro.")
+    await sendWhatsAppMessage(phone, "Error al procesar el registro.")
   }
 }
 
 /**
- * 👤 Manejar nombre del empleado
+ * Manejar nombre del empleado
  */
 async function handleNombreRegistro(
   phone: string,
@@ -537,7 +804,7 @@ async function handleNombreRegistro(
     if (partes.length < 2) {
       await sendWhatsAppMessage(
         phone,
-        "⚠️ Por favor envía tu nombre y apellido completos.\nEjemplo: Juan Pérez"
+        "Por favor envía tu nombre y apellido completos.\nEjemplo: Juan Pérez"
       )
       return
     }
@@ -550,22 +817,22 @@ async function handleNombreRegistro(
 
     await sendWhatsAppMessage(
       phone,
-      `✅ ¡Bienvenido ${resultado.usuario.name}!\n\n` +
+      `¡Bienvenido ${resultado.usuario.name}!\n\n` +
         `Ya estás registrado en *${resultado.campo.nombre}*.\n\n` +
         `Ahora podés enviarme datos del campo. Por ejemplo:\n` +
         `• nacieron 3 terneros en potrero norte\n` +
         `• llovieron 25mm\n` +
         `• gasté $5000 en alimento\n` +
-        `• foto de factura 📸`
+        `• foto de factura`
     )
   } catch (error) {
     console.error("Error procesando nombre:", error)
-    await sendWhatsAppMessage(phone, "❌ Error al procesar el registro.")
+    await sendWhatsAppMessage(phone, "Error al procesar el registro.")
   }
 }
 
 /**
- * 📝 Registrar empleado en la BD
+ * Registrar empleado en la BD
  */
 async function registrarEmpleadoBot(
   telefono: string,
@@ -616,29 +883,29 @@ async function registrarEmpleadoBot(
 }
 
 /* ===============================
-   ✅ CONFIRMACIÓN TEXTO / AUDIO
+   CONFIRMACIÓN TEXTO / AUDIO
    =============================== */
 
 /**
- * 🤔 Solicitar confirmación al usuario (para texto/audio)
+ * Solicitar confirmación al usuario (para texto/audio)
  */
 async function solicitarConfirmacion(phone: string, data: any) {
   let mensaje = "*Entendí:*\n\n"
 
   switch (data.tipo) {
     case "LLUVIA":
-      mensaje += `🌧️ *Lluvia*\n• Cantidad: ${data.cantidad}mm`
+      mensaje += `*Lluvia*\n• Cantidad: ${data.cantidad}mm`
       break
     case "NACIMIENTO":
-      mensaje += `🐄 *Nacimiento*\n• Cantidad: ${data.cantidad} ${data.categoria}`
+      mensaje += `*Nacimiento*\n• Cantidad: ${data.cantidad} ${data.categoria}`
       if (data.lote) mensaje += `\n• Potrero: ${data.lote}`
       break
     case "MORTANDAD":
-      mensaje += `💀 *Mortandad*\n• Cantidad: ${data.cantidad} ${data.categoria}`
+      mensaje += `*Mortandad*\n• Cantidad: ${data.cantidad} ${data.categoria}`
       if (data.lote) mensaje += `\n• Potrero: ${data.lote}`
       break
     case "GASTO":
-      mensaje += `💰 *Gasto*\n• Monto: $${data.monto}\n• Concepto: ${data.descripcion}\n• Categoría: ${data.categoria}`
+      mensaje += `*Gasto*\n• Monto: $${data.monto}\n• Concepto: ${data.descripcion}\n• Categoría: ${data.categoria}`
 
       if (data.proveedor) {
         mensaje += `\n• Proveedor: ${data.proveedor}`
@@ -647,18 +914,18 @@ async function solicitarConfirmacion(phone: string, data: any) {
       if (data.metodoPago === "Plazo") {
         mensaje += `\n• Pago: A plazo (${data.diasPlazo} días)`
         mensaje += `\n• Estado: ${
-          data.pagado ? "✅ Pagado" : "⏳ Pendiente"
+          data.pagado ? "Pagado" : "Pendiente"
         }`
       } else {
-        mensaje += `\n• Pago: Contado ✅`
+        mensaje += `\n• Pago: Contado`
       }
       break
     case "TRATAMIENTO":
-      mensaje += `💉 *Tratamiento*\n• Cantidad: ${data.cantidad}\n• Producto: ${data.producto}`
+      mensaje += `*Tratamiento*\n• Cantidad: ${data.cantidad}\n• Producto: ${data.producto}`
       if (data.lote) mensaje += `\n• Potrero: ${data.lote}`
       break
     case "SIEMBRA":
-      mensaje += `🌾 *Siembra*`
+      mensaje += `*Siembra*`
       if (data.cantidad) mensaje += `\n• Hectáreas: ${data.cantidad}`
       mensaje += `\n• Cultivo: ${data.cultivo}`
       if (data.lote) mensaje += `\n• Potrero: ${data.lote}`
@@ -676,7 +943,7 @@ async function solicitarConfirmacion(phone: string, data: any) {
 }
 
 /**
- * ✅ Manejar confirmación del usuario (SOLO texto/audio, NO facturas)
+ * Manejar confirmación del usuario (SOLO texto/audio, NO facturas)
  */
 async function handleConfirmacion(
   phone: string,
@@ -687,16 +954,16 @@ async function handleConfirmacion(
 
   const data = JSON.parse(confirmacion.data)
 
-  // 🛡️ Si es una factura, no se maneja acá
+  // Si es una factura, no se maneja acá
   if (data.tipo === "INVOICE") {
     await sendWhatsAppMessage(
       phone,
-      "⚠️ Para la factura usá los botones de confirmación que te envié."
+      "Para la factura usá los botones de confirmación que te envié."
     )
     return
   }
 
-  // ✅ CONFIRMAR
+  // CONFIRMAR
   if (
     respuestaLower === "confirmar" ||
     respuestaLower === "si" ||
@@ -708,13 +975,13 @@ async function handleConfirmacion(
       await handleDataEntry(data)
       await sendWhatsAppMessage(
         phone,
-        "✅ *Dato guardado correctamente* en el sistema."
+        "*Dato guardado correctamente* en el sistema."
       )
     } catch (error) {
       console.error("Error guardando dato:", error)
       await sendWhatsAppMessage(
         phone,
-        "❌ Error al guardar el dato. Intenta de nuevo."
+        "Error al guardar el dato. Intenta de nuevo."
       )
     }
 
@@ -727,7 +994,7 @@ async function handleConfirmacion(
     return
   }
 
-  // ✏️ EDITAR
+  // EDITAR
   if (
     respuestaLower === "editar" ||
     respuestaLower === "modificar" ||
@@ -735,7 +1002,7 @@ async function handleConfirmacion(
   ) {
     await sendWhatsAppMessage(
       phone,
-      "✏️ Ok, enviame los datos corregidos.\n\nEjemplo:\n• llovieron 30mm\n• nacieron 5 terneros"
+      "Ok, enviame los datos corregidos.\n\nEjemplo:\n• llovieron 30mm\n• nacieron 5 terneros"
     )
 
     await prisma.pendingConfirmation
@@ -747,7 +1014,7 @@ async function handleConfirmacion(
     return
   }
 
-  // ❌ CANCELAR
+  // CANCELAR
   if (
     respuestaLower === "cancelar" ||
     respuestaLower === "no" ||
@@ -755,7 +1022,7 @@ async function handleConfirmacion(
   ) {
     await sendWhatsAppMessage(
       phone,
-      "❌ Dato cancelado. Podés enviar uno nuevo cuando quieras."
+      "Dato cancelado. Podés enviar uno nuevo cuando quieras."
     )
 
     await prisma.pendingConfirmation
@@ -774,7 +1041,7 @@ async function handleConfirmacion(
 }
 
 /**
- * 💾 Guardar dato en la BD (texto/audio)
+ * Guardar dato en la BD (texto/audio)
  */
 async function handleDataEntry(data: any) {
   const user = await prisma.user.findUnique({
@@ -799,21 +1066,57 @@ async function handleDataEntry(data: any) {
   }
 
   if (data.tipo === "GASTO") {
-    await prisma.gasto.create({
-      data: {
-        tipo: "GASTO",
-        monto: data.monto,
-        fecha: new Date(),
-        descripcion: data.descripcion,
-        categoria: data.categoria || "Otros",
-        campoId: user.campoId,
-        metodoPago: data.metodoPago || "Contado",
-        diasPlazo: data.diasPlazo || null,
-        pagado: data.pagado !== undefined ? data.pagado : true,
-        proveedor: data.proveedor || null,
-      },
-    })
-  } else if (data.tipo === "LLUVIA") {
+  // 👇 Si no viene nada, asumimos que es un gasto en pesos uruguayos
+  const moneda = data.moneda === "USD" ? "USD" : "UYU"
+
+  const montoOriginal = data.monto ?? 0
+
+  let tasaCambio: number | null = null
+  let montoEnUYU = montoOriginal
+
+  // Si algún día el parser manda USD desde texto/audio, ya queda cubierto
+  if (moneda === "USD") {
+    try {
+      tasaCambio = await getUSDToUYU()
+    } catch (err) {
+      console.log("Error obteniendo dólar → uso 40 por defecto")
+      tasaCambio = 40
+    }
+    montoEnUYU = montoOriginal * tasaCambio
+  }
+
+  await prisma.gasto.create({
+    data: {
+      tipo: "GASTO",
+      fecha: new Date(),
+      descripcion: data.descripcion,
+      categoria: data.categoria || "Otros",
+      campoId: user.campoId,
+      metodoPago: data.metodoPago || "Contado",
+      diasPlazo:
+        data.metodoPago === "Plazo"
+          ? data.diasPlazo ?? null
+          : null,
+      pagado:
+        data.metodoPago === "Plazo"
+          ? (data.pagado !== undefined ? data.pagado : false)
+          : true,
+      proveedor: data.proveedor || null,
+      iva: data.iva ?? null,
+
+      // 💵 nuevos campos de moneda
+      moneda,
+      montoOriginal,
+      tasaCambio,
+      montoEnUYU,
+
+      // compatibilidad con lo viejo
+      monto: montoEnUYU,
+    },
+  })
+
+  return
+} else if (data.tipo === "LLUVIA") {
     await prisma.evento.create({
       data: {
         tipo: "LLUVIA",
@@ -839,15 +1142,15 @@ async function handleDataEntry(data: any) {
     })
   }
 
-  console.log(`✅ Dato guardado: ${data.tipo}`)
+  console.log(`Dato guardado: ${data.tipo}`)
 }
 
 /* ===============================
-   📤 ENVÍO DE MENSAJES
+   ENVÍO DE MENSAJES
    =============================== */
 
 /**
- * 📤 Enviar mensaje de WhatsApp (texto simple)
+ * Enviar mensaje de WhatsApp (texto simple)
  */
 async function sendWhatsAppMessage(to: string, message: string) {
   try {
@@ -878,7 +1181,7 @@ async function sendWhatsAppMessage(to: string, message: string) {
 }
 
 /**
- * 📤 Enviar mensaje con botones interactivos (para texto/audio)
+ * Enviar mensaje con botones interactivos (para texto/audio)
  */
 async function sendWhatsAppMessageWithButtons(
   to: string,
@@ -908,21 +1211,21 @@ async function sendWhatsAppMessageWithButtons(
                   type: "reply",
                   reply: {
                     id: "btn_confirmar",
-                    title: "✅ Confirmar",
+                    title: "Confirmar",
                   },
                 },
                 {
                   type: "reply",
                   reply: {
                     id: "btn_editar",
-                    title: "✏️ Editar",
+                    title: "Editar",
                   },
                 },
                 {
                   type: "reply",
                   reply: {
                     id: "btn_cancelar",
-                    title: "❌ Cancelar",
+                    title: "Cancelar",
                   },
                 },
               ],
@@ -954,7 +1257,7 @@ async function sendWhatsAppMessageWithButtons(
 }
 
 /**
- * 📤 NUEVO: Enviar mensaje con botones personalizados (para facturas)
+ * Enviar mensaje con botones personalizados (para facturas)
  */
 async function sendCustomButtons(
   to: string,

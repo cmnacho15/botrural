@@ -189,7 +189,7 @@ export default function GastosPage() {
   })
 
   const categoriasConDatos = categorias.map((cat) => {
-  const gastosCategoria = gastosFiltrados.filter((g) => g.tipo === 'GASTO' && g.categoria === cat.nombre)
+  const gastosCategoria = gastosData.filter((g) => g.tipo === 'GASTO' && g.categoria === cat.nombre)
   return {
     ...cat,
     cantidad: gastosCategoria.length,
@@ -201,7 +201,7 @@ export default function GastosPage() {
     ? categoriasConDatos
     : categoriasConDatos.slice(0, 9)
 
-  const totalGastos = gastosFiltrados.filter(g => g.tipo === 'GASTO').reduce((sum, g) => sum + g.monto, 0)
+  const totalGastos = gastosData.filter(g => g.tipo === 'GASTO').reduce((sum, g) => sum + g.monto, 0)
   const totalIngresos = gastosFiltrados.filter(g => g.tipo === 'INGRESO').reduce((sum, g) => sum + g.monto, 0)
 
   // NUEVOS CÁLCULOS: Estado de pagos por proveedor

@@ -1,27 +1,27 @@
 // Vision API para procesar facturas
-import OpenAI from 'openai';
+import OpenAI from "openai";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// Categorías disponibles (mismo enum que tu app)
+// Categorías disponibles
 const CATEGORIAS_GASTOS = [
-  'Semillas',
-  'Fertilizantes',
-  'Agroquímicos',
-  'Combustible',
-  'Maquinaria',
-  'Reparaciones',
-  'Mano de Obra',
-  'Transporte',
-  'Veterinaria',
-  'Alimentos Animales',
-  'Servicios',
-  'Asesoramiento',
-  'Estructuras',
-  'Insumos Agrícolas',
-  'Otros'
+  "Semillas",
+  "Fertilizantes",
+  "Agroquímicos",
+  "Combustible",
+  "Maquinaria",
+  "Reparaciones",
+  "Mano de Obra",
+  "Transporte",
+  "Veterinaria",
+  "Alimentos Animales",
+  "Servicios",
+  "Asesoramiento",
+  "Estructuras",
+  "Insumos Agrícolas",
+  "Otros",
 ];
 
 interface InvoiceItem {
@@ -33,15 +33,18 @@ interface InvoiceItem {
 }
 
 export interface ParsedInvoice {
-  tipo: 'GASTO' | 'INGRESO';
+  tipo: "GASTO" | "INGRESO";
   items: InvoiceItem[];
   proveedor: string;
   fecha: string;
   montoTotal: number;
-  metodoPago: 'Contado' | 'Plazo';
+  metodoPago: "Contado" | "Plazo";
   diasPlazo?: number;
   pagado: boolean;
   notas?: string;
+
+  // NUEVO
+  moneda: "USD" | "UYU";
 }
 
 export async function processInvoiceImage(
@@ -49,77 +52,70 @@ export async function processInvoiceImage(
 ): Promise<ParsedInvoice | null> {
   try {
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
+      model: "gpt-4o",
       messages: [
         {
-          role: 'system',
+          role: "system",
           content: `
 Eres un asistente experto en procesar facturas agrícolas de Uruguay y Argentina.
 
-INSTRUCCIONES CRÍTICAS:
+OBJETIVO NUEVO ➜ Detectar si la factura está en USD o UYU.
 
-1. Extrae TODOS los ítems individuales de la factura (no solo el total).
-2. Para cada ítem determina:
-   - descripcion: nombre del producto/servicio (incluye cantidad si aparece, ej: "Fertilizante x6 unidades")
-   - categoria: una de ${CATEGORIAS_GASTOS.join(', ')}
-   - precio: SIEMPRE el precio TOTAL del ítem SIN IVA (NO el precio unitario)
-   - iva: 0, 10 o 22
-   - precioFinal: precio total con IVA incluido
+REGLAS PARA DETECTAR MONEDA:
+- Si aparece texto como: "USD", "US$", "U$S", "Dólares", "USD$", "USD =", "U.S.D" → moneda = "USD"
+- Si aparece: "$U", "UYU", "$ Uruguayo", "Pesos" → moneda = "UYU"
+- Si aparecen ambos → usar "USD"
+- Si no hay señal → usar "UYU" por defecto.
 
-REGLA ORO (muy importante):
-- SIEMPRE que exista un valor etiquetado como "Monto", "Importe", "Subtotal", "Total ítem", "Total", úsalo como precio total del ítem.
-- Ignora completamente el precio unitario cuando haya total del ítem.
-- Ejemplo: Cantidad 6 × Unitario 7 = Total 42 → precio = 42 (no 7)
+====== INSTRUCCIONES PARA ÍTEMS ======
 
-Si solo existe precio unitario sin cantidad → usa ese valor.
+EXTRAER TODOS LOS ÍTEMS. Para cada ítem:
+- descripcion: incluir cantidad si existe (“Fertilizante x6”)
+- precio: SIEMPRE el TOTAL sin IVA
+- iva: 0, 10 o 22
+- precioFinal: TOTAL con IVA
 
-COLUMNAS TÍPICAS:
-| Descripción | Cantidad | P.Unit | Subtotal | IVA | Total |
-→ precio = SUBTOTAL o TOTAL sin IVA  
-→ precioFinal = TOTAL con IVA (si no existe, calcula: precio + (precio × iva/100))
+REGLA DE ORO:
+Si existe “Total ítem”, “Importe”, “Monto”, “Subtotal” o “Total” → ese es el precio total.
+Ignorar precio unitario siempre que exista total por ítem.
 
-3. Reconoce números con formato Uruguay/Argentina: 1.234,56 o 1234.56
-4. Busca RUT/RUC/CUIT para identificar el proveedor.
-5. Fecha: formato DD/MM/YYYY o DD-MM-YYYY → devolver como YYYY-MM-DD.
-6. Si dice "CONTADO" o "EFECTIVO" → metodoPago: "Contado".
-7. Si dice "CTA CTE", "CUENTA CORRIENTE", "30 días" → metodoPago: "Plazo".
-8. tipo: siempre "GASTO" salvo que explícitamente sea "INGRESO", "RECIBO DE COBRO", etc.
+====== FECHA ======
+Detectar DD/MM/YYYY o DD-MM-YYYY → devolver como YYYY-MM-DD.
 
-CATEGORIZACIÓN AUTOMÁTICA:
-- Semillas, plantas, plantines → Semillas
-- Fertilizantes, abonos, NPK → Fertilizantes
-- Herbicidas, insecticidas, fungicidas, glifosato → Agroquímicos
-- Gasoil, nafta, GNC → Combustible
-- Tractores, herramientas, maquinaria → Maquinaria
-- Reparación, taller, repuestos → Reparaciones
-- Jornales, sueldos, mano de obra → Mano de Obra
-- Flete, transporte → Transporte
-- Vacunas, medicamentos animales → Veterinaria
-- Ración, forraje, alimento → Alimentos Animales
-- Electricidad, agua, internet → Servicios
-- Asesoramiento técnico, agrónomo → Asesoramiento
-- Alambres, postes, construcción → Estructuras
-- Todo lo demás → Otros
+====== FORMA DE PAGO ======
+"CONTADO", "EFECTIVO" → Contado
+"CTA CTE", "CUENTA CORRIENTE", "PLAZO", "30 días" → Plazo
 
-Responde SOLO con JSON válido (sin markdown).
-`
+====== SALIDA OBLIGATORIA (SIN MARKDOWN) ======
+{
+  "tipo": "GASTO",
+  "moneda": "USD" | "UYU",
+  "items": [...],
+  "proveedor": "...",
+  "fecha": "YYYY-MM-DD",
+  "montoTotal": 0,
+  "metodoPago": "...",
+  "diasPlazo": 0 | null,
+  "pagado": true
+}
+          `,
         },
         {
-          role: 'user',
+          role: "user",
           content: [
             {
-              type: 'text',
-              text: 'Extrae todos los datos de esta factura en formato JSON:'
+              type: "text",
+              text: "Extrae todos los datos de esta factura en formato JSON:",
             },
             {
-              type: 'image_url',
+              type: "image_url",
               image_url: {
                 url: imageUrl,
-                detail: 'high'
-              }
-            }
-          ]
-        }
+                detail: "high",
+              },
+            },
+          ],
+        },
       ],
       max_tokens: 2000,
       temperature: 0.05,
@@ -129,28 +125,32 @@ Responde SOLO con JSON válido (sin markdown).
     if (!content) return null;
 
     const jsonStr = content
-      .replace(/```json\n?/g, '')
-      .replace(/```\n?/g, '')
+      .replace(/```json/g, "")
+      .replace(/```/g, "")
       .trim();
 
     const data = JSON.parse(jsonStr) as ParsedInvoice;
 
-    if (!data.items || data.items.length === 0) {
-      throw new Error('No se encontraron ítems en la factura');
-    }
+    // Validaciones mínimas
+    if (!data.items?.length) throw new Error("No se encontraron ítems");
 
-    if (!data.proveedor || data.proveedor.trim() === '') {
-      data.proveedor = 'Proveedor no identificado';
+    if (!data.moneda) data.moneda = "UYU"; // fallback Uruguay
+
+    if (!data.proveedor?.trim()) {
+      data.proveedor = "Proveedor no identificado";
     }
 
     if (!data.montoTotal) {
-      data.montoTotal = data.items.reduce((sum, item) => sum + item.precioFinal, 0);
+      data.montoTotal = data.items.reduce(
+        (sum, item) => sum + item.precioFinal,
+        0
+      );
     }
 
-    console.log('✅ Factura procesada:', data);
+    console.log("✅ Factura procesada:", data);
     return data;
   } catch (error) {
-    console.error('❌ Error en processInvoiceImage:', error);
+    console.error("❌ Error en processInvoiceImage:", error);
     return null;
   }
 }
