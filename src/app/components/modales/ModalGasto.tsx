@@ -154,6 +154,19 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
       const [year, month, day] = fecha.split('-')
       fechaConHora = new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), 12, 0, i))
     }
+    console.log('📤 Enviando gasto:', {
+  tipo: 'GASTO',
+  fecha: fechaConHora.toISOString(),
+  descripcion: `${item.item}${notas ? ` - ${notas}` : ''}`,
+  categoria: item.categoria,
+  monto: item.precioFinal,
+  moneda: moneda,
+  metodoPago: esPlazo ? 'Plazo' : 'Contado',
+  iva: item.iva,
+  diasPlazo: esPlazo ? diasPlazo : null,
+  pagado: esPlazo ? pagado : true,
+  proveedor: proveedor.trim() || null,
+})
 
     const response = await fetch('/api/eventos', {
       method: 'POST',
@@ -173,7 +186,11 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
         }),
       })
 
-      if (!response.ok) throw new Error('Error al guardar')
+      if (!response.ok) {
+  const errorData = await response.json().catch(() => null)
+  console.error('Error completo:', errorData)
+  throw new Error(errorData?.error || errorData?.message || 'Error al guardar')
+}
       
       // ⏱️ Pequeña pausa entre items para que tengan timestamps diferentes
       if (i < items.length - 1) {
