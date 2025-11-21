@@ -161,36 +161,51 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
 
   // 🟢 GUARDAR CAMBIOS COMPLETOS
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  e.preventDefault()
 
-    if (!item.trim() || precioBase <= 0) {
-      alert('❌ Completá el nombre del ítem y un precio válido')
-      return
+  if (!item.trim() || precioBase <= 0) {
+    alert('❌ Completá el nombre del ítem y un precio válido')
+    return
+  }
+
+  if (metodoPago === 'Plazo' && diasPlazo < 1) {
+    alert('❌ Ingresá una cantidad de días válida para pago a plazo')
+    return
+  }
+
+  if (moneda === 'USD' && !tasaCambio) {
+    alert('❌ No se pudo obtener la tasa de cambio')
+    return
+  }
+
+  setLoading(true)
+  try {
+    // 🆕 SI LA FECHA ES HOY, USAR HORA ACTUAL
+    const fechaSeleccionada = new Date(fecha + 'T00:00:00')
+    const hoy = new Date()
+    hoy.setHours(0, 0, 0, 0)
+    
+    let fechaFinal
+    if (fechaSeleccionada.getTime() === hoy.getTime()) {
+      // Es hoy: usar hora actual
+      fechaFinal = new Date().toISOString()
+    } else {
+      // Es otra fecha: usar mediodía
+      const [year, month, day] = fecha.split('-')
+      fechaFinal = new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), 12, 0, 0)).toISOString()
     }
 
-    if (metodoPago === 'Plazo' && diasPlazo < 1) {
-      alert('❌ Ingresá una cantidad de días válida para pago a plazo')
-      return
-    }
+    // 🆕 CALCULAR VALORES SEGÚN MONEDA
+    const montoOriginal = precioFinal
+    const montoEnUYU = moneda === 'USD' ? precioFinal * (tasaCambio || 1) : precioFinal
+    const tasaCambioFinal = moneda === 'USD' ? tasaCambio : null
 
-    if (moneda === 'USD' && !tasaCambio) {
-      alert('❌ No se pudo obtener la tasa de cambio')
-      return
-    }
-
-    setLoading(true)
-    try {
-      // 🆕 CALCULAR VALORES SEGÚN MONEDA
-      const montoOriginal = precioFinal
-      const montoEnUYU = moneda === 'USD' ? precioFinal * (tasaCambio || 1) : precioFinal
-      const tasaCambioFinal = moneda === 'USD' ? tasaCambio : null
-
-      const response = await fetch(`/api/gastos/${gasto.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tipo: 'GASTO',
-          fecha,
+    const response = await fetch(`/api/gastos/${gasto.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tipo: 'GASTO',
+        fecha: fechaFinal,
           descripcion: `${item.trim()}${notas ? ` - ${notas}` : ''}`,
           categoria,
           monto: montoEnUYU, // Para compatibilidad vieja

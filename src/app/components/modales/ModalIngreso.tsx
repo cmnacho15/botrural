@@ -151,9 +151,22 @@ export default function ModalIngreso({ onClose, onSuccess }: ModalIngresoProps) 
       
       for (let i = 0; i < items.length; i++) {
   const item = items[i]
-  // Crear fecha en UTC para evitar problemas de zona horaria
-  const [year, month, day] = fecha.split('-')
-  const fechaConHora = new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), 12, 0, i))
+  
+  // Si la fecha seleccionada es HOY, usar hora actual
+  const fechaSeleccionada = new Date(fecha + 'T00:00:00')
+  const hoy = new Date()
+  hoy.setHours(0, 0, 0, 0)
+  
+  let fechaConHora
+  if (fechaSeleccionada.getTime() === hoy.getTime()) {
+    // Es hoy: usar hora actual + segundos incrementales
+    fechaConHora = new Date()
+    fechaConHora.setSeconds(fechaConHora.getSeconds() + i)
+  } else {
+    // Es otra fecha: usar mediodía
+    const [year, month, day] = fecha.split('-')
+    fechaConHora = new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), 12, 0, i))
+  }
 
   const response = await fetch('/api/ingresos', {
   method: 'POST',

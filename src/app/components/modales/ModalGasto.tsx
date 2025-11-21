@@ -136,15 +136,31 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
   setLoading(true)
 
   try {
-    for (let i = 0; i < items.length; i++) {
-      const item = items[i]
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i]
 
-      const response = await fetch('/api/eventos', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tipo: 'GASTO',
-          fecha: fecha,
+    // Si la fecha seleccionada es HOY, usar hora actual
+    const fechaSeleccionada = new Date(fecha + 'T00:00:00')
+    const hoy = new Date()
+    hoy.setHours(0, 0, 0, 0)
+    
+    let fechaConHora
+    if (fechaSeleccionada.getTime() === hoy.getTime()) {
+      // Es hoy: usar hora actual + segundos incrementales
+      fechaConHora = new Date()
+      fechaConHora.setSeconds(fechaConHora.getSeconds() + i)
+    } else {
+      // Es otra fecha: usar mediodía
+      const [year, month, day] = fecha.split('-')
+      fechaConHora = new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), 12, 0, i))
+    }
+
+    const response = await fetch('/api/eventos', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tipo: 'GASTO',
+        fecha: fechaConHora.toISOString(),
           descripcion: `${item.item}${notas ? ` - ${notas}` : ''}`,
           categoria: item.categoria,
           monto: item.precioFinal,
