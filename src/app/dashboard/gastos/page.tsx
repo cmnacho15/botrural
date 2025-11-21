@@ -320,14 +320,25 @@ const datosPieChart = categoriasConDatos
     return Object.values(gastosPorMes)
   })()
 
-  const transacciones = gastosFiltrados.map((gasto) => {
+  const transacciones = gastosFiltrados
+  .map((gasto) => {
     const categoria = categorias.find((c) => c.nombre === gasto.categoria)
     const esIngreso = gasto.tipo === 'INGRESO'
+
+    // Formatear fecha correctamente sin problemas de zona horaria
+    const fechaObj = new Date(gasto.fecha)
+    const fechaFormateada = new Date(fechaObj.getTime() + fechaObj.getTimezoneOffset() * 60000)
+      .toLocaleDateString('es-UY', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      })
 
     return {
       id: gasto.id,
       tipo: gasto.tipo,
-      fecha: new Date(gasto.fecha).toLocaleDateString('es-UY'),
+      fecha: fechaFormateada,
+      fechaOriginal: new Date(gasto.fecha).getTime(), // Para ordenar
       monto: getMontoVista(gasto),
       item: gasto.descripcion?.split(' - ')[0] || 'Sin descripción',
       categoria: gasto.categoria,
@@ -337,6 +348,7 @@ const datosPieChart = categoriasConDatos
       gastoCompleto: gasto,
     }
   })
+  .sort((a, b) => b.fechaOriginal - a.fechaOriginal) // Ordenar de más nuevo a más viejo
 
   // EDITAR
   const handleEditarGasto = (gasto: Gasto) => {

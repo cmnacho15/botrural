@@ -150,11 +150,12 @@ export default function ModalIngreso({ onClose, onSuccess }: ModalIngresoProps) 
       const tasa = await obtenerTasaCambio()
       
       for (let i = 0; i < items.length; i++) {
-        const item = items[i]
-        const fechaConHora = new Date(baseDate)
-        fechaConHora.setSeconds(i)
+  const item = items[i]
+  // Crear fecha en UTC para evitar problemas de zona horaria
+  const [year, month, day] = fecha.split('-')
+  const fechaConHora = new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), 12, 0, i))
 
-        const response = await fetch('/api/ingresos', {
+  const response = await fetch('/api/ingresos', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
