@@ -980,21 +980,24 @@ const datosPieChart = categoriasConDatos
                       <td className="px-4 sm:px-6 py-3">{t.fecha}</td>
 
                       {/* MONTO */}
-                      <td className="px-4 sm:px-6 py-3">
-                        <div
-                          className={`font-semibold ${
-                            esIngreso
-                              ? 'text-green-600'
-                              : esGasto
-                              ? 'text-red-600'
-                              : 'text-gray-600'
-                          }`}
-                        >
-                          {esIngreso ? '+' : '-'}
-                          {t.monto.toFixed(0)}
-                        </div>
-                        <div className="text-xs text-gray-500">{moneda}</div>
-                      </td>
+<td className="px-4 sm:px-6 py-3">
+  <div
+    className={`font-semibold ${
+      esIngreso
+        ? "text-green-600"
+        : esGasto
+        ? "text-red-600"
+        : "text-gray-600"
+    }`}
+  >
+    {esIngreso ? "+" : "-"}
+    {t.monto.toFixed(0)}
+  </div>
+
+  <div className="text-xs text-gray-500">
+    {moneda}
+  </div>
+</td>
 
                       {/* ÍTEM */}
                       <td className="px-4 sm:px-6 py-3">{t.item}</td>
