@@ -3,6 +3,18 @@
 import { useState, useEffect } from 'react'
 import { obtenerFechaLocal } from '@/lib/fechas'
 
+async function obtenerTasaCambio(): Promise<number> {
+  try {
+    const response = await fetch('/api/tasa-cambio')
+    if (!response.ok) return 40
+    const data = await response.json()
+    return data.tasa || 40
+  } catch (error) {
+    console.warn('Error obteniendo tasa de cambio, usando valor por defecto:', error)
+    return 40
+  }
+}
+
 type ModalIngresoProps = {
   onClose: () => void
   onSuccess: () => void
@@ -135,29 +147,34 @@ export default function ModalIngreso({ onClose, onSuccess }: ModalIngresoProps) 
 
     try {
       const baseDate = new Date(fecha)
-
+      const tasa = await obtenerTasaCambio()
+      
       for (let i = 0; i < items.length; i++) {
         const item = items[i]
         const fechaConHora = new Date(baseDate)
         fechaConHora.setSeconds(i)
 
         const response = await fetch('/api/ingresos', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            fecha: fechaConHora.toISOString(),
-            descripcion: `${item.item}${notas ? ` - ${notas}` : ''}`,
-            categoria: 'Otros',
-            monto: item.precioFinal,
-            iva: item.iva,
-            comprador: comprador ? comprador.trim() : null,
-            metodoPago,
-            diasPlazo: metodoPago === 'Plazo' ? diasPlazo : null,
-            pagado: metodoPago === 'Contado' ? true : pagado,
-            animalLoteId: item.tipoItem === 'animal' ? item.animalLoteId : null,
-            cantidadVendida: item.tipoItem === 'animal' ? item.cantidad : null,
-          }),
-        })
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    fecha: fechaConHora.toISOString(),
+    descripcion: `${item.item}${notas ? ` - ${notas}` : ''}`,
+    categoria: 'Otros',
+    monto: moneda === "USD" ? item.precioFinal * tasa : item.precioFinal,
+    montoOriginal: item.precioFinal,
+    moneda: moneda,
+    tasaCambio: moneda === "USD" ? tasa : null,
+    montoEnUYU: moneda === "USD" ? item.precioFinal * tasa : item.precioFinal,
+    iva: item.iva,
+    comprador: comprador ? comprador.trim() : null,
+    metodoPago,
+    diasPlazo: metodoPago === 'Plazo' ? diasPlazo : null,
+    pagado: metodoPago === 'Contado' ? true : pagado,
+    animalLoteId: item.tipoItem === 'animal' ? item.animalLoteId : null,
+    cantidadVendida: item.tipoItem === 'animal' ? item.cantidad : null,
+  }),
+})
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => null)
