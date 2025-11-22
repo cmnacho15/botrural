@@ -661,24 +661,7 @@ const handleEditarGasto = (gasto: Gasto) => {
               )}
             </div>
 
-            {/* Badge de pagos pendientes */}
-            {proveedoresConPendientes.length > 0 && (
-              <div className="relative">
-                <button
-                  onClick={() => setMostrarMenuProveedor(true)}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-yellow-100 border border-yellow-400 rounded-xl hover:bg-yellow-200 transition-all shadow-sm group"
-                >
-                  <div className="w-2 h-2 bg-yellow-600 rounded-full animate-pulse" />
-                  <span className="text-sm font-semibold text-yellow-800">
-                    {proveedoresConPendientes.length}{' '}
-                    {proveedoresConPendientes.length === 1 ? 'pago pendiente' : 'pagos pendientes'}
-                  </span>
-                  <span className="px-2 py-0.5 bg-yellow-600 text-white rounded-full text-xs font-bold">
-                    {totalPendiente.toFixed(0)} {moneda}
-                  </span>
-                </button>
-              </div>
-            )}
+            
           </div>
         </div>
       </div>
