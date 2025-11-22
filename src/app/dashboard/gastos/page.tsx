@@ -411,9 +411,17 @@ const datosPieChart = categoriasConDatos
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* HEADER */}
-      <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-4">
+  <div className="min-h-screen bg-gray-50">
+    {/* 👇 AGREGÁ ESTO AQUÍ */}
+    <style jsx global>{`
+      .recharts-sector:focus {
+        outline: none !important;
+      }
+    `}</style>
+    {/* 👆 HASTA AQUÍ */}
+
+    {/* HEADER */}
+    <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0 mb-4">
           <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">Gastos</h1>
 
