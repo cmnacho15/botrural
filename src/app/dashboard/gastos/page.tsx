@@ -242,7 +242,7 @@ export default function GastosPage() {
   })
 
   const categoriasConDatos = categorias.map((cat) => {
-    const gastosCategoria = gastosData.filter((g) => g.tipo === 'GASTO' && g.categoria === cat.nombre)
+    const gastosCategoria = gastosFiltrados.filter((g) => g.tipo === 'GASTO' && g.categoria === cat.nombre)
     return {
       ...cat,
       cantidad: gastosCategoria.length,
@@ -254,7 +254,7 @@ export default function GastosPage() {
     ? categoriasConDatos
     : categoriasConDatos.slice(0, 9)
 
-  const totalGastos = gastosData
+  const totalGastos = gastosFiltrados
     .filter((g) => g.tipo === 'GASTO')
     .reduce((sum, g) => sum + getMontoVista(g), 0)
 
