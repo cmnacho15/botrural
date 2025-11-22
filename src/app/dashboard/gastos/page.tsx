@@ -30,6 +30,7 @@ type Gasto = {
   metodoPago?: string
   pagado?: boolean
   proveedor?: string
+  comprador?: string
   imageUrl?: string
   imageName?: string
 
@@ -1106,11 +1107,14 @@ const handleEditarGasto = (gasto: Gasto) => {
                       </td>
 
                       {/* PROVEEDOR/COMPRADOR */}
-                      <td className="px-4 sm:px-6 py-3">
-                        <span className="text-sm text-gray-700">
-                          {t.gastoCompleto?.proveedor || '-'}
-                        </span>
-                      </td>
+<td className="px-4 sm:px-6 py-3">
+  <span className="text-sm text-gray-700">
+    {t.esIngreso 
+      ? (t.gastoCompleto?.comprador || '-')
+      : (t.gastoCompleto?.proveedor || '-')
+    }
+  </span>
+</td>
 
                       {/* USUARIO */}
                       <td className="px-4 sm:px-6 py-3">{t.usuario}</td>
