@@ -137,42 +137,47 @@ export async function POST(request: Request) {
       : null
 
     // -----------------------------------------------------
-    // 💰 MONTOS CORRECTOS
-    // -----------------------------------------------------
-    const montoOriginalFinal = montoFloat // puede ser USD o UYU
-    const montoEnUYUFinal = montoEnUYU    // convertido siempre a pesos
-    const montoPrincipal = montoEnUYUFinal // dashboard SIEMPRE usa este
+// 💰 MONTOS CORRECTOS
+// -----------------------------------------------------
+const montoOriginalFinal = montoFloat
+const montoEnUYUFinal = montoEnUYU
+const montoPrincipal = montoEnUYUFinal
 
-    // -----------------------------------------------------
-    // 🧱 DATA FINAL PARA CREAR INGRESO
-    // -----------------------------------------------------
-    const dataToCreate = {
-      tipo: 'INGRESO',
+// -----------------------------------------------------
+// 📅 CORREGIR FECHA (evitar cambio de día por zona horaria)
+// -----------------------------------------------------
+const fechaISO = fecha.includes('T') ? fecha : `${fecha}T12:00:00.000Z`
 
-      // 💰 MONTOS CORREGIDOS
-      monto: montoPrincipal,            // SIEMPRE en UYU
-      montoOriginal: montoOriginalFinal,
-      moneda: monedaIngreso,
-      montoEnUYU: montoEnUYUFinal,
-      tasaCambio: tasaCambio,
+// -----------------------------------------------------
+// 🧱 DATA FINAL PARA CREAR INGRESO
+// -----------------------------------------------------
+const dataToCreate = {
+  tipo: 'INGRESO',
 
-      fecha: new Date(fecha),
-      descripcion,
-      categoria: categoria || 'Otros',
+  // 💰 MONTOS CORREGIDOS
+  monto: montoPrincipal,
+  montoOriginal: montoOriginalFinal,
+  moneda: monedaIngreso,
+  montoEnUYU: montoEnUYUFinal,
+  tasaCambio: tasaCambio,
 
-      comprador: compradorNormalizado,
-      proveedor: null,
-      metodoPago: metodoPago || 'Contado',
-      diasPlazo: diasPlazo ? parseInt(diasPlazo) : null,
-      pagado: pagado ?? (metodoPago === 'Contado' ? true : false),
-      iva: iva ? parseFloat(iva) : null,
+  fecha: new Date(fechaISO),  // 👈 AQUÍ el cambio
+  descripcion,
+  categoria: categoria || 'Otros',
 
-      campoId: usuario.campoId,
-      loteId: loteId || null,
+  comprador: compradorNormalizado,
+  proveedor: null,
+  metodoPago: metodoPago || 'Contado',
+  diasPlazo: diasPlazo ? parseInt(diasPlazo) : null,
+  pagado: pagado ?? (metodoPago === 'Contado' ? true : false),
+  iva: iva ? parseFloat(iva) : null,
 
-      animalLoteId: animalLoteId || null,
-      cantidadVendida: cantidadVendida || null,
-    }
+  campoId: usuario.campoId,
+  loteId: loteId || null,
+
+  animalLoteId: animalLoteId || null,
+  cantidadVendida: cantidadVendida || null,
+}
 
     console.log('📤 Data a crear:', dataToCreate)
 

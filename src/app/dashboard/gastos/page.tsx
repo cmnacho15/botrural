@@ -24,6 +24,7 @@ type Gasto = {
   id: string
   tipo: 'GASTO' | 'INGRESO'
   fecha: string
+  createdAt?: string
   monto: number
   categoria: string
   descripcion?: string
@@ -386,7 +387,20 @@ const transacciones = gastosFiltrados
       gastoCompleto: gasto,
     }
   })
-  .sort((a, b) => b.fechaOriginal - a.fechaOriginal)
+  .sort((a, b) => {
+  // Primero ordenar por fecha del gasto (más reciente primero)
+  const fechaDiff = b.fechaOriginal - a.fechaOriginal
+  if (fechaDiff !== 0) return fechaDiff
+  
+  // Si la fecha es igual, ordenar por createdAt (más nuevo primero)
+  if (a.gastoCompleto.createdAt && b.gastoCompleto.createdAt) {
+    const createdA = new Date(a.gastoCompleto.createdAt).getTime()
+    const createdB = new Date(b.gastoCompleto.createdAt).getTime()
+    return createdB - createdA
+  }
+  
+  return 0
+})
 
 // EDITAR
 const handleEditarGasto = (gasto: Gasto) => {
