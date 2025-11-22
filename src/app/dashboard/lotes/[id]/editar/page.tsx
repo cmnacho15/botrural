@@ -129,7 +129,7 @@ useEffect(() => {
 
         if (lote) {
           setNombre(lote.nombre);
-          setHectareasManual(lote.hectareas.toString());
+          setHectareasManual(parseFloat(lote.hectareas).toFixed(2));
           setPoligono(lote.poligono || null);
 
           // Cultivos
