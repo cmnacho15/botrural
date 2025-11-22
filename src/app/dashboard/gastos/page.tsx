@@ -224,8 +224,29 @@ export default function GastosPage() {
 }
 
   const gastosFiltrados = gastosData.filter((g) => {
-    const coincideCategoria = categoriaSeleccionada ? g.categoria === categoriaSeleccionada : true
+  const coincideCategoria = categoriaSeleccionada ? g.categoria === categoriaSeleccionada : true
 
+  const coincideProveedor = proveedorFiltro
+    ? g.proveedor?.trim().toLowerCase() === proveedorFiltro.trim().toLowerCase()
+    : true
+
+  let coincideFecha = true
+  if (fechaInicio && fechaFin) {
+    const fechaGasto = new Date(g.fecha)
+    const inicio = new Date(fechaInicio)
+    const fin = new Date(fechaFin)
+    coincideFecha = fechaGasto >= inicio && fechaGasto <= fin
+  }
+
+  return coincideCategoria && coincideProveedor && coincideFecha
+})
+
+// 👇 NUEVA VERSIÓN: Calcular categorías SIN filtro de categoría seleccionada
+const categoriasConDatos = categorias.map((cat) => {
+  const gastosCategoria = gastosData.filter((g) => {
+    const esGasto = g.tipo === 'GASTO'
+    const esDeLaCategoria = g.categoria === cat.nombre
+    
     const coincideProveedor = proveedorFiltro
       ? g.proveedor?.trim().toLowerCase() === proveedorFiltro.trim().toLowerCase()
       : true
@@ -238,58 +259,56 @@ export default function GastosPage() {
       coincideFecha = fechaGasto >= inicio && fechaGasto <= fin
     }
 
-    return coincideCategoria && coincideProveedor && coincideFecha
+    // NO incluir categoriaSeleccionada aquí - el gráfico siempre muestra todas las categorías
+    return esGasto && esDeLaCategoria && coincideProveedor && coincideFecha
   })
+  
+  return {
+    ...cat,
+    cantidad: gastosCategoria.length,
+    total: gastosCategoria.reduce((sum, g) => sum + getMontoVista(g), 0),
+  }
+})
 
-  const categoriasConDatos = categorias.map((cat) => {
-    const gastosCategoria = gastosFiltrados.filter((g) => g.tipo === 'GASTO' && g.categoria === cat.nombre)
-    return {
-      ...cat,
-      cantidad: gastosCategoria.length,
-      total: gastosCategoria.reduce((sum, g) => sum + getMontoVista(g), 0),
-    }
-  })
+const categoriasVisibles = mostrarTodasCategorias
+  ? categoriasConDatos
+  : categoriasConDatos.slice(0, 9)
 
-  const categoriasVisibles = mostrarTodasCategorias
-    ? categoriasConDatos
-    : categoriasConDatos.slice(0, 9)
+// 👇 Total basado en categoriasConDatos (para el gráfico)
+const totalGastos = categoriasConDatos.reduce((sum, cat) => sum + cat.total, 0)
 
-  const totalGastos = gastosFiltrados
-    .filter((g) => g.tipo === 'GASTO')
-    .reduce((sum, g) => sum + getMontoVista(g), 0)
+const totalIngresos = gastosFiltrados
+  .filter((g) => g.tipo === 'INGRESO')
+  .reduce((sum, g) => sum + getMontoVista(g), 0)
 
-  const totalIngresos = gastosFiltrados
-    .filter((g) => g.tipo === 'INGRESO')
-    .reduce((sum, g) => sum + getMontoVista(g), 0)
+// NUEVOS CÁLCULOS: Estado de pagos por proveedor
+const estadoPagosPorProveedor = gastosData
+  .filter((g) => g.tipo === 'GASTO' && g.metodoPago === 'Plazo' && g.proveedor)
+  .reduce(
+    (acc: Record<string, { total: number; pagado: number; pendiente: number }>, g) => {
+      const prov = g.proveedor || 'Sin proveedor'
+      if (!acc[prov]) {
+        acc[prov] = { total: 0, pagado: 0, pendiente: 0 }
+      }
+      const monto = getMontoVista(g)
+      acc[prov].total += monto
+      if (g.pagado) {
+        acc[prov].pagado += monto
+      } else {
+        acc[prov].pendiente += monto
+      }
+      return acc
+    },
+    {}
+  )
 
-  // NUEVOS CÁLCULOS: Estado de pagos por proveedor
-  const estadoPagosPorProveedor = gastosData
-    .filter((g) => g.tipo === 'GASTO' && g.metodoPago === 'Plazo' && g.proveedor)
-    .reduce(
-      (acc: Record<string, { total: number; pagado: number; pendiente: number }>, g) => {
-        const prov = g.proveedor || 'Sin proveedor'
-        if (!acc[prov]) {
-          acc[prov] = { total: 0, pagado: 0, pendiente: 0 }
-        }
-        const monto = getMontoVista(g)
-        acc[prov].total += monto
-        if (g.pagado) {
-          acc[prov].pagado += monto
-        } else {
-          acc[prov].pendiente += monto
-        }
-        return acc
-      },
-      {}
-    )
+const proveedoresConPendientes = Object.entries(estadoPagosPorProveedor)
+  .filter(([_, data]) => data.pendiente > 0)
+  .sort((a, b) => b[1].pendiente - a[1].pendiente)
 
-  const proveedoresConPendientes = Object.entries(estadoPagosPorProveedor)
-    .filter(([_, data]) => data.pendiente > 0)
-    .sort((a, b) => b[1].pendiente - a[1].pendiente)
+const totalPendiente = proveedoresConPendientes.reduce((sum, [_, data]) => sum + data.pendiente, 0)
 
-  const totalPendiente = proveedoresConPendientes.reduce((sum, [_, data]) => sum + data.pendiente, 0)
-
-  // ✅ DESPUÉS (mantiene todas las categorías)
+// Datos para el gráfico circular
 const datosPieChart = categoriasConDatos
   .filter((c) => c.total > 0)
   .map((cat) => ({
@@ -299,29 +318,28 @@ const datosPieChart = categoriasConDatos
     porcentaje: totalGastos > 0 ? ((cat.total / totalGastos) * 100).toFixed(1) : '0.0',
     isSelected: categoriaSeleccionada === cat.nombre,
   }))
-  
 
-  const datosBarChart = (() => {
-    const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
-    const gastosPorMes: Record<string, { nombre: string; total: number }> = {}
+const datosBarChart = (() => {
+  const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+  const gastosPorMes: Record<string, { nombre: string; total: number }> = {}
 
-    meses.forEach((mes) => {
-      gastosPorMes[mes] = { nombre: mes, total: 0 }
-    })
+  meses.forEach((mes) => {
+    gastosPorMes[mes] = { nombre: mes, total: 0 }
+  })
 
-    const gastosAFiltrar = gastosFiltrados.filter((g) => g.tipo === 'GASTO')
+  const gastosAFiltrar = gastosFiltrados.filter((g) => g.tipo === 'GASTO')
 
-    gastosAFiltrar.forEach((gasto) => {
-      const fecha = new Date(gasto.fecha)
-      const mesIndex = fecha.getMonth()
-      const mesNombre = meses[mesIndex]
-      gastosPorMes[mesNombre].total += getMontoVista(gasto)
-    })
+  gastosAFiltrar.forEach((gasto) => {
+    const fecha = new Date(gasto.fecha)
+    const mesIndex = fecha.getMonth()
+    const mesNombre = meses[mesIndex]
+    gastosPorMes[mesNombre].total += getMontoVista(gasto)
+  })
 
-    return Object.values(gastosPorMes)
-  })()
+  return Object.values(gastosPorMes)
+})()
 
-  const transacciones = gastosFiltrados
+const transacciones = gastosFiltrados
   .map((gasto) => {
     const categoria = categorias.find((c) => c.nombre === gasto.categoria)
     const esIngreso = gasto.tipo === 'INGRESO'
@@ -351,11 +369,11 @@ const datosPieChart = categoriasConDatos
   })
   .sort((a, b) => b.fechaOriginal - a.fechaOriginal) // Ordenar de más nuevo a más viejo
 
-  // EDITAR
-  const handleEditarGasto = (gasto: Gasto) => {
-    setGastoEditando(gasto)
-    setModalEditOpen(true)
-  }
+// EDITAR
+const handleEditarGasto = (gasto: Gasto) => {
+  setGastoEditando(gasto)
+  setModalEditOpen(true)
+}
 
   // ELIMINAR
   const handleEliminarGasto = async () => {
