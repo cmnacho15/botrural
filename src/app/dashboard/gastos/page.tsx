@@ -289,7 +289,13 @@ const categoriasVisibles = mostrarTodasCategorias
   : categoriasConDatos.slice(0, 9)
 
 // 👇 Total basado en categoriasConDatos (para el gráfico)
-const totalGastos = categoriasConDatos.reduce((sum, cat) => sum + cat.total, 0)
+// Total para el GRÁFICO (sin filtro de categoría)
+const totalGastosGrafico = categoriasConDatos.reduce((sum, cat) => sum + cat.total, 0)
+
+// Total para la TABLA (con TODOS los filtros incluyendo categoría)
+const totalGastos = gastosFiltrados
+  .filter((g) => g.tipo === 'GASTO')
+  .reduce((sum, g) => sum + getMontoVista(g), 0)
 
 const totalIngresos = gastosFiltrados
   .filter((g) => g.tipo === 'INGRESO')
@@ -329,7 +335,7 @@ const datosPieChart = categoriasConDatos
     nombre: cat.nombre,
     total: cat.total,
     color: cat.color,
-    porcentaje: totalGastos > 0 ? ((cat.total / totalGastos) * 100).toFixed(1) : '0.0',
+    porcentaje: totalGastosGrafico > 0 ? ((cat.total / totalGastosGrafico) * 100).toFixed(1) : '0.0',
     isSelected: categoriaSeleccionada === cat.nombre,
   }))
 
