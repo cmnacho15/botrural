@@ -246,16 +246,16 @@ export default function GastosPage() {
     : true
 
   let coincideFecha = true
-if (fechaInicio && fechaFin) {
-  // Comparar solo las fechas (sin hora)
-  const fechaGastoStr = g.fecha.split('T')[0] // "2024-11-21"
-  coincideFecha = fechaGastoStr >= fechaInicio && fechaGastoStr <= fechaFin
-}
+  if (fechaInicio && fechaFin) {
+    // Comparar solo las fechas (sin hora)
+    const fechaGastoStr = g.fecha.split('T')[0] // "2024-11-21"
+    coincideFecha = fechaGastoStr >= fechaInicio && fechaGastoStr <= fechaFin
+  }
 
   return coincideCategoria && coincideProveedor && coincideFecha
 })
 
-// 👇 NUEVA VERSIÓN: Calcular categorías SIN filtro de categoría seleccionada
+// 👇 Calcular categorías SIN filtro de categoría seleccionada
 const categoriasConDatos = categorias.map((cat) => {
   const gastosCategoria = gastosData.filter((g) => {
     const esGasto = g.tipo === 'GASTO'
@@ -267,10 +267,9 @@ const categoriasConDatos = categorias.map((cat) => {
 
     let coincideFecha = true
     if (fechaInicio && fechaFin) {
-      const fechaGasto = new Date(g.fecha)
-      const inicio = new Date(fechaInicio)
-      const fin = new Date(fechaFin)
-      coincideFecha = fechaGasto >= inicio && fechaGasto <= fin
+      // 👇 USAR LA MISMA LÓGICA que gastosFiltrados
+      const fechaGastoStr = g.fecha.split('T')[0] // "2024-11-21"
+      coincideFecha = fechaGastoStr >= fechaInicio && fechaGastoStr <= fechaFin
     }
 
     // NO incluir categoriaSeleccionada aquí - el gráfico siempre muestra todas las categorías
@@ -288,7 +287,6 @@ const categoriasVisibles = mostrarTodasCategorias
   ? categoriasConDatos
   : categoriasConDatos.slice(0, 9)
 
-// 👇 Total basado en categoriasConDatos (para el gráfico)
 // Total para el GRÁFICO (sin filtro de categoría)
 const totalGastosGrafico = categoriasConDatos.reduce((sum, cat) => sum + cat.total, 0)
 
@@ -377,7 +375,7 @@ const transacciones = gastosFiltrados
       id: gasto.id,
       tipo: gasto.tipo,
       fecha: fechaFormateada,
-      fechaOriginal: new Date(gasto.fecha).getTime(), // Para ordenar
+      fechaOriginal: new Date(gasto.fecha).getTime(),
       monto: getMontoVista(gasto),
       item: gasto.descripcion?.split(' - ')[0] || 'Sin descripción',
       categoria: gasto.categoria,
@@ -387,7 +385,7 @@ const transacciones = gastosFiltrados
       gastoCompleto: gasto,
     }
   })
-  .sort((a, b) => b.fechaOriginal - a.fechaOriginal) // Ordenar de más nuevo a más viejo
+  .sort((a, b) => b.fechaOriginal - a.fechaOriginal)
 
 // EDITAR
 const handleEditarGasto = (gasto: Gasto) => {
