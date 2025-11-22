@@ -142,38 +142,53 @@ export default function GastosPage() {
 
   // Función para aplicar rangos de fecha predefinidos
   const aplicarRangoFecha = (tipo: string) => {
-    const hoy = new Date()
-    let inicio = new Date()
-    let fin = new Date()
-
-    switch (tipo) {
-      case 'Hoy':
-        inicio = hoy
-        fin = hoy
-        break
-      case 'Últimos 7 Días':
-        inicio = new Date(hoy.getTime() - 7 * 24 * 60 * 60 * 1000)
-        break
-      case 'Últimos 30 Días':
-        inicio = new Date(hoy.getTime() - 30 * 24 * 60 * 60 * 1000)
-        break
-      case 'Últimos 90 Días':
-        inicio = new Date(hoy.getTime() - 90 * 24 * 60 * 60 * 1000)
-        break
-      case 'Último Año':
-        inicio = new Date(hoy.getTime() - 365 * 24 * 60 * 60 * 1000)
-        break
-      case 'Todos los tiempos':
-        setFechaInicio('')
-        setFechaFin('')
-        setRangoSeleccionado(tipo)
-        return
-    }
-
-    setFechaInicio(inicio.toISOString().split('T')[0])
-    setFechaFin(fin.toISOString().split('T')[0])
-    setRangoSeleccionado(tipo)
+  const hoy = new Date()
+  
+  // Obtener fecha local en formato YYYY-MM-DD
+  const formatearFechaLocal = (fecha: Date) => {
+    const año = fecha.getFullYear()
+    const mes = String(fecha.getMonth() + 1).padStart(2, '0')
+    const dia = String(fecha.getDate()).padStart(2, '0')
+    return `${año}-${mes}-${dia}`
   }
+
+  let inicio: string
+  let fin: string
+
+  switch (tipo) {
+    case 'Hoy':
+      inicio = formatearFechaLocal(hoy)
+      fin = formatearFechaLocal(hoy)
+      break
+    case 'Últimos 7 Días':
+      inicio = formatearFechaLocal(new Date(hoy.getTime() - 7 * 24 * 60 * 60 * 1000))
+      fin = formatearFechaLocal(hoy)
+      break
+    case 'Últimos 30 Días':
+      inicio = formatearFechaLocal(new Date(hoy.getTime() - 30 * 24 * 60 * 60 * 1000))
+      fin = formatearFechaLocal(hoy)
+      break
+    case 'Últimos 90 Días':
+      inicio = formatearFechaLocal(new Date(hoy.getTime() - 90 * 24 * 60 * 60 * 1000))
+      fin = formatearFechaLocal(hoy)
+      break
+    case 'Último Año':
+      inicio = formatearFechaLocal(new Date(hoy.getTime() - 365 * 24 * 60 * 60 * 1000))
+      fin = formatearFechaLocal(hoy)
+      break
+    case 'Todos los tiempos':
+      setFechaInicio('')
+      setFechaFin('')
+      setRangoSeleccionado(tipo)
+      return
+    default:
+      return
+  }
+
+  setFechaInicio(inicio)
+  setFechaFin(fin)
+  setRangoSeleccionado(tipo)
+}
 
   // Función para limpiar filtros
   const limpiarFiltroFecha = () => {
@@ -231,12 +246,11 @@ export default function GastosPage() {
     : true
 
   let coincideFecha = true
-  if (fechaInicio && fechaFin) {
-    const fechaGasto = new Date(g.fecha)
-    const inicio = new Date(fechaInicio)
-    const fin = new Date(fechaFin)
-    coincideFecha = fechaGasto >= inicio && fechaGasto <= fin
-  }
+if (fechaInicio && fechaFin) {
+  // Comparar solo las fechas (sin hora)
+  const fechaGastoStr = g.fecha.split('T')[0] // "2024-11-21"
+  coincideFecha = fechaGastoStr >= fechaInicio && fechaGastoStr <= fechaFin
+}
 
   return coincideCategoria && coincideProveedor && coincideFecha
 })
