@@ -291,7 +291,7 @@ export default function GastosPage() {
 
   // ✅ DESPUÉS (mantiene todas las categorías)
 const datosPieChart = categoriasConDatos
-  .filter((c) => c.total > 0 || categoriaSeleccionada === c.nombre)  // 👈 Incluye la seleccionada aunque tenga 0
+  .filter((c) => c.total > 0)
   .map((cat) => ({
     nombre: cat.nombre,
     total: cat.total,
@@ -299,6 +299,7 @@ const datosPieChart = categoriasConDatos
     porcentaje: totalGastos > 0 ? ((cat.total / totalGastos) * 100).toFixed(1) : '0.0',
     isSelected: categoriaSeleccionada === cat.nombre,
   }))
+  
 
   const datosBarChart = (() => {
     const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
