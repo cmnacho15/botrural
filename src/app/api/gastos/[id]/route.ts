@@ -66,7 +66,7 @@ export async function PUT(
       montoEnUYU: montoEnUYU,
       tasaCambio,
 
-      fecha: fecha ? new Date(fecha) : gastoExistente.fecha,
+      fecha: fecha ? new Date(fecha.includes('T') ? fecha : `${fecha}T12:00:00.000Z`) : gastoExistente.fecha,
       descripcion,
       categoria,
       metodoPago,

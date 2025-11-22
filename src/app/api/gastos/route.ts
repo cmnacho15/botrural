@@ -95,45 +95,50 @@ export async function POST(request: Request) {
     }
 
     // Manejar moneda y conversión
-    const monedaGasto = moneda === "USD" ? "USD" : "UYU"
-    const montoOriginal = parseFloat(monto)
-    let tasaCambio: number | null = null
-    let montoEnUYU = montoOriginal
+const monedaGasto = moneda === "USD" ? "USD" : "UYU"
+const montoOriginal = parseFloat(monto)
+let tasaCambio: number | null = null
+let montoEnUYU = montoOriginal
 
-    if (monedaGasto === "USD") {
-      try {
-        tasaCambio = await getUSDToUYU()
-      } catch (err) {
-        console.log("Error obteniendo dólar → uso 40 por defecto")
-        tasaCambio = 40
-      }
-      montoEnUYU = montoOriginal * tasaCambio
-    }
+if (monedaGasto === "USD") {
+  try {
+    tasaCambio = await getUSDToUYU()
+  } catch (err) {
+    console.log("Error obteniendo dólar → uso 40 por defecto")
+    tasaCambio = 40
+  }
+  montoEnUYU = montoOriginal * tasaCambio
+}
 
-    const gasto = await prisma.gasto.create({
-      data: {
-        tipo,
-        fecha: new Date(fecha),
-        descripcion,
-        categoria,
-        proveedor: proveedor?.trim().toLowerCase() || null,
-        comprador: comprador?.trim().toLowerCase() || null,
-        metodoPago: metodoPago || "Contado",
-        diasPlazo: diasPlazo ? Number(diasPlazo) : null,
-        pagado: pagado ?? metodoPago === "Contado",
-        iva: iva ? Number(iva) : null,
-        loteId: loteId || null,
-        campoId: user!.campoId!,
-        
-        // Nuevos campos obligatorios
-        moneda: monedaGasto,
-        montoOriginal,
-        tasaCambio,
-        montoEnUYU,
-        monto: montoEnUYU, // Para compatibilidad con vistas antiguas
-      },
-      include: { lote: true },
-    })
+// -----------------------------------------------------
+// 📅 CORREGIR FECHA (evitar cambio de día por zona horaria)
+// -----------------------------------------------------
+const fechaISO = fecha.includes('T') ? fecha : `${fecha}T12:00:00.000Z`
+
+const gasto = await prisma.gasto.create({
+  data: {
+    tipo,
+    fecha: new Date(fechaISO),  // 👈 AQUÍ el cambio
+    descripcion,
+    categoria,
+    proveedor: proveedor?.trim().toLowerCase() || null,
+    comprador: comprador?.trim().toLowerCase() || null,
+    metodoPago: metodoPago || "Contado",
+    diasPlazo: diasPlazo ? Number(diasPlazo) : null,
+    pagado: pagado ?? metodoPago === "Contado",
+    iva: iva ? Number(iva) : null,
+    loteId: loteId || null,
+    campoId: user!.campoId!,
+    
+    // Nuevos campos obligatorios
+    moneda: monedaGasto,
+    montoOriginal,
+    tasaCambio,
+    montoEnUYU,
+    monto: montoEnUYU,
+  },
+  include: { lote: true },
+})
 
     return NextResponse.json(gasto, { status: 201 })
   } catch (error) {
