@@ -93,26 +93,28 @@ useEffect(() => {
 }, [])
 
   useEffect(() => {
-    if (lotesExistentes.length > 0) {
-      const todosLosPuntos = lotesExistentes
-        .flatMap(l => l.poligono || [])
-        .filter(c => c.length === 2)
+  if (lotesExistentes.length > 0) {
+    const todosLosPuntos = lotesExistentes
+      .flatMap(l => l.poligono || [])
+      .filter(c => c.length === 2)
 
-      if (todosLosPuntos.length > 0) {
-        const center = todosLosPuntos
-          .reduce((acc, p) => [acc[0] + p[0], acc[1] + p[1]], [0, 0])
-          .map(v => v / todosLosPuntos.length) as [number, number]
-        setMapCenter(center)
-        return
-      }
+    if (todosLosPuntos.length > 0) {
+      const center = todosLosPuntos
+        .reduce((acc, p) => [acc[0] + p[0], acc[1] + p[1]], [0, 0])
+        .map(v => v / todosLosPuntos.length) as [number, number]
+      setMapCenter(center)
+      return
     }
+  }
 
-    if (typeof window !== 'undefined') {
-      const savedCenter = localStorage.getItem('lastPotreroCenter')
-      if (savedCenter) setMapCenter(JSON.parse(savedCenter))
-      else setMapCenter([-32.5228, -55.7658]) // Uruguay
+  // Si NO hay potreros, limpiar el localStorage y mostrar vista de Uruguay
+  if (typeof window !== 'undefined') {
+    if (lotesExistentes.length === 0) {
+      localStorage.removeItem('lastPotreroCenter')
     }
-  }, [lotesExistentes])
+    setMapCenter([-32.5228, -55.7658]) // Vista de Uruguay completa
+  }
+}, [lotesExistentes])
 
   async function cargarLotesExistentes() {
     try {
@@ -433,7 +435,7 @@ useEffect(() => {
               <MapaPoligono
                 onPolygonComplete={handlePolygonComplete}
                 initialCenter={mapCenter}
-                initialZoom={mapCenter ? 16 : 8}
+                initialZoom={lotesExistentes.length > 0 ? 16 : 8}
                 existingPolygons={potrerosParaMapa}
               />
             </div>
