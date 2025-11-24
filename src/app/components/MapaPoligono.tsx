@@ -478,25 +478,45 @@ export default function MapaPoligono({
       
       mapRef.current.flyTo([latitude, longitude], 16, { duration: 1 })
 
+      // Círculo de precisión (más visible)
       (L as any).circle([latitude, longitude], {
         radius: accuracy,
         color: '#4285f4',
         fillColor: '#4285f4',
-        fillOpacity: 0.2,
+        fillOpacity: 0.15,
         weight: 2
       }).addTo(mapRef.current)
 
+      // 🔵 PUNTO AZUL GRANDE Y VISIBLE (sin popup)
       (L as any).marker([latitude, longitude], {
-      icon: (L as any).divIcon({
-          html: '<div style="width:16px;height:16px;background:#4285f4;border:3px solid white;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,0.3)"></div>',
-          iconSize: [16, 16],
-          iconAnchor: [8, 8],
+        icon: (L as any).divIcon({
+          html: `
+            <div style="
+              width: 24px;
+              height: 24px;
+              background: #4285f4;
+              border: 4px solid white;
+              border-radius: 50%;
+              box-shadow: 0 3px 10px rgba(0,0,0,0.4);
+              position: relative;
+            ">
+              <div style="
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                width: 12px;
+                height: 12px;
+                background: white;
+                border-radius: 50%;
+              "></div>
+            </div>
+          `,
+          iconSize: [24, 24],
+          iconAnchor: [12, 12],
           className: ''
         })
-      })
-        .addTo(mapRef.current)
-        .bindPopup('📍 Tu ubicación')
-        .openPopup()
+      }).addTo(mapRef.current)
 
       setUbicandoUsuario(false)
     },
@@ -527,7 +547,7 @@ export default function MapaPoligono({
 <button
   onClick={ubicarUsuario}
   disabled={ubicandoUsuario}
-  className="absolute top-3 left-3 z-[1000] bg-white rounded-lg shadow-lg hover:shadow-xl transition-all w-10 h-10 flex items-center justify-center disabled:opacity-50"
+  className="absolute top-[80px] left-3 z-[1000] bg-white rounded-lg shadow-lg hover:shadow-xl transition-all w-10 h-10 flex items-center justify-center disabled:opacity-50"
   title="Mi ubicación"
 >
   {ubicandoUsuario ? (
