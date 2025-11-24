@@ -49,6 +49,38 @@ type Categoria = {
   total: number
   color: string
 }
+// 🎨 Función para generar un color único (evita los 19 ya usados)
+const generarColorUnico = (coloresUsados: string[]): string => {
+  // Solo colores que NO están en las 19 categorías originales
+  const coloresDisponibles = [
+    '#8b5cf6', // violet
+    '#14b8a6', // teal  
+    '#f59e0b', // amber
+    '#10b981', // emerald
+    '#6366f1', // indigo
+    '#fb7185', // rose
+    '#0ea5e9', // sky
+    '#14532d', // green-900
+    '#1e3a8a', // blue-900
+    '#7c2d12', // orange-900
+    '#831843', // pink-900
+    '#365314', // lime-900
+    '#9333ea', // purple-600
+    '#0891b2', // cyan-600
+    '#ea580c', // orange-600
+    '#be123c', // rose-700
+  ]
+
+  // Buscar primer color NO usado
+  for (const color of coloresDisponibles) {
+    if (!coloresUsados.includes(color)) {
+      return color
+    }
+  }
+
+  // Si todos están usados (más de 35 categorías), generar aleatorio
+  return '#' + Math.floor(Math.random() * 16777215).toString(16)
+}
 
 export default function GastosPage() {
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string | null>(null)
@@ -1312,7 +1344,9 @@ const handleEditarGasto = (gasto: Gasto) => {
                   if (nuevaCategoriaNombre.trim() === '') return
                   
                   try {
-                    const nuevoColor = '#' + Math.floor(Math.random() * 16777215).toString(16)
+                    // 🎨 Generar color único (evita los 19 colores originales)
+                    const coloresUsados = categorias.map(c => c.color)
+                    const nuevoColor = generarColorUnico(coloresUsados)
                     
                     const response = await fetch('/api/categorias-gasto', {
                       method: 'POST',
