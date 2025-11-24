@@ -919,14 +919,17 @@ useEffect(() => {
 
 // ==================== TARJETA ====================
 function TarjetaDato({ dato }: { dato: any }) {
+  const [showConfirm, setShowConfirm] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const { refetch } = useDatos()  // 👈 AGREGAR ESTA LÍNEA
+  
   const formatFecha = (fecha: Date) => {
-  const date = new Date(fecha)
-  // Usar UTC para evitar problemas de zona horaria
-  const day = String(date.getUTCDate()).padStart(2, '0')
-  const month = String(date.getUTCMonth() + 1).padStart(2, '0')
-  const year = date.getUTCFullYear()
-  return `${day}/${month}/${year}`
-}
+    const date = new Date(fecha)
+    const day = String(date.getUTCDate()).padStart(2, '0')
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0')
+    const year = date.getUTCFullYear()
+    return `${day}/${month}/${year}`
+  }
 
   const colorClasses: Record<string, string> = {
     green: 'bg-green-500',
@@ -944,12 +947,36 @@ function TarjetaDato({ dato }: { dato: any }) {
     brown: 'bg-orange-800',
   }
 
+  const handleEliminar = async () => {
+    setDeleting(true)
+    try {
+      const response = await fetch(`/api/datos/${dato.id}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Error al eliminar')
+      }
+
+      const result = await response.json()
+      alert(result.message || 'Eliminado correctamente')
+      refetch()  // 👈 CAMBIAR window.location.reload() por refetch()
+    } catch (error) {
+      console.error('Error:', error)
+      alert((error as Error).message || 'Error al eliminar el dato')
+    } finally {
+      setDeleting(false)
+      setShowConfirm(false)
+    }
+  }
+
   const renderDetalles = () => {
     const detalles = []
 
     if (dato.monto !== undefined && dato.monto !== null && dato.monto !== 0) {
       const esIngreso = dato.tipo === 'INGRESO' || dato.tipo === 'VENTA'
-      const moneda = dato.moneda || 'UYU' // 👈 Obtener la moneda del dato
+      const moneda = dato.moneda || 'UYU'
 
       detalles.push(
         <div key="monto" className="flex items-center gap-2">
@@ -1065,34 +1092,93 @@ function TarjetaDato({ dato }: { dato: any }) {
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 border border-gray-100">
-      <div className="flex items-start gap-4">
-        <div className={`${colorClasses[obtenerColor(dato.tipo)] || 'bg-gray-500'} w-12 h-12 rounded-full flex items-center justify-center text-2xl flex-shrink-0`}>
-          {obtenerIcono(dato.tipo)}
-        </div>
-
-        <div className="flex-1 min-w-0">
-          <div className="flex justify-between items-start mb-2">
-            <div>
-              <h3 className="font-semibold text-gray-900 text-base">{obtenerNombreTipo(dato.tipo)}</h3>
-              <span className="text-xs text-gray-500">{formatFecha(dato.fecha)}</span>
-            </div>
+    <>
+      <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 border border-gray-100">
+        <div className="flex items-start gap-4">
+          <div className={`${colorClasses[obtenerColor(dato.tipo)] || 'bg-gray-500'} w-12 h-12 rounded-full flex items-center justify-center text-2xl flex-shrink-0`}>
+            {obtenerIcono(dato.tipo)}
           </div>
 
-          {dato.descripcion && <p className="text-gray-700 text-sm mb-3">{dato.descripcion}</p>}
+          <div className="flex-1 min-w-0">
+            <div className="flex justify-between items-start mb-2">
+              <div>
+                <h3 className="font-semibold text-gray-900 text-base">{obtenerNombreTipo(dato.tipo)}</h3>
+                <span className="text-xs text-gray-500">{formatFecha(dato.fecha)}</span>
+              </div>
+            </div>
 
-<div className="flex flex-wrap gap-2 mb-2">{renderDetalles()}</div>
+            {dato.descripcion && <p className="text-gray-700 text-sm mb-3">{dato.descripcion}</p>}
 
-<div className="flex flex-wrap gap-2 text-xs text-gray-500">
-  {dato.usuario && <span className="bg-gray-100 px-2 py-1 rounded">👤 {dato.usuario}</span>}
-  {dato.lote && <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded">📍 {dato.lote}</span>}
-  <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded capitalize">{dato.categoria}</span>
-</div>
+            <div className="flex flex-wrap gap-2 mb-2">{renderDetalles()}</div>
 
-{dato.notas && <p className="text-xs text-gray-500 mt-2 italic">📝 {dato.notas}</p>}
+            <div className="flex flex-wrap gap-2 text-xs text-gray-500">
+              {dato.usuario && <span className="bg-gray-100 px-2 py-1 rounded">👤 {dato.usuario}</span>}
+              {dato.lote && <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded">📍 {dato.lote}</span>}
+              <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded capitalize">{dato.categoria}</span>
+            </div>
+
+            {dato.notas && <p className="text-xs text-gray-500 mt-2 italic">📝 {dato.notas}</p>}
+          </div>
+
+          <div className="flex items-start">
+            <button
+              onClick={() => setShowConfirm(true)}
+              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+              title="Eliminar dato"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+
+      {showConfirm && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
+                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900">¿Eliminar este dato?</h3>
+            </div>
+
+            <p className="text-gray-600 mb-2">
+              Se eliminará: <strong>{obtenerNombreTipo(dato.tipo)}</strong>
+            </p>
+            <p className="text-sm text-gray-500 mb-4">
+              {dato.descripcion || formatFecha(dato.fecha)}
+            </p>
+
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-6">
+              <p className="text-sm text-yellow-800">
+                ⚠️ Esta acción revertirá todos los cambios asociados (stocks, conteos de animales, etc.)
+              </p>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowConfirm(false)}
+                disabled={deleting}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700 font-medium transition"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleEliminar}
+                disabled={deleting}
+                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition"
+              >
+                {deleting ? 'Eliminando...' : 'Eliminar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   )
 }
 
