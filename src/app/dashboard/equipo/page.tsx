@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { UserPlus, Shield, DollarSign, Trash2 } from "lucide-react"
+import { UserPlus, DollarSign, Trash2 } from "lucide-react"
 import ModalInvitarUsuario from "@/app/components/modales/ModalInvitarUsuario"
 
 interface Usuario {
@@ -79,7 +79,6 @@ export default function EquipoPage() {
     }
   }
 
-  // FUNCIÓN REEMPLAZADA Y MEJORADA
   const handleEliminarUsuario = async (usuario: Usuario) => {
     const confirmar = confirm(
       `¿Estás seguro de eliminar a ${usuario.nombre} ${usuario.apellido}?\n\n` +
@@ -99,7 +98,6 @@ export default function EquipoPage() {
         method: "DELETE",
       })
 
-      // Verificar si hay contenido antes de parsear
       let data
       const text = await res.text()
       
@@ -148,120 +146,122 @@ export default function EquipoPage() {
         </button>
       </div>
 
-      {/* Tabla de usuarios */}
+      {/* Tabla de usuarios con scroll horizontal */}
       <div className="bg-white rounded-xl shadow overflow-hidden">
-        <table className="w-full">
-          <thead className="bg-gray-50 border-b">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Usuario
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Rol
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Contacto
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Datos ingresados
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Acceso finanzas
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Registro
-              </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Acciones
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {usuarios.map((usuario) => (
-              <tr key={usuario.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0 h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center">
-                      <span className="text-blue-600 font-semibold">
-                        {usuario.nombre.charAt(0).toUpperCase()}
-                      </span>
-                    </div>
-                    <div className="ml-4">
-                      <div className="text-sm font-medium text-gray-900">
-                        {usuario.nombre} {usuario.apellido}
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-max">
+            <thead className="bg-gray-50 border-b">
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Usuario
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Rol
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Contacto
+                </th>
+                <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Datos
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Finanzas
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Registro
+                </th>
+                <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Acciones
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {usuarios.map((usuario) => (
+                <tr key={usuario.id} className="hover:bg-gray-50">
+                  <td className="px-4 py-4 whitespace-nowrap">
+                    <div className="flex items-center">
+                      <div className="flex-shrink-0 h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center">
+                        <span className="text-blue-600 font-semibold">
+                          {usuario.nombre.charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                      <div className="ml-3">
+                        <div className="text-sm font-medium text-gray-900">
+                          {usuario.nombre} {usuario.apellido}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span
-                    className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                      usuario.roleCode === "ADMIN_GENERAL"
-                        ? "bg-purple-100 text-purple-800"
-                        : usuario.roleCode === "COLABORADOR"
-                        ? "bg-blue-100 text-blue-800"
-                        : usuario.roleCode === "EMPLEADO"
-                        ? "bg-green-100 text-green-800"
-                        : "bg-orange-100 text-orange-800"
-                    }`}
-                  >
-                    {usuario.rol}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  <div>{usuario.email || "-"}</div>
-                  {usuario.telefono && (
-                    <div className="text-xs text-gray-400">{usuario.telefono}</div>
-                  )}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {usuario.datosIngresados}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  {usuario.roleCode === "COLABORADOR" ? (
-                    <button
-                      onClick={() => handleToggleFinanzas(usuario.id, !usuario.accesoFinanzas)}
-                      disabled={actualizando === usuario.id}
-                      className={`flex items-center gap-2 px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
-                        usuario.accesoFinanzas
-                          ? "bg-green-100 text-green-700 hover:bg-green-200"
-                          : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                      } disabled:opacity-50 disabled:cursor-not-allowed`}
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap">
+                    <span
+                      className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                        usuario.roleCode === "ADMIN_GENERAL"
+                          ? "bg-purple-100 text-purple-800"
+                          : usuario.roleCode === "COLABORADOR"
+                          ? "bg-blue-100 text-blue-800"
+                          : usuario.roleCode === "EMPLEADO"
+                          ? "bg-green-100 text-green-800"
+                          : "bg-orange-100 text-orange-800"
+                      }`}
                     >
-                      <DollarSign className="w-4 h-4" />
-                      {actualizando === usuario.id ? (
-                        "..."
-                      ) : usuario.accesoFinanzas ? (
-                        "Habilitado"
-                      ) : (
-                        "Deshabilitado"
-                      )}
-                    </button>
-                  ) : usuario.roleCode === "ADMIN_GENERAL" || usuario.roleCode === "CONTADOR" ? (
-                    <span className="text-xs text-gray-500">Siempre habilitado</span>
-                  ) : (
-                    <span className="text-xs text-gray-500">N/A</span>
-                  )}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {usuario.fechaRegistro}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-right">
-                  {usuario.roleCode !== "ADMIN_GENERAL" && (
-                    <button
-                      onClick={() => handleEliminarUsuario(usuario)}
-                      disabled={actualizando === usuario.id}
-                      className="text-red-600 hover:text-red-800 transition-colors disabled:opacity-50"
-                      title="Eliminar usuario"
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                      {usuario.rol}
+                    </span>
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <div className="max-w-[200px] truncate">{usuario.email || "-"}</div>
+                    {usuario.telefono && (
+                      <div className="text-xs text-gray-400">{usuario.telefono}</div>
+                    )}
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
+                    {usuario.datosIngresados}
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap">
+                    {usuario.roleCode === "COLABORADOR" ? (
+                      <button
+                        onClick={() => handleToggleFinanzas(usuario.id, !usuario.accesoFinanzas)}
+                        disabled={actualizando === usuario.id}
+                        className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium transition-colors ${
+                          usuario.accesoFinanzas
+                            ? "bg-green-100 text-green-700 hover:bg-green-200"
+                            : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                        } disabled:opacity-50 disabled:cursor-not-allowed`}
+                      >
+                        <DollarSign className="w-3 h-3" />
+                        {actualizando === usuario.id ? (
+                          "..."
+                        ) : usuario.accesoFinanzas ? (
+                          "Sí"
+                        ) : (
+                          "No"
+                        )}
+                      </button>
+                    ) : usuario.roleCode === "ADMIN_GENERAL" || usuario.roleCode === "CONTADOR" ? (
+                      <span className="text-xs text-gray-500">Siempre</span>
+                    ) : (
+                      <span className="text-xs text-gray-500">N/A</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {usuario.fechaRegistro}
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-center">
+                    {usuario.roleCode !== "ADMIN_GENERAL" && (
+                      <button
+                        onClick={() => handleEliminarUsuario(usuario)}
+                        disabled={actualizando === usuario.id}
+                        className="text-red-600 hover:text-red-800 transition-colors disabled:opacity-50 inline-flex items-center justify-center"
+                        title="Eliminar usuario"
+                      >
+                        <Trash2 className="w-5 h-5" />
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
 
         {usuarios.length === 0 && (
           <div className="text-center py-12">
