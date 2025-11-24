@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { CATEGORIAS_GASTOS, METODOS_PAGO } from '@/lib/constants'
+import { METODOS_PAGO } from '@/lib/constants'
 import { obtenerFechaLocal } from '@/lib/fechas'
 
 type ModalGastoProps = {
@@ -33,37 +33,40 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
   const [diasPlazo, setDiasPlazo] = useState(0)
   const [pagado, setPagado] = useState(false)
 
+  // 🆕 CATEGORÍAS DINÁMICAS
+  const [categorias, setCategorias] = useState<string[]>([])
+
   const [items, setItems] = useState<ItemGasto[]>([
     {
       id: '1',
       item: '',
-      categoria: CATEGORIAS_GASTOS[0],
+      categoria: '', // 👈 inicial vacío
       precio: 0,
       iva: 0,
       precioFinal: 0,
     },
   ])
 
-  // CARGAR PROVEEDORES DESDE EL BACKEND
+  // CARGAR PROVEEDORES
   useEffect(() => {
     const cargarProveedores = async () => {
       try {
         const res = await fetch('/api/proveedores')
         if (res.ok) {
           const data = await res.json()
-          console.log('Proveedores cargados:', data) // Debug
 
-          // Filtrar y limpiar proveedores
           const proveedoresLimpios = data
             .filter((p: any) => p && typeof p === 'string' && p.trim() !== '')
             .map((p: string) => p.trim())
-          
-          // Eliminar duplicados (case-insensitive pero mantener original)
-          const unicos = Array.from(new Set(proveedoresLimpios.map((p: string) => p.toLowerCase())))
-            .map(lower => proveedoresLimpios.find((p: string) => p.toLowerCase() === lower))
+
+          const unicos = Array.from(
+            new Set(proveedoresLimpios.map((p: string) => p.toLowerCase()))
+          )
+            .map(lower =>
+              proveedoresLimpios.find((p: string) => p.toLowerCase() === lower)
+            )
             .filter(Boolean) as string[]
 
-          console.log('Proveedores únicos:', unicos) // Debug
           setProveedoresPrevios(unicos)
         }
       } catch (err) {
@@ -73,11 +76,38 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
     cargarProveedores()
   }, [])
 
-  const calcularPrecioFinal = (precio: number, iva: number) => precio + (precio * iva) / 100
+  // 🆕 CARGAR CATEGORÍAS DINÁMICAS DESDE BACKEND
+  useEffect(() => {
+    const cargarCategorias = async () => {
+      try {
+        const res = await fetch('/api/categorias-gasto')
+        if (res.ok) {
+          const data = await res.json()
+          const nombres = data.map((cat: any) => cat.nombre)
+          setCategorias(nombres)
+
+          // Setear primera categoría en el primer item
+          if (nombres.length > 0 && items.length > 0 && !items[0].categoria) {
+            setItems(prev =>
+              prev.map((item, idx) =>
+                idx === 0 ? { ...item, categoria: nombres[0] } : item
+              )
+            )
+          }
+        }
+      } catch (err) {
+        console.error('Error cargando categorías:', err)
+      }
+    }
+    cargarCategorias()
+  }, [])
+
+  const calcularPrecioFinal = (precio: number, iva: number) =>
+    precio + (precio * iva) / 100
 
   const handleItemChange = (id: string, field: keyof ItemGasto, value: any) => {
-    setItems((prev) =>
-      prev.map((item) => {
+    setItems(prev =>
+      prev.map(item => {
         if (item.id !== id) return item
 
         let updated = { ...item }
@@ -93,19 +123,18 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
         } else {
           updated = { ...updated, [field]: value }
         }
-
         return updated
       })
     )
   }
 
   const agregarItem = () => {
-    setItems((prev) => [
+    setItems(prev => [
       ...prev,
       {
         id: Date.now().toString(),
         item: '',
-        categoria: CATEGORIAS_GASTOS[0],
+        categoria: categorias[0] || '',
         precio: 0,
         iva: 0,
         precioFinal: 0,
@@ -115,71 +144,68 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
 
   const eliminarItem = (id: string) => {
     if (items.length === 1) return
-    setItems((prev) => prev.filter((item) => item.id !== id))
+    setItems(prev => prev.filter(item => item.id !== id))
   }
 
   const montoTotal = items.reduce((sum, item) => sum + item.precioFinal, 0)
 
   const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault()
+    e.preventDefault()
 
-  if (items.some((item) => !item.item || item.precio <= 0)) {
-    alert('Completá todos los ítems con nombre y precio válido')
-    return
+    if (items.some(item => !item.item || item.precio <= 0)) {
+      alert('Completá todos los ítems con nombre y precio válido')
+      return
+    }
+
+    if (esPlazo && diasPlazo < 1) {
+      alert('Si es pago a plazo, ingresá una cantidad de días válida')
+      return
+    }
+
+    setLoading(true)
+
+    try {
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i]
+
+        const response = await fetch('/api/eventos', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tipo: 'GASTO',
+            fecha: fecha,
+            descripcion: `${item.item}${notas ? ` - ${notas}` : ''}`,
+            categoria: item.categoria,
+            monto: item.precioFinal,
+            moneda: moneda,
+            metodoPago: esPlazo ? 'Plazo' : 'Contado',
+            iva: item.iva,
+            diasPlazo: esPlazo ? diasPlazo : null,
+            pagado: esPlazo ? pagado : true,
+            proveedor: proveedor.trim() || null,
+          }),
+        })
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => null)
+          throw new Error(errorData?.error || 'Error al guardar')
+        }
+
+        if (i < items.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 100))
+        }
+      }
+
+      onSuccess()
+      onClose()
+    } catch (error) {
+      console.error('Error:', error)
+      alert('Error al guardar los gastos')
+    } finally {
+      setLoading(false)
+    }
   }
 
-  if (esPlazo && diasPlazo < 1) {
-    alert('Si es pago a plazo, ingresá una cantidad de días válida')
-    return
-  }
-
-  setLoading(true)
-
-  try {
-  for (let i = 0; i < items.length; i++) {
-  const item = items[i]
-
-  const response = await fetch('/api/eventos', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      tipo: 'GASTO',
-      fecha: fecha, // 👈 VOLVER A ESTO (solo la fecha, sin hora)
-      descripcion: `${item.item}${notas ? ` - ${notas}` : ''}`,
-      categoria: item.categoria,
-      monto: item.precioFinal,
-      moneda: moneda,
-      metodoPago: esPlazo ? 'Plazo' : 'Contado',
-      iva: item.iva,
-      diasPlazo: esPlazo ? diasPlazo : null,
-      pagado: esPlazo ? pagado : true,
-      proveedor: proveedor.trim() || null,
-    }),
-  })
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => null)
-    console.error('Error response:', errorData)
-    throw new Error(errorData?.error || 'Error al guardar')
-  }
-  
-  // ⏱️ Pequeña pausa entre items
-  if (i < items.length - 1) {
-    await new Promise(resolve => setTimeout(resolve, 100))
-  }
-}
-
-    onSuccess()
-    onClose()
-  } catch (error) {
-    console.error('Error:', error)
-    alert('Error al guardar los gastos')
-  } finally {
-    setLoading(false)
-  }
-}
-
-  // Filtrar proveedores según lo que el usuario escribe
   const proveedoresFiltrados = proveedoresPrevios.filter(p =>
     p.toLowerCase().includes(proveedor.toLowerCase())
   )
@@ -189,80 +215,82 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
       {/* HEADER */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center text-2xl">💰</div>
+          <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center text-2xl">
+            💰
+          </div>
           <h2 className="text-2xl font-bold text-gray-900">Nuevo Gasto</h2>
         </div>
-        <button type="button" onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">✕</button>
+        <button
+          type="button"
+          onClick={onClose}
+          className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
+        >
+          ✕
+        </button>
       </div>
 
-      {/* INFORMACIÓN BÁSICA */}
+      {/* INFO BÁSICA */}
       <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-        <h3 className="font-semibold text-gray-900 mb-3">Información Básica</h3>
+        <h3 className="font-semibold text-gray-900 mb-3">
+          Información Básica
+        </h3>
 
+        {/* FECHA */}
         <div className="space-y-3">
-          {/* FECHA */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Fecha</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Fecha
+            </label>
             <input
               type="date"
               value={fecha}
-              onChange={(e) => setFecha(e.target.value)}
+              onChange={e => setFecha(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               required
             />
           </div>
 
-          {/* PROVEEDOR CON AUTOCOMPLETADO MEJORADO */}
+          {/* PROVEEDOR + SUGERENCIAS */}
           <div className="relative">
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Proveedor {proveedoresPrevios.length > 0 && (
-                <span className="text-xs text-blue-600 font-semibold">({proveedoresPrevios.length} guardados)</span>
+              Proveedor{' '}
+              {proveedoresPrevios.length > 0 && (
+                <span className="text-xs text-blue-600 font-semibold">
+                  ({proveedoresPrevios.length} guardados)
+                </span>
               )}
             </label>
+
             <input
               type="text"
               value={proveedor}
-              onChange={(e) => {
+              onChange={e => {
                 setProveedor(e.target.value)
                 setMostrarSugerencias(true)
               }}
-              onFocus={() => {
-                console.log('Focus en proveedor') // Debug
-                setMostrarSugerencias(true)
-              }}
-              onBlur={() => {
-                console.log('Blur en proveedor') // Debug
-                setTimeout(() => setMostrarSugerencias(false), 300)
-              }}
-              placeholder="Ej: AgroSalto, Barraca del Campo..."
+              onFocus={() => setMostrarSugerencias(true)}
+              onBlur={() => setTimeout(() => setMostrarSugerencias(false), 300)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              placeholder="Ej: AgroSalto, Barraca del Campo..."
             />
-            
-            {/* DEBUG INFO */}
-            {proveedoresPrevios.length > 0 && (
-              <p className="text-xs text-gray-500 mt-1">
-                💡 Empezá a escribir para ver sugerencias (hay {proveedoresPrevios.length} guardados)
-              </p>
-            )}
-            
-            {/* SUGERENCIAS DROPDOWN - CON MEJOR Z-INDEX */}
+
             {mostrarSugerencias && proveedoresFiltrados.length > 0 && (
-              <div 
-                className="absolute z-[9999] w-full mt-1 bg-white border-2 border-blue-500 rounded-lg shadow-2xl max-h-60 overflow-y-auto"
-                style={{ boxShadow: '0 10px 40px rgba(0,0,0,0.3)' }}
-              >
+              <div className="absolute z-[9999] w-full mt-1 bg-white border-2 border-blue-500 rounded-lg shadow-2xl max-h-60 overflow-y-auto">
                 <div className="p-2 bg-blue-50 border-b border-blue-200">
                   <p className="text-xs font-semibold text-blue-700">
-                    {proveedoresFiltrados.length} {proveedoresFiltrados.length === 1 ? 'resultado' : 'resultados'}
+                    {proveedoresFiltrados.length}{' '}
+                    {proveedoresFiltrados.length === 1
+                      ? 'resultado'
+                      : 'resultados'}
                   </p>
                 </div>
+
                 {proveedoresFiltrados.map((p, idx) => (
                   <button
                     key={idx}
                     type="button"
-                    onMouseDown={(e) => {
-                      e.preventDefault() // Evita que se active el onBlur
-                      console.log('Seleccionado:', p) // Debug
+                    onMouseDown={e => {
+                      e.preventDefault()
                       setProveedor(p)
                       setMostrarSugerencias(false)
                     }}
@@ -274,48 +302,57 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
               </div>
             )}
 
-            {/* MENSAJE SI NO ENCUENTRA COINCIDENCIAS */}
-            {mostrarSugerencias && proveedor && proveedoresFiltrados.length === 0 && proveedoresPrevios.length > 0 && (
-              <div className="absolute z-[9999] w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg p-3">
-                <p className="text-sm text-gray-600">
-                  ❌ No se encontró "{proveedor}". Se guardará como nuevo proveedor.
-                </p>
-              </div>
-            )}
-
-            {/* MENSAJE SI NO HAY PROVEEDORES */}
-            {proveedoresPrevios.length === 0 && (
-              <p className="text-xs text-gray-500 mt-1">
-                ℹ️ Ingresá un proveedor nuevo. Se guardará automáticamente para futuros gastos.
-              </p>
-            )}
+            {mostrarSugerencias &&
+              proveedor &&
+              proveedoresFiltrados.length === 0 &&
+              proveedoresPrevios.length > 0 && (
+                <div className="absolute z-[9999] w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg p-3">
+                  <p className="text-sm text-gray-600">
+                    ❌ No existe "{proveedor}". Se guardará como nuevo.
+                  </p>
+                </div>
+              )}
           </div>
 
           {/* MONEDA */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Moneda</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Moneda
+            </label>
             <select
               value={moneda}
-              onChange={(e) => setMoneda(e.target.value)}
+              onChange={e => setMoneda(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
             >
               <option value="UYU">UYU (Pesos Uruguayos)</option>
-              <option value="USD">USD (Dólares)</option>
+              <option value="USD">USD</option>
             </select>
           </div>
         </div>
 
         {/* CONDICIÓN DE PAGO */}
         <div className="mt-4 p-4 bg-white rounded-lg border border-gray-200">
-          <h3 className="font-semibold text-gray-900 mb-3">Condición de Pago</h3>
+          <h3 className="font-semibold text-gray-900 mb-3">
+            Condición de Pago
+          </h3>
+
           <div className="space-y-3">
             <div className="flex items-center gap-3">
               <label className="flex items-center gap-2 text-sm text-gray-700">
-                <input type="radio" checked={!esPlazo} onChange={() => setEsPlazo(false)} className="text-blue-600" />
+                <input
+                  type="radio"
+                  checked={!esPlazo}
+                  onChange={() => setEsPlazo(false)}
+                />
                 Pago contado
               </label>
+
               <label className="flex items-center gap-2 text-sm text-gray-700">
-                <input type="radio" checked={esPlazo} onChange={() => setEsPlazo(true)} className="text-blue-600" />
+                <input
+                  type="radio"
+                  checked={esPlazo}
+                  onChange={() => setEsPlazo(true)}
+                />
                 Pago a plazo
               </label>
             </div>
@@ -328,7 +365,7 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
                     type="number"
                     min={1}
                     value={diasPlazo}
-                    onChange={(e) => setDiasPlazo(parseInt(e.target.value) || 0)}
+                    onChange={e => setDiasPlazo(parseInt(e.target.value) || 0)}
                     className="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
@@ -337,10 +374,11 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
                   <input
                     type="checkbox"
                     checked={pagado}
-                    onChange={(e) => setPagado(e.target.checked)}
-                    className="text-blue-600"
+                    onChange={e => setPagado(e.target.checked)}
                   />
-                  <label className="text-sm text-gray-700">Marcar como pagado</label>
+                  <label className="text-sm text-gray-700">
+                    Marcar como pagado
+                  </label>
                 </div>
               </>
             )}
@@ -351,15 +389,24 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
       {/* ITEMS */}
       <div className="mb-6">
         <div className="bg-blue-50 rounded-lg p-3 mb-3 flex items-center gap-2">
-          <span className="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center font-bold">{items.length}</span>
+          <span className="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center font-bold">
+            {items.length}
+          </span>
           <h3 className="font-semibold text-gray-900">Items</h3>
         </div>
 
         <div className="space-y-3">
-          {items.map((item) => (
-            <div key={item.id} className="border-l-4 border-blue-500 pl-4 py-3 bg-gray-50 rounded-r-lg relative">
+          {items.map(item => (
+            <div
+              key={item.id}
+              className="border-l-4 border-blue-500 pl-4 py-3 bg-gray-50 rounded-r-lg relative"
+            >
               {items.length > 1 && (
-                <button type="button" onClick={() => eliminarItem(item.id)} className="absolute top-2 right-2 text-red-600 hover:text-red-800">
+                <button
+                  type="button"
+                  onClick={() => eliminarItem(item.id)}
+                  className="absolute top-2 right-2 text-red-600 hover:text-red-800"
+                >
                   🗑️
                 </button>
               )}
@@ -368,31 +415,47 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
                 <input
                   type="text"
                   value={item.item}
-                  onChange={(e) => handleItemChange(item.id, 'item', e.target.value)}
+                  onChange={e =>
+                    handleItemChange(item.id, 'item', e.target.value)
+                  }
                   placeholder="Item"
                   className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   required
                 />
 
+                {/* CATEGORÍAS DINÁMICAS */}
                 <select
                   value={item.categoria}
-                  onChange={(e) => handleItemChange(item.id, 'categoria', e.target.value)}
+                  onChange={e =>
+                    handleItemChange(item.id, 'categoria', e.target.value)
+                  }
                   className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  disabled={categorias.length === 0}
                 >
-                  {CATEGORIAS_GASTOS.map((cat) => (
-                    <option key={cat} value={cat}>{cat}</option>
-                  ))}
+                  {categorias.length === 0 ? (
+                    <option value="">Cargando categorías...</option>
+                  ) : (
+                    categorias.map(cat => (
+                      <option key={cat} value={cat}>
+                        {cat}
+                      </option>
+                    ))
+                  )}
                 </select>
               </div>
 
               <div className="grid grid-cols-3 gap-3 items-center">
                 <div>
-                  <label className="block text-xs text-gray-600 mb-1">Precio</label>
+                  <label className="block text-xs text-gray-600 mb-1">
+                    Precio
+                  </label>
                   <input
                     type="number"
                     step="0.01"
                     value={item.precio || ''}
-                    onChange={(e) => handleItemChange(item.id, 'precio', e.target.value)}
+                    onChange={e =>
+                      handleItemChange(item.id, 'precio', e.target.value)
+                    }
                     placeholder="0.00"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                     required
@@ -400,10 +463,14 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
                 </div>
 
                 <div>
-                  <label className="block text-xs text-gray-600 mb-1">IVA</label>
+                  <label className="block text-xs text-gray-600 mb-1">
+                    IVA
+                  </label>
                   <select
                     value={item.iva}
-                    onChange={(e) => handleItemChange(item.id, 'iva', e.target.value)}
+                    onChange={e =>
+                      handleItemChange(item.id, 'iva', e.target.value)
+                    }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="0">Sin IVA</option>
@@ -413,11 +480,13 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
                 </div>
 
                 <div>
-                  <label className="block text-xs text-gray-600 mb-1">Precio Final</label>
+                  <label className="block text-xs text-gray-600 mb-1">
+                    Precio Final
+                  </label>
                   <input
                     type="text"
-                    value={item.precioFinal.toFixed(2)}
                     readOnly
+                    value={item.precioFinal.toFixed(2)}
                     className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-lg text-gray-700 font-semibold"
                   />
                 </div>
@@ -426,12 +495,15 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
           ))}
         </div>
 
+        {/* AGREGAR ITEM */}
         <button
           type="button"
           onClick={agregarItem}
           className="mt-3 flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium"
         >
-          <span className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm">+</span>
+          <span className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm">
+            +
+          </span>
           Agregar Otro Item
         </button>
       </div>
@@ -439,15 +511,23 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
       {/* MONTO TOTAL */}
       <div className="mb-6 p-4 bg-gray-100 rounded-lg flex justify-between items-center">
         <span className="font-semibold text-gray-900">Monto Total</span>
-        <span className="text-2xl font-bold text-blue-600">{montoTotal.toLocaleString('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {moneda}</span>
+        <span className="text-2xl font-bold text-blue-600">
+          {montoTotal.toLocaleString('es-UY', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}{' '}
+          {moneda}
+        </span>
       </div>
 
       {/* NOTAS */}
       <div className="mb-6">
-        <label className="block text-sm font-medium text-gray-700 mb-2">Notas</label>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Notas
+        </label>
         <textarea
           value={notas}
-          onChange={(e) => setNotas(e.target.value)}
+          onChange={e => setNotas(e.target.value)}
           placeholder="Notas adicionales..."
           rows={3}
           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
@@ -456,10 +536,19 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
 
       {/* BOTONES */}
       <div className="flex gap-3">
-        <button type="button" onClick={onClose} className="flex-1 px-4 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium">
+        <button
+          type="button"
+          onClick={onClose}
+          className="flex-1 px-4 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium"
+        >
           Cancelar
         </button>
-        <button type="submit" disabled={loading} className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium">
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium"
+        >
           {loading ? 'Guardando...' : 'Confirmar'}
         </button>
       </div>

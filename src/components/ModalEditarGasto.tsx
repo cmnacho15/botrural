@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { CATEGORIAS_GASTOS, METODOS_PAGO } from '@/lib/constants'
+import { METODOS_PAGO } from '@/lib/constants' // ✅ CAMBIO 1
 
 type ModalEditarGastoProps = {
   gasto: {
@@ -29,6 +29,7 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
   const [fecha, setFecha] = useState(new Date(gasto.fecha).toISOString().split('T')[0])
   const [proveedor, setProveedor] = useState(gasto.proveedor || '')
   const [proveedores, setProveedores] = useState<string[]>([])
+  const [categorias, setCategorias] = useState<string[]>([]) // ✅ CAMBIO 2
   const [mostrarSugerencias, setMostrarSugerencias] = useState(false)
   const [categoria, setCategoria] = useState(gasto.categoria)
   const [metodoPago, setMetodoPago] = useState(gasto.metodoPago || 'Contado')
@@ -38,27 +39,25 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
   const [pagado, setPagado] = useState(gasto.pagado ?? true)
   const [iva, setIva] = useState(gasto.iva ?? 22)
   const [item, setItem] = useState('')
-  
-  // 🆕 MONEDA Y CONVERSIÓN
+
+  // MONEDA Y CONVERSIÓN
   const [moneda, setMoneda] = useState(gasto.moneda || 'UYU')
-  const [monedaOriginal] = useState(gasto.moneda || 'UYU') // Para saber si cambió
+  const [monedaOriginal] = useState(gasto.moneda || 'UYU')
   const [tasaCambio, setTasaCambio] = useState<number | null>(null)
-  
-  // 🆕 CALCULAR PRECIO BASE CORRECTAMENTE SEGÚN MONEDA ORIGINAL
+
+  // CALCULAR PRECIO BASE INICIAL
   const calcularPrecioBaseInicial = () => {
-    // Si el gasto tiene montoOriginal, usarlo
     if (gasto.montoOriginal) {
       const ivaActual = gasto.iva ?? 22
       return gasto.montoOriginal / (1 + ivaActual / 100)
     }
-    // Fallback: calcular desde monto
     const ivaActual = gasto.iva ?? 22
     return gasto.monto / (1 + ivaActual / 100)
   }
-  
+
   const [precioBase, setPrecioBase] = useState(calcularPrecioBaseInicial())
 
-  // Parsear descripción
+  // PARSEAR DESCRIPCIÓN
   useEffect(() => {
     if (gasto.descripcion) {
       const partes = gasto.descripcion.split(' - ')
@@ -67,7 +66,7 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
     }
   }, [gasto.descripcion])
 
-  // Cargar proveedores
+  // CARGAR PROVEEDORES
   useEffect(() => {
     const fetchProveedores = async () => {
       try {
@@ -83,7 +82,24 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
     fetchProveedores()
   }, [])
 
-  // 🆕 CARGAR TASA DE CAMBIO AL MONTAR
+  // 🆕 CARGAR CATEGORÍAS (CAMBIO 3)
+  useEffect(() => {
+    const cargarCategorias = async () => {
+      try {
+        const res = await fetch('/api/categorias-gasto')
+        if (res.ok) {
+          const data = await res.json()
+          const nombres = data.map((cat: any) => cat.nombre)
+          setCategorias(nombres)
+        }
+      } catch (err) {
+        console.error('Error cargando categorías:', err)
+      }
+    }
+    cargarCategorias()
+  }, [])
+
+  // CARGAR TASA DE CAMBIO
   useEffect(() => {
     const cargarTasa = async () => {
       try {
@@ -99,16 +115,13 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
     cargarTasa()
   }, [])
 
-  // 🆕 CONVERTIR PRECIO BASE CUANDO CAMBIA LA MONEDA
+  // CONVERTIR PRECIO BASE SI CAMBIA MONEDA
   useEffect(() => {
     if (!tasaCambio || moneda === monedaOriginal) return
 
-    // Si cambió de UYU → USD
     if (monedaOriginal === 'UYU' && moneda === 'USD') {
       setPrecioBase(prev => prev / tasaCambio)
-    }
-    // Si cambió de USD → UYU
-    else if (monedaOriginal === 'USD' && moneda === 'UYU') {
+    } else if (monedaOriginal === 'USD' && moneda === 'UYU') {
       setPrecioBase(prev => prev * tasaCambio)
     }
   }, [moneda, tasaCambio, monedaOriginal])
@@ -119,7 +132,7 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
     p.toLowerCase().includes(proveedor.toLowerCase())
   )
 
-  // 🟢 MARCAR COMO PAGADO (sin editar nada más)
+  // MARCAR COMO PAGADO
   const handleMarcarPagado = async () => {
     if (!confirm('¿Confirmar que este gasto ya fue pagado?')) return
 
@@ -159,60 +172,56 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
     }
   }
 
-  // 🟢 GUARDAR CAMBIOS COMPLETOS
+  // GUARDAR
   const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault()
+    e.preventDefault()
 
-  if (!item.trim() || precioBase <= 0) {
-    alert('❌ Completá el nombre del ítem y un precio válido')
-    return
-  }
-
-  if (metodoPago === 'Plazo' && diasPlazo < 1) {
-    alert('❌ Ingresá una cantidad de días válida para pago a plazo')
-    return
-  }
-
-  if (moneda === 'USD' && !tasaCambio) {
-    alert('❌ No se pudo obtener la tasa de cambio')
-    return
-  }
-
-  setLoading(true)
-  try {
-    // 🆕 SI LA FECHA ES HOY, USAR HORA ACTUAL
-    const fechaSeleccionada = new Date(fecha + 'T00:00:00')
-    const hoy = new Date()
-    hoy.setHours(0, 0, 0, 0)
-    
-    let fechaFinal
-    if (fechaSeleccionada.getTime() === hoy.getTime()) {
-      // Es hoy: usar hora actual
-      fechaFinal = new Date().toISOString()
-    } else {
-      // Es otra fecha: usar mediodía
-      const [year, month, day] = fecha.split('-')
-      fechaFinal = new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), 12, 0, 0)).toISOString()
+    if (!item.trim() || precioBase <= 0) {
+      alert('❌ Completá el nombre del ítem y un precio válido')
+      return
     }
 
-    // 🆕 CALCULAR VALORES SEGÚN MONEDA
-    const montoOriginal = precioFinal
-    const montoEnUYU = moneda === 'USD' ? precioFinal * (tasaCambio || 1) : precioFinal
-    const tasaCambioFinal = moneda === 'USD' ? tasaCambio : null
+    if (metodoPago === 'Plazo' && diasPlazo < 1) {
+      alert('❌ Ingresá una cantidad de días válida para pago a plazo')
+      return
+    }
 
-    const response = await fetch(`/api/gastos/${gasto.id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        tipo: 'GASTO',
-        fecha: fechaFinal,
+    if (moneda === 'USD' && !tasaCambio) {
+      alert('❌ No se pudo obtener la tasa de cambio')
+      return
+    }
+
+    setLoading(true)
+    try {
+      const fechaSeleccionada = new Date(fecha + 'T00:00:00')
+      const hoy = new Date()
+      hoy.setHours(0, 0, 0, 0)
+
+      let fechaFinal
+      if (fechaSeleccionada.getTime() === hoy.getTime()) {
+        fechaFinal = new Date().toISOString()
+      } else {
+        const [year, month, day] = fecha.split('-')
+        fechaFinal = new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), 12, 0, 0)).toISOString()
+      }
+
+      const montoOriginal = precioFinal
+      const montoEnUYU = moneda === 'USD' ? precioFinal * (tasaCambio || 1) : precioFinal
+      const tasaCambioFinal = moneda === 'USD' ? tasaCambio : null
+
+      const response = await fetch(`/api/gastos/${gasto.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tipo: 'GASTO',
+          fecha: fechaFinal,
           descripcion: `${item.trim()}${notas ? ` - ${notas}` : ''}`,
           categoria,
-          monto: montoEnUYU, // Para compatibilidad vieja
-          montoOriginal, // 🆕
-          moneda, // 🆕
-          tasaCambio: tasaCambioFinal, // 🆕
-          montoEnUYU, // 🆕
+          monto: montoEnUYU,
+          montoOriginal,
+          moneda,
+          tasaCambio: tasaCambioFinal,
+          montoEnUYU,
           metodoPago,
           iva,
           diasPlazo: metodoPago === 'Plazo' ? diasPlazo : null,
@@ -236,8 +245,13 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
 
   const esPlazoYPendiente = metodoPago === 'Plazo' && !pagado
 
+  // ===========================
+  //          RENDER
+  // ===========================
+
   return (
     <form onSubmit={handleSubmit} className="p-6 max-h-[90vh] overflow-y-auto">
+
       {/* HEADER */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
@@ -290,6 +304,7 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
         </h3>
 
         <div className="space-y-4">
+
           {/* FECHA */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Fecha</label>
@@ -302,7 +317,7 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
             />
           </div>
 
-          {/* PROVEEDOR CON AUTOCOMPLETADO */}
+          {/* PROVEEDOR */}
           <div className="relative">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Proveedor {proveedores.length > 0 && (
@@ -311,6 +326,7 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
                 </span>
               )}
             </label>
+
             <input
               type="text"
               value={proveedor}
@@ -324,7 +340,6 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
             />
 
-            {/* SUGERENCIAS */}
             {mostrarSugerencias && proveedoresFiltrados.length > 0 && (
               <div className="absolute z-50 w-full mt-1 bg-white border-2 border-blue-500 rounded-lg shadow-2xl max-h-48 overflow-y-auto">
                 <div className="p-2 bg-blue-50 border-b border-blue-200 sticky top-0">
@@ -350,21 +365,26 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
             )}
           </div>
 
-          {/* CATEGORÍA */}
+          {/* CATEGORÍA — CAMBIO 4 */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
             <select
               value={categoria}
               onChange={(e) => setCategoria(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+              disabled={categorias.length === 0}
             >
-              {CATEGORIAS_GASTOS.map((cat) => (
-                <option key={cat} value={cat}>{cat}</option>
-              ))}
+              {categorias.length === 0 ? (
+                <option value="">Cargando categorías...</option>
+              ) : (
+                categorias.map((cat) => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))
+              )}
             </select>
           </div>
 
-          {/* 🆕 MONEDA */}
+          {/* MONEDA */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Moneda
@@ -388,6 +408,7 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
               </p>
             )}
           </div>
+
         </div>
       </div>
 
@@ -399,6 +420,7 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
         </h3>
 
         <div className="space-y-4">
+
           {/* ITEM */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Descripción del ítem</label>
@@ -414,6 +436,7 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
 
           {/* PRECIO + IVA + TOTAL */}
           <div className="grid grid-cols-3 gap-3">
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Precio Base ({moneda})
@@ -434,7 +457,7 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
               <select
                 value={iva}
                 onChange={(e) => setIva(parseFloat(e.target.value))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 transition"
               >
                 <option value="0">Sin IVA</option>
                 <option value="10">10%</option>
@@ -453,9 +476,10 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
                 className="w-full px-3 py-2 bg-blue-50 border border-blue-300 rounded-lg text-blue-900 font-bold"
               />
             </div>
+
           </div>
 
-          {/* 🆕 CONVERSIÓN A UYU SI ES USD */}
+          {/* EQUIVALENTE EN UYU */}
           {moneda === 'USD' && tasaCambio && (
             <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
               <p className="text-sm text-green-800">
@@ -474,6 +498,7 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
         </h3>
 
         <div className="space-y-4">
+
           {/* MÉTODO DE PAGO */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Método de Pago</label>
@@ -489,6 +514,7 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
               >
                 💵 Contado
               </button>
+
               <button
                 type="button"
                 onClick={() => setMetodoPago('Plazo')}
@@ -503,9 +529,10 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
             </div>
           </div>
 
-          {/* PLAZO + CHECKBOX PAGADO */}
+          {/* PLAZO */}
           {metodoPago === 'Plazo' && (
             <div className="space-y-3 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+
               <div className="flex items-center gap-3">
                 <label className="text-sm font-medium text-gray-700">Días de plazo:</label>
                 <input
@@ -528,8 +555,10 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
                   Marcar como pagado
                 </label>
               </div>
+
             </div>
           )}
+
         </div>
       </div>
 
@@ -554,6 +583,7 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
         >
           Cancelar
         </button>
+
         <button
           type="submit"
           disabled={loading}
@@ -562,6 +592,7 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
           {loading ? '⏳ Guardando...' : '✓ Guardar Cambios'}
         </button>
       </div>
+
     </form>
   )
 }
