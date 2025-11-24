@@ -76,7 +76,7 @@ export default function MapaPage() {
         body: JSON.stringify({
           lotes: lotes.map(l => ({
             id: l.id,
-            coordenadas: l.poligono, // Mantener "coordenadas" como key para la API
+            coordenadas: l.poligono,
           })),
         }),
       })
@@ -200,6 +200,9 @@ export default function MapaPage() {
       }
     })
 
+  // 🔑 Crear una key única que cambie cuando cambia la vista o los datos NDVI
+  const mapaKey = `${vistaActual}-${Object.keys(ndviData).length}`
+
   const resumenCultivos = lotes.reduce((acc, lote) => {
     lote.cultivos?.forEach(cultivo => {
       if (!acc[cultivo.tipoCultivo]) {
@@ -300,6 +303,7 @@ export default function MapaPage() {
             </div>
           ) : (
             <MapaPoligono
+              key={mapaKey} // 🔑 CLAVE PARA FORZAR RE-RENDER
               initialCenter={mapCenter}
               initialZoom={14}
               existingPolygons={poligonosParaMapa}
