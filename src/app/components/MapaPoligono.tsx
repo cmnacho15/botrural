@@ -213,6 +213,7 @@ export default function MapaPoligono({
   const [searching, setSearching] = useState(false)
   const [areaHectareas, setAreaHectareas] = useState<number | null>(null)
   const [isReady, setIsReady] = useState(false)
+  const [ubicandoUsuario, setUbicandoUsuario] = useState(false)
 
   useEffect(() => {
     if (initialCenter) setIsReady(true)
@@ -459,7 +460,53 @@ export default function MapaPoligono({
       setSearching(false)
     }
   }
+  
+  const ubicarUsuario = () => {
+  if (!mapRef.current) return
+  
+  setUbicandoUsuario(true)
 
+  if (!navigator.geolocation) {
+    alert('Tu navegador no soporta geolocalización')
+    setUbicandoUsuario(false)
+    return
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      const { latitude, longitude, accuracy } = position.coords
+      
+      mapRef.current.flyTo([latitude, longitude], 16, { duration: 1 })
+
+      (L as any).circle([latitude, longitude], {
+        radius: accuracy,
+        color: '#4285f4',
+        fillColor: '#4285f4',
+        fillOpacity: 0.2,
+        weight: 2
+      }).addTo(mapRef.current)
+
+      (L as any).marker([latitude, longitude], {
+      icon: (L as any).divIcon({
+          html: '<div style="width:16px;height:16px;background:#4285f4;border:3px solid white;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,0.3)"></div>',
+          iconSize: [16, 16],
+          iconAnchor: [8, 8],
+          className: ''
+        })
+      })
+        .addTo(mapRef.current)
+        .bindPopup('📍 Tu ubicación')
+        .openPopup()
+
+      setUbicandoUsuario(false)
+    },
+    () => {
+      alert('No se pudo obtener tu ubicación')
+      setUbicandoUsuario(false)
+    },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+  )
+}
   const confirmarPoligono = () => {
     if (!drawnItemsRef.current) return
     if (drawnItemsRef.current.getLayers().length === 0)
@@ -476,6 +523,26 @@ export default function MapaPoligono({
 
   return (
     <div className="relative w-full h-full flex flex-col">
+      {/* 🎯 BOTÓN DE UBICACIÓN */}
+<button
+  onClick={ubicarUsuario}
+  disabled={ubicandoUsuario}
+  className="absolute top-3 left-3 z-[1000] bg-white rounded-lg shadow-lg hover:shadow-xl transition-all w-10 h-10 flex items-center justify-center disabled:opacity-50"
+  title="Mi ubicación"
+>
+  {ubicandoUsuario ? (
+    <div className="w-5 h-5 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" />
+  ) : (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+      <circle cx="12" cy="12" r="2"/>
+      <circle cx="12" cy="12" r="9"/>
+      <line x1="12" y1="2" x2="12" y2="5"/>
+      <line x1="12" y1="19" x2="12" y2="22"/>
+      <line x1="2" y1="12" x2="5" y2="12"/>
+      <line x1="19" y1="12" x2="22" y2="12"/>
+    </svg>
+  )}
+</button>
       {!readOnly && (
         <div className="absolute top-4 left-4 right-4 z-[1000] md:left-16 md:w-96">
           <div className="bg-white rounded-lg shadow-lg p-3">
