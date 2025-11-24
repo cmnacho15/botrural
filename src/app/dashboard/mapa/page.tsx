@@ -29,7 +29,7 @@ interface Lote {
   id: string
   nombre: string
   hectareas: number
-  poligono: number[][]  // ✅ CAMBIAR A poligono
+  poligono: number[][]
   cultivos: Cultivo[]
   animalesLote: Animal[]
 }
@@ -76,7 +76,7 @@ export default function MapaPage() {
         body: JSON.stringify({
           lotes: lotes.map(l => ({
             id: l.id,
-            coordenadas: l.poligono,  // ✅ Cambiar a poligono (pero mantener el nombre "coordenadas" en el objeto que envías a la API)
+            coordenadas: l.poligono,
           })),
         }),
       })
@@ -87,39 +87,37 @@ export default function MapaPage() {
 
       const data = await response.json()
 
-// 🔍 DEBUG: Ver qué datos NDVI se recibieron
-console.log('📊 Datos NDVI recibidos:', data.ndvi)
+      console.log('📊 Datos NDVI recibidos:', data.ndvi)
 
-// Ver detalles de cada potrero
-Object.keys(data.ndvi).forEach(loteId => {
-  const ndvi = data.ndvi[loteId]
-  console.log(`Lote ${loteId}:`, {
-    promedio: ndvi.promedio,
-    tieneMatriz: ndvi.matriz?.length > 0,
-    dimensiones: `${ndvi.width}x${ndvi.height}`,
-    validPixels: ndvi.validPixels,
-    totalPixels: ndvi.totalPixels,
-    porcentajeValido: ndvi.totalPixels > 0 
-      ? `${Math.round((ndvi.validPixels / ndvi.totalPixels) * 100)}%`
-      : '0%'
-  })
-})
+      Object.keys(data.ndvi).forEach(loteId => {
+        const ndvi = data.ndvi[loteId]
+        console.log(`Lote ${loteId}:`, {
+          promedio: ndvi.promedio,
+          tieneMatriz: ndvi.matriz?.length > 0,
+          dimensiones: `${ndvi.width}x${ndvi.height}`,
+          validPixels: ndvi.validPixels,
+          totalPixels: ndvi.totalPixels,
+          porcentajeValido: ndvi.totalPixels > 0 
+            ? `${Math.round((ndvi.validPixels / ndvi.totalPixels) * 100)}%`
+            : '0%'
+        })
+      })
 
-setNdviData(data.ndvi)
-} catch (error) {
-  console.error('Error obteniendo NDVI:', error)
-  alert('Error obteniendo datos NDVI. Intenta de nuevo más tarde.')
-} finally {
-  setLoadingNDVI(false)
-}
-}
-
-// Cargar NDVI cuando cambia a vista NDVI
-useEffect(() => {
-  if (vistaActual === 'ndvi' && Object.keys(ndviData).length === 0) {
-    obtenerNDVIPotreros()
+      setNdviData(data.ndvi)
+    } catch (error) {
+      console.error('Error obteniendo NDVI:', error)
+      alert('Error obteniendo datos NDVI. Intenta de nuevo más tarde.')
+    } finally {
+      setLoadingNDVI(false)
+    }
   }
-}, [vistaActual, lotes])
+
+  // Cargar NDVI cuando cambia a vista NDVI
+  useEffect(() => {
+    if (vistaActual === 'ndvi' && Object.keys(ndviData).length === 0) {
+      obtenerNDVIPotreros()
+    }
+  }, [vistaActual, lotes])
 
   // 🎨 Función para obtener color según NDVI
   function getColorNDVI(ndvi: number): string {
@@ -145,7 +143,7 @@ useEffect(() => {
 
         if (data.length > 0) {
           const todosLosPuntos = data
-            .flatMap(l => l.poligono || [])  // ✅ CAMBIAR A poligono
+            .flatMap(l => l.poligono || [])
             .filter(c => c && c.length === 2)
 
           if (todosLosPuntos.length > 0) {
@@ -165,37 +163,37 @@ useEffect(() => {
 
   // 🗺️ Preparar polígonos para el mapa
   const poligonosParaMapa = lotes
-    .filter(l => l.poligono && l.poligono.length > 0)  // ✅ CAMBIAR A poligono
+    .filter(l => l.poligono && l.poligono.length > 0)
     .map(lote => {
-      let color = '#3b82f6'
+      let color = '#10b981' // Verde por defecto para vista general
 
       if (vistaActual === 'cultivo') {
         if (lote.cultivos && lote.cultivos.length > 0) {
           const cultivoPrincipal = lote.cultivos[0].tipoCultivo
-          color = COLORES_CULTIVOS[cultivoPrincipal] || '#3b82f6'
+          color = COLORES_CULTIVOS[cultivoPrincipal] || '#10b981'
         } else {
-          color = '#D3D3D3'
+          color = '#D3D3D3' // Gris claro para potreros sin cultivos
         }
       } else if (vistaActual === 'ndvi') {
-  const ndviInfo = ndviData[lote.id]
-  // ✅ Verificar que promedio NO sea null Y que haya píxeles válidos
-  if (ndviInfo && ndviInfo.promedio !== null && ndviInfo.validPixels > 0) {
-    color = getColorNDVI(ndviInfo.promedio)
-  } else {
-    color = '#999999'  // Gris oscuro = sin datos
-  }
-}
+        const ndviInfo = ndviData[lote.id]
+        if (ndviInfo && typeof ndviInfo.promedio === 'number' && ndviInfo.validPixels > 0) {
+          color = getColorNDVI(ndviInfo.promedio)
+        } else {
+          color = '#CCCCCC' // Gris claro = sin datos NDVI
+        }
+      }
+      // Si es vista 'indice', mantiene el verde por defecto
 
       return {
         id: lote.id,
         nombre: lote.nombre,
-        coordinates: lote.poligono,  // ✅ CAMBIAR A poligono
+        coordinates: lote.poligono,
         color,
         info: {
           hectareas: lote.hectareas,
           cultivos: lote.cultivos,
           animales: lote.animalesLote,
-          ndviMatriz: ndviData[lote.id] || null,
+          ndviMatriz: vistaActual === 'ndvi' ? (ndviData[lote.id] || null) : null,
         },
       }
     })
@@ -417,14 +415,14 @@ useEffect(() => {
                           key={cultivo}
                           className="flex items-center justify-between p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition"
                           style={{
-                            backgroundColor: `${COLORES_CULTIVOS[cultivo] || '#3b82f6'}20`,
+                            backgroundColor: `${COLORES_CULTIVOS[cultivo] || '#10b981'}20`,
                           }}
                         >
                           <div className="flex items-center gap-3">
                             <div
                               className="w-4 h-4 rounded"
                               style={{
-                                backgroundColor: COLORES_CULTIVOS[cultivo] || '#3b82f6',
+                                backgroundColor: COLORES_CULTIVOS[cultivo] || '#10b981',
                               }}
                             />
                             <span className="font-medium text-gray-900">{cultivo}</span>
@@ -451,7 +449,7 @@ useEffect(() => {
                     (sum, a) => sum + a.cantidad,
                     0
                   ) || 0
-                  const ndvi = ndviData[lote.id]?.promedio // 👈 AGREGAR .promedio
+                  const ndvi = ndviData[lote.id]
 
                   return (
                     <div
@@ -466,44 +464,44 @@ useEffect(() => {
                           </p>
                         </div>
                         <div
-  className="w-6 h-6 rounded"
-  style={{
-    backgroundColor:
-      vistaActual === 'cultivo'
-        ? lote.cultivos && lote.cultivos.length > 0
-          ? COLORES_CULTIVOS[lote.cultivos[0].tipoCultivo] || '#3b82f6'
-          : '#D3D3D3'
-        : vistaActual === 'ndvi' && ndviData[lote.id]?.promedio !== null && ndviData[lote.id]?.validPixels > 0
-        ? getColorNDVI(ndviData[lote.id].promedio)
-        : vistaActual === 'ndvi'
-        ? '#999999'  // Gris si no hay NDVI
-        : '#3b82f6',
-  }}
-/>
+                          className="w-6 h-6 rounded"
+                          style={{
+                            backgroundColor:
+                              vistaActual === 'cultivo'
+                                ? lote.cultivos && lote.cultivos.length > 0
+                                  ? COLORES_CULTIVOS[lote.cultivos[0].tipoCultivo] || '#10b981'
+                                  : '#D3D3D3'
+                                : vistaActual === 'ndvi' && ndvi?.promedio !== null && ndvi?.validPixels > 0
+                                ? getColorNDVI(ndvi.promedio)
+                                : vistaActual === 'ndvi'
+                                ? '#CCCCCC'
+                                : '#10b981',
+                          }}
+                        />
                       </div>
 
                       {vistaActual === 'ndvi' && (
-  <>
-    {ndviData[lote.id]?.promedio !== null && ndviData[lote.id]?.validPixels > 0 ? (
-      <div className="mb-2 bg-green-50 rounded px-2 py-1">
-        <div className="text-xs text-gray-600">
-          📊 NDVI: <span className="font-semibold">{ndviData[lote.id].promedio.toFixed(3)}</span>
-          <span className="text-gray-500 ml-1">
-            {ndviData[lote.id].promedio >= 0.7 ? '(Excelente)' : 
-             ndviData[lote.id].promedio >= 0.5 ? '(Bueno)' : 
-             ndviData[lote.id].promedio >= 0.3 ? '(Regular)' : '(Bajo)'}
-          </span>
-        </div>
-      </div>
-    ) : (
-      <div className="mb-2 bg-red-50 rounded px-2 py-1">
-        <div className="text-xs text-red-600">
-          ⚠️ Sin datos satelitales disponibles
-        </div>
-      </div>
-    )}
-  </>
-)}
+                        <>
+                          {ndvi?.promedio !== null && ndvi?.validPixels > 0 ? (
+                            <div className="mb-2 bg-green-50 rounded px-2 py-1">
+                              <div className="text-xs text-gray-600">
+                                📊 NDVI: <span className="font-semibold">{ndvi.promedio.toFixed(3)}</span>
+                                <span className="text-gray-500 ml-1">
+                                  {ndvi.promedio >= 0.7 ? '(Excelente)' : 
+                                   ndvi.promedio >= 0.5 ? '(Bueno)' : 
+                                   ndvi.promedio >= 0.3 ? '(Regular)' : '(Bajo)'}
+                                </span>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="mb-2 bg-red-50 rounded px-2 py-1">
+                              <div className="text-xs text-red-600">
+                                ⚠️ Sin datos satelitales disponibles
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      )}
 
                       {vistaActual === 'cultivo' && (
                         <div className="mb-2">
