@@ -85,27 +85,7 @@ export default function GastosPage() {
   const [facturaSeleccionada, setFacturaSeleccionada] = useState<any>(null)
   const [loading, setLoading] = useState(true)
 
-  const [categorias, setCategorias] = useState<Categoria[]>([
-    { nombre: 'Alimentación', cantidad: 0, total: 0, color: '#a855f7' },
-    { nombre: 'Otros', cantidad: 0, total: 0, color: '#22c55e' },
-    { nombre: 'Administración', cantidad: 0, total: 0, color: '#f97316' },
-    { nombre: 'Alquiler', cantidad: 0, total: 0, color: '#06b6d4' },
-    { nombre: 'Asesoramiento', cantidad: 0, total: 0, color: '#ec4899' },
-    { nombre: 'Combustible', cantidad: 0, total: 0, color: '#84cc16' },
-    { nombre: 'Compras de Hacienda', cantidad: 0, total: 0, color: '#3b82f6' },
-    { nombre: 'Estructuras', cantidad: 0, total: 0, color: '#ef4444' },
-    { nombre: 'Fertilizantes', cantidad: 0, total: 0, color: '#4ade80' },
-    { nombre: 'Fitosanitarios', cantidad: 0, total: 0, color: '#60a5fa' },
-    { nombre: 'Gastos Comerciales', cantidad: 0, total: 0, color: '#f87171' },
-    { nombre: 'Impuestos', cantidad: 0, total: 0, color: '#16a34a' },
-    { nombre: 'Insumos Agrícolas', cantidad: 0, total: 0, color: '#c084fc' },
-    { nombre: 'Labores', cantidad: 0, total: 0, color: '#eab308' },
-    { nombre: 'Maquinaria', cantidad: 0, total: 0, color: '#22d3ee' },
-    { nombre: 'Sanidad', cantidad: 0, total: 0, color: '#f472b6' },
-    { nombre: 'Seguros', cantidad: 0, total: 0, color: '#a3e635' },
-    { nombre: 'Semillas', cantidad: 0, total: 0, color: '#2563eb' },
-    { nombre: 'Sueldos', cantidad: 0, total: 0, color: '#dc2626' },
-  ])
+  const [categorias, setCategorias] = useState<Categoria[]>([])
 
   // Fetch de gastos
   const fetchGastos = async () => {
@@ -140,6 +120,22 @@ export default function GastosPage() {
       }
     }
     fetchProveedores()
+  }, [])
+
+  // NUEVO useEffect: Cargar categorías desde la base de datos
+  useEffect(() => {
+    const fetchCategorias = async () => {
+      try {
+        const res = await fetch('/api/categorias-gasto')
+        if (res.ok) {
+          const data = await res.json()
+          setCategorias(data)
+        }
+      } catch (err) {
+        console.warn('Error al cargar categorías', err)
+      }
+    }
+    fetchCategorias()
   }, [])
 
   // Función para aplicar rangos de fecha predefinidos
@@ -1312,17 +1308,38 @@ const handleEditarGasto = (gasto: Gasto) => {
 
             <div className="mt-6 flex justify-end">
               <button
-                onClick={() => {
+                onClick={async () => {
                   if (nuevaCategoriaNombre.trim() === '') return
-                  const nuevaCat = {
-                    nombre: nuevaCategoriaNombre.trim(),
-                    cantidad: 0,
-                    total: 0,
-                    color: '#' + Math.floor(Math.random() * 16777215).toString(16),
+                  
+                  try {
+                    const nuevoColor = '#' + Math.floor(Math.random() * 16777215).toString(16)
+                    
+                    const response = await fetch('/api/categorias-gasto', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        nombre: nuevaCategoriaNombre.trim(),
+                        color: nuevoColor,
+                      }),
+                    })
+
+                    if (!response.ok) {
+                      const error = await response.json()
+                      alert(error.error || 'Error al crear categoría')
+                      return
+                    }
+
+                    const nuevaCategoria = await response.json()
+                    
+                    setCategorias((prev) => [...prev, nuevaCategoria])
+                    
+                    setNuevaCategoriaNombre('')
+                    setModalCategoriaOpen(false)
+                    alert('✅ Categoría creada exitosamente')
+                  } catch (error) {
+                    console.error('Error:', error)
+                    alert('Error al crear la categoría')
                   }
-                  setCategorias((prev) => [...prev, nuevaCat])
-                  setNuevaCategoriaNombre('')
-                  setModalCategoriaOpen(false)
                 }}
                 disabled={nuevaCategoriaNombre.trim() === ''}
                 className={`px-6 py-3 rounded-xl text-white font-medium transition ${
