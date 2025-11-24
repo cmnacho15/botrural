@@ -26,9 +26,10 @@ type InsumoSeleccionado = {
 type ModalIngresoInsumosProps = {
   onClose: () => void
   onSuccess: () => void
+  insumoPreseleccionadoId?: string | null 
 }
 
-export default function ModalIngresoInsumos({ onClose, onSuccess }: ModalIngresoInsumosProps) {
+export default function ModalIngresoInsumos({ onClose, onSuccess, insumoPreseleccionadoId  }: ModalIngresoInsumosProps) {
   const [fecha, setFecha] = useState(obtenerFechaLocal())
   const [lotes, setLotes] = useState<Lote[]>([])
   const [loteId, setLoteId] = useState('')
@@ -75,6 +76,22 @@ export default function ModalIngresoInsumos({ onClose, onSuccess }: ModalIngreso
 
     fetchData()
   }, [])
+  
+  // Preseleccionar insumo si viene desde la página
+useEffect(() => {
+  if (insumoPreseleccionadoId && insumos.length > 0) {
+    const insumo = insumos.find(i => i.id === insumoPreseleccionadoId)
+    if (insumo) {
+      setInsumosSeleccionados([{
+        id: crypto.randomUUID(),
+        insumoId: insumo.id,
+        nombre: insumo.nombre,
+        unidad: insumo.unidad,
+        cantidad: ''
+      }])
+    }
+  }
+}, [insumoPreseleccionadoId, insumos])
 
   const handleCrearInsumo = async () => {
     if (!nuevoInsumoNombre.trim()) {
