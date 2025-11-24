@@ -1,7 +1,7 @@
 'use client';
 export const dynamic = "force-dynamic"
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import useSWR from 'swr'
@@ -284,7 +284,8 @@ function ModalConfirmarBorrado({
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
 export default function LotesPage() {
-  const { data: lotes = [], isLoading: loading, mutate: refreshLotes } = useSWR<Lote[]>(
+  // ✅ Cargar lotes con SWR
+  const { data: lotes = [], isLoading: loadingLotes, mutate: refreshLotes } = useSWR<Lote[]>(
     '/api/lotes',
     fetcher,
     {
@@ -292,19 +293,10 @@ export default function LotesPage() {
       refreshInterval: 30000,
     }
   )
-  const [nombreCampo, setNombreCampo] = useState('')
-  
-  // Cargar nombre del campo
-  useEffect(() => {
-    fetch('/api/campos')
-      .then(r => r.json())
-      .then(data => {
-        if (data.nombre) {
-          setNombreCampo(data.nombre)
-        }
-      })
-      .catch(err => console.error('Error cargando campo:', err))
-  }, [])
+
+  // ✅ Cargar campo con SWR (sin useState ni useEffect)
+  const { data: campo, isLoading: loadingCampo } = useSWR('/api/campos', fetcher)
+  const nombreCampo = campo?.nombre || ''
 
   const [modalBorrado, setModalBorrado] = useState<{
     isOpen: boolean
@@ -368,6 +360,7 @@ export default function LotesPage() {
     }
   }
 
+  const loading = loadingLotes || loadingCampo
   const hayLotes = lotes.length > 0
 
   if (loading) {
