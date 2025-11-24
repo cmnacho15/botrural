@@ -24,6 +24,28 @@ if (typeof window !== 'undefined') {
       .potrero-label-transparent::before {
         display: none !important;
       }
+      /* Hacer los puntos de edición más pequeños */
+      .leaflet-editing-icon {
+        width: 8px !important;
+        height: 8px !important;
+        margin-left: -4px !important;
+        margin-top: -4px !important;
+        border-radius: 50% !important;
+        background: white !important;
+        border: 2px solid #3b82f6 !important;
+      }
+      .leaflet-touch-icon {
+        width: 12px !important;
+        height: 12px !important;
+        margin-left: -6px !important;
+        margin-top: -6px !important;
+      }
+      /* Línea guía mientras dibujas */
+      .leaflet-draw-guide-dash {
+        stroke: #3b82f6 !important;
+        stroke-opacity: 0.6 !important;
+        stroke-dasharray: 5, 5 !important;
+      }
     `
     document.head.appendChild(style)
   }
@@ -227,6 +249,16 @@ export default function MapaPoligono({
             showArea: true,
             metric: ['ha', 'm'],
             shapeOptions: { color: '#3b82f6', weight: 3 },
+            icon: new (L as any).DivIcon({
+              iconSize: new (L as any).Point(8, 8),
+              className: 'leaflet-div-icon leaflet-editing-icon'
+            }),
+            touchIcon: new (L as any).DivIcon({
+              iconSize: new (L as any).Point(8, 8),
+              className: 'leaflet-div-icon leaflet-editing-icon leaflet-touch-icon'
+            }),
+            guidelineDistance: 20,
+            showLength: true,
           },
           polyline: false,
           rectangle: false,
@@ -234,7 +266,16 @@ export default function MapaPoligono({
           marker: false,
           circlemarker: false,
         },
-        edit: { featureGroup: drawnItems, remove: true },
+        edit: { 
+          featureGroup: drawnItems, 
+          remove: true,
+          poly: {
+            icon: new (L as any).DivIcon({
+              iconSize: new (L as any).Point(8, 8),
+              className: 'leaflet-div-icon leaflet-editing-icon'
+            })
+          }
+        },
       })
       map.addControl(drawControl)
 
@@ -263,7 +304,7 @@ export default function MapaPoligono({
     }
 
     return () => map.remove()
-  }, [isReady, initialCenter, initialZoom, readOnly])
+  }, [isReady, initialCenter, initialZoom, readOnly, existingPolygons])
 
   /**
    * 🔄 Redibujar polígonos cuando cambian (ACTUALIZACIÓN DINÁMICA REAL)
@@ -304,12 +345,12 @@ export default function MapaPoligono({
       
       // Construir información de animales
       let animalesText = ''
-if (potrero.info?.animales?.length) {
-  const lineas = potrero.info.animales
-    .map((a: any) => `${a.categoria}: ${a.cantidad}`)
-    .join('<br>')
-  animalesText = lineas
-}
+      if (potrero.info?.animales?.length) {
+        const lineas = potrero.info.animales
+          .map((a: any) => `${a.categoria}: ${a.cantidad}`)
+          .join('<br>')
+        animalesText = lineas
+      }
 
       const tooltipContent = `
         <div style="
