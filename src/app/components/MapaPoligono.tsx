@@ -476,55 +476,41 @@ export default function MapaPoligono({
     (position) => {
       const { latitude, longitude, accuracy } = position.coords
       
-      mapRef.current.flyTo([latitude, longitude], 16, { duration: 1 })
+      // Centrar mapa en la ubicación
+      mapRef.current.flyTo([latitude, longitude], 17, { duration: 1 })
 
-      // Círculo de precisión (más visible)
+      // 🔵 Círculo de precisión (área aproximada)
       (L as any).circle([latitude, longitude], {
         radius: accuracy,
         color: '#4285f4',
         fillColor: '#4285f4',
-        fillOpacity: 0.15,
-        weight: 2
+        fillOpacity: 0.1,
+        weight: 1,
+        opacity: 0.3
       }).addTo(mapRef.current)
 
-      // 🔵 PUNTO AZUL GRANDE Y VISIBLE (sin popup)
-      (L as any).marker([latitude, longitude], {
-        icon: (L as any).divIcon({
-          html: `
-            <div style="
-              width: 24px;
-              height: 24px;
-              background: #4285f4;
-              border: 4px solid white;
-              border-radius: 50%;
-              box-shadow: 0 3px 10px rgba(0,0,0,0.4);
-              position: relative;
-            ">
-              <div style="
-                position: absolute;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                width: 12px;
-                height: 12px;
-                background: white;
-                border-radius: 50%;
-              "></div>
-            </div>
-          `,
-          iconSize: [24, 24],
-          iconAnchor: [12, 12],
-          className: ''
-        })
+      // 🔵 PUNTO AZUL GRANDE (como Google Maps)
+      (L as any).circleMarker([latitude, longitude], {
+        radius: 8,
+        fillColor: '#4285f4',
+        color: 'white',
+        weight: 3,
+        opacity: 1,
+        fillOpacity: 1
       }).addTo(mapRef.current)
 
       setUbicandoUsuario(false)
     },
-    () => {
-      alert('No se pudo obtener tu ubicación')
+    (error) => {
+      console.error('Error de geolocalización:', error)
+      alert('No se pudo obtener tu ubicación. Verifica los permisos.')
       setUbicandoUsuario(false)
     },
-    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    { 
+      enableHighAccuracy: true, 
+      timeout: 10000, 
+      maximumAge: 0 
+    }
   )
 }
   const confirmarPoligono = () => {
