@@ -323,76 +323,154 @@ export default function MapaPage() {
             </h2>
 
             {/* VISTA NDVI */}
-            {vistaActual === 'ndvi' && (
-              <>
-                {loadingNDVI ? (
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-                      <p className="text-sm text-gray-700">
-                        Obteniendo datos satelitales...
-                      </p>
-                    </div>
+{vistaActual === 'ndvi' && (
+  <>
+    {loadingNDVI ? (
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+        <div className="flex items-center gap-3">
+          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+          <p className="text-sm text-gray-700">
+            Obteniendo datos satelitales...
+          </p>
+        </div>
+      </div>
+    ) : (
+      <>
+        {/* 🆕 INFORMACIÓN SATELITAL */}
+        {Object.keys(ndviData).length > 0 && (() => {
+          const primeraImagen = ndviData[Object.keys(ndviData)[0]]
+          if (!primeraImagen) return null
+          
+          return (
+            <div className="mb-4 bg-gradient-to-r from-blue-50 to-green-50 border border-blue-200 rounded-lg p-4">
+              <h3 className="text-sm font-semibold text-gray-800 mb-2">
+                🛰️ Información Satelital
+              </h3>
+              <div className="space-y-2 text-xs">
+                {primeraImagen.fecha && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">📅 Fecha:</span>
+                    <span className="font-semibold text-gray-900">
+                      {new Date(primeraImagen.fecha).toLocaleDateString('es-UY', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      })}
+                    </span>
                   </div>
-                ) : (
-                  <>
-                    <div className="mb-6">
-                      <h3 className="text-sm font-semibold text-gray-700 mb-3">
-                        📊 Escala de Vegetación
-                      </h3>
-                      <div className="space-y-1 text-xs">
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-4 rounded" style={{ backgroundColor: '#006400' }}></div>
-                          <span>0.8 - 1.0: Vegetación muy densa</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-4 rounded" style={{ backgroundColor: '#228B22' }}></div>
-                          <span>0.7 - 0.8: Vegetación densa</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-4 rounded" style={{ backgroundColor: '#32CD32' }}></div>
-                          <span>0.6 - 0.7: Vegetación media-alta</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-4 rounded" style={{ backgroundColor: '#7CFC00' }}></div>
-                          <span>0.5 - 0.6: Vegetación media</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-4 rounded" style={{ backgroundColor: '#ADFF2F' }}></div>
-                          <span>0.4 - 0.5: Vegetación baja-media</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-4 rounded" style={{ backgroundColor: '#FFFF00' }}></div>
-                          <span>0.3 - 0.4: Vegetación baja</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-4 rounded" style={{ backgroundColor: '#DAA520' }}></div>
-                          <span>0.2 - 0.3: Vegetación escasa</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-4 rounded" style={{ backgroundColor: '#8B4513' }}></div>
-                          <span>0.0 - 0.2: Sin vegetación</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <button
-                      onClick={obtenerNDVIPotreros}
-                      className="w-full mb-4 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm font-medium"
-                    >
-                      🔄 Actualizar Datos NDVI
-                    </button>
-
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4 text-xs">
-                      <p className="text-gray-700">
-                        <strong>🛰️ Datos satelitales:</strong> Los valores NDVI se obtienen de 
-                        imágenes Sentinel-2 de los últimos 30 días (Copernicus).
-                      </p>
-                    </div>
-                  </>
                 )}
-              </>
-            )}
+                <div className="flex justify-between">
+                  <span className="text-gray-600">🛰️ Satélite:</span>
+                  <span className="font-medium text-gray-800">
+                    {primeraImagen.source || 'Sentinel-2'}
+                  </span>
+                </div>
+                {primeraImagen.cloudCoverage !== null && primeraImagen.cloudCoverage !== undefined && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">☁️ Nubes:</span>
+                    <span className={`font-medium ${
+                      primeraImagen.cloudCoverage < 20 ? 'text-green-600' : 
+                      primeraImagen.cloudCoverage < 40 ? 'text-yellow-600' : 'text-red-600'
+                    }`}>
+                      {primeraImagen.cloudCoverage.toFixed(1)}%
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )
+        })()}
+
+        {/* ESCALA DE VEGETACIÓN */}
+        <div className="mb-6">
+          <h3 className="text-sm font-semibold text-gray-700 mb-3">
+            📊 Escala de Vegetación
+          </h3>
+          <div className="space-y-1 text-xs">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-4 rounded" style={{ backgroundColor: '#006400' }}></div>
+              <span>0.8 - 1.0: Vegetación muy densa</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-4 rounded" style={{ backgroundColor: '#228B22' }}></div>
+              <span>0.7 - 0.8: Vegetación densa</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-4 rounded" style={{ backgroundColor: '#32CD32' }}></div>
+              <span>0.6 - 0.7: Vegetación media-alta</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-4 rounded" style={{ backgroundColor: '#7CFC00' }}></div>
+              <span>0.5 - 0.6: Vegetación media</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-4 rounded" style={{ backgroundColor: '#ADFF2F' }}></div>
+              <span>0.4 - 0.5: Vegetación baja-media</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-4 rounded" style={{ backgroundColor: '#FFFF00' }}></div>
+              <span>0.3 - 0.4: Vegetación baja</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-4 rounded" style={{ backgroundColor: '#DAA520' }}></div>
+              <span>0.2 - 0.3: Vegetación escasa</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-4 rounded" style={{ backgroundColor: '#8B4513' }}></div>
+              <span>0.0 - 0.2: Sin vegetación</span>
+            </div>
+          </div>
+        </div>
+
+        <button
+          onClick={obtenerNDVIPotreros}
+          className="w-full mb-4 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm font-medium"
+        >
+          🔄 Actualizar Datos NDVI
+        </button>
+
+        {/* 🆕 CALIDAD DE DATOS */}
+        {Object.keys(ndviData).length > 0 && (() => {
+          const totalPotreros = Object.keys(ndviData).length
+          const potrerosConDatos = Object.values(ndviData).filter(
+            (d: any) => d.validPixels > 0
+          ).length
+          const coberturaPromedio = Object.values(ndviData).reduce(
+            (sum: number, d: any) => sum + ((d.validPixels / d.totalPixels) || 0),
+            0
+          ) / totalPotreros * 100
+
+          return (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 text-xs">
+              <p className="text-gray-700 font-semibold mb-2">📊 Calidad de Datos</p>
+              <ul className="space-y-1 text-gray-600">
+                <li className="flex items-center gap-2">
+                  <span className={potrerosConDatos === totalPotreros ? 'text-green-600' : 'text-yellow-600'}>
+                    {potrerosConDatos === totalPotreros ? '✅' : '⚠️'}
+                  </span>
+                  <span>{potrerosConDatos} de {totalPotreros} potreros con datos</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className={coberturaPromedio > 90 ? 'text-green-600' : coberturaPromedio > 70 ? 'text-yellow-600' : 'text-red-600'}>
+                    {coberturaPromedio > 90 ? '✅' : coberturaPromedio > 70 ? '⚠️' : '❌'}
+                  </span>
+                  <span>Cobertura: {coberturaPromedio.toFixed(1)}%</span>
+                </li>
+              </ul>
+            </div>
+          )
+        })()}
+
+        <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4 text-xs">
+          <p className="text-gray-700">
+            <strong>🛰️ Datos satelitales:</strong> Los valores NDVI se obtienen de 
+            imágenes Sentinel-2 de los últimos 45 días (Copernicus).
+          </p>
+        </div>
+      </>
+    )}
+  </>
+)}
 
             {/* VISTA DE CULTIVOS */}
             {vistaActual === 'cultivo' && (

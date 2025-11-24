@@ -88,6 +88,8 @@ async function calcularNDVIMatriz(imageBuffer: ArrayBuffer) {
         bbox: [0, 0, 0, 0],
         validPixels: 0,
         totalPixels: width * height,
+        min: null,
+        max: null,
       }
     }
 
@@ -103,6 +105,8 @@ async function calcularNDVIMatriz(imageBuffer: ArrayBuffer) {
       bbox,
       validPixels: validCount,
       totalPixels: width * height,
+      min,
+      max,
     }
   } catch (error) {
     console.error('❌ Error procesando TIFF:', error)
@@ -114,12 +118,91 @@ async function calcularNDVIMatriz(imageBuffer: ArrayBuffer) {
       bbox: [0, 0, 0, 0],
       validPixels: 0,
       totalPixels: 0,
+      min: null,
+      max: null,
     }
   }
 }
 
 // ===============================================
-// 🔹 3) Calcular NDVI desde Sentinel Hub
+// 🔹 3) Buscar mejor imagen disponible con metadata
+// ===============================================
+async function buscarMejorImagen(bbox: number[], accessToken: string) {
+  const endDate = new Date().toISOString().split('T')[0]
+  const startDate = new Date(Date.now() - 45 * 86400000)
+    .toISOString()
+    .split('T')[0]
+
+  console.log(`🔍 Buscando imágenes desde ${startDate} hasta ${endDate}`)
+
+  try {
+    // Buscar imágenes disponibles usando Catalog API
+    const catalogUrl = 'https://sh.dataspace.copernicus.eu/api/v1/catalog/1.0.0/search'
+    
+    const catalogRequest = {
+      bbox,
+      datetime: `${startDate}T00:00:00Z/${endDate}T23:59:59Z`,
+      collections: ['sentinel-2-l2a'],
+      limit: 10, // Obtener últimas 10 imágenes
+      filter: 'eo:cloud_cover < 50' // Máximo 50% nubes
+    }
+
+    const catalogResponse = await fetch(catalogUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(catalogRequest),
+    })
+
+    if (catalogResponse.ok) {
+      const catalogData = await catalogResponse.json()
+      
+      if (catalogData.features && catalogData.features.length > 0) {
+        // Ordenar por fecha (más reciente primero) y menor cobertura de nubes
+        const sortedImages = catalogData.features
+          .map((feature: any) => ({
+            date: feature.properties.datetime,
+            cloudCoverage: feature.properties['eo:cloud_cover'] || 0,
+            id: feature.id
+          }))
+          .sort((a: any, b: any) => {
+            // Primero por fecha (más reciente)
+            const dateCompare = new Date(b.date).getTime() - new Date(a.date).getTime()
+            if (dateCompare !== 0) return dateCompare
+            // Luego por nubes (menos nubes)
+            return a.cloudCoverage - b.cloudCoverage
+          })
+
+        const bestImage = sortedImages[0]
+        console.log(`✅ Mejor imagen encontrada:`, {
+          fecha: bestImage.date,
+          nubes: `${bestImage.cloudCoverage.toFixed(1)}%`,
+          id: bestImage.id
+        })
+
+        return {
+          fecha: new Date(bestImage.date).toISOString().split('T')[0],
+          cloudCoverage: bestImage.cloudCoverage,
+          imageId: bestImage.id
+        }
+      }
+    }
+  } catch (error) {
+    console.warn('⚠️ No se pudo obtener metadata del catálogo:', error)
+  }
+
+  // Si no se puede obtener del catálogo, estimar fecha
+  return {
+    fecha: endDate,
+    cloudCoverage: null,
+    imageId: null
+  }
+}
+
+// ===============================================
+// 🔹 4) Calcular NDVI desde Sentinel Hub
 // ===============================================
 async function calcularNDVI(coordinates: number[][], accessToken: string) {
   // Calcular bounding box
@@ -135,13 +218,14 @@ async function calcularNDVI(coordinates: number[][], accessToken: string) {
 
   console.log(`📍 BBox calculado:`, bbox)
 
-  // Fechas: últimos 45 días (aumentado de 30)
+  // 🆕 Buscar mejor imagen disponible
+  const imageMetadata = await buscarMejorImagen(bbox, accessToken)
+
+  // Fechas: últimos 45 días
   const endDate = new Date().toISOString().split('T')[0]
   const startDate = new Date(Date.now() - 45 * 86400000)
     .toISOString()
     .split('T')[0]
-
-  console.log(`📅 Buscando imágenes desde ${startDate} hasta ${endDate}`)
 
   // Evalscript mejorado
   const evalscript = `
@@ -194,14 +278,14 @@ async function calcularNDVI(coordinates: number[][], accessToken: string) {
                 from: `${startDate}T00:00:00Z`,
                 to: `${endDate}T23:59:59Z`,
               },
-              maxCloudCoverage: 50, // ✅ Aumentado de 30 a 50
-              mosaickingOrder: 'leastCC', // Menos nubes primero
+              maxCloudCoverage: 50,
+              mosaickingOrder: 'leastCC',
             },
           },
         ],
       },
       output: {
-        width: 256, // ✅ Aumentado de 64 a 256 para mejor resolución
+        width: 256,
         height: 256,
         responses: [
           {
@@ -216,7 +300,7 @@ async function calcularNDVI(coordinates: number[][], accessToken: string) {
     console.log('🚀 Enviando request a Sentinel Hub...')
 
     const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 30000) // 30s timeout
+    const timeoutId = setTimeout(() => controller.abort(), 30000)
 
     const response = await fetch(
       'https://sh.dataspace.copernicus.eu/api/v1/process',
@@ -237,7 +321,6 @@ async function calcularNDVI(coordinates: number[][], accessToken: string) {
       const text = await response.text()
       console.error('❌ Error en Sentinel Hub:', response.status, text)
       
-      // Si es 400, puede ser que no haya imágenes disponibles
       if (response.status === 400) {
         console.warn('⚠️ No se encontraron imágenes Sentinel-2 para esta área/fecha')
       }
@@ -248,7 +331,17 @@ async function calcularNDVI(coordinates: number[][], accessToken: string) {
     const imageBuffer = await response.arrayBuffer()
     console.log(`✅ Imagen descargada: ${imageBuffer.byteLength} bytes`)
 
-    return await calcularNDVIMatriz(imageBuffer)
+    const ndviData = await calcularNDVIMatriz(imageBuffer)
+
+    // 🆕 Agregar metadata de la imagen
+    return {
+      ...ndviData,
+      fecha: imageMetadata.fecha,
+      cloudCoverage: imageMetadata.cloudCoverage,
+      source: 'Sentinel-2 L2A',
+      resolution: '10m',
+      imageId: imageMetadata.imageId,
+    }
   } catch (error: any) {
     if (error.name === 'AbortError') {
       console.error('⏱️ Timeout: La request tardó más de 30 segundos')
@@ -259,7 +352,7 @@ async function calcularNDVI(coordinates: number[][], accessToken: string) {
 }
 
 // ===============================================
-// 🔹 4) POST Handler
+// 🔹 5) POST Handler
 // ===============================================
 export async function POST(request: NextRequest) {
   try {
@@ -288,7 +381,6 @@ export async function POST(request: NextRequest) {
     const resultados: Record<string, any> = {}
 
     for (const lote of lotes) {
-      // ✅ USAR "coordenadas" en lugar de "poligono"
       if (lote.coordenadas && lote.coordenadas.length > 0) {
         try {
           console.log(`\n🌾 Procesando lote ${lote.id}...`)
@@ -305,13 +397,21 @@ export async function POST(request: NextRequest) {
               : 0,
             validPixels: ndviData.validPixels,
             totalPixels: ndviData.totalPixels,
+            min: ndviData.min,
+            max: ndviData.max,
+            // 🆕 Metadata de calidad
+            fecha: ndviData.fecha,
+            cloudCoverage: ndviData.cloudCoverage,
+            source: ndviData.source,
+            resolution: ndviData.resolution,
+            imageId: ndviData.imageId,
           }
 
           if (ndviData.promedio !== null) {
             console.log(
               `✅ NDVI ${lote.id}: ${ndviData.promedio.toFixed(3)} (${Math.round(
                 (ndviData.validPixels / ndviData.totalPixels) * 100
-              )}% válidos)`
+              )}% válidos) - Fecha: ${ndviData.fecha}`
             )
           } else {
             console.log(`⚠️ Sin datos NDVI para lote ${lote.id}`)
@@ -319,7 +419,6 @@ export async function POST(request: NextRequest) {
         } catch (error: any) {
           console.error(`❌ Error calculando NDVI para lote ${lote.id}:`, error.message)
 
-          // ✅ Devolver null en caso de error, NO 0.5
           resultados[lote.id] = {
             promedio: null,
             matriz: [],
@@ -329,6 +428,12 @@ export async function POST(request: NextRequest) {
             confiabilidad: 0,
             validPixels: 0,
             totalPixels: 0,
+            min: null,
+            max: null,
+            fecha: null,
+            cloudCoverage: null,
+            source: 'Sentinel-2 L2A',
+            resolution: '10m',
             error: error.message,
           }
         }
