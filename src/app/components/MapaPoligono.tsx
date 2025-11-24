@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import 'leaflet-draw/dist/leaflet.draw.css'
-import 'leaflet.heat'
 
 if (typeof window !== 'undefined') {
   require('leaflet-draw')
@@ -24,7 +23,6 @@ if (typeof window !== 'undefined') {
       .potrero-label-transparent::before {
         display: none !important;
       }
-      /* Hacer los puntos de edición más pequeños */
       .leaflet-editing-icon {
         width: 8px !important;
         height: 8px !important;
@@ -40,7 +38,6 @@ if (typeof window !== 'undefined') {
         margin-left: -6px !important;
         margin-top: -6px !important;
       }
-      /* Línea guía mientras dibujas */
       .leaflet-draw-guide-dash {
         stroke: #3b82f6 !important;
         stroke-opacity: 0.6 !important;
@@ -90,8 +87,8 @@ function calcularAreaPoligono(latlngs: any[]): number {
   return area
 }
 
-function crearHeatmapNDVI(
-  map: any,
+// 🎨 FUNCIÓN PROFESIONAL: Renderizar NDVI con Canvas
+function crearImagenNDVI(
   ndviData: any,
   poligonoCoords: number[][]
 ) {
@@ -100,7 +97,11 @@ function crearHeatmapNDVI(
   const { matriz, width, height, bbox } = ndviData
   const [west, south, east, north] = bbox
 
-  const heatPoints: [number, number, number][] = []
+  console.log('🎨 Creando imagen NDVI profesional:', {
+    dimensiones: `${width}x${height}`,
+    bbox: bbox,
+    totalPixels: width * height
+  })
 
   // ✅ Función para verificar si un punto está dentro del polígono
   function puntoEnPoligono(lat: number, lng: number, coords: number[][]): boolean {
@@ -117,64 +118,83 @@ function crearHeatmapNDVI(
     return dentro
   }
 
-  // 🔍 Estadísticas para debugear
+  // 🎨 Colores basados en estándares científicos NDVI
+  function getColorFromNDVI(ndvi: number): { r: number, g: number, b: number, a: number } {
+    if (ndvi < 0) return { r: 0, g: 0, b: 255, a: 180 }           // Azul (agua)
+    if (ndvi < 0.1) return { r: 165, g: 42, b: 42, a: 220 }       // Marrón oscuro
+    if (ndvi < 0.2) return { r: 210, g: 105, b: 30, a: 220 }      // Chocolate
+    if (ndvi < 0.3) return { r: 218, g: 165, b: 32, a: 220 }      // Dorado
+    if (ndvi < 0.4) return { r: 255, g: 215, b: 0, a: 220 }       // Amarillo
+    if (ndvi < 0.5) return { r: 173, g: 255, b: 47, a: 220 }      // Verde-amarillo
+    if (ndvi < 0.6) return { r: 127, g: 255, b: 0, a: 220 }       // Verde lima
+    if (ndvi < 0.7) return { r: 50, g: 205, b: 50, a: 220 }       // Verde medio
+    if (ndvi < 0.8) return { r: 34, g: 139, b: 34, a: 220 }       // Verde bosque
+    return { r: 0, g: 100, b: 0, a: 220 }                         // Verde oscuro
+  }
+
   let minValue = Infinity
   let maxValue = -Infinity
   let validCount = 0
+  let pixelesDentro = 0
 
+  // Crear canvas
+  const canvas = document.createElement('canvas')
+  canvas.width = width
+  canvas.height = height
+  const ctx = canvas.getContext('2d', { willReadFrequently: true })!
+
+  // ✅ Pintar pixel por pixel
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const value = matriz[y][x]
       
-      if (value !== -999 && !isNaN(value)) {
-        const lng = west + (x / width) * (east - west)
-        const lat = north - (y / height) * (north - south)
+      const lng = west + (x / width) * (east - west)
+      const lat = north - (y / height) * (north - south)
+      
+      if (puntoEnPoligono(lat, lng, poligonoCoords)) {
+        pixelesDentro++
         
-        // ✅ Verificar si está REALMENTE dentro del polígono
-        if (puntoEnPoligono(lat, lng, poligonoCoords)) {
-          // 📊 Normalizar valor NDVI de [-1, 1] a [0, 1] para el heatmap
-          const intensity = Math.max(0, Math.min(1, (value + 1) / 2))
-          heatPoints.push([lat, lng, intensity])
+        if (value !== -999 && !isNaN(value)) {
+          const color = getColorFromNDVI(value)
+          ctx.fillStyle = `rgba(${color.r}, ${color.g}, ${color.b}, ${color.a / 255})`
+          ctx.fillRect(x, y, 1, 1)
           
           validCount++
           minValue = Math.min(minValue, value)
           maxValue = Math.max(maxValue, value)
+        } else {
+          ctx.fillStyle = 'rgba(128, 128, 128, 0.3)'
+          ctx.fillRect(x, y, 1, 1)
         }
       }
     }
   }
 
-  console.log('🎨 Heatmap NDVI creado:', {
-    puntos: validCount,
+  console.log('✅ Imagen NDVI renderizada:', {
+    pixelesDentro: pixelesDentro,
+    pixelesConDatos: validCount,
+    cobertura: `${((validCount / pixelesDentro) * 100).toFixed(1)}%`,
     minNDVI: minValue.toFixed(3),
-    maxNDVI: maxValue.toFixed(3),
-    rangoIntensidad: `${((minValue + 1) / 2).toFixed(3)} - ${((maxValue + 1) / 2).toFixed(3)}`
+    maxNDVI: maxValue.toFixed(3)
   })
 
-  if (heatPoints.length === 0) return null
+  if (validCount === 0) {
+    console.warn('⚠️ No hay datos NDVI válidos dentro del polígono')
+    return null
+  }
 
-  // ✅ Parámetros optimizados para mostrar variación real
-  const heatLayer = (L as any).heatLayer(heatPoints, {
-    radius: 15,       // Radio suficiente para cubrir pixeles
-    blur: 10,         // Poco blur para mantener detalle
-    maxZoom: 22,      // Permitir mayor zoom
-    max: 1.0,
-    minOpacity: 0.5,  // Opacidad mínima para ver variaciones
-    gradient: {
-      0.0: '#8B4513',   // Marrón - sin vegetación
-      0.15: '#D2691E',  // Marrón claro
-      0.25: '#DAA520',  // Dorado oscuro
-      0.35: '#FFD700',  // Amarillo
-      0.45: '#ADFF2F',  // Verde-amarillo
-      0.55: '#7CFC00',  // Verde lima
-      0.65: '#32CD32',  // Verde medio
-      0.75: '#228B22',  // Verde bosque
-      0.85: '#006400',  // Verde oscuro
-      1.0: '#004d00'    // Verde muy oscuro
-    }
+  const bounds = (L as any).latLngBounds(
+    [south, west],
+    [north, east]
+  )
+
+  const imageOverlay = (L as any).imageOverlay(canvas.toDataURL(), bounds, {
+    opacity: 0.75,
+    interactive: false,
+    crossOrigin: 'anonymous'
   })
 
-  return heatLayer
+  return imageOverlay
 }
 
 export default function MapaPoligono({
@@ -194,7 +214,6 @@ export default function MapaPoligono({
   const [areaHectareas, setAreaHectareas] = useState<number | null>(null)
   const [isReady, setIsReady] = useState(false)
 
-  /** Esperar que center esté listo */
   useEffect(() => {
     if (initialCenter) setIsReady(true)
   }, [initialCenter])
@@ -222,7 +241,6 @@ export default function MapaPoligono({
 
     L.control.layers({ 'Satélite': satelitalLayer, 'Mapa': osmLayer }).addTo(map)
 
-    /** Dibujar polígonos existentes iniciales */
     const existingLayers = new L.FeatureGroup()
     map.addLayer(existingLayers)
     existingLayersRef.current = existingLayers
@@ -256,7 +274,6 @@ export default function MapaPoligono({
       map.fitBounds(bounds, { padding: [100, 100], maxZoom: 16 })
     }
 
-    /** Dibujo si NO es readOnly */
     if (!readOnly) {
       const drawnItems = new L.FeatureGroup()
       map.addLayer(drawnItems)
@@ -327,7 +344,7 @@ export default function MapaPoligono({
   }, [isReady, initialCenter, initialZoom, readOnly, existingPolygons])
 
   /**
-   * 🔄 Redibujar polígonos cuando cambian (ACTUALIZACIÓN DINÁMICA REAL)
+   * 🔄 Redibujar polígonos cuando cambian
    */
   useEffect(() => {
     if (!mapRef.current || !existingLayersRef.current) return
@@ -338,32 +355,30 @@ export default function MapaPoligono({
     existingPolygons.forEach((potrero) => {
       if (!potrero.coordinates?.length) return
 
-      // 🗺️ PRIMERO: Agregar heatmap si hay datos NDVI (va DEBAJO del polígono)
+      // 🗺️ PRIMERO: Agregar imagen NDVI si hay datos
       if (potrero.info?.ndviMatriz?.matriz?.length > 0) {
-        const heatLayer = crearHeatmapNDVI(
-          mapRef.current,
+        const imageOverlay = crearImagenNDVI(
           potrero.info.ndviMatriz,
           potrero.coordinates
         )
-        if (heatLayer) {
-          existingLayersRef.current.addLayer(heatLayer)
+        if (imageOverlay) {
+          existingLayersRef.current.addLayer(imageOverlay)
         }
       }
 
-      // DESPUÉS: Dibujar el polígono encima (con opacidad baja para ver el heatmap)
+      // DESPUÉS: Dibujar el polígono encima (borde visible)
       const polygon = (L as any).polygon(potrero.coordinates, {
         color: potrero.color || '#10b981',
-        fillColor: potrero.color || '#10b981',
-        fillOpacity: potrero.info?.ndviMatriz?.matriz?.length > 0 ? 0.05 : 0.2, // Casi transparente si hay NDVI
+        fillColor: 'transparent', // ✅ Totalmente transparente para ver el NDVI
+        fillOpacity: 0,
         weight: 3,
       })
 
       existingLayersRef.current.addLayer(polygon)
 
-      // 🏷️ CREAR TOOLTIP PERMANENTE (siempre visible, sin hacer clic)
+      // 🏷️ Tooltip con nombre
       const center = polygon.getBounds().getCenter()
       
-      // Construir información de animales
       let animalesText = ''
       if (potrero.info?.animales?.length) {
         const lineas = potrero.info.animales
@@ -429,7 +444,6 @@ export default function MapaPoligono({
     }
   }, [existingPolygons, isReady])
 
-  /** Buscar ubicación */
   const buscarUbicacion = async () => {
     if (!searchQuery.trim()) return
 
