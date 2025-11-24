@@ -117,6 +117,11 @@ function crearHeatmapNDVI(
     return dentro
   }
 
+  // 🔍 Estadísticas para debugear
+  let minValue = Infinity
+  let maxValue = -Infinity
+  let validCount = 0
+
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const value = matriz[y][x]
@@ -127,30 +132,45 @@ function crearHeatmapNDVI(
         
         // ✅ Verificar si está REALMENTE dentro del polígono
         if (puntoEnPoligono(lat, lng, poligonoCoords)) {
-          const intensity = (value + 1) / 2
+          // 📊 Normalizar valor NDVI de [-1, 1] a [0, 1] para el heatmap
+          const intensity = Math.max(0, Math.min(1, (value + 1) / 2))
           heatPoints.push([lat, lng, intensity])
+          
+          validCount++
+          minValue = Math.min(minValue, value)
+          maxValue = Math.max(maxValue, value)
         }
       }
     }
   }
 
+  console.log('🎨 Heatmap NDVI creado:', {
+    puntos: validCount,
+    minNDVI: minValue.toFixed(3),
+    maxNDVI: maxValue.toFixed(3),
+    rangoIntensidad: `${((minValue + 1) / 2).toFixed(3)} - ${((maxValue + 1) / 2).toFixed(3)}`
+  })
+
   if (heatPoints.length === 0) return null
 
-  // ✅ Parámetros más agresivos para contener el heatmap
+  // ✅ Parámetros optimizados para mostrar variación real
   const heatLayer = (L as any).heatLayer(heatPoints, {
-    radius: 6,        // Más pequeño
-    blur: 8,          // Menos difuminado
-    maxZoom: 18,
+    radius: 15,       // Radio suficiente para cubrir pixeles
+    blur: 10,         // Poco blur para mantener detalle
+    maxZoom: 22,      // Permitir mayor zoom
     max: 1.0,
+    minOpacity: 0.5,  // Opacidad mínima para ver variaciones
     gradient: {
-      0.0: '#8B4513',
-      0.2: '#DAA520',
-      0.3: '#FFFF00',
-      0.4: '#ADFF2F',
-      0.5: '#7CFC00',
-      0.6: '#32CD32',
-      0.7: '#228B22',
-      0.8: '#006400'
+      0.0: '#8B4513',   // Marrón - sin vegetación
+      0.15: '#D2691E',  // Marrón claro
+      0.25: '#DAA520',  // Dorado oscuro
+      0.35: '#FFD700',  // Amarillo
+      0.45: '#ADFF2F',  // Verde-amarillo
+      0.55: '#7CFC00',  // Verde lima
+      0.65: '#32CD32',  // Verde medio
+      0.75: '#228B22',  // Verde bosque
+      0.85: '#006400',  // Verde oscuro
+      1.0: '#004d00'    // Verde muy oscuro
     }
   })
 
@@ -330,11 +350,11 @@ export default function MapaPoligono({
         }
       }
 
-      // DESPUÉS: Dibujar el polígono encima
+      // DESPUÉS: Dibujar el polígono encima (con opacidad baja para ver el heatmap)
       const polygon = (L as any).polygon(potrero.coordinates, {
         color: potrero.color || '#10b981',
         fillColor: potrero.color || '#10b981',
-        fillOpacity: 0.2,
+        fillOpacity: potrero.info?.ndviMatriz?.matriz?.length > 0 ? 0.05 : 0.2, // Casi transparente si hay NDVI
         weight: 3,
       })
 
