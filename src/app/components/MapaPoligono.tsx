@@ -462,7 +462,14 @@ export default function MapaPoligono({
   }
   
   const ubicarUsuario = () => {
-  if (!mapRef.current) return
+  console.log('🎯 Iniciando ubicación...')
+  console.log('mapRef.current:', mapRef.current)
+  
+  if (!mapRef.current) {
+    console.error('❌ mapRef.current es null')
+    alert('El mapa no está listo')
+    return
+  }
   
   setUbicandoUsuario(true)
 
@@ -472,38 +479,72 @@ export default function MapaPoligono({
     return
   }
 
+  console.log('📍 Solicitando ubicación al navegador...')
+
   navigator.geolocation.getCurrentPosition(
     (position) => {
+      console.log('✅ Ubicación obtenida:', position.coords)
+      
       const { latitude, longitude, accuracy } = position.coords
       
-      // Centrar mapa en la ubicación
-      mapRef.current.flyTo([latitude, longitude], 17, { duration: 1 })
+      console.log(`📍 Lat: ${latitude}, Lng: ${longitude}, Precisión: ${accuracy}m`)
 
-      // 🔵 Círculo de precisión (área aproximada)
-      (L as any).circle([latitude, longitude], {
-        radius: accuracy,
-        color: '#4285f4',
-        fillColor: '#4285f4',
-        fillOpacity: 0.1,
-        weight: 1,
-        opacity: 0.3
-      }).addTo(mapRef.current)
+      try {
+        // Centrar mapa
+        console.log('🗺️ Centrando mapa...')
+        mapRef.current.setView([latitude, longitude], 17)
 
-      // 🔵 PUNTO AZUL GRANDE (como Google Maps)
-      (L as any).circleMarker([latitude, longitude], {
-        radius: 8,
-        fillColor: '#4285f4',
-        color: 'white',
-        weight: 3,
-        opacity: 1,
-        fillOpacity: 1
-      }).addTo(mapRef.current)
+        // Círculo de precisión
+        console.log('🔵 Dibujando círculo de precisión...')
+        const precisionCircle = (L as any).circle([latitude, longitude], {
+          radius: accuracy,
+          color: '#4285f4',
+          fillColor: '#4285f4',
+          fillOpacity: 0.1,
+          weight: 1
+        })
+        precisionCircle.addTo(mapRef.current)
 
-      setUbicandoUsuario(false)
+        // Punto azul
+        console.log('🔵 Dibujando punto azul...')
+        const marker = (L as any).circleMarker([latitude, longitude], {
+          radius: 10,
+          fillColor: '#4285f4',
+          color: 'white',
+          weight: 3,
+          opacity: 1,
+          fillOpacity: 1
+        })
+        marker.addTo(mapRef.current)
+
+        console.log('✅ Ubicación marcada correctamente')
+        setUbicandoUsuario(false)
+      } catch (error) {
+        console.error('❌ Error dibujando en el mapa:', error)
+        alert('Error mostrando la ubicación en el mapa')
+        setUbicandoUsuario(false)
+      }
     },
     (error) => {
-      console.error('Error de geolocalización:', error)
-      alert('No se pudo obtener tu ubicación. Verifica los permisos.')
+      console.error('❌ Error de geolocalización:', error)
+      console.error('Código de error:', error.code)
+      console.error('Mensaje:', error.message)
+      
+      let mensaje = 'No se pudo obtener tu ubicación'
+      
+      switch(error.code) {
+        case error.PERMISSION_DENIED:
+          mensaje = 'Permiso de ubicación denegado. Habilítalo en la configuración del navegador.'
+          break
+        case error.POSITION_UNAVAILABLE:
+          mensaje = 'Ubicación no disponible. Verifica tu conexión GPS.'
+          break
+        case error.TIMEOUT:
+          mensaje = 'Tiempo de espera agotado. Intenta de nuevo.'
+          break
+      }
+      
+      alert(mensaje)
       setUbicandoUsuario(false)
     },
     { 
