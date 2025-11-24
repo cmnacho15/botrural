@@ -183,6 +183,7 @@ eventos
         lote: gasto.lote?.nombre || null,
         // ✅ Campos directos para que los vea la página
         monto: gasto.monto ? parseFloat(gasto.monto.toString()) : null,
+        moneda: gasto.moneda || 'UYU', // 👈 AGREGAR ESTA LÍNEA
         cantidad: gasto.cantidadVendida,
         proveedor: gasto.proveedor,
         comprador: gasto.comprador,
