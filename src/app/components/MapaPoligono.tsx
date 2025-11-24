@@ -207,6 +207,7 @@ export default function MapaPoligono({
   const mapRef = useRef<any>(null)
   const drawnItemsRef = useRef<any>(null)
   const existingLayersRef = useRef<any>(null)
+  const locationLayersRef = useRef<any[]>([])
 
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<any[]>([])
@@ -462,14 +463,7 @@ export default function MapaPoligono({
   }
   
   const ubicarUsuario = () => {
-  console.log('🎯 Iniciando ubicación...')
-  console.log('mapRef.current:', mapRef.current)
-  
-  if (!mapRef.current) {
-    console.error('❌ mapRef.current es null')
-    alert('El mapa no está listo')
-    return
-  }
+  if (!mapRef.current) return
   
   setUbicandoUsuario(true)
 
@@ -479,23 +473,21 @@ export default function MapaPoligono({
     return
   }
 
-  console.log('📍 Solicitando ubicación al navegador...')
-
   navigator.geolocation.getCurrentPosition(
     (position) => {
-      console.log('✅ Ubicación obtenida:', position.coords)
-      
       const { latitude, longitude, accuracy } = position.coords
-      
-      console.log(`📍 Lat: ${latitude}, Lng: ${longitude}, Precisión: ${accuracy}m`)
 
       try {
+        // 🧹 LIMPIAR MARCADORES ANTERIORES
+        locationLayersRef.current.forEach(layer => {
+          mapRef.current.removeLayer(layer)
+        })
+        locationLayersRef.current = []
+
         // Centrar mapa
-        console.log('🗺️ Centrando mapa...')
         mapRef.current.setView([latitude, longitude], 17)
 
         // Círculo de precisión
-        console.log('🔵 Dibujando círculo de precisión...')
         const precisionCircle = (L as any).circle([latitude, longitude], {
           radius: accuracy,
           color: '#4285f4',
@@ -504,9 +496,9 @@ export default function MapaPoligono({
           weight: 1
         })
         precisionCircle.addTo(mapRef.current)
+        locationLayersRef.current.push(precisionCircle)
 
         // Punto azul
-        console.log('🔵 Dibujando punto azul...')
         const marker = (L as any).circleMarker([latitude, longitude], {
           radius: 10,
           fillColor: '#4285f4',
@@ -516,44 +508,23 @@ export default function MapaPoligono({
           fillOpacity: 1
         })
         marker.addTo(mapRef.current)
+        locationLayersRef.current.push(marker)
 
-        console.log('✅ Ubicación marcada correctamente')
         setUbicandoUsuario(false)
       } catch (error) {
-        console.error('❌ Error dibujando en el mapa:', error)
+        console.error('Error:', error)
         alert('Error mostrando la ubicación en el mapa')
         setUbicandoUsuario(false)
       }
     },
     (error) => {
-      console.error('❌ Error de geolocalización:', error)
-      console.error('Código de error:', error.code)
-      console.error('Mensaje:', error.message)
-      
-      let mensaje = 'No se pudo obtener tu ubicación'
-      
-      switch(error.code) {
-        case error.PERMISSION_DENIED:
-          mensaje = 'Permiso de ubicación denegado. Habilítalo en la configuración del navegador.'
-          break
-        case error.POSITION_UNAVAILABLE:
-          mensaje = 'Ubicación no disponible. Verifica tu conexión GPS.'
-          break
-        case error.TIMEOUT:
-          mensaje = 'Tiempo de espera agotado. Intenta de nuevo.'
-          break
-      }
-      
-      alert(mensaje)
+      alert('No se pudo obtener tu ubicación')
       setUbicandoUsuario(false)
     },
-    { 
-      enableHighAccuracy: true, 
-      timeout: 10000, 
-      maximumAge: 0 
-    }
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
   )
 }
+
   const confirmarPoligono = () => {
     if (!drawnItemsRef.current) return
     if (drawnItemsRef.current.getLayers().length === 0)
