@@ -76,7 +76,7 @@ export default function MapaPage() {
         body: JSON.stringify({
           lotes: lotes.map(l => ({
             id: l.id,
-            coordenadas: l.poligono,
+            coordenadas: l.poligono, // Mantener "coordenadas" como key para la API
           })),
         }),
       })
@@ -95,11 +95,13 @@ export default function MapaPage() {
           promedio: ndvi.promedio,
           tieneMatriz: ndvi.matriz?.length > 0,
           dimensiones: `${ndvi.width}x${ndvi.height}`,
+          bbox: ndvi.bbox,
           validPixels: ndvi.validPixels,
           totalPixels: ndvi.totalPixels,
           porcentajeValido: ndvi.totalPixels > 0 
             ? `${Math.round((ndvi.validPixels / ndvi.totalPixels) * 100)}%`
-            : '0%'
+            : '0%',
+          primerosValores: ndvi.matriz?.[0]?.slice(0, 5) || 'sin datos'
         })
       })
 

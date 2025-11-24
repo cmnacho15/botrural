@@ -22,6 +22,8 @@ async function getAccessToken() {
   )
 
   if (!tokenResponse.ok) {
+    const error = await tokenResponse.text()
+    console.error('Error obteniendo token:', error)
     throw new Error('Error obteniendo token de Copernicus')
   }
 
@@ -30,9 +32,8 @@ async function getAccessToken() {
 }
 
 // ===============================================
-// 🔹 2) NUEVA FUNCIÓN: obtener matriz NDVI completa
+// 🔹 2) Procesar matriz NDVI desde TIFF
 // ===============================================
-
 async function calcularNDVIMatriz(imageBuffer: ArrayBuffer) {
   try {
     const tiff = await GeoTIFF.fromArrayBuffer(imageBuffer)
@@ -40,13 +41,18 @@ async function calcularNDVIMatriz(imageBuffer: ArrayBuffer) {
     const data = await image.readRasters()
 
     const ndviValues = data[0] as Float32Array
-    const width = await image.getWidth()
-    const height = await image.getHeight()
-    const bbox = await image.getBoundingBox()
+    const width = image.getWidth()
+    const height = image.getHeight()
+    const bbox = image.getBoundingBox()
+
+    console.log(`📐 Imagen NDVI: ${width}x${height} píxeles`)
+    console.log(`📦 BBox:`, bbox)
 
     const matriz: number[][] = []
     let validCount = 0
     let sum = 0
+    let min = Infinity
+    let max = -Infinity
 
     for (let y = 0; y < height; y++) {
       const fila: number[] = []
@@ -54,19 +60,26 @@ async function calcularNDVIMatriz(imageBuffer: ArrayBuffer) {
         const idx = y * width + x
         const value = ndviValues[idx]
 
-        if (!isNaN(value) && value >= -1 && value <= 1) {
+        // Valores NDVI válidos están entre -1 y 1
+        if (!isNaN(value) && isFinite(value) && value >= -1 && value <= 1) {
           fila.push(value)
           sum += value
           validCount++
+          if (value < min) min = value
+          if (value > max) max = value
         } else {
-          fila.push(-999)
+          fila.push(-999) // Marcador de píxel inválido
         }
       }
       matriz.push(fila)
     }
 
-    // ✅ CAMBIO AQUÍ: Si no hay datos válidos, devolver null
+    console.log(`✅ Píxeles válidos: ${validCount} de ${width * height} (${Math.round((validCount / (width * height)) * 100)}%)`)
+    console.log(`📊 Rango NDVI: ${min.toFixed(3)} a ${max.toFixed(3)}`)
+
+    // Si no hay datos válidos, devolver null
     if (validCount === 0) {
+      console.warn('⚠️ No se encontraron píxeles válidos')
       return {
         promedio: null,
         matriz: [],
@@ -78,7 +91,9 @@ async function calcularNDVIMatriz(imageBuffer: ArrayBuffer) {
       }
     }
 
-    const promedio = sum / validCount  // Sin fallback
+    const promedio = sum / validCount
+
+    console.log(`📊 NDVI promedio: ${promedio.toFixed(3)}`)
 
     return {
       promedio,
@@ -90,9 +105,9 @@ async function calcularNDVIMatriz(imageBuffer: ArrayBuffer) {
       totalPixels: width * height,
     }
   } catch (error) {
-    console.error('Error procesando TIFF:', error)
+    console.error('❌ Error procesando TIFF:', error)
     return {
-      promedio: null,  // ✅ También null en caso de error
+      promedio: null,
       matriz: [],
       width: 0,
       height: 0,
@@ -104,10 +119,10 @@ async function calcularNDVIMatriz(imageBuffer: ArrayBuffer) {
 }
 
 // ===============================================
-// 🔹 3) Calcular NDVI (usa la nueva función)
+// 🔹 3) Calcular NDVI desde Sentinel Hub
 // ===============================================
-
 async function calcularNDVI(coordinates: number[][], accessToken: string) {
+  // Calcular bounding box
   const lats = coordinates.map((c) => c[0])
   const lngs = coordinates.map((c) => c[1])
 
@@ -118,11 +133,17 @@ async function calcularNDVI(coordinates: number[][], accessToken: string) {
     Math.max(...lats),
   ]
 
+  console.log(`📍 BBox calculado:`, bbox)
+
+  // Fechas: últimos 45 días (aumentado de 30)
   const endDate = new Date().toISOString().split('T')[0]
-  const startDate = new Date(Date.now() - 30 * 86400000)
+  const startDate = new Date(Date.now() - 45 * 86400000)
     .toISOString()
     .split('T')[0]
 
+  console.log(`📅 Buscando imágenes desde ${startDate} hasta ${endDate}`)
+
+  // Evalscript mejorado
   const evalscript = `
     //VERSION=3
     function setup() {
@@ -137,16 +158,66 @@ async function calcularNDVI(coordinates: number[][], accessToken: string) {
         }
       }
     }
+    
     function evaluatePixel(sample) {
-      if (sample.SCL === 3 || sample.SCL === 8 || sample.SCL === 9 || sample.SCL === 10) {
+      // Filtrar nubes, sombras y nieve (SCL = Scene Classification Layer)
+      // 3=cloud shadow, 8=cloud medium, 9=cloud high, 10=thin cirrus, 11=snow
+      if (sample.SCL === 3 || sample.SCL === 8 || sample.SCL === 9 || 
+          sample.SCL === 10 || sample.SCL === 11) {
         return [NaN]
       }
+      
+      // Calcular NDVI
       let ndvi = (sample.B08 - sample.B04) / (sample.B08 + sample.B04)
+      
+      // Validar rango
+      if (isNaN(ndvi) || !isFinite(ndvi)) {
+        return [NaN]
+      }
+      
       return [ndvi]
     }
   `
 
   try {
+    const requestBody = {
+      input: {
+        bounds: {
+          bbox,
+          properties: { crs: 'http://www.opengis.net/def/crs/EPSG/0/4326' },
+        },
+        data: [
+          {
+            type: 'sentinel-2-l2a',
+            dataFilter: {
+              timeRange: {
+                from: `${startDate}T00:00:00Z`,
+                to: `${endDate}T23:59:59Z`,
+              },
+              maxCloudCoverage: 50, // ✅ Aumentado de 30 a 50
+              mosaickingOrder: 'leastCC', // Menos nubes primero
+            },
+          },
+        ],
+      },
+      output: {
+        width: 256, // ✅ Aumentado de 64 a 256 para mejor resolución
+        height: 256,
+        responses: [
+          {
+            identifier: 'default',
+            format: { type: 'image/tiff' },
+          },
+        ],
+      },
+      evalscript,
+    }
+
+    console.log('🚀 Enviando request a Sentinel Hub...')
+
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 30000) // 30s timeout
+
     const response = await fetch(
       'https://sh.dataspace.copernicus.eu/api/v1/process',
       {
@@ -155,60 +226,41 @@ async function calcularNDVI(coordinates: number[][], accessToken: string) {
           Authorization: `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          input: {
-            bounds: {
-              bbox,
-              properties: { crs: 'http://www.opengis.net/def/crs/EPSG/0/4326' },
-            },
-            data: [
-              {
-                type: 'sentinel-2-l2a',
-                dataFilter: {
-                  timeRange: {
-                    from: `${startDate}T00:00:00Z`,
-                    to: `${endDate}T23:59:59Z`,
-                  },
-                  maxCloudCoverage: 30,
-                },
-              },
-            ],
-          },
-          output: {
-            width: 64,   // Reducido para optimizar
-            height: 64,
-            responses: [
-              {
-                identifier: 'default',
-                format: { type: 'image/tiff' },
-              },
-            ],
-          },
-          evalscript,
-        }),
+        body: JSON.stringify(requestBody),
+        signal: controller.signal,
       }
     )
 
+    clearTimeout(timeoutId)
+
     if (!response.ok) {
       const text = await response.text()
-      console.error('Error en Sentinel Hub:', text)
-      throw new Error(`Error obteniendo imagen: ${response.status}`)
+      console.error('❌ Error en Sentinel Hub:', response.status, text)
+      
+      // Si es 400, puede ser que no haya imágenes disponibles
+      if (response.status === 400) {
+        console.warn('⚠️ No se encontraron imágenes Sentinel-2 para esta área/fecha')
+      }
+      
+      throw new Error(`Error ${response.status}: ${text}`)
     }
 
     const imageBuffer = await response.arrayBuffer()
+    console.log(`✅ Imagen descargada: ${imageBuffer.byteLength} bytes`)
 
-    // --- NUEVO: retornar datos completos ---
     return await calcularNDVIMatriz(imageBuffer)
-  } catch (error) {
-    console.error('Error calculando NDVI:', error)
+  } catch (error: any) {
+    if (error.name === 'AbortError') {
+      console.error('⏱️ Timeout: La request tardó más de 30 segundos')
+    }
+    console.error('❌ Error calculando NDVI:', error)
     throw error
   }
 }
 
 // ===============================================
-// 🔹 4) POST Handler actualizado
+// 🔹 4) POST Handler
 // ===============================================
-
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
@@ -222,20 +274,25 @@ export async function POST(request: NextRequest) {
     }
 
     if (!process.env.COPERNICUS_CLIENT_ID || !process.env.COPERNICUS_CLIENT_SECRET) {
+      console.error('❌ Credenciales de Copernicus no configuradas')
       return NextResponse.json(
         { error: 'Credenciales de Copernicus no configuradas' },
         { status: 500 }
       )
     }
 
+    console.log('🔐 Obteniendo token de acceso...')
     const accessToken = await getAccessToken()
+    console.log('✅ Token obtenido')
+
     const resultados: Record<string, any> = {}
 
     for (const lote of lotes) {
-  if (lote.poligono && lote.poligono.length > 0) {  // ← Cambiar coordenadas por poligono
-    try {
-      console.log(`Calculando NDVI para lote ${lote.id}...`)
-      const ndviData = await calcularNDVI(lote.poligono, accessToken)  // ← Cambiar
+      // ✅ USAR "coordenadas" en lugar de "poligono"
+      if (lote.coordenadas && lote.coordenadas.length > 0) {
+        try {
+          console.log(`\n🌾 Procesando lote ${lote.id}...`)
+          const ndviData = await calcularNDVI(lote.coordenadas, accessToken)
 
           resultados[lote.id] = {
             promedio: ndviData.promedio,
@@ -243,21 +300,28 @@ export async function POST(request: NextRequest) {
             width: ndviData.width,
             height: ndviData.height,
             bbox: ndviData.bbox,
-            confiabilidad: ndviData.validPixels / ndviData.totalPixels,
+            confiabilidad: ndviData.totalPixels > 0 
+              ? ndviData.validPixels / ndviData.totalPixels 
+              : 0,
             validPixels: ndviData.validPixels,
             totalPixels: ndviData.totalPixels,
           }
 
-          console.log(
-            `NDVI ${lote.id}: ${ndviData.promedio.toFixed(3)} (${Math.round(
-              (ndviData.validPixels / ndviData.totalPixels) * 100
-            )}% válidos)`
-          )
-        } catch (error) {
-          console.error(`Error calculando NDVI para lote ${lote.id}:`, error)
+          if (ndviData.promedio !== null) {
+            console.log(
+              `✅ NDVI ${lote.id}: ${ndviData.promedio.toFixed(3)} (${Math.round(
+                (ndviData.validPixels / ndviData.totalPixels) * 100
+              )}% válidos)`
+            )
+          } else {
+            console.log(`⚠️ Sin datos NDVI para lote ${lote.id}`)
+          }
+        } catch (error: any) {
+          console.error(`❌ Error calculando NDVI para lote ${lote.id}:`, error.message)
 
+          // ✅ Devolver null en caso de error, NO 0.5
           resultados[lote.id] = {
-            promedio: 0.5,
+            promedio: null,
             matriz: [],
             width: 0,
             height: 0,
@@ -265,16 +329,19 @@ export async function POST(request: NextRequest) {
             confiabilidad: 0,
             validPixels: 0,
             totalPixels: 0,
+            error: error.message,
           }
         }
+      } else {
+        console.warn(`⚠️ Lote ${lote.id} no tiene coordenadas`)
       }
     }
 
     return NextResponse.json({ ndvi: resultados })
-  } catch (error) {
-    console.error('Error API NDVI:', error)
+  } catch (error: any) {
+    console.error('❌ Error general en API NDVI:', error)
     return NextResponse.json(
-      { error: 'Error obteniendo datos NDVI' },
+      { error: error.message || 'Error obteniendo datos NDVI' },
       { status: 500 }
     )
   }
