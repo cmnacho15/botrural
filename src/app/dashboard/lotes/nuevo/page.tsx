@@ -435,7 +435,7 @@ useEffect(() => {
               <MapaPoligono
                 onPolygonComplete={handlePolygonComplete}
                 initialCenter={mapCenter}
-                initialZoom={lotesExistentes.length > 0 ? 16 : 8}
+                initialZoom={lotesExistentes.length > 0 ? 16 : 6}
                 existingPolygons={potrerosParaMapa}
               />
             </div>
