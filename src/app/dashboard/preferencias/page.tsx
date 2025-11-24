@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import GastosPreferencias from '@/app/preferencias/components/GastosPreferencias'
 
 type TipoCultivo = {
   id: string
@@ -626,11 +627,11 @@ useEffect(() => {
           )}
 
           {/* CONTENIDO TAB GASTOS */}
-          {activeTab === 'gastos' && (
-            <div className="p-6">
-              <p className="text-gray-500 text-center py-12">Próximamente...</p>
-            </div>
-          )}
+{activeTab === 'gastos' && (
+  <div className="p-6">
+    <GastosPreferencias />
+  </div>
+)}
         </div>
       </div>
 
