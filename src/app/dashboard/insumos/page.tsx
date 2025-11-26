@@ -1,7 +1,6 @@
 'use client'
 export const dynamic = 'force-dynamic'
 
-
 import { useState, useEffect, Suspense } from 'react'
 import { useInsumos } from '@/app/contexts/InsumosContext'
 import { useSearchParams } from 'next/navigation'
@@ -14,7 +13,7 @@ type Lote = {
 }
 
 function InsumosContent() {
-  const { insumos, isLoading, refreshInsumos, addInsumo, registrarMovimiento } = useInsumos()
+  const { insumos, isLoading, refreshInsumos, addInsumo, registrarMovimiento, updateInsumosOrder } = useInsumos()
   const searchParams = useSearchParams()
   
   const [activeTab, setActiveTab] = useState<'consumo' | 'inventario'>('consumo')
@@ -30,6 +29,11 @@ function InsumosContent() {
   const [lotes, setLotes] = useState<Lote[]>([])
   const [showInsumoSelector, setShowInsumoSelector] = useState(false)
 
+  // Estados para reordenamiento
+  const [isReordering, setIsReordering] = useState(false)
+  const [reorderedInsumos, setReorderedInsumos] = useState<any[]>([])
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
+
   const [fecha, setFecha] = useState(new Date().toISOString().split('T')[0])
   const [loteId, setLoteId] = useState('')
   const [cantidad, setCantidad] = useState('')
@@ -39,6 +43,13 @@ function InsumosContent() {
     'Mililitros', 'Frascos', 'Rollos', 'Cajas', 'Bolsas', 'Dosis',
     'Centímetros', 'Metros', 'Unidades', 'Litros', 'Toneladas', 'Gramos', 'Kilos',
   ]
+
+  // Inicializar orden cuando cambian los insumos
+  useEffect(() => {
+    if (insumos.length > 0 && !isReordering) {
+      setReorderedInsumos([...insumos])
+    }
+  }, [insumos, isReordering])
 
   // Detectar parámetros de URL para abrir modales
   useEffect(() => {
@@ -101,6 +112,62 @@ function InsumosContent() {
     setModalUsoOpen(true)
   }
 
+  // Funciones de reordenamiento
+  const handleStartReorder = () => {
+    setIsReordering(true)
+    setReorderedInsumos([...insumos])
+  }
+
+  const handleCancelReorder = () => {
+    setIsReordering(false)
+    setReorderedInsumos([...insumos])
+    setDraggedIndex(null)
+  }
+
+  const handleConfirmReorder = async () => {
+    setLoading(true)
+    try {
+      const orderedIds = reorderedInsumos.map(i => i.id)
+      const success = await updateInsumosOrder(orderedIds)
+      
+      if (success) {
+        setIsReordering(false)
+        setDraggedIndex(null)
+      } else {
+        alert('Error al guardar el orden. Por favor intentá de nuevo.')
+      }
+    } catch (error) {
+      console.error('Error al guardar el orden:', error)
+      alert('Error al guardar el orden. Por favor intentá de nuevo.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedIndex(index)
+    e.dataTransfer.effectAllowed = 'move'
+  }
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault()
+    
+    if (draggedIndex === null || draggedIndex === index) return
+
+    const newInsumos = [...reorderedInsumos]
+    const draggedItem = newInsumos[draggedIndex]
+    
+    newInsumos.splice(draggedIndex, 1)
+    newInsumos.splice(index, 0, draggedItem)
+    
+    setReorderedInsumos(newInsumos)
+    setDraggedIndex(index)
+  }
+
+  const handleDragEnd = () => {
+    // No resetear draggedIndex aquí para mantener el estado visual
+  }
+
   const calcularConsumoTotal = (insumo: any) => {
     if (!insumo.movimientos || insumo.movimientos.length === 0) return 0
     return insumo.movimientos
@@ -117,52 +184,89 @@ function InsumosContent() {
       .reduce((sum: number, m: any) => sum + m.cantidad, 0)
   }
 
+  const displayInsumos = isReordering ? reorderedInsumos : insumos
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Tabs y acciones */}
-<div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-3">
-  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
-    
-    {/* Tabs */}
-    <div className="flex gap-4 justify-center sm:justify-start">
-      <button
-        onClick={() => setActiveTab('consumo')}
-        className={`flex items-center gap-1 pb-2 border-b-2 transition-colors ${
-          activeTab === 'consumo'
-            ? 'border-blue-500 text-blue-600'
-            : 'border-transparent text-gray-600 hover:text-gray-900'
-        }`}
-      >
-        📋 <span className="text-sm font-medium">Consumo</span>
-      </button>
-      <button
-        onClick={() => setActiveTab('inventario')}
-        className={`flex items-center gap-1 pb-2 border-b-2 transition-colors ${
-          activeTab === 'inventario'
-            ? 'border-blue-500 text-blue-600'
-            : 'border-transparent text-gray-600 hover:text-gray-900'
-        }`}
-      >
-        🏪 <span className="text-sm font-medium">Inventario</span>
-      </button>
-    </div>
+      <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-3">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
+          
+          {/* Tabs */}
+          <div className="flex gap-4 justify-center sm:justify-start">
+            <button
+              onClick={() => setActiveTab('consumo')}
+              disabled={isReordering}
+              className={`flex items-center gap-1 pb-2 border-b-2 transition-colors ${
+                activeTab === 'consumo'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-600 hover:text-gray-900'
+              } ${isReordering ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              📋 <span className="text-sm font-medium">Consumo</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('inventario')}
+              disabled={isReordering}
+              className={`flex items-center gap-1 pb-2 border-b-2 transition-colors ${
+                activeTab === 'inventario'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-600 hover:text-gray-900'
+              } ${isReordering ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              🏪 <span className="text-sm font-medium">Inventario</span>
+            </button>
+          </div>
 
-    {/* Botones de acción */}
-    <div className="flex flex-wrap justify-center sm:justify-end gap-2">
-      <button className="px-3 py-1.5 border border-gray-300 rounded-lg bg-white text-gray-700 hover:bg-gray-50 flex items-center gap-1 text-xs sm:text-sm">
-        ⊞ <span>Reordenar</span>
-      </button>
-      <button
-        onClick={() => setModalOpen(true)}
-        className="px-3 py-1.5 border border-gray-300 rounded-lg bg-white text-gray-700 hover:bg-gray-50 flex items-center gap-1 text-xs sm:text-sm"
-      >
-        ➕ <span>Monitorear insumo</span>
-      </button>
-    </div>
+          {/* Botones de acción */}
+          <div className="flex flex-wrap justify-center sm:justify-end gap-2">
+            {isReordering ? (
+              <>
+                <button
+                  onClick={handleCancelReorder}
+                  disabled={loading}
+                  className="px-3 py-1.5 border border-gray-300 rounded-lg bg-white text-gray-700 hover:bg-gray-50 flex items-center gap-1 text-xs sm:text-sm disabled:opacity-50"
+                >
+                  ✕ <span>Cancelar</span>
+                </button>
+                <button
+                  onClick={handleConfirmReorder}
+                  disabled={loading}
+                  className="px-3 py-1.5 rounded-lg bg-green-600 text-white hover:bg-green-700 flex items-center gap-1 text-xs sm:text-sm disabled:opacity-50"
+                >
+                  {loading ? '⏳' : '✓'} <span>{loading ? 'Guardando...' : 'Confirmar Orden'}</span>
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={handleStartReorder}
+                  className="px-3 py-1.5 border border-gray-300 rounded-lg bg-white text-gray-700 hover:bg-gray-50 flex items-center gap-1 text-xs sm:text-sm"
+                >
+                  ⊞ <span>Reordenar</span>
+                </button>
+                <button
+                  onClick={() => setModalOpen(true)}
+                  className="px-3 py-1.5 border border-gray-300 rounded-lg bg-white text-gray-700 hover:bg-gray-50 flex items-center gap-1 text-xs sm:text-sm"
+                >
+                  ➕ <span>Monitorear insumo</span>
+                </button>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Grid (siempre 2 columnas en móvil) */}
+      {/* Instrucciones de reordenamiento */}
+      {isReordering && (
+        <div className="bg-blue-50 border-b border-blue-200 px-4 sm:px-6 py-3">
+          <p className="text-sm text-blue-800 text-center">
+            🔄 Arrastrá las tarjetas para cambiar su orden. Presioná "Confirmar Orden" para guardar.
+          </p>
+        </div>
+      )}
+
+      {/* Grid */}
       <div className="p-4 sm:p-6">
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
@@ -171,7 +275,7 @@ function InsumosContent() {
               <p className="text-gray-600">Cargando insumos...</p>
             </div>
           </div>
-        ) : insumos.length === 0 ? (
+        ) : displayInsumos.length === 0 ? (
           <div className="text-center py-12">
             <div className="text-6xl mb-4">📦</div>
             <h3 className="text-xl font-semibold text-gray-900 mb-2">No hay insumos todavía</h3>
@@ -186,18 +290,33 @@ function InsumosContent() {
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
-            {insumos.map((insumo, idx) => (
+            {displayInsumos.map((insumo, idx) => (
               <div
                 key={insumo.id}
-                className="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-all relative group cursor-pointer"
-                onMouseEnter={() => setHoveredCard(idx)}
-                onMouseLeave={() => setHoveredCard(null)}
+                draggable={isReordering}
+                onDragStart={(e) => handleDragStart(e, idx)}
+                onDragOver={(e) => handleDragOver(e, idx)}
+                onDragEnd={handleDragEnd}
+                className={`bg-white rounded-lg shadow-sm overflow-hidden transition-all relative group ${
+                  isReordering 
+                    ? 'cursor-move hover:shadow-lg hover:scale-105 border-2 border-blue-300' 
+                    : 'hover:shadow-md cursor-pointer'
+                } ${draggedIndex === idx ? 'opacity-50' : 'opacity-100'}`}
+                onMouseEnter={() => !isReordering && setHoveredCard(idx)}
+                onMouseLeave={() => !isReordering && setHoveredCard(null)}
               >
+                {/* Número de orden en modo reordenamiento */}
+                {isReordering && (
+                  <div className="absolute top-2 left-2 z-20 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-sm shadow-lg">
+                    {idx + 1}
+                  </div>
+                )}
+
                 {/* Cabecera visual */}
                 <div className="relative h-32 sm:h-36 overflow-hidden">
                   <div
                     className={`absolute inset-0 bg-gradient-to-br from-amber-100 via-green-50 to-blue-50 transition-all ${
-                      hoveredCard === idx ? 'scale-110' : 'scale-100'
+                      hoveredCard === idx && !isReordering ? 'scale-110' : 'scale-100'
                     } ${
                       (!insumo.movimientos || insumo.movimientos.length === 0) && activeTab === 'inventario'
                         ? 'grayscale opacity-50'
@@ -209,23 +328,25 @@ function InsumosContent() {
                     </div>
                   </div>
 
-                  {/* Botones por hover (escritorio) */}
-                  <div className={`absolute inset-0 hidden sm:flex flex-col transition-all ${hoveredCard === idx ? 'opacity-100' : 'opacity-0'} group-hover:opacity-100`}>
-                    <button
-                      onClick={() => handleOpenIngreso(insumo)}
-                      className="flex-1 bg-green-500/95 hover:bg-green-600 text-white font-medium text-xs flex items-center justify-center transition-colors"
-                    >
-                      Registrar Ingreso
-                    </button>
-                    {(activeTab === 'consumo' || insumo.stock > 0) && (
+                  {/* Botones por hover (escritorio) - ocultos en modo reordenamiento */}
+                  {!isReordering && (
+                    <div className={`absolute inset-0 hidden sm:flex flex-col transition-all ${hoveredCard === idx ? 'opacity-100' : 'opacity-0'} group-hover:opacity-100`}>
                       <button
-                        onClick={() => handleOpenUso(insumo)}
-                        className="flex-1 bg-blue-500/95 hover:bg-blue-600 text-white font-medium text-xs flex items-center justify-center transition-colors"
+                        onClick={() => handleOpenIngreso(insumo)}
+                        className="flex-1 bg-green-500/95 hover:bg-green-600 text-white font-medium text-xs flex items-center justify-center transition-colors"
                       >
-                        Registrar Uso
+                        Registrar Ingreso
                       </button>
-                    )}
-                  </div>
+                      {(activeTab === 'consumo' || insumo.stock > 0) && (
+                        <button
+                          onClick={() => handleOpenUso(insumo)}
+                          className="flex-1 bg-blue-500/95 hover:bg-blue-600 text-white font-medium text-xs flex items-center justify-center transition-colors"
+                        >
+                          Registrar Uso
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div className="p-3">
@@ -257,44 +378,50 @@ function InsumosContent() {
                     </>
                   )}
 
-                  {/* Acciones visibles en móvil (sin hover) */}
-                  <div className="flex gap-2 sm:hidden mb-2">
-                    <button
-                      onClick={() => handleOpenIngreso(insumo)}
-                      className="flex-1 px-2 py-1 text-[11px] rounded-md bg-green-100 text-green-700"
-                    >
-                      Ingreso
-                    </button>
-                    {(activeTab === 'consumo' || insumo.stock > 0) && (
+                  {/* Acciones visibles en móvil - ocultas en modo reordenamiento */}
+                  {!isReordering && (
+                    <div className="flex gap-2 sm:hidden mb-2">
                       <button
-                        onClick={() => handleOpenUso(insumo)}
-                        className="flex-1 px-2 py-1 text-[11px] rounded-md bg-blue-100 text-blue-700"
+                        onClick={() => handleOpenIngreso(insumo)}
+                        className="flex-1 px-2 py-1 text-[11px] rounded-md bg-green-100 text-green-700"
                       >
-                        Uso
+                        Ingreso
                       </button>
-                    )}
-                  </div>
+                      {(activeTab === 'consumo' || insumo.stock > 0) && (
+                        <button
+                          onClick={() => handleOpenUso(insumo)}
+                          className="flex-1 px-2 py-1 text-[11px] rounded-md bg-blue-100 text-blue-700"
+                        >
+                          Uso
+                        </button>
+                      )}
+                    </div>
+                  )}
 
-                  <button className="text-blue-600 hover:text-blue-700 text-xs font-medium">Ver Más</button>
+                  {!isReordering && (
+                    <button className="text-blue-600 hover:text-blue-700 text-xs font-medium">Ver Más</button>
+                  )}
                 </div>
               </div>
             ))}
 
-            {/* Card para agregar */}
-            <button
-              onClick={() => setModalOpen(true)}
-              className="bg-white rounded-lg shadow-sm border-2 border-dashed border-gray-300 hover:border-blue-500 hover:bg-blue-50 transition-all flex flex-col items-center justify-center p-4 sm:p-6 min-h-[180px] sm:min-h-[240px] group"
-            >
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gray-100 group-hover:bg-blue-100 flex items-center justify-center mb-3 transition-colors">
-                <span className="text-xl sm:text-2xl text-gray-400 group-hover:text-blue-500">➕</span>
-              </div>
-              <p className="text-gray-700 text-xs sm:text-sm font-medium text-center">Monitorear otro insumo</p>
-            </button>
+            {/* Card para agregar - oculta en modo reordenamiento */}
+            {!isReordering && (
+              <button
+                onClick={() => setModalOpen(true)}
+                className="bg-white rounded-lg shadow-sm border-2 border-dashed border-gray-300 hover:border-blue-500 hover:bg-blue-50 transition-all flex flex-col items-center justify-center p-4 sm:p-6 min-h-[180px] sm:min-h-[240px] group"
+              >
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gray-100 group-hover:bg-blue-100 flex items-center justify-center mb-3 transition-colors">
+                  <span className="text-xl sm:text-2xl text-gray-400 group-hover:text-blue-500">➕</span>
+                </div>
+                <p className="text-gray-700 text-xs sm:text-sm font-medium text-center">Monitorear otro insumo</p>
+              </button>
+            )}
           </div>
         )}
       </div>
 
-      {/* Modal selector de insumo */}
+      {/* Modales - sin cambios */}
       {showInsumoSelector && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/30 backdrop-blur-sm">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm sm:max-w-md md:max-w-lg p-6 max-h-[85vh] overflow-y-auto">
@@ -343,7 +470,6 @@ function InsumosContent() {
         </div>
       )}
 
-      {/* Modal agregar insumo */}
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/30 backdrop-blur-sm">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm sm:max-w-md md:max-w-lg p-6">
@@ -414,7 +540,6 @@ function InsumosContent() {
         </div>
       )}
 
-      {/* Modal de Ingreso */}
       {modalIngresoOpen && selectedInsumo && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/30 backdrop-blur-sm">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -434,7 +559,6 @@ function InsumosContent() {
         </div>
       )}
 
-      {/* Modal de Uso */}
       {modalUsoOpen && selectedInsumo && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/30 backdrop-blur-sm">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">

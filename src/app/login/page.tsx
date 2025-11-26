@@ -99,6 +99,11 @@ export default function LoginPage() {
           </a>
         </p>
       </div>
+      <div className="mt-6 text-center text-sm text-gray-500">
+  <a href="/privacy" className="hover:text-gray-700">Política de Privacidad</a>
+  {" • "}
+  <a href="/terms" className="hover:text-gray-700">Términos de Uso</a>
+</div>
     </div>
   );
 }

@@ -15,6 +15,7 @@ type Insumo = {
   nombre: string
   unidad: string
   stock: number
+  orden?: number  // 👈 NUEVO
   movimientos?: Movimiento[]
 }
 
@@ -32,6 +33,7 @@ type InsumosContextType = {
     notas: string,
     loteId?: string
   ) => Promise<boolean>
+  updateInsumosOrder: (orderedIds: string[]) => Promise<boolean>  // 👈 NUEVO
 }
 
 const InsumosContext = createContext<InsumosContextType | undefined>(undefined)
@@ -48,7 +50,7 @@ export function InsumosProvider({ children }: { children: ReactNode }) {
     try {
       const res = await fetch('/api/insumos', {
         cache: 'no-store',
-        credentials: 'include', // ✅ manda cookies de sesión al backend
+        credentials: 'include',
       })
 
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
@@ -78,7 +80,7 @@ export function InsumosProvider({ children }: { children: ReactNode }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ nombre, unidad }),
-        credentials: 'include', // ✅ agrega cookies de sesión
+        credentials: 'include',
       })
 
       if (!res.ok) throw new Error(`Error HTTP ${res.status}`)
@@ -125,7 +127,7 @@ export function InsumosProvider({ children }: { children: ReactNode }) {
           insumoId,
           loteId: loteId || null,
         }),
-        credentials: 'include', // ✅ agrega cookies de sesión
+        credentials: 'include',
       })
 
       const data = await res.json()
@@ -137,7 +139,6 @@ export function InsumosProvider({ children }: { children: ReactNode }) {
         return false
       }
 
-      // 🔹 Solución: recargar todo el estado desde el backend
       console.log('🔄 Recargando insumos después del movimiento...')
       await refreshInsumos()
 
@@ -146,6 +147,36 @@ export function InsumosProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error('❌ Error registrando movimiento:', error)
       setError('Error registrando movimiento de insumo')
+      return false
+    }
+  }
+
+  // 🔹 NUEVO: Actualizar orden de insumos
+  const updateInsumosOrder = async (orderedIds: string[]): Promise<boolean> => {
+    try {
+      console.log('📤 Actualizando orden de insumos...', orderedIds)
+
+      const res = await fetch('/api/insumos/reorder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderedIds }),
+        credentials: 'include',
+      })
+
+      if (!res.ok) {
+        const errorData = await res.json()
+        throw new Error(errorData.error || 'Error actualizando orden')
+      }
+
+      console.log('✅ Orden actualizado en backend')
+      
+      // Refrescar insumos para obtener el orden actualizado
+      await refreshInsumos()
+      
+      return true
+    } catch (error) {
+      console.error('❌ Error actualizando orden:', error)
+      setError('No se pudo actualizar el orden')
       return false
     }
   }
@@ -164,6 +195,7 @@ export function InsumosProvider({ children }: { children: ReactNode }) {
         refreshInsumos,
         addInsumo,
         registrarMovimiento,
+        updateInsumosOrder,  // 👈 NUEVO
       }}
     >
       {children}

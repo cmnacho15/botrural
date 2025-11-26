@@ -32,6 +32,10 @@ export async function GET() {
     ];
 
     // Crear los que falten en este campo
+    let ordenActual = await prisma.insumo.count({
+      where: { campoId: usuario.campoId }
+    });
+
     for (const insumo of insumosBase) {
       const existente = await prisma.insumo.findFirst({
         where: {
@@ -46,6 +50,7 @@ export async function GET() {
             nombre: insumo.nombre,
             unidad: insumo.unidad,
             stock: 0,
+            orden: ordenActual++, // 👈 NUEVO: asignar orden secuencial
             campoId: usuario.campoId,
           },
         });
@@ -60,7 +65,7 @@ export async function GET() {
           orderBy: { fecha: "desc" },
         },
       },
-      orderBy: { nombre: "asc" },
+      orderBy: { orden: "asc" }, // 👈 CAMBIADO: ordenar por 'orden' en vez de 'nombre'
     });
 
     console.log(`✅ Devueltos ${insumos.length} insumos del campo ${usuario.campoId}`);
@@ -115,12 +120,22 @@ export async function POST(request: Request) {
       );
     }
 
+    // 👈 NUEVO: Obtener el mayor orden actual para agregar al final
+    const maxOrden = await prisma.insumo.findFirst({
+      where: { campoId: usuario.campoId },
+      orderBy: { orden: 'desc' },
+      select: { orden: true }
+    });
+
+    const nuevoOrden = (maxOrden?.orden ?? -1) + 1;
+
     // Crear insumo nuevo
     const nuevoInsumo = await prisma.insumo.create({
       data: {
         nombre,
         unidad,
         stock: parseFloat(stock || 0),
+        orden: nuevoOrden, // 👈 NUEVO: asignar orden al final
         campoId: usuario.campoId,
       },
     });

@@ -211,12 +211,15 @@ model Insumo {
   id          String             @id @default(cuid())
   nombre      String
   unidad      String
+  orden       Int                @default(0)  // 👈 AGREGAR ESTA LÍNEA
   campoId     String
   createdAt   DateTime           @default(now())
   updatedAt   DateTime           @updatedAt
   stock       Float              @default(0)
   campo       Campo              @relation(fields: [campoId], references: [id], onDelete: Cascade)
   movimientos MovimientoInsumo[]
+
+  @@index([campoId, orden])  // 👈 AGREGAR ESTA LÍNEA
 }
 
 model MovimientoInsumo {

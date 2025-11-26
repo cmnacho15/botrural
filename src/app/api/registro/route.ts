@@ -50,35 +50,41 @@ export async function POST(request: Request) {
 
     switch (invitacion.role) {
       case "COLABORADOR":
-        // Requiere: name, email, password
-        if (!name || !email || !password) {
-          return NextResponse.json(
-            { error: "Colaborador requiere nombre, email y contraseña" },
-            { status: 400 }
-          )
-        }
+  // Requiere: name, email, password
+  if (!name || !email || !password) {
+    return NextResponse.json(
+      { error: "Colaborador requiere nombre, email y contraseña" },
+      { status: 400 }
+    )
+  }
 
-        // Verificar email único
-        const existingColaborador = await prisma.user.findUnique({
-          where: { email },
-        })
-        if (existingColaborador) {
-          return NextResponse.json(
-            { error: "El email ya está registrado" },
-            { status: 400 }
-          )
-        }
+  // Verificar email único
+  const existingColaborador = await prisma.user.findUnique({
+    where: { email },
+  })
+  if (existingColaborador) {
+    return NextResponse.json(
+      { error: "El email ya está registrado" },
+      { status: 400 }
+    )
+  }
 
-        hashedPassword = await bcrypt.hash(password, 10)
-        userData = {
-          name,
-          email,
-          password: hashedPassword,
-          role: "COLABORADOR",
-          accesoFinanzas: false, // Por defecto sin finanzas
-          campoId: invitacion.campoId, // ✅ Se une al campo del admin
-        }
-        break
+  // ✅ NUEVO: Buscar si hay un teléfono guardado temporalmente
+const pendingColaborador = await prisma.pendingRegistration.findFirst({
+  where: { token },
+})
+
+  hashedPassword = await bcrypt.hash(password, 10)
+  userData = {
+    name,
+    email,
+    password: hashedPassword,
+    role: "COLABORADOR",
+    accesoFinanzas: false,
+    campoId: invitacion.campoId,
+    telefono: pendingColaborador?.telefono || null, // ✅ NUEVO: Asociar teléfono si existe
+  }
+  break
 
       case "EMPLEADO":
         // Requiere: name, apellido, telefono (sin email ni password)
@@ -153,44 +159,109 @@ export async function POST(request: Request) {
     }
 
     // 🏗️ Crear usuario y marcar invitación como usada (transacción)
-    const result = await prisma.$transaction(async (tx) => {
-      // Crear usuario
-      const user = await tx.user.create({
-        data: userData,
-      })
+const result = await prisma.$transaction(async (tx) => {
+  // Crear usuario
+  const user = await tx.user.create({
+    data: userData,
+  })
 
-      // Marcar invitación como usada
-      await tx.invitation.update({
-        where: { token },
-        data: {
-          usedAt: new Date(),
-          usedById: user.id,
-        },
-      })
+  // Marcar invitación como usada
+  await tx.invitation.update({
+    where: { token },
+    data: {
+      usedAt: new Date(),
+      usedById: user.id,
+    },
+  })
 
-      return user
-    })
+  return user
+})
 
-    console.log(`✅ Usuario registrado: ${result.name} - Rol: ${result.role}`)
-    console.log(`✅ Asignado al campo: ${invitacion.campo.nombre}`)
+// ✅ NUEVO: Si es COLABORADOR con teléfono, eliminar registro temporal y enviar mensaje
+if (invitacion.role === "COLABORADOR" && result.telefono) {
+  // Eliminar el registro temporal
+  await prisma.pendingRegistration.delete({
+    where: { telefono: result.telefono },
+  }).catch(() => {})
+ 
 
-    return NextResponse.json(
-      {
-        message: "Registro exitoso",
-        user: {
-          id: result.id,
-          name: result.name,
-          email: result.email,
-          role: result.role,
-        },
-      },
-      { status: 201 }
-    )
+  // Enviar mensaje de bienvenida al bot
+  await enviarMensajeBienvenidaBot(
+    result.telefono,
+    result.name,
+    invitacion.campo.nombre
+  )
+}
+
+console.log(`✅ Usuario registrado: ${result.name} - Rol: ${result.role}`)
+console.log(`✅ Asignado al campo: ${invitacion.campo.nombre}`)
+
+return NextResponse.json(
+  {
+    message: "Registro exitoso",
+    user: {
+      id: result.id,
+      name: result.name,
+      email: result.email,
+      role: result.role,
+    },
+  },
+  { status: 201 }
+)
   } catch (error) {
     console.error("💥 Error en /api/registro:", error)
     return NextResponse.json(
       { error: "Error interno al registrar usuario" },
       { status: 500 }
     )
+  }
+}
+
+/**
+ * 📤 Enviar mensaje de bienvenida al bot
+ */
+async function enviarMensajeBienvenidaBot(
+  telefono: string,
+  nombre: string,
+  campoNombre: string
+) {
+  try {
+    const WHATSAPP_TOKEN = process.env.WHATSAPP_TOKEN
+    const WHATSAPP_PHONE_ID = process.env.WHATSAPP_PHONE_ID
+
+    if (!WHATSAPP_TOKEN || !WHATSAPP_PHONE_ID) {
+      console.log("⚠️ No hay credenciales de WhatsApp configuradas")
+      return
+    }
+
+    await fetch(
+      `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_ID}/messages`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${WHATSAPP_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          messaging_product: "whatsapp",
+          to: telefono,
+          type: "text",
+          text: {
+            body:
+              `✅ *¡Registro completado!*\n\n` +
+              `Hola ${nombre}, ya estás registrado en *${campoNombre}*.\n\n` +
+              `Ahora podés cargar datos desde WhatsApp. Por ejemplo:\n` +
+              `• nacieron 3 terneros en potrero norte\n` +
+              `• llovieron 25mm\n` +
+              `• gasté $5000 en alimento\n\n` +
+              `También podés enviar audios 🎤`,
+          },
+        }),
+      }
+    )
+
+    console.log("✅ Mensaje de bienvenida enviado al bot")
+  } catch (error) {
+    console.error("Error enviando mensaje de bienvenida:", error)
   }
 }
