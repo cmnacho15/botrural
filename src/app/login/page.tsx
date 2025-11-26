@@ -38,7 +38,9 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 via-blue-50 to-purple-50">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-green-50 via-blue-50 to-purple-50 px-4">
+
+      {/* CONTENEDOR LOGIN */}
       <div className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md">
         <h1 className="text-3xl font-bold text-center mb-6">🌾 Iniciar sesión</h1>
 
@@ -99,11 +101,14 @@ export default function LoginPage() {
           </a>
         </p>
       </div>
+
+      {/* FOOTER FIXED ABAJO */}
       <div className="mt-6 text-center text-sm text-gray-500">
-  <a href="/privacy" className="hover:text-gray-700">Política de Privacidad</a>
-  {" • "}
-  <a href="/terms" className="hover:text-gray-700">Términos de Uso</a>
-</div>
+        <a href="/privacy" className="hover:text-gray-700">Política de Privacidad</a>
+        {" • "}
+        <a href="/terms" className="hover:text-gray-700">Términos de Uso</a>
+      </div>
+
     </div>
   );
 }
