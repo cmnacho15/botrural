@@ -321,6 +321,7 @@ export default function MapaPage() {
                 </div>
               ) : (
                 <MapaPoligono
+  key={`vista-${vistaActual}-${lotes.length}-${Object.keys(ndviData).length}`}
   initialCenter={mapCenter}
   initialZoom={14}
   existingPolygons={poligonosParaMapa}
