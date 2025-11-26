@@ -194,29 +194,29 @@ function InsumosContent() {
           
           {/* Tabs */}
           <div className="flex gap-4 justify-center sm:justify-start">
-            <button
-              onClick={() => setActiveTab('consumo')}
-              disabled={isReordering}
-              className={`flex items-center gap-1 pb-2 border-b-2 transition-colors ${
-                activeTab === 'consumo'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-600 hover:text-gray-900'
-              } ${isReordering ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
-              📋 <span className="text-sm font-medium">Consumo</span>
-            </button>
-            <button
-              onClick={() => setActiveTab('inventario')}
-              disabled={isReordering}
-              className={`flex items-center gap-1 pb-2 border-b-2 transition-colors ${
-                activeTab === 'inventario'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-600 hover:text-gray-900'
-              } ${isReordering ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
-              🏪 <span className="text-sm font-medium">Inventario</span>
-            </button>
-          </div>
+  <button
+    onClick={() => setActiveTab('inventario')}
+    disabled={isReordering}
+    className={`flex items-center gap-1 pb-2 border-b-2 transition-colors ${
+      activeTab === 'inventario'
+        ? 'border-blue-500 text-blue-600'
+        : 'border-transparent text-gray-600 hover:text-gray-900'
+    } ${isReordering ? 'opacity-50 cursor-not-allowed' : ''}`}
+  >
+    🏪 <span className="text-sm font-medium">Inventario</span>
+  </button>
+  <button
+    onClick={() => setActiveTab('consumo')}
+    disabled={isReordering}
+    className={`flex items-center gap-1 pb-2 border-b-2 transition-colors ${
+      activeTab === 'consumo'
+        ? 'border-blue-500 text-blue-600'
+        : 'border-transparent text-gray-600 hover:text-gray-900'
+    } ${isReordering ? 'opacity-50 cursor-not-allowed' : ''}`}
+  >
+    📋 <span className="text-sm font-medium">Consumo</span>
+  </button>
+</div>
 
           {/* Botones de acción */}
           <div className="flex flex-wrap justify-center sm:justify-end gap-2">
