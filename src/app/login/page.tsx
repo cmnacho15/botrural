@@ -47,12 +47,13 @@ export default function LoginPage() {
         {/* 🔥 LOGO ARRIBA ESTILO FIELDDATA */}
         <div className="flex flex-col items-center mb-6">
           <Image 
-            src="/BoTRURAL.svg"
-            alt="BotRural"
-            width={60}
-            height={60}
-            className="mb-3"
-          />
+  src="/BoTRURAL.svg"
+  alt="BotRural"
+  width={180}
+  height={180}
+  className="mx-auto mb-4 w-32 sm:w-40 md:w-48"
+  priority
+/>
           <h1 className="text-3xl font-bold text-gray-900">Iniciar sesión</h1>
           <p className="text-gray-500 text-sm mt-1">
             Ingresa tus credenciales para continuar
