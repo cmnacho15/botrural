@@ -27,7 +27,7 @@ function obtenerIcono(tipo: string): string {
     RECATEGORIZACION: '🏷️',
     TRATAMIENTO: '💉',
     MOVIMIENTO: '🔄',
-    USO_INSUMO: '🔻',
+    USO_INSUMO: '📤',
     INGRESO_INSUMO: '📦',
     SIEMBRA: '🌱',
     PULVERIZACION: '💦',
@@ -121,7 +121,7 @@ function ModalFiltroTipoDato({
     {
       category: 'Insumos',
       items: [
-        { value: 'USO_INSUMO', label: 'Uso de Insumos', icon: '🔻' },
+        { value: 'USO_INSUMO', label: 'Uso de Insumos', icon: '📤' },
         { value: 'INGRESO_INSUMO', label: 'Ingreso de Insumos', icon: '📦' },
       ],
     },
