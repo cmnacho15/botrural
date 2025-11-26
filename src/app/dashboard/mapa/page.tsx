@@ -2,15 +2,16 @@
 
 import { useState, useEffect } from 'react'
 
-// Simulación del componente MapaPoligono
-const MapaPoligono = ({ initialCenter, initialZoom, existingPolygons, readOnly }) => (
-  <div className="w-full h-full bg-gradient-to-br from-green-100 to-green-200 flex items-center justify-center">
-    <div className="text-center p-4">
-      <p className="text-gray-700 text-sm mb-2">🗺️ Mapa Interactivo</p>
-      <p className="text-xs text-gray-600">{existingPolygons.length} potreros</p>
+import dynamic from 'next/dynamic'
+
+const MapaPoligono = dynamic(() => import('@/app/components/MapaPoligono'), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-full flex items-center justify-center bg-gray-100">
+      <p className="text-gray-600">Cargando mapa...</p>
     </div>
-  </div>
-)
+  ),
+})
 
 interface Cultivo {
   id: string
