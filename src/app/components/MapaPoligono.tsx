@@ -618,41 +618,41 @@ export default function MapaPoligono({
       {/* 🖥️ BOTÓN DE PANTALLA COMPLETA - Arriba a la izquierda */}
       <button
         onClick={toggleFullscreen}
-        className="absolute top-3 left-3 z-[1000] bg-white dark:bg-gray-800 rounded-lg shadow-lg hover:shadow-xl transition-all w-[34px] h-[34px] sm:w-[36px] sm:h-[36px] flex items-center justify-center border-2 border-gray-300 dark:border-gray-600"
+        className="absolute top-3 left-3 z-[1000] bg-white rounded-lg shadow-lg hover:shadow-xl transition-all w-[34px] h-[34px] sm:w-[36px] sm:h-[36px] flex items-center justify-center border-2 border-gray-300"
         title={isFullscreen ? "Salir de pantalla completa" : "Pantalla completa"}
       >
         {isFullscreen ? (
-  // SVG para SALIR de pantalla completa
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-gray-700 dark:text-gray-200">
-    <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3" />
-  </svg>
-) : (
-  // SVG para ENTRAR en pantalla completa
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-gray-700 dark:text-gray-200">
-    <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
-  </svg>
-)}
+          // Ícono para SALIR de pantalla completa
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3" />
+          </svg>
+        ) : (
+          // Ícono para ENTRAR en pantalla completa
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+          </svg>
+        )}
       </button>
 
       {/* 🎯 BOTÓN DE UBICACIÓN - Debajo del control de capas */}
       <button
         onClick={ubicarUsuario}
         disabled={ubicandoUsuario}
-        className="absolute top-[90px] right-3 z-[1000] bg-white dark:bg-gray-800 rounded-lg shadow-lg hover:shadow-xl transition-all w-[34px] h-[34px] sm:w-[36px] sm:h-[36px] flex items-center justify-center disabled:opacity-50 border-2 border-gray-300 dark:border-gray-600"
+        className="absolute top-[90px] right-3 z-[1000] bg-white rounded-lg shadow-lg hover:shadow-xl transition-all w-[34px] h-[34px] sm:w-[36px] sm:h-[36px] flex items-center justify-center disabled:opacity-50 border-2 border-gray-300"
         title="Mi ubicación"
       >
         {ubicandoUsuario ? (
-  <div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" />
-) : (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-gray-700 dark:text-gray-200">
-    <circle cx="12" cy="12" r="2"/>
-    <circle cx="12" cy="12" r="9"/>
-    <line x1="12" y1="2" x2="12" y2="5"/>
-    <line x1="12" y1="19" x2="12" y2="22"/>
-    <line x1="2" y1="12" x2="5" y2="12"/>
-    <line x1="19" y1="12" x2="22" y2="12"/>
-  </svg>
-)}
+          <div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" />
+        ) : (
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <circle cx="12" cy="12" r="2"/>
+            <circle cx="12" cy="12" r="9"/>
+            <line x1="12" y1="2" x2="12" y2="5"/>
+            <line x1="12" y1="19" x2="12" y2="22"/>
+            <line x1="2" y1="12" x2="5" y2="12"/>
+            <line x1="19" y1="12" x2="22" y2="12"/>
+          </svg>
+        )}
       </button>
 
       {!readOnly && (
