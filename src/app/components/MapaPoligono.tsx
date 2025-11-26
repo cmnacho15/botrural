@@ -702,7 +702,7 @@ export default function MapaPoligono({
         </div>
       )}
 
-      <div id="map" className="flex-1 w-full h-full" />
+      <div id="map" className="flex-1 w-full h-full relative" style={{ zIndex: 0 }} />
 
       {!readOnly && (
         <div className="absolute bottom-4 left-4 right-4 z-[1000] flex flex-col sm:flex-row gap-3">

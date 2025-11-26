@@ -25,14 +25,23 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* Fix z-index de Leaflet */
+/* Fix z-index de Leaflet - Reducido para que los modales queden encima */
+.leaflet-container {
+  z-index: 0 !important;
+}
+
 .leaflet-pane {
-  z-index: 400;
+  z-index: 400 !important;
 }
 
 .leaflet-top,
 .leaflet-bottom {
-  z-index: 1000;
+  z-index: 500 !important;
+}
+
+/* Controles de Leaflet */
+.leaflet-control-container {
+  z-index: 500 !important;
 }
 
 /* Animación para el menú móvil (bottom sheet) */
@@ -50,4 +59,3 @@ body {
 .animate-slide-up {
   animation: slide-up 0.3s ease-out;
 }
-
