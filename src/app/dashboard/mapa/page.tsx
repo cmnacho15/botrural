@@ -157,10 +157,20 @@ export default function MapaPage() {
 
   // Cargar NDVI cuando se pasa a vista ndvi
   useEffect(() => {
-  if (vistaActual === 'ndvi') {
-    obtenerNDVIPotreros()
+  if (vistaActual !== 'ndvi') return; // Solo ejecutar en NDVI
+
+  const faltanDatos = lotes.some(
+    (l) =>
+      !ndviData[l.id] ||                        // No existe ese lote
+      !ndviData[l.id].matriz ||                 // No tiene matriz
+      ndviData[l.id].matriz.length === 0 ||     // Matriz vacía
+      ndviData[l.id].validPixels === 0          // Sin pixeles válidos
+  );
+
+  if (faltanDatos && !loadingNDVI) {
+    obtenerNDVIPotreros();
   }
-}, [vistaActual])
+}, [vistaActual, lotes, ndviData]);
 
   // 🎨 Color según NDVI
   function getColorNDVI(ndvi: number): string {
