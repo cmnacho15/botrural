@@ -638,7 +638,7 @@ export default function MapaPoligono({
       <button
         onClick={ubicarUsuario}
         disabled={ubicandoUsuario}
-        className="absolute top-[90px] right-3 z-[1000] bg-white rounded-lg shadow-lg hover:shadow-xl transition-all w-[34px] h-[34px] sm:w-[36px] sm:h-[36px] flex items-center justify-center disabled:opacity-50 border-2 border-gray-300"
+        className="absolute top-[60px] right-3 z-[1000] bg-white rounded-lg shadow-lg hover:shadow-xl transition-all w-[34px] h-[34px] sm:w-[36px] sm:h-[36px] flex items-center justify-center disabled:opacity-50 border-2 border-gray-300"
         title="Mi ubicación"
       >
         {ubicandoUsuario ? (
