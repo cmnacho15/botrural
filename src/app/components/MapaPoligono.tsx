@@ -215,10 +215,41 @@ export default function MapaPoligono({
   const [areaHectareas, setAreaHectareas] = useState<number | null>(null)
   const [isReady, setIsReady] = useState(false)
   const [ubicandoUsuario, setUbicandoUsuario] = useState(false)
+  const [isFullscreen, setIsFullscreen] = useState(false)
+
+  // 🖥️ Función para entrar/salir de pantalla completa
+  const toggleFullscreen = () => {
+    const mapContainer = document.getElementById('map-container')
+    
+    if (!document.fullscreenElement) {
+      // Entrar en pantalla completa
+      mapContainer?.requestFullscreen()
+        .then(() => setIsFullscreen(true))
+        .catch((err) => console.error('Error entrando en pantalla completa:', err))
+    } else {
+      // Salir de pantalla completa
+      document.exitFullscreen()
+        .then(() => setIsFullscreen(false))
+        .catch((err) => console.error('Error saliendo de pantalla completa:', err))
+    }
+  }
 
   useEffect(() => {
     if (initialCenter) setIsReady(true)
   }, [initialCenter])
+
+  // 🖥️ Detectar cuando el usuario sale de pantalla completa (ESC)
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement)
+    }
+    
+    document.addEventListener('fullscreenchange', handleFullscreenChange)
+    
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange)
+    }
+  }, [])
 
   /** Crear mapa */
   useEffect(() => {
@@ -463,105 +494,105 @@ export default function MapaPoligono({
   }
   
   const ubicarUsuario = async () => {
-  if (!mapRef.current) return
-  
-  setUbicandoUsuario(true)
+    if (!mapRef.current) return
+    
+    setUbicandoUsuario(true)
 
-  if (!navigator.geolocation) {
-    alert('Tu navegador no soporta geolocalización')
-    setUbicandoUsuario(false)
-    return
-  }
-
-  // 🔐 VERIFICAR PERMISOS PRIMERO (si el navegador lo soporta)
-  try {
-    if ('permissions' in navigator) {
-      const permission = await (navigator as any).permissions.query({ name: 'geolocation' })
-      
-      if (permission.state === 'denied') {
-        alert('❌ Permiso de ubicación denegado.\n\n📍 Para habilitarlo:\n1. Hacé clic en el ícono 🔒 o ⓘ en la barra de direcciones\n2. Buscá "Ubicación" y cambialo a "Permitir"\n3. Recargá la página')
-        setUbicandoUsuario(false)
-        return
-      }
-    }
-  } catch (e) {
-    // Si no soporta la API de permisos, continuar igual
-    console.log('API de permisos no disponible, continuando...')
-  }
-
-  // 📍 OBTENER UBICACIÓN
-  navigator.geolocation.getCurrentPosition(
-    (position) => {
-      const { latitude, longitude, accuracy } = position.coords
-
-      try {
-        // 🧹 LIMPIAR MARCADORES ANTERIORES
-        locationLayersRef.current.forEach(layer => {
-          mapRef.current.removeLayer(layer)
-        })
-        locationLayersRef.current = []
-
-        // Centrar mapa
-        mapRef.current.setView([latitude, longitude], 17)
-
-        // Círculo de precisión
-        const precisionCircle = (L as any).circle([latitude, longitude], {
-          radius: accuracy,
-          color: '#4285f4',
-          fillColor: '#4285f4',
-          fillOpacity: 0.1,
-          weight: 1
-        })
-        precisionCircle.addTo(mapRef.current)
-        locationLayersRef.current.push(precisionCircle)
-
-        // Punto azul
-        const marker = (L as any).circleMarker([latitude, longitude], {
-          radius: 10,
-          fillColor: '#4285f4',
-          color: 'white',
-          weight: 3,
-          opacity: 1,
-          fillOpacity: 1
-        })
-        marker.addTo(mapRef.current)
-        locationLayersRef.current.push(marker)
-
-        setUbicandoUsuario(false)
-      } catch (error) {
-        console.error('Error mostrando ubicación:', error)
-        alert('Error mostrando la ubicación en el mapa')
-        setUbicandoUsuario(false)
-      }
-    },
-    (error) => {
-      console.error('Error de geolocalización:', error)
-      
-      let mensaje = ''
-      switch (error.code) {
-        case error.PERMISSION_DENIED:
-          mensaje = '❌ Permiso de ubicación denegado.\n\n📍 Para habilitarlo:\n1. Hacé clic en el ícono 🔒 en la barra de direcciones\n2. Buscá "Ubicación" y cambialo a "Permitir"\n3. Volvé a intentar'
-          break
-        case error.POSITION_UNAVAILABLE:
-          mensaje = '📍 No se pudo determinar tu ubicación.\nAsegurate de tener GPS/WiFi activado.'
-          break
-        case error.TIMEOUT:
-          mensaje = '⏱️ Se agotó el tiempo esperando la ubicación.\nIntentá de nuevo.'
-          break
-        default:
-          mensaje = '❌ Error desconocido obteniendo ubicación.'
-      }
-      
-      alert(mensaje)
+    if (!navigator.geolocation) {
+      alert('Tu navegador no soporta geolocalización')
       setUbicandoUsuario(false)
-    },
-    { 
-      enableHighAccuracy: true, 
-      timeout: 15000,  // ✅ Aumentado a 15 segundos
-      maximumAge: 0 
+      return
     }
-  )
-}
+
+    // 🔐 VERIFICAR PERMISOS PRIMERO (si el navegador lo soporta)
+    try {
+      if ('permissions' in navigator) {
+        const permission = await (navigator as any).permissions.query({ name: 'geolocation' })
+        
+        if (permission.state === 'denied') {
+          alert('❌ Permiso de ubicación denegado.\n\n📍 Para habilitarlo:\n1. Hacé clic en el ícono 🔒 o ⓘ en la barra de direcciones\n2. Buscá "Ubicación" y cambialo a "Permitir"\n3. Recargá la página')
+          setUbicandoUsuario(false)
+          return
+        }
+      }
+    } catch (e) {
+      // Si no soporta la API de permisos, continuar igual
+      console.log('API de permisos no disponible, continuando...')
+    }
+
+    // 📍 OBTENER UBICACIÓN
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude, accuracy } = position.coords
+
+        try {
+          // 🧹 LIMPIAR MARCADORES ANTERIORES
+          locationLayersRef.current.forEach(layer => {
+            mapRef.current.removeLayer(layer)
+          })
+          locationLayersRef.current = []
+
+          // Centrar mapa
+          mapRef.current.setView([latitude, longitude], 17)
+
+          // Círculo de precisión
+          const precisionCircle = (L as any).circle([latitude, longitude], {
+            radius: accuracy,
+            color: '#4285f4',
+            fillColor: '#4285f4',
+            fillOpacity: 0.1,
+            weight: 1
+          })
+          precisionCircle.addTo(mapRef.current)
+          locationLayersRef.current.push(precisionCircle)
+
+          // Punto azul
+          const marker = (L as any).circleMarker([latitude, longitude], {
+            radius: 10,
+            fillColor: '#4285f4',
+            color: 'white',
+            weight: 3,
+            opacity: 1,
+            fillOpacity: 1
+          })
+          marker.addTo(mapRef.current)
+          locationLayersRef.current.push(marker)
+
+          setUbicandoUsuario(false)
+        } catch (error) {
+          console.error('Error mostrando ubicación:', error)
+          alert('Error mostrando la ubicación en el mapa')
+          setUbicandoUsuario(false)
+        }
+      },
+      (error) => {
+        console.error('Error de geolocalización:', error)
+        
+        let mensaje = ''
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            mensaje = '❌ Permiso de ubicación denegado.\n\n📍 Para habilitarlo:\n1. Hacé clic en el ícono 🔒 en la barra de direcciones\n2. Buscá "Ubicación" y cambialo a "Permitir"\n3. Volvé a intentar'
+            break
+          case error.POSITION_UNAVAILABLE:
+            mensaje = '📍 No se pudo determinar tu ubicación.\nAsegurate de tener GPS/WiFi activado.'
+            break
+          case error.TIMEOUT:
+            mensaje = '⏱️ Se agotó el tiempo esperando la ubicación.\nIntentá de nuevo.'
+            break
+          default:
+            mensaje = '❌ Error desconocido obteniendo ubicación.'
+        }
+        
+        alert(mensaje)
+        setUbicandoUsuario(false)
+      },
+      { 
+        enableHighAccuracy: true, 
+        timeout: 15000,
+        maximumAge: 0 
+      }
+    )
+  }
 
   const confirmarPoligono = () => {
     if (!drawnItemsRef.current) return
@@ -578,27 +609,48 @@ export default function MapaPoligono({
   }
 
   return (
-    <div className="relative w-full h-full flex flex-col">
+    <div id="map-container" className="relative w-full h-full flex flex-col">
+      
+      {/* 🖥️ BOTÓN DE PANTALLA COMPLETA - Arriba a la izquierda */}
+      <button
+        onClick={toggleFullscreen}
+        className="absolute top-3 left-3 z-[1000] bg-white rounded-lg shadow-lg hover:shadow-xl transition-all w-[34px] h-[34px] flex items-center justify-center border-2 border-gray-300"
+        title={isFullscreen ? "Salir de pantalla completa" : "Pantalla completa"}
+      >
+        {isFullscreen ? (
+          // Ícono para SALIR de pantalla completa
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3" />
+          </svg>
+        ) : (
+          // Ícono para ENTRAR en pantalla completa
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+          </svg>
+        )}
+      </button>
+
       {/* 🎯 BOTÓN DE UBICACIÓN - Debajo del control de capas */}
-<button
-  onClick={ubicarUsuario}
-  disabled={ubicandoUsuario}
-  className="absolute top-[90px] right-3 z-[1000] bg-white rounded-lg shadow-lg hover:shadow-xl transition-all w-[34px] h-[34px] flex items-center justify-center disabled:opacity-50 border-2 border-gray-300"
-  title="Mi ubicación"
->
-  {ubicandoUsuario ? (
-    <div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" />
-  ) : (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-      <circle cx="12" cy="12" r="2"/>
-      <circle cx="12" cy="12" r="9"/>
-      <line x1="12" y1="2" x2="12" y2="5"/>
-      <line x1="12" y1="19" x2="12" y2="22"/>
-      <line x1="2" y1="12" x2="5" y2="12"/>
-      <line x1="19" y1="12" x2="22" y2="12"/>
-    </svg>
-  )}
-</button>
+      <button
+        onClick={ubicarUsuario}
+        disabled={ubicandoUsuario}
+        className="absolute top-[90px] right-3 z-[1000] bg-white rounded-lg shadow-lg hover:shadow-xl transition-all w-[34px] h-[34px] flex items-center justify-center disabled:opacity-50 border-2 border-gray-300"
+        title="Mi ubicación"
+      >
+        {ubicandoUsuario ? (
+          <div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" />
+        ) : (
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <circle cx="12" cy="12" r="2"/>
+            <circle cx="12" cy="12" r="9"/>
+            <line x1="12" y1="2" x2="12" y2="5"/>
+            <line x1="12" y1="19" x2="12" y2="22"/>
+            <line x1="2" y1="12" x2="5" y2="12"/>
+            <line x1="19" y1="12" x2="22" y2="12"/>
+          </svg>
+        )}
+      </button>
+
       {!readOnly && (
         <div className="absolute top-4 left-4 right-4 z-[1000] md:left-16 md:w-96">
           <div className="bg-white rounded-lg shadow-lg p-3">
