@@ -32,6 +32,7 @@ interface Animal {
   id: string
   categoria: string
   cantidad: string
+  peso?: string
 }
 
 
@@ -152,7 +153,8 @@ useEffect(() => {
               lote.animalesLote.map((a: any) => ({
                 id: a.id,
                 categoria: a.categoria,
-                cantidad: a.cantidad.toString()
+                cantidad: a.cantidad.toString(),
+                peso: a.peso?.toString() || ''
               }))
             );
           }
@@ -199,7 +201,7 @@ useEffect(() => {
   const agregarAnimal = () => {
     setAnimales([
       ...animales,
-      { id: Date.now().toString(), categoria: '', cantidad: '' }
+      { id: Date.now().toString(), categoria: '', cantidad: '', peso: '' }
     ])
   }
 
@@ -387,58 +389,76 @@ useEffect(() => {
           </div>
 
           {/* ANIMALES */}
-          <div className="bg-blue-50 rounded-lg p-4">
-            <h3 className="font-medium text-gray-900 mb-3">🐄 Animales</h3>
-            {animales.length === 0 && (
-              <p className="text-sm text-gray-600 italic mb-3">No hay animales aún</p>
-            )}
-            <div className="space-y-3">
-              {animales.map(a => (
-                <div key={a.id} className="flex gap-2 bg-white p-3 rounded-lg items-center">
-                  <input
-                    type="number"
-                    value={a.cantidad}
-                    onChange={e => actualizarAnimal(a.id, 'cantidad', e.target.value)}
-                    placeholder="Cant."
-                    className="w-24 border border-gray-300 rounded px-3 py-2"
-                  />
-                  <select
-  value={a.categoria}
-  onChange={e => actualizarAnimal(a.id, 'categoria', e.target.value)}
-  className="flex-1 border border-gray-300 rounded px-3 py-2"
->
-  <option value="">Seleccionar categoría</option>
-  
-  {/* Agrupar por tipo */}
-  {['BOVINO', 'OVINO', 'EQUINO', 'OTRO'].map(tipo => {
-    const categoriasTipo = categoriasDisponibles.filter(c => c.tipo === tipo)
-    if (categoriasTipo.length === 0) return null
-    
-    const labels = {
-      BOVINO: '🐄 BOVINOS',
-      OVINO: '🐑 OVINOS',
-      EQUINO: '🐴 EQUINOS',
-      OTRO: '📦 OTROS'
-    }
-    
-    return (
-      <optgroup key={tipo} label={labels[tipo as keyof typeof labels]}>
-        {categoriasTipo.map((cat) => (
-          <option key={cat.nombre} value={cat.nombre}>{cat.nombre}</option>
-        ))}
-      </optgroup>
-    )
-  })}
-</select>
+<div className="bg-blue-50 rounded-lg p-4">
+  <h3 className="font-medium text-gray-900 mb-3">🐄 Animales</h3>
+  {animales.length === 0 && (
+    <p className="text-sm text-gray-600 italic mb-3">No hay animales aún</p>
+  )}
+  <div className="space-y-3">
+    {animales.map(a => (
+      <div key={a.id} className="grid grid-cols-[100px_1fr_120px_40px] gap-2 bg-white p-3 rounded-lg items-center">
+        {/* Cantidad */}
+        <input
+          type="number"
+          value={a.cantidad}
+          onChange={e => actualizarAnimal(a.id, 'cantidad', e.target.value)}
+          placeholder="Cant."
+          className="border border-gray-300 rounded px-3 py-2"
+        />
+        
+        {/* Tipo de animal */}
+        <select
+          value={a.categoria}
+          onChange={e => actualizarAnimal(a.id, 'categoria', e.target.value)}
+          className="border border-gray-300 rounded px-3 py-2"
+        >
+          <option value="">Seleccionar categoría</option>
+          
+          {['BOVINO', 'OVINO', 'EQUINO', 'OTRO'].map(tipo => {
+            const categoriasTipo = categoriasDisponibles.filter(c => c.tipo === tipo)
+            if (categoriasTipo.length === 0) return null
+            
+            const labels = {
+              BOVINO: '🐄 BOVINOS',
+              OVINO: '🐑 OVINOS',
+              EQUINO: '🐴 EQUINOS',
+              OTRO: '📦 OTROS'
+            }
+            
+            return (
+              <optgroup key={tipo} label={labels[tipo as keyof typeof labels]}>
+                {categoriasTipo.map((cat) => (
+                  <option key={cat.nombre} value={cat.nombre}>{cat.nombre}</option>
+                ))}
+              </optgroup>
+            )
+          })}
+        </select>
 
-                  <button onClick={() => eliminarAnimal(a.id)} type="button" className="text-red-600">🗑️</button>
-                </div>
-              ))}
-            </div>
-            <button type="button" onClick={agregarAnimal} className="text-blue-600 text-sm mt-2">
-              + Agregar animales
-            </button>
-          </div>
+        {/* Peso (Opcional) */}
+        <input
+          type="number"
+          value={a.peso || ''}
+          onChange={e => actualizarAnimal(a.id, 'peso', e.target.value)}
+          placeholder="Peso (kg)"
+          className="border border-gray-300 rounded px-3 py-2 text-sm"
+        />
+
+        {/* Botón eliminar */}
+        <button 
+          onClick={() => eliminarAnimal(a.id)} 
+          type="button" 
+          className="text-red-600 hover:bg-red-50 p-2 rounded transition"
+        >
+          🗑️
+        </button>
+      </div>
+    ))}
+  </div>
+  <button type="button" onClick={agregarAnimal} className="text-blue-600 text-sm mt-2 hover:underline">
+    + Agregar animales
+  </button>
+</div>
 
           {/* MAPA */}
           {poligono && (
