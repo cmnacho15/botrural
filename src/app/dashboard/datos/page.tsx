@@ -921,14 +921,21 @@ useEffect(() => {
 function TarjetaDato({ dato }: { dato: any }) {
   const [showConfirm, setShowConfirm] = useState(false)
   const [deleting, setDeleting] = useState(false)
-  const { refetch } = useDatos()  // 👈 AGREGAR ESTA LÍNEA
+  const { refetch } = useDatos()
   
   const formatFecha = (fecha: Date) => {
     const date = new Date(fecha)
-    const day = String(date.getUTCDate()).padStart(2, '0')
-    const month = String(date.getUTCMonth() + 1).padStart(2, '0')
-    const year = date.getUTCFullYear()
-    return `${day}/${month}/${year}`
+    const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+    const dia = date.getUTCDate()
+    const mes = meses[date.getUTCMonth()]
+    const anio = date.getUTCFullYear()
+    
+    return {
+      completo: `${dia} ${mes} ${anio}`,
+      dia: dia.toString(),
+      mes: mes,
+      anio: anio.toString()
+    }
   }
 
   const colorClasses: Record<string, string> = {
@@ -961,7 +968,7 @@ function TarjetaDato({ dato }: { dato: any }) {
 
       const result = await response.json()
       alert(result.message || 'Eliminado correctamente')
-      refetch()  // 👈 CAMBIAR window.location.reload() por refetch()
+      refetch()
     } catch (error) {
       console.error('Error:', error)
       alert((error as Error).message || 'Error al eliminar el dato')
@@ -981,14 +988,14 @@ function TarjetaDato({ dato }: { dato: any }) {
       detalles.push(
         <div key="monto" className="flex items-center gap-2">
           <span
-            className={`${esIngreso ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'} px-3 py-1 rounded-full text-sm font-semibold`}
+            className={`${esIngreso ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200'} px-3 py-1.5 rounded-md border text-sm font-semibold`}
           >
             💵 {esIngreso ? '+' : '-'}${Math.abs(Number(dato.monto)).toLocaleString('es-UY')}
           </span>
-          <span className={`px-2 py-1 rounded text-xs font-medium ${
+          <span className={`px-2 py-1 rounded-md text-xs font-medium border ${
             moneda === 'USD' 
-              ? 'bg-blue-100 text-blue-700' 
-              : 'bg-gray-100 text-gray-700'
+              ? 'bg-blue-50 text-blue-700 border-blue-200' 
+              : 'bg-gray-50 text-gray-700 border-gray-200'
           }`}>
             {moneda}
           </span>
@@ -1000,7 +1007,7 @@ function TarjetaDato({ dato }: { dato: any }) {
       const texto = dato.tipo === 'VENTA' ? `${dato.cantidad} vendidos` : dato.tipo === 'COMPRA' ? `${dato.cantidad} comprados` : `${dato.cantidad} ${dato.unidad || ''}`
 
       detalles.push(
-        <span key="cantidad" className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm">
+        <span key="cantidad" className="bg-blue-50 text-blue-700 px-3 py-1.5 rounded-md border border-blue-200 text-sm font-medium">
           📊 {texto}
         </span>
       )
@@ -1008,7 +1015,7 @@ function TarjetaDato({ dato }: { dato: any }) {
 
     if (dato.proveedor) {
       detalles.push(
-        <span key="proveedor" className="bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-sm">
+        <span key="proveedor" className="bg-orange-50 text-orange-700 px-3 py-1.5 rounded-md border border-orange-200 text-sm font-medium">
           🏪 {dato.proveedor}
         </span>
       )
@@ -1016,7 +1023,7 @@ function TarjetaDato({ dato }: { dato: any }) {
 
     if (dato.comprador) {
       detalles.push(
-        <span key="comprador" className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm">
+        <span key="comprador" className="bg-green-50 text-green-700 px-3 py-1.5 rounded-md border border-green-200 text-sm font-medium">
           🤝 {dato.comprador}
         </span>
       )
@@ -1025,7 +1032,7 @@ function TarjetaDato({ dato }: { dato: any }) {
     if (dato.metodoPago) {
       const esIngreso = dato.tipo === 'INGRESO' || dato.tipo === 'VENTA'
       detalles.push(
-        <span key="metodo" className={`${esIngreso ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'} px-3 py-1 rounded-full text-sm`}>
+        <span key="metodo" className={`${esIngreso ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200'} px-3 py-1.5 rounded-md border text-sm font-medium`}>
           💳 {dato.metodoPago}
           {dato.diasPlazo && dato.diasPlazo > 0 && ` (${dato.diasPlazo} días)`}
         </span>
@@ -1034,7 +1041,7 @@ function TarjetaDato({ dato }: { dato: any }) {
 
     if (dato.metodoPago && dato.pagado !== undefined) {
       detalles.push(
-        <span key="pagado" className={`${dato.pagado ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'} px-3 py-1 rounded-full text-sm`}>
+        <span key="pagado" className={`${dato.pagado ? 'bg-green-50 text-green-700 border-green-200' : 'bg-yellow-50 text-yellow-700 border-yellow-200'} px-3 py-1.5 rounded-md border text-sm font-medium`}>
           {dato.pagado ? '✅ Pagado' : '⏳ Pendiente'}
         </span>
       )
@@ -1042,7 +1049,7 @@ function TarjetaDato({ dato }: { dato: any }) {
 
     if (dato.insumo) {
       detalles.push(
-        <span key="insumo" className="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm">
+        <span key="insumo" className="bg-purple-50 text-purple-700 px-3 py-1.5 rounded-md border border-purple-200 text-sm font-medium">
           📦 {dato.insumo}
         </span>
       )
@@ -1050,7 +1057,7 @@ function TarjetaDato({ dato }: { dato: any }) {
 
     if (dato.iva && dato.iva !== 0) {
       detalles.push(
-        <span key="iva" className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm">
+        <span key="iva" className="bg-gray-50 text-gray-700 px-3 py-1.5 rounded-md border border-gray-200 text-sm font-medium">
           💹 IVA: ${Number(dato.iva).toLocaleString('es-UY')}
         </span>
       )
@@ -1091,45 +1098,56 @@ function TarjetaDato({ dato }: { dato: any }) {
     return nombres[tipo] || tipo.replace(/_/g, ' ')
   }
 
+  const fecha = formatFecha(dato.fecha)
+
   return (
     <>
-      <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 border border-gray-100">
-        <div className="flex items-start gap-4">
-          <div className={`${colorClasses[obtenerColor(dato.tipo)] || 'bg-gray-500'} w-12 h-12 rounded-full flex items-center justify-center text-2xl flex-shrink-0`}>
-            {obtenerIcono(dato.tipo)}
+      <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-200 border border-gray-200 overflow-hidden">
+        <div className="flex items-start">
+          {/* Fecha Lateral */}
+          <div className="bg-gray-50 border-r border-gray-200 px-4 py-4 flex flex-col items-center justify-center min-w-[80px]">
+            <div className="text-2xl font-bold text-gray-900">{fecha.dia}</div>
+            <div className="text-xs font-medium text-gray-600 uppercase">{fecha.mes}</div>
+            <div className="text-xs text-gray-500">{fecha.anio}</div>
           </div>
 
-          <div className="flex-1 min-w-0">
-            <div className="flex justify-between items-start mb-2">
-              <div>
-                <h3 className="font-semibold text-gray-900 text-base">{obtenerNombreTipo(dato.tipo)}</h3>
-                <span className="text-xs text-gray-500">{formatFecha(dato.fecha)}</span>
+          {/* Contenido Principal */}
+          <div className="flex items-start gap-4 flex-1 p-4">
+            <div className={`${colorClasses[obtenerColor(dato.tipo)] || 'bg-gray-500'} w-12 h-12 rounded-lg flex items-center justify-center text-2xl flex-shrink-0 shadow-sm`}>
+              {obtenerIcono(dato.tipo)}
+            </div>
+
+            <div className="flex-1 min-w-0">
+              <div className="flex justify-between items-start mb-2">
+                <div>
+                  <h3 className="font-semibold text-gray-900 text-lg">{obtenerNombreTipo(dato.tipo)}</h3>
+                </div>
               </div>
+
+              {dato.descripcion && <p className="text-gray-700 text-sm mb-3 leading-relaxed">{dato.descripcion}</p>}
+
+              <div className="flex flex-wrap gap-2 mb-3">{renderDetalles()}</div>
+
+              <div className="flex flex-wrap gap-2 text-xs">
+                {dato.usuario && <span className="bg-gray-50 text-gray-700 px-3 py-1.5 rounded-md border border-gray-200 font-medium">👤 {dato.usuario}</span>}
+                {dato.lote && <span className="bg-blue-50 text-blue-700 px-3 py-1.5 rounded-md border border-blue-200 font-medium">📍 {dato.lote}</span>}
+                <span className="bg-purple-50 text-purple-700 px-3 py-1.5 rounded-md border border-purple-200 font-medium capitalize">{dato.categoria}</span>
+              </div>
+
+              {dato.notas && <p className="text-sm text-gray-600 mt-3 pl-4 border-l-2 border-gray-300 italic">{dato.notas}</p>}
             </div>
 
-            {dato.descripcion && <p className="text-gray-700 text-sm mb-3">{dato.descripcion}</p>}
-
-            <div className="flex flex-wrap gap-2 mb-2">{renderDetalles()}</div>
-
-            <div className="flex flex-wrap gap-2 text-xs text-gray-500">
-              {dato.usuario && <span className="bg-gray-100 px-2 py-1 rounded">👤 {dato.usuario}</span>}
-              {dato.lote && <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded">📍 {dato.lote}</span>}
-              <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded capitalize">{dato.categoria}</span>
+            <div className="flex items-start pr-2 pt-2">
+              <button
+                onClick={() => setShowConfirm(true)}
+                className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200"
+                title="Eliminar dato"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
             </div>
-
-            {dato.notas && <p className="text-xs text-gray-500 mt-2 italic">📝 {dato.notas}</p>}
-          </div>
-
-          <div className="flex items-start">
-            <button
-              onClick={() => setShowConfirm(true)}
-              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-              title="Eliminar dato"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg>
-            </button>
           </div>
         </div>
       </div>
@@ -1150,7 +1168,7 @@ function TarjetaDato({ dato }: { dato: any }) {
               Se eliminará: <strong>{obtenerNombreTipo(dato.tipo)}</strong>
             </p>
             <p className="text-sm text-gray-500 mb-4">
-              {dato.descripcion || formatFecha(dato.fecha)}
+              {dato.descripcion || fecha.completo}
             </p>
 
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-6">
