@@ -616,11 +616,11 @@ export default function MapaPoligono({
     <div id="map-container" className="relative w-full h-full flex flex-col">
       
       {/* 🖥️ BOTÓN DE PANTALLA COMPLETA - Arriba a la izquierda */}
-      <button
-        onClick={toggleFullscreen}
-        className="absolute top-3 left-3 z-[1000] bg-white rounded-lg shadow-lg hover:shadow-xl transition-all w-[34px] h-[34px] sm:w-[36px] sm:h-[36px] flex items-center justify-center border-2 border-gray-300"
-        title={isFullscreen ? "Salir de pantalla completa" : "Pantalla completa"}
-      >
+<button
+  onClick={toggleFullscreen}
+  className="hidden sm:flex absolute top-3 left-3 z-[1000] bg-white rounded-lg shadow-lg hover:shadow-xl transition-all w-[34px] h-[34px] sm:w-[36px] sm:h-[36px] items-center justify-center border-2 border-gray-300"
+  title={isFullscreen ? "Salir de pantalla completa" : "Pantalla completa"}
+>
         {isFullscreen ? (
           // Ícono para SALIR de pantalla completa
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="sm:stroke-current stroke-gray-700">
@@ -638,7 +638,7 @@ export default function MapaPoligono({
       <button
         onClick={ubicarUsuario}
         disabled={ubicandoUsuario}
-        className="absolute top-[60px] right-3 z-[1000] bg-white rounded-lg shadow-lg hover:shadow-xl transition-all w-[34px] h-[34px] sm:w-[36px] sm:h-[36px] flex items-center justify-center disabled:opacity-50 border-2 border-gray-300"
+        className="absolute top-[70px] right-3 z-[1000] bg-white rounded-lg shadow-lg hover:shadow-xl transition-all w-[34px] h-[34px] sm:w-[36px] sm:h-[36px] flex items-center justify-center disabled:opacity-50 border-2 border-gray-300"
         title="Mi ubicación"
       >
         {ubicandoUsuario ? (
