@@ -157,11 +157,10 @@ export default function MapaPage() {
 
   // Cargar NDVI cuando se pasa a vista ndvi
   useEffect(() => {
-    if (vistaActual === 'ndvi' && Object.keys(ndviData).length === 0) {
-      obtenerNDVIPotreros()
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [vistaActual, lotes])
+  if (vistaActual === 'ndvi') {
+    obtenerNDVIPotreros()
+  }
+}, [vistaActual])
 
   // 🎨 Color según NDVI
   function getColorNDVI(ndvi: number): string {
@@ -322,7 +321,6 @@ export default function MapaPage() {
                 </div>
               ) : (
                 <MapaPoligono
-  key={`vista-${vistaActual}`}   // 👈 ESTE ES EL ARREGLA TODO
   initialCenter={mapCenter}
   initialZoom={14}
   existingPolygons={poligonosParaMapa}
