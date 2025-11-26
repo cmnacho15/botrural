@@ -16,7 +16,7 @@ function InsumosContent() {
   const { insumos, isLoading, refreshInsumos, addInsumo, registrarMovimiento, updateInsumosOrder } = useInsumos()
   const searchParams = useSearchParams()
   
-  const [activeTab, setActiveTab] = useState<'consumo' | 'inventario'>('consumo')
+  const [activeTab, setActiveTab] = useState<'consumo' | 'inventario'>('inventario')
   const [modalOpen, setModalOpen] = useState(false)
   const [modalIngresoOpen, setModalIngresoOpen] = useState(false)
   const [modalUsoOpen, setModalUsoOpen] = useState(false)
