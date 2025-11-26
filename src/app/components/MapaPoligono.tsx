@@ -43,6 +43,10 @@ if (typeof window !== 'undefined') {
         stroke-opacity: 0.6 !important;
         stroke-dasharray: 5, 5 !important;
       }
+      /* 📍 MOVER CONTROLES DE LEAFLET HACIA ABAJO para no superponerse con pantalla completa */
+      .leaflet-top.leaflet-left {
+        top: 50px !important;
+      }
     `
     document.head.appendChild(style)
   }
@@ -691,7 +695,7 @@ export default function MapaPoligono({
       )}
 
       {readOnly && (
-        <div className="absolute top-4 left-4 bg-white px-3 py-2 rounded-lg shadow-md border border-gray-200 text-sm text-gray-600 z-[1000]">
+        <div className="absolute top-[60px] left-4 bg-white px-3 py-2 rounded-lg shadow-md border border-gray-200 text-sm text-gray-600 z-[1000]">
           🗺️ Vista del mapa
         </div>
       )}
