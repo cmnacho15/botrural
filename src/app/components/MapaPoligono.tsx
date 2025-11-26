@@ -541,17 +541,17 @@ export default function MapaPoligono({
 
   return (
     <div className="relative w-full h-full flex flex-col">
-      {/* 🎯 BOTÓN DE UBICACIÓN */}
+      {/* 🎯 BOTÓN DE UBICACIÓN - Debajo del control de capas */}
 <button
   onClick={ubicarUsuario}
   disabled={ubicandoUsuario}
-  className="absolute top-[80px] left-3 z-[1000] bg-white rounded-lg shadow-lg hover:shadow-xl transition-all w-10 h-10 flex items-center justify-center disabled:opacity-50"
+  className="absolute top-[90px] right-3 z-[1000] bg-white rounded-lg shadow-lg hover:shadow-xl transition-all w-[34px] h-[34px] flex items-center justify-center disabled:opacity-50 border-2 border-gray-300"
   title="Mi ubicación"
 >
   {ubicandoUsuario ? (
-    <div className="w-5 h-5 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" />
+    <div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" />
   ) : (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
       <circle cx="12" cy="12" r="2"/>
       <circle cx="12" cy="12" r="9"/>
       <line x1="12" y1="2" x2="12" y2="5"/>
