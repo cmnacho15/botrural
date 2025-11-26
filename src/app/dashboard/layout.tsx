@@ -130,8 +130,8 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
           <Image 
   src="/BoTRURAL.svg"
   alt="BotRural"
-  width={140}
-  height={140}
+  width={150}
+  height={150}
   priority
 />
         </div>
