@@ -1,5 +1,6 @@
 @import "tailwindcss";
 
+/* 🌗 Variables light/dark */
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -19,32 +20,21 @@
   }
 }
 
+/* 🖥️ Estilos base */
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* Fix z-index de Leaflet - Reducido para que los modales queden encima */
-.leaflet-container {
-  z-index: 0 !important;
-}
-
-.leaflet-pane {
-  z-index: 400 !important;
-}
-
+/* 🗺️ Leaflet – NO TOCAR PANEOS INTERNOS */
+.leaflet-pane,
 .leaflet-top,
 .leaflet-bottom {
-  z-index: 500 !important;
+  z-index: auto;
 }
 
-/* Controles de Leaflet */
-.leaflet-control-container {
-  z-index: 500 !important;
-}
-
-/* Animación para el menú móvil (bottom sheet) */
+/* 📱 Animación para bottom-sheet */
 @keyframes slide-up {
   from {
     transform: translateY(100%);
