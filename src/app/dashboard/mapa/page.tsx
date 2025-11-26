@@ -10,7 +10,7 @@ const MapaPoligono = dynamic(() => import('@/app/components/MapaPoligono'), {
       <p className="text-gray-600">Cargando mapa...</p>
     </div>
   ),
-})
+}
 
 interface Cultivo {
   id: string
