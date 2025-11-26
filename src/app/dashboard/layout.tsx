@@ -132,13 +132,12 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
           </button>
 
           <Image 
-            src="/BoTRURAL.svg"
-            alt="BotRural"
-            width={150}
-            height={150}
-            className="w-24 sm:w-32 md:w-36"
-            priority
-          />
+  src="/BoTRURAL.svg"
+  alt="BotRural"
+  width={150}
+  height={150}
+  priority
+/>
         </div>
 
         {!isContador && (
