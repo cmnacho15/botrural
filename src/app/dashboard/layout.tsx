@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
-
+import Image from "next/image";
 
 import { DatosProvider } from "@/app/contexts/DatosContext";
 import { InsumosProvider } from "@/app/contexts/InsumosContext";
@@ -127,7 +127,13 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
             ☰
           </button>
 
-          <span className="text-xl font-bold text-gray-900">BotRural</span>
+          <Image 
+  src="/BoTRURAL.svg"
+  alt="BotRural"
+  width={120}
+  height={120}
+  priority
+/>
         </div>
 
         {/* BOTÓN NUEVO DATO - Solo para ADMIN_GENERAL y COLABORADOR */}
