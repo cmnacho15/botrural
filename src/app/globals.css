@@ -50,3 +50,20 @@ body {
 .animate-slide-up {
   animation: slide-up 0.3s ease-out;
 }
+
+/* ===== FIX DARK MODE SOLO PARA LA ESCALA NDVI ===== */
+
+.ndvi-scale-wrapper,
+.ndvi-scale-wrapper * {
+  color: #1f2937 !important; /* Gris oscuro visible SIEMPRE */
+  background-color: transparent !important;
+}
+
+/* Cuando el dispositivo está en Dark Mode */
+@media (prefers-color-scheme: dark) {
+  .ndvi-scale-wrapper,
+  .ndvi-scale-wrapper * {
+    color: #f1f5f9 !important; /* Gris claro legible en dark */
+    background-color: transparent !important;
+  }
+}
