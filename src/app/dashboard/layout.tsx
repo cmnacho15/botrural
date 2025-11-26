@@ -118,7 +118,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
     .filter(section => section.items.length > 0);
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
+    <div className="flex flex-col min-h-screen bg-gray-50">
 
       {/* HEADER */}
       <header className="bg-white border-b px-3 sm:px-4 py-3 flex items-center justify-between sticky top-0 z-20">
@@ -134,8 +134,8 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
           <Image 
   src="/BoTRURAL.svg"
   alt="BotRural"
-  width={150}
-  height={150}
+  width={140}
+  height={140}
   priority
 />
         </div>
