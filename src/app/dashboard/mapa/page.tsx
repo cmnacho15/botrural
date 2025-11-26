@@ -188,7 +188,7 @@ export default function MapaPage() {
   const poligonosParaMapa = lotes
     .filter((l) => l.poligono && l.poligono.length > 0)
     .map((lote) => {
-      let color = '#10b981' // Verde por defecto
+      let color = '#1212dd' // Azul Vista General
 
       if (vistaActual === 'cultivo') {
         if (lote.cultivos && lote.cultivos.length > 0) {
