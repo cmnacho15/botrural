@@ -425,8 +425,8 @@ export default function MapaPage() {
                         })()}
 
                       {/* Escala NDVI */}
-                      <div className="mb-5 ndvi-scale-wrapper">
-  <h3 className="text-xs sm:text-sm font-semibold mb-2 sm:mb-3">
+                      <div className="mb-5">
+  <h3 className="text-xs sm:text-sm font-semibold text-gray-700 mb-2 sm:mb-3">
     📊 Escala de Vegetación
   </h3>
                         <div className="space-y-1.5 text-[11px] sm:text-xs">
