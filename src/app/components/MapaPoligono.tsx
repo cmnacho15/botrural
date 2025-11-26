@@ -462,7 +462,7 @@ export default function MapaPoligono({
     }
   }
   
-  const ubicarUsuario = () => {
+  const ubicarUsuario = async () => {
   if (!mapRef.current) return
   
   setUbicandoUsuario(true)
@@ -473,6 +473,23 @@ export default function MapaPoligono({
     return
   }
 
+  // 🔐 VERIFICAR PERMISOS PRIMERO (si el navegador lo soporta)
+  try {
+    if ('permissions' in navigator) {
+      const permission = await (navigator as any).permissions.query({ name: 'geolocation' })
+      
+      if (permission.state === 'denied') {
+        alert('❌ Permiso de ubicación denegado.\n\n📍 Para habilitarlo:\n1. Hacé clic en el ícono 🔒 o ⓘ en la barra de direcciones\n2. Buscá "Ubicación" y cambialo a "Permitir"\n3. Recargá la página')
+        setUbicandoUsuario(false)
+        return
+      }
+    }
+  } catch (e) {
+    // Si no soporta la API de permisos, continuar igual
+    console.log('API de permisos no disponible, continuando...')
+  }
+
+  // 📍 OBTENER UBICACIÓN
   navigator.geolocation.getCurrentPosition(
     (position) => {
       const { latitude, longitude, accuracy } = position.coords
@@ -512,16 +529,37 @@ export default function MapaPoligono({
 
         setUbicandoUsuario(false)
       } catch (error) {
-        console.error('Error:', error)
+        console.error('Error mostrando ubicación:', error)
         alert('Error mostrando la ubicación en el mapa')
         setUbicandoUsuario(false)
       }
     },
     (error) => {
-      alert('No se pudo obtener tu ubicación')
+      console.error('Error de geolocalización:', error)
+      
+      let mensaje = ''
+      switch (error.code) {
+        case error.PERMISSION_DENIED:
+          mensaje = '❌ Permiso de ubicación denegado.\n\n📍 Para habilitarlo:\n1. Hacé clic en el ícono 🔒 en la barra de direcciones\n2. Buscá "Ubicación" y cambialo a "Permitir"\n3. Volvé a intentar'
+          break
+        case error.POSITION_UNAVAILABLE:
+          mensaje = '📍 No se pudo determinar tu ubicación.\nAsegurate de tener GPS/WiFi activado.'
+          break
+        case error.TIMEOUT:
+          mensaje = '⏱️ Se agotó el tiempo esperando la ubicación.\nIntentá de nuevo.'
+          break
+        default:
+          mensaje = '❌ Error desconocido obteniendo ubicación.'
+      }
+      
+      alert(mensaje)
       setUbicandoUsuario(false)
     },
-    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    { 
+      enableHighAccuracy: true, 
+      timeout: 15000,  // ✅ Aumentado a 15 segundos
+      maximumAge: 0 
+    }
   )
 }
 
