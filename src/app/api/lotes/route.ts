@@ -136,21 +136,31 @@ export async function POST(request: Request) {
     }
 
     // 2️⃣ Crear eventos de INGRESO de animales
-    for (const animal of animales) {
-      if (animal.categoria && animal.cantidad) {
-        await prisma.evento.create({
-          data: {
-            tipo: 'AJUSTE',
-            fecha: new Date(),
-            descripcion: `Se ingresaron ${animal.cantidad} ${animal.categoria.toLowerCase()} al lote "${nombre}".`,
-            campoId: usuario.campoId,
-            loteId: lote.id,
-            usuarioId: session.user.id,
-            cantidad: parseInt(animal.cantidad),
-          },
-        });
-      }
+for (const animal of animales) {
+  if (animal.categoria && animal.cantidad) {
+    // ✅ Construir descripción con peso
+    let descripcion = `Se ingresaron ${animal.cantidad} ${animal.categoria.toLowerCase()}`;
+    
+    // Agregar peso si existe
+    if (animal.peso) {
+      descripcion += ` (${animal.peso} kg promedio)`;
     }
+    
+    descripcion += ` al lote "${nombre}".`;
+
+    await prisma.evento.create({
+      data: {
+        tipo: 'AJUSTE',
+        fecha: new Date(),
+        descripcion,
+        campoId: usuario.campoId,
+        loteId: lote.id,
+        usuarioId: session.user.id,
+        cantidad: parseInt(animal.cantidad),
+      },
+    });
+  }
+}
 
     console.log(
       `✅ Lote creado: ${nombre} con ${cultivos.length} cultivos y ${animales.length} animales + eventos generados`

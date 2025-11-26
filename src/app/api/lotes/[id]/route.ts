@@ -63,6 +63,7 @@ export async function PUT(
       .map((a: any) => ({
         categoria: a.categoria,
         cantidad: parseInt(a.cantidad),
+        peso: a.peso ? parseFloat(a.peso) : null, 
         fechaIngreso: new Date(),
       }));
 
@@ -101,17 +102,25 @@ export async function PUT(
     console.log("🗑️ Cultivos eliminados detectados:", cultivosEliminados);
 
     // 2️⃣ Detectar cambios en animales
-    const animalesAnteriores = lote.animalesLote;
-    
-    const animalesPorCategoria = animalesValidos.reduce((acc: any, a: any) => {
-      acc[a.categoria] = (acc[a.categoria] || 0) + a.cantidad;
-      return acc;
-    }, {});
+const animalesAnteriores = lote.animalesLote;
 
-    const animalesAnterioresPorCategoria = animalesAnteriores.reduce((acc: any, a: any) => {
-      acc[a.categoria] = (acc[a.categoria] || 0) + a.cantidad;
-      return acc;
-    }, {});
+const animalesPorCategoria = animalesValidos.reduce((acc: any, a: any) => {
+  if (!acc[a.categoria]) {
+    acc[a.categoria] = { cantidad: 0, peso: null };
+  }
+  acc[a.categoria].cantidad += a.cantidad;
+  acc[a.categoria].peso = a.peso; // Guardar el peso
+  return acc;
+}, {});
+
+const animalesAnterioresPorCategoria = animalesAnteriores.reduce((acc: any, a: any) => {
+  if (!acc[a.categoria]) {
+    acc[a.categoria] = { cantidad: 0, peso: null };
+  }
+  acc[a.categoria].cantidad += a.cantidad;
+  acc[a.categoria].peso = a.peso;
+  return acc;
+}, {});
 
     console.log("📊 Animales antes:", animalesAnterioresPorCategoria);
     console.log("📊 Animales ahora:", animalesPorCategoria);
@@ -175,76 +184,113 @@ export async function PUT(
     }
 
     // 3️⃣ Eventos de cambios en ANIMALES
-    for (const categoria in animalesPorCategoria) {
-      const cantidadNueva = animalesPorCategoria[categoria];
-      const cantidadAnterior = animalesAnterioresPorCategoria[categoria] || 0;
-      const diferencia = cantidadNueva - cantidadAnterior;
+for (const categoria in animalesPorCategoria) {
+  const datosNuevos = animalesPorCategoria[categoria];
+  const datosAnteriores = animalesAnterioresPorCategoria[categoria] || { cantidad: 0, peso: null };
 
-      if (diferencia > 0) {
-        // AJUSTE POSITIVO (adición)
-        await prisma.evento.create({
-          data: {
-            tipo: 'AJUSTE',
-            fecha: new Date(),
-            descripcion: `Se realizaron los siguientes ajustes en ${nombre}: ${diferencia} ${categoria} (ajuste positivo)`,
-            campoId: usuario!.campoId!,
-            loteId: id,
-            usuarioId: session.user.id,
-            cantidad: diferencia,
-            categoria: categoria,
-          },
-        });
-        console.log(`✅ Evento AJUSTE POSITIVO creado: +${diferencia} ${categoria}`);
-      } else if (diferencia < 0) {
-        // AJUSTE NEGATIVO (eliminación)
-        await prisma.evento.create({
-          data: {
-            tipo: 'AJUSTE',
-            fecha: new Date(),
-            descripcion: `Se realizaron los siguientes ajustes en ${nombre}: ${Math.abs(diferencia)} ${categoria} (ajuste negativo)`,
-            campoId: usuario!.campoId!,
-            loteId: id,
-            usuarioId: session.user.id,
-            cantidad: Math.abs(diferencia),
-            categoria: categoria,
-          },
-        });
-        console.log(`✅ Evento AJUSTE NEGATIVO creado: -${Math.abs(diferencia)} ${categoria}`);
-      }
+  const cantidadNueva = datosNuevos.cantidad;
+  const cantidadAnterior = datosAnteriores.cantidad;
+  const diferencia = cantidadNueva - cantidadAnterior;
+
+  const pesoActual = datosNuevos.peso; // kg promedio
+
+  if (diferencia > 0) {
+    // --- AJUSTE POSITIVO ---
+    let descripcion = `Se realizaron los siguientes ajustes en ${nombre}: ${diferencia} ${categoria}`;
+
+    if (pesoActual) {
+      descripcion += ` (${pesoActual} kg promedio)`;
     }
 
-    // 4️⃣ Detectar categorías completamente eliminadas
-    for (const categoria in animalesAnterioresPorCategoria) {
-      if (!(categoria in animalesPorCategoria)) {
-        const cantidad = animalesAnterioresPorCategoria[categoria];
-        await prisma.evento.create({
-          data: {
-            tipo: 'AJUSTE',
-            fecha: new Date(),
-            descripcion: `Se eliminaron todos los ${cantidad} ${categoria.toLowerCase()} del potrero "${nombre}" (borrado manual).`,
-            campoId: usuario!.campoId!,
-            loteId: id,
-            usuarioId: session.user.id,
-            cantidad: cantidad,
-            categoria: categoria,
-          },
-        });
-        console.log(`✅ Evento AJUSTE NEGATIVO TOTAL creado: -${cantidad} ${categoria}`);
-      }
-    }
+    descripcion += ` (ajuste positivo)`;
 
-    return NextResponse.json(loteActualizado, { status: 200 });
-  } catch (error: any) {
-    console.error("💥 ERROR PUT /api/lotes/[id]:", error);
-    return NextResponse.json(
-      {
-        error: "Error actualizando el lote",
-        message: error.message,
+    await prisma.evento.create({
+      data: {
+        tipo: 'AJUSTE',
+        fecha: new Date(),
+        descripcion,
+        campoId: usuario!.campoId!,
+        loteId: id,
+        usuarioId: session.user.id,
+        cantidad: diferencia,
+        categoria,
       },
-      { status: 500 }
-    );
+    });
+
+    console.log(`✅ Evento AJUSTE POSITIVO creado: +${diferencia} ${categoria}`);
+
+  } else if (diferencia < 0) {
+    // --- AJUSTE NEGATIVO ---
+    let descripcion = `Se realizaron los siguientes ajustes en ${nombre}: ${Math.abs(diferencia)} ${categoria}`;
+
+    if (pesoActual) {
+      descripcion += ` (${pesoActual} kg promedio)`;
+    }
+
+    descripcion += ` (ajuste negativo)`;
+
+    await prisma.evento.create({
+      data: {
+        tipo: 'AJUSTE',
+        fecha: new Date(),
+        descripcion,
+        campoId: usuario!.campoId!,
+        loteId: id,
+        usuarioId: session.user.id,
+        cantidad: Math.abs(diferencia),
+        categoria,
+      },
+    });
+
+    console.log(`✅ Evento AJUSTE NEGATIVO creado: -${Math.abs(diferencia)} ${categoria}`);
   }
 }
+
+// 4️⃣ Detectar categorías completamente eliminadas
+for (const categoria in animalesAnterioresPorCategoria) {
+  if (!(categoria in animalesPorCategoria)) {
+    const cantidad = animalesAnterioresPorCategoria[categoria].cantidad;
+    const peso = animalesAnterioresPorCategoria[categoria].peso;
+
+    let descripcion = `Se eliminaron todos los ${cantidad} ${categoria.toLowerCase()}`;
+
+    if (peso) {
+      descripcion += ` (${peso} kg promedio)`;
+    }
+
+    descripcion += ` del potrero "${nombre}" (borrado manual).`;
+
+    await prisma.evento.create({
+      data: {
+        tipo: 'AJUSTE',
+        fecha: new Date(),
+        descripcion,
+        campoId: usuario!.campoId!,
+        loteId: id,
+        usuarioId: session.user.id,
+        cantidad,
+        categoria,
+      },
+    });
+
+    console.log(`✅ Evento AJUSTE NEGATIVO TOTAL creado: -${cantidad} ${categoria}`);
+  }
+}
+
+return NextResponse.json(loteActualizado, { status: 200 });
+
+} catch (error: any) {
+  console.error("💥 ERROR PUT /api/lotes/[id]:", error);
+  return NextResponse.json(
+    {
+      error: "Error actualizando el lote",
+      message: error.message,
+    },
+    { status: 500 }
+  );
+}
+}
+
 
 // 🗑️ DELETE
 export async function DELETE(
@@ -291,6 +337,7 @@ export async function DELETE(
 
     console.log("🗑️ Potrero eliminado:", lote.nombre);
     return NextResponse.json({ success: true, message: "Potrero eliminado correctamente" });
+
   } catch (error: any) {
     console.error("💥 ERROR DELETE /api/lotes/[id]:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
