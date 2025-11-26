@@ -322,11 +322,12 @@ export default function MapaPage() {
                 </div>
               ) : (
                 <MapaPoligono
-                  initialCenter={mapCenter}
-                  initialZoom={14}
-                  existingPolygons={poligonosParaMapa}
-                  readOnly={true}
-                />
+  key={`vista-${vistaActual}`}   // 👈 ESTE ES EL ARREGLA TODO
+  initialCenter={mapCenter}
+  initialZoom={14}
+  existingPolygons={poligonosParaMapa}
+  readOnly={true}
+/>
               )}
             </div>
           </div>
