@@ -36,23 +36,27 @@ interface Lote {
 
 // 🎨 Colores por tipo de cultivo
 const COLORES_CULTIVOS: Record<string, string> = {
-  'Soja': '#FFD700',
+  Soja: '#FFD700',
   'Maíz': '#FF69B4',
-  'Trigo': '#F4A460',
-  'Girasol': '#FFD700',
-  'Sorgo': '#DEB887',
-  'Cebada': '#D2691E',
-  'Avena': '#F5DEB3',
-  'Arroz': '#90EE90',
-  'Alfalfa': '#32CD32',
-  'Pradera': '#228B22',
+  Trigo: '#F4A460',
+  Girasol: '#FFD700',
+  Sorgo: '#DEB887',
+  Cebada: '#D2691E',
+  Avena: '#F5DEB3',
+  Arroz: '#90EE90',
+  Alfalfa: '#32CD32',
+  Pradera: '#228B22',
 }
 
 export default function MapaPage() {
   const [lotes, setLotes] = useState<Lote[]>([])
   const [loading, setLoading] = useState(true)
-  const [vistaActual, setVistaActual] = useState<'indice' | 'cultivo' | 'ndvi'>('indice')
-  const [mapCenter, setMapCenter] = useState<[number, number]>([-32.5228, -55.7658])
+  const [vistaActual, setVistaActual] = useState<'indice' | 'cultivo' | 'ndvi'>(
+    'indice',
+  )
+  const [mapCenter, setMapCenter] = useState<[number, number]>([
+    -32.5228, -55.7658,
+  ])
   const [hayDatosCultivos, setHayDatosCultivos] = useState(false)
   const [loadingNDVI, setLoadingNDVI] = useState(false)
   const [ndviData, setNdviData] = useState<Record<string, any>>({})
@@ -61,41 +65,68 @@ export default function MapaPage() {
     cargarLotes()
   }, [])
 
-  // 🛰️ Función NDVI
+  // 🛰️ Función para obtener NDVI de Copernicus
   async function obtenerNDVIPotreros() {
     if (lotes.length === 0) return
+
     setLoadingNDVI(true)
 
     try {
       const response = await fetch('/api/ndvi', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
-          lotes: lotes.map(l => ({
+          lotes: lotes.map((l) => ({
             id: l.id,
             coordenadas: l.poligono,
           })),
         }),
       })
 
-      if (!response.ok) throw new Error('Error obteniendo NDVI')
+      if (!response.ok) {
+        throw new Error('Error obteniendo NDVI')
+      }
 
       const data = await response.json()
+
+      console.log('📊 Datos NDVI recibidos:', data.ndvi)
+
+      Object.keys(data.ndvi).forEach((loteId) => {
+        const ndvi = data.ndvi[loteId]
+        console.log(`Lote ${loteId}:`, {
+          promedio: ndvi.promedio,
+          tieneMatriz: ndvi.matriz?.length > 0,
+          dimensiones: `${ndvi.width}x${ndvi.height}`,
+          bbox: ndvi.bbox,
+          validPixels: ndvi.validPixels,
+          totalPixels: ndvi.totalPixels,
+          porcentajeValido:
+            ndvi.totalPixels > 0
+              ? `${Math.round((ndvi.validPixels / ndvi.totalPixels) * 100)}%`
+              : '0%',
+          primerosValores: ndvi.matriz?.[0]?.slice(0, 5) || 'sin datos',
+        })
+      })
+
       setNdviData(data.ndvi)
     } catch (error) {
       console.error('Error obteniendo NDVI:', error)
-      alert('Error obteniendo datos NDVI.')
+      alert('Error obteniendo datos NDVI. Intenta de nuevo más tarde.')
     } finally {
       setLoadingNDVI(false)
     }
   }
 
+  // Cargar NDVI cuando cambia a vista NDVI
   useEffect(() => {
     if (vistaActual === 'ndvi' && Object.keys(ndviData).length === 0) {
       obtenerNDVIPotreros()
     }
-  }, [vistaActual, lotes])
+  }, [vistaActual, lotes]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // 🎨 Función para obtener color según NDVI
   function getColorNDVI(ndvi: number): string {
     if (ndvi < 0.2) return '#8B4513'
     if (ndvi < 0.3) return '#DAA520'
@@ -114,45 +145,58 @@ export default function MapaPage() {
         const data: Lote[] = await response.json()
         setLotes(data)
 
-        const tieneCultivos = data.some(lote => lote.cultivos?.length)
+        const tieneCultivos = data.some(
+          (lote) => lote.cultivos && lote.cultivos.length > 0,
+        )
         setHayDatosCultivos(tieneCultivos)
 
-        // Calcular centro del mapa
         if (data.length > 0) {
-          const pts = data.flatMap(l => l.poligono || [])
-          if (pts.length > 0) {
-            const center = pts
-              .reduce((acc, p) => [acc[0] + p[0], acc[1] + p[1]], [0, 0])
-              .map(v => v / pts.length) as [number, number]
+          const todosLosPuntos = data
+            .flatMap((l) => l.poligono || [])
+            .filter((c) => c && c.length === 2)
+
+          if (todosLosPuntos.length > 0) {
+            const center = todosLosPuntos
+              .reduce(
+                (acc, p) => [acc[0] + p[0], acc[1] + p[1]],
+                [0, 0] as [number, number],
+              )
+              .map((v) => v / todosLosPuntos.length) as [number, number]
             setMapCenter(center)
           }
         }
       }
-    } catch (err) {
-      console.error('Error cargando lotes', err)
+    } catch (error) {
+      console.error('Error cargando lotes:', error)
     } finally {
       setLoading(false)
     }
   }
 
+  // 🗺️ Preparar polígonos para el mapa
   const poligonosParaMapa = lotes
-    .filter(l => l.poligono?.length)
-    .map(lote => {
-      let color = '#10b981'
+    .filter((l) => l.poligono && l.poligono.length > 0)
+    .map((lote) => {
+      let color = '#10b981' // Verde por defecto para vista general
 
       if (vistaActual === 'cultivo') {
-        if (lote.cultivos?.length) {
-          const c = lote.cultivos[0].tipoCultivo
-          color = COLORES_CULTIVOS[c] || '#10b981'
+        if (lote.cultivos && lote.cultivos.length > 0) {
+          const cultivoPrincipal = lote.cultivos[0].tipoCultivo
+          color = COLORES_CULTIVOS[cultivoPrincipal] || '#10b981'
         } else {
-          color = '#D3D3D3'
+          color = '#D3D3D3' // Gris claro para potreros sin cultivos
         }
-      }
-
-      if (vistaActual === 'ndvi') {
-        const n = ndviData[lote.id]
-        if (n?.validPixels > 0) color = getColorNDVI(n.promedio)
-        else color = '#CCCCCC'
+      } else if (vistaActual === 'ndvi') {
+        const ndviInfo = ndviData[lote.id]
+        if (
+          ndviInfo &&
+          typeof ndviInfo.promedio === 'number' &&
+          ndviInfo.validPixels > 0
+        ) {
+          color = getColorNDVI(ndviInfo.promedio)
+        } else {
+          color = '#CCCCCC' // Gris claro = sin datos NDVI
+        }
       }
 
       return {
@@ -164,95 +208,115 @@ export default function MapaPage() {
           hectareas: lote.hectareas,
           cultivos: lote.cultivos,
           animales: lote.animalesLote,
-          ndviMatriz: vistaActual === 'ndvi' ? ndviData[lote.id] : null,
+          ndviMatriz:
+            vistaActual === 'ndvi' ? ndviData[lote.id] || null : null,
         },
       }
     })
 
+  // 🔑 Crear una key única que cambie cuando cambia la vista o los datos NDVI
   const mapaKey = `${vistaActual}-${Object.keys(ndviData).length}`
 
   const resumenCultivos = lotes.reduce((acc, lote) => {
-    lote.cultivos?.forEach(cultivo => {
-      acc[cultivo.tipoCultivo] = (acc[cultivo.tipoCultivo] || 0) + cultivo.hectareas
+    lote.cultivos?.forEach((cultivo) => {
+      if (!acc[cultivo.tipoCultivo]) {
+        acc[cultivo.tipoCultivo] = 0
+      }
+      acc[cultivo.tipoCultivo] += cultivo.hectareas
     })
     return acc
   }, {} as Record<string, number>)
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="min-h-[60vh] bg-gray-50 flex items-center justify-center rounded-xl">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4" />
+          <p className="text-gray-600">Cargando mapa del campo...</p>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
-
+    <div className="space-y-4 sm:space-y-6 bg-gray-50">
       {/* HEADER */}
-      <div className="bg-white border-b px-4 sm:px-6 py-4 flex-shrink-0">
-        <h1 className="text-2xl font-bold">🗺️ Mapa del Campo</h1>
-        <p className="text-sm text-gray-600">
-          {lotes.length} {lotes.length === 1 ? 'potrero' : 'potreros'} registrados
-        </p>
+      <div className="bg-white border border-gray-200 rounded-xl px-4 sm:px-6 py-4 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
+              🗺️ Mapa del Campo
+            </h1>
+            <p className="text-sm text-gray-600 mt-1">
+              {lotes.length}{' '}
+              {lotes.length === 1 ? 'potrero registrado' : 'potreros registrados'}
+            </p>
+          </div>
 
-        {/* Toggle vistas */}
-        <div className="mt-3 flex items-center gap-3 flex-wrap">
-          <span className="text-sm font-medium text-gray-600">Vista:</span>
-
-          <div className="inline-flex rounded-lg border-2 border-gray-300 bg-white overflow-hidden">
-            <button
-              onClick={() => setVistaActual('indice')}
-              className={`px-3 py-2 text-xs sm:text-sm font-medium ${
-                vistaActual === 'indice'
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-700 hover:bg-gray-50'
-              }`}
-            >
-              🗺️ General
-            </button>
-
-            <button
-              onClick={() => setVistaActual('cultivo')}
-              className={`px-3 py-2 text-xs sm:text-sm font-medium ${
-                vistaActual === 'cultivo'
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-700 hover:bg-gray-50'
-              }`}
-            >
-              🌾 Cultivos
-            </button>
-
-            <button
-              onClick={() => setVistaActual('ndvi')}
-              disabled={loadingNDVI}
-              className={`px-3 py-2 text-xs sm:text-sm font-medium ${
-                vistaActual === 'ndvi'
-                  ? 'bg-green-600 text-white'
-                  : 'text-gray-700 hover:bg-gray-50'
-              } ${loadingNDVI ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
-              🛰️ NDVI
-            </button>
+          {/* TOGGLE DE VISTAS */}
+          <div className="flex items-center gap-2 sm:gap-3">
+            <span className="text-xs sm:text-sm text-gray-600 font-medium">
+              Vista:
+            </span>
+            <div className="inline-flex rounded-lg border-2 border-gray-200 bg-white overflow-hidden">
+              <button
+                onClick={() => setVistaActual('indice')}
+                className={`px-3 py-2 text-xs sm:text-sm font-medium transition ${
+                  vistaActual === 'indice'
+                    ? 'bg-blue-600 text-white'
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                🗺️ General
+              </button>
+              <button
+                onClick={() => setVistaActual('cultivo')}
+                className={`px-3 py-2 text-xs sm:text-sm font-medium transition ${
+                  vistaActual === 'cultivo'
+                    ? 'bg-blue-600 text-white'
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                🌾 Cultivos
+              </button>
+              <button
+                onClick={() => setVistaActual('ndvi')}
+                disabled={loadingNDVI}
+                className={`px-3 py-2 text-xs sm:text-sm font-medium transition relative ${
+                  vistaActual === 'ndvi'
+                    ? 'bg-green-600 text-white'
+                    : 'text-gray-700 hover:bg-gray-50'
+                } ${loadingNDVI ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                🛰️ NDVI
+                {loadingNDVI && (
+                  <span className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 rounded-full animate-pulse" />
+                )}
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* LAYOUT RESPONSIVE */}
-      <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
-
-        {/* MAPA */}
-        <div className="flex-1 min-h-[300px] md:min-h-full relative z-0">
+      {/* TARJETA MAPA + PANEL (MAPA ARRIBA / PANEL ABAJO) */}
+      <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+        {/* MAPA ARRIBA */}
+        <div className="relative w-full h-[320px] sm:h-[420px] lg:h-[520px]">
           {lotes.length === 0 ? (
             <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
-              <div className="text-center">
-                <div className="text-5xl mb-3">🗺️</div>
-                <p className="text-gray-600 mb-3">No hay potreros registrados</p>
+              <div className="text-center p-6 sm:p-8">
+                <div className="text-5xl sm:text-6xl mb-4">🗺️</div>
+                <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">
+                  No hay potreros registrados
+                </h3>
+                <p className="text-gray-600 mb-4 text-sm sm:text-base">
+                  Creá tu primer potrero para ver el mapa del campo
+                </p>
                 <a
                   href="/dashboard/lotes/nuevo"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg"
+                  className="inline-block px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium text-sm sm:text-base"
                 >
-                  Crear potrero
+                  + Crear Potrero
                 </a>
               </div>
             </div>
@@ -267,188 +331,361 @@ export default function MapaPage() {
           )}
         </div>
 
-        {/* PANEL LATERAL — RESPONSIVE */}
-        <div className="
-          w-full md:w-80
-          max-h-[45vh] md:max-h-full
-          overflow-y-auto
-          bg-white border-t md:border-t-0 md:border-l
-          flex-shrink-0
-          p-4
-        ">
+        {/* PANEL ABAJO CON SCROLL PROPIO */}
+        <div className="border-t border-gray-200 bg-gray-50 max-h-[420px] overflow-y-auto p-4 sm:p-5">
           {/* TÍTULO DEL PANEL */}
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">
+          <h2 className="text-sm sm:text-base font-semibold text-gray-900 mb-3 sm:mb-4">
             {vistaActual === 'indice' && '🗺️ Vista General'}
-            {vistaActual === 'cultivo' && '🌾 Cultivos'}
-            {vistaActual === 'ndvi' && '🛰️ NDVI'}
+            {vistaActual === 'cultivo' && '🌾 Cultivos por potrero'}
+            {vistaActual === 'ndvi' && '🛰️ Índice de Vegetación (NDVI)'}
           </h2>
 
-          {/* ------------------------ */}
-          {/*       PANEL NDVI         */}
-          {/* ------------------------ */}
-          
+          {/* VISTA NDVI */}
           {vistaActual === 'ndvi' && (
             <>
               {loadingNDVI ? (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                  <p className="text-sm">Cargando datos satelitales...</p>
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4 mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600" />
+                    <p className="text-sm text-gray-700">
+                      Obteniendo datos satelitales...
+                    </p>
+                  </div>
                 </div>
               ) : (
                 <>
-                  {/* INFO SATELITAL */}
-                  {Object.keys(ndviData).length > 0 && (() => {
-                    const primera = ndviData[Object.keys(ndviData)[0]]
-                    if (!primera) return null
-                    return (
-                      <div className="mb-4 bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm">
-                        <p><strong>Fecha:</strong> {primera.fecha}</p>
-                        <p><strong>Satélite:</strong> Sentinel-2</p>
-                        <p><strong>Cobertura Nubes:</strong> {primera.cloudCoverage ?? '-'}%</p>
-                      </div>
-                    )
-                  })()}
+                  {/* 🆕 INFORMACIÓN SATELITAL */}
+                  {Object.keys(ndviData).length > 0 &&
+                    (() => {
+                      const primeraImagen = ndviData[Object.keys(ndviData)[0]]
+                      if (!primeraImagen) return null
+
+                      return (
+                        <div className="mb-4 bg-gradient-to-r from-blue-50 to-green-50 border border-blue-200 rounded-lg p-3 sm:p-4">
+                          <h3 className="text-xs sm:text-sm font-semibold text-gray-800 mb-2">
+                            🛰️ Información Satelital
+                          </h3>
+                          <div className="space-y-2 text-xs sm:text-[13px]">
+                            {primeraImagen.fecha && (
+                              <div className="flex justify-between gap-2">
+                                <span className="text-gray-600">📅 Fecha:</span>
+                                <span className="font-semibold text-gray-900">
+                                  {new Date(
+                                    primeraImagen.fecha,
+                                  ).toLocaleDateString('es-UY', {
+                                    year: 'numeric',
+                                    month: 'long',
+                                    day: 'numeric',
+                                  })}
+                                </span>
+                              </div>
+                            )}
+                            <div className="flex justify-between gap-2">
+                              <span className="text-gray-600">🛰️ Satélite:</span>
+                              <span className="font-medium text-gray-800">
+                                {primeraImagen.source || 'Sentinel-2'}
+                              </span>
+                            </div>
+                            {primeraImagen.cloudCoverage !== null &&
+                              primeraImagen.cloudCoverage !== undefined && (
+                                <div className="flex justify-between gap-2">
+                                  <span className="text-gray-600">☁️ Nubes:</span>
+                                  <span
+                                    className={`font-medium ${
+                                      primeraImagen.cloudCoverage < 20
+                                        ? 'text-green-600'
+                                        : primeraImagen.cloudCoverage < 40
+                                        ? 'text-yellow-600'
+                                        : 'text-red-600'
+                                    }`}
+                                  >
+                                    {primeraImagen.cloudCoverage.toFixed(1)}%
+                                  </span>
+                                </div>
+                              )}
+                          </div>
+                        </div>
+                      )
+                    })()}
 
                   {/* ESCALA DE VEGETACIÓN */}
-                  <div className="mb-6">
-                    <h3 className="font-semibold mb-2 text-sm">Escala NDVI</h3>
-                    {[
-                      ['#006400', '0.8 - 1.0 Vegetación muy densa'],
-                      ['#228B22', '0.7 - 0.8 Vegetación densa'],
-                      ['#32CD32', '0.6 - 0.7 Media-alta'],
-                      ['#7CFC00', '0.5 - 0.6 Media'],
-                      ['#ADFF2F', '0.4 - 0.5 Baja-media'],
-                      ['#FFFF00', '0.3 - 0.4 Baja'],
-                      ['#DAA520', '0.2 - 0.3 Escasa'],
-                      ['#8B4513', '0.0 - 0.2 Suelo desnudo']
-                    ].map(([color, label]) => (
-                      <div key={label} className="flex items-center gap-2 text-xs">
-                        <div className="w-6 h-4 rounded" style={{ backgroundColor: color }}></div>
-                        <span>{label}</span>
-                      </div>
-                    ))}
+                  <div className="mb-5">
+                    <h3 className="text-xs sm:text-sm font-semibold text-gray-700 mb-2 sm:mb-3">
+                      📊 Escala de Vegetación
+                    </h3>
+                    <div className="space-y-1.5 text-[11px] sm:text-xs">
+                      {[
+                        ['#006400', '0.8 - 1.0: Vegetación muy densa'],
+                        ['#228B22', '0.7 - 0.8: Vegetación densa'],
+                        ['#32CD32', '0.6 - 0.7: Vegetación media-alta'],
+                        ['#7CFC00', '0.5 - 0.6: Vegetación media'],
+                        ['#ADFF2F', '0.4 - 0.5: Vegetación baja-media'],
+                        ['#FFFF00', '0.3 - 0.4: Vegetación baja'],
+                        ['#DAA520', '0.2 - 0.3: Vegetación escasa'],
+                        ['#8B4513', '0.0 - 0.2: Sin vegetación'],
+                      ].map(([color, label]) => (
+                        <div
+                          key={label}
+                          className="flex items-center gap-2 sm:gap-3"
+                        >
+                          <div
+                            className="w-7 h-3 sm:w-8 sm:h-4 rounded"
+                            style={{ backgroundColor: color as string }}
+                          />
+                          <span>{label}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
 
                   <button
                     onClick={obtenerNDVIPotreros}
-                    className="w-full px-4 py-2 bg-green-600 text-white rounded-lg mb-4"
+                    className="w-full mb-4 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-xs sm:text-sm font-medium"
                   >
-                    🔄 Actualizar NDVI
+                    🔄 Actualizar Datos NDVI
                   </button>
 
+                  {/* 🆕 CALIDAD DE DATOS */}
+                  {Object.keys(ndviData).length > 0 &&
+                    (() => {
+                      const totalPotreros = Object.keys(ndviData).length
+                      const potrerosConDatos = Object.values(ndviData).filter(
+                        (d: any) => d.validPixels > 0,
+                      ).length
+                      const coberturaPromedio =
+                        (Object.values(ndviData).reduce(
+                          (sum: number, d: any) =>
+                            sum + ((d.validPixels / d.totalPixels) || 0),
+                          0,
+                        ) /
+                          totalPotreros) *
+                        100
+
+                      return (
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 text-[11px] sm:text-xs">
+                          <p className="text-gray-700 font-semibold mb-2">
+                            📊 Calidad de Datos
+                          </p>
+                          <ul className="space-y-1.5 text-gray-600">
+                            <li className="flex items-center gap-2">
+                              <span
+                                className={
+                                  potrerosConDatos === totalPotreros
+                                    ? 'text-green-600'
+                                    : 'text-yellow-600'
+                                }
+                              >
+                                {potrerosConDatos === totalPotreros
+                                  ? '✅'
+                                  : '⚠️'}
+                              </span>
+                              <span>
+                                {potrerosConDatos} de {totalPotreros} potreros con
+                                datos
+                              </span>
+                            </li>
+                            <li className="flex items-center gap-2">
+                              <span
+                                className={
+                                  coberturaPromedio > 90
+                                    ? 'text-green-600'
+                                    : coberturaPromedio > 70
+                                    ? 'text-yellow-600'
+                                    : 'text-red-600'
+                                }
+                              >
+                                {coberturaPromedio > 90
+                                  ? '✅'
+                                  : coberturaPromedio > 70
+                                  ? '⚠️'
+                                  : '❌'}
+                              </span>
+                              <span>
+                                Cobertura: {coberturaPromedio.toFixed(1)}%
+                              </span>
+                            </li>
+                          </ul>
+                        </div>
+                      )
+                    })()}
+
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4 text-[11px] sm:text-xs">
+                    <p className="text-gray-700">
+                      <strong>🛰️ Datos satelitales:</strong> Los valores NDVI se
+                      obtienen de imágenes Sentinel-2 de los últimos 45 días
+                      (Copernicus).
+                    </p>
+                  </div>
                 </>
               )}
             </>
           )}
 
-          {/* ------------------------ */}
-          {/*       PANEL CULTIVOS     */}
-          {/* ------------------------ */}
-
+          {/* VISTA DE CULTIVOS */}
           {vistaActual === 'cultivo' && (
             <>
               {!hayDatosCultivos ? (
-                <div className="bg-yellow-50 border border-yellow-200 p-4 rounded mb-4 text-sm">
-                  Todavía no ingresaste cultivos.
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 sm:p-4 mb-4">
+                  <p className="text-sm text-gray-700 mb-2">
+                    Todavía no ingresaste datos de cultivos por potrero. Podés
+                    ingresarlos en la página de potreros para que aparezcan acá.
+                  </p>
+                  <a
+                    href="/dashboard/lotes"
+                    className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                  >
+                    → Ir a Potreros
+                  </a>
                 </div>
               ) : (
-                <div className="space-y-2 mb-4">
-                  {Object.entries(resumenCultivos).map(([cultivo, hectareas]) => (
-                    <div
-                      key={cultivo}
-                      className="p-3 rounded-lg border text-sm flex items-center justify-between"
-                      style={{
-                        backgroundColor: `${COLORES_CULTIVOS[cultivo] || '#10b981'}20`
-                      }}
-                    >
-                      <div className="flex items-center gap-3">
+                <div className="mb-5">
+                  <h3 className="text-xs sm:text-sm font-semibold text-gray-700 mb-2 sm:mb-3">
+                    🌾 Resumen de cultivos
+                  </h3>
+                  <div className="space-y-2">
+                    {Object.entries(resumenCultivos).map(
+                      ([cultivo, hectareas]) => (
                         <div
-                          className="w-4 h-4 rounded"
-                          style={{ backgroundColor: COLORES_CULTIVOS[cultivo] }}
-                        />
-                        <span className="font-medium">{cultivo}</span>
-                      </div>
-                      <span className="text-xs text-gray-600">{hectareas.toFixed(1)} ha</span>
-                    </div>
-                  ))}
+                          key={cultivo}
+                          className="flex items-center justify-between p-2.5 sm:p-3 rounded-lg border border-gray-200 hover:bg-gray-100 transition"
+                          style={{
+                            backgroundColor: `${
+                              COLORES_CULTIVOS[cultivo] || '#10b981'
+                            }20`,
+                          }}
+                        >
+                          <div className="flex items-center gap-2.5 sm:gap-3">
+                            <div
+                              className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded"
+                              style={{
+                                backgroundColor:
+                                  COLORES_CULTIVOS[cultivo] || '#10b981',
+                              }}
+                            />
+                            <span className="font-medium text-gray-900 text-xs sm:text-sm">
+                              {cultivo}
+                            </span>
+                            <span className="text-[11px] sm:text-xs text-gray-500">
+                              ({hectareas.toFixed(1)} ha)
+                            </span>
+                          </div>
+                        </div>
+                      ),
+                    )}
+                  </div>
                 </div>
               )}
             </>
           )}
 
-          {/* ------------------------ */}
-          {/*       LISTA POTREROS     */}
-          {/* ------------------------ */}
-
-          <div>
-            <h3 className="text-sm font-semibold mb-3">📍 Potreros</h3>
-
-            <div className="space-y-2">
-              {lotes.map(lote => {
-                const totalAnimales = lote.animalesLote?.reduce((s, a) => s + a.cantidad, 0) || 0
+          {/* LISTA DE POTREROS */}
+          <div className="mt-2">
+            <h3 className="text-xs sm:text-sm font-semibold text-gray-700 mb-2 sm:mb-3">
+              📍 Potreros ({lotes.length})
+            </h3>
+            <div className="space-y-2.5">
+              {lotes.map((lote) => {
+                const totalAnimales =
+                  lote.animalesLote?.reduce(
+                    (sum, a) => sum + a.cantidad,
+                    0,
+                  ) || 0
                 const ndvi = ndviData[lote.id]
 
                 return (
                   <div
                     key={lote.id}
-                    className="p-3 bg-gray-50 border rounded-lg hover:border-blue-400 transition cursor-pointer text-sm"
+                    className="p-2.5 sm:p-3 bg-gray-50 rounded-lg border border-gray-200 hover:border-blue-400 transition cursor-pointer"
                   >
-
-                    <div className="flex items-start justify-between mb-2">
+                    <div className="flex items-start justify-between mb-1.5 sm:mb-2">
                       <div>
-                        <h4 className="font-semibold">{lote.nombre}</h4>
-                        <p className="text-xs text-gray-500">
+                        <h4 className="font-semibold text-gray-900 text-sm">
+                          {lote.nombre}
+                        </h4>
+                        <p className="text-[11px] sm:text-xs text-gray-500">
                           {lote.hectareas.toFixed(2)} ha
                         </p>
                       </div>
-
-                      {/* Color indicador */}
                       <div
-                        className="w-5 h-5 rounded"
+                        className="w-5 h-5 sm:w-6 sm:h-6 rounded"
                         style={{
                           backgroundColor:
-                            vistaActual === 'indice'
-                              ? '#10b981'
-                              : vistaActual === 'cultivo'
-                              ? COLORES_CULTIVOS[lote.cultivos?.[0]?.tipoCultivo] || '#D3D3D3'
-                              : ndvi?.validPixels > 0
-                              ? getColorNDVI(ndvi?.promedio)
-                              : '#CCCCCC'
+                            vistaActual === 'cultivo'
+                              ? lote.cultivos && lote.cultivos.length > 0
+                                ? COLORES_CULTIVOS[
+                                    lote.cultivos[0].tipoCultivo
+                                  ] || '#10b981'
+                                : '#D3D3D3'
+                              : vistaActual === 'ndvi' &&
+                                ndvi?.promedio !== null &&
+                                ndvi?.validPixels > 0
+                              ? getColorNDVI(ndvi.promedio)
+                              : vistaActual === 'ndvi'
+                              ? '#CCCCCC'
+                              : '#10b981',
                         }}
-                      ></div>
+                      />
                     </div>
 
                     {vistaActual === 'ndvi' && (
-                      <div className="text-xs mb-1">
-                        {ndvi?.validPixels > 0 ? (
-                          <span className="text-gray-700">
-                            NDVI: <strong>{ndvi.promedio.toFixed(3)}</strong>
-                          </span>
+                      <>
+                        {ndvi?.promedio !== null && ndvi?.validPixels > 0 ? (
+                          <div className="mb-1.5 bg-green-50 rounded px-2 py-1">
+                            <div className="text-[11px] sm:text-xs text-gray-600">
+                              📊 NDVI:{' '}
+                              <span className="font-semibold">
+                                {ndvi.promedio.toFixed(3)}
+                              </span>
+                              <span className="text-gray-500 ml-1">
+                                {ndvi.promedio >= 0.7
+                                  ? '(Excelente)'
+                                  : ndvi.promedio >= 0.5
+                                  ? '(Bueno)'
+                                  : ndvi.promedio >= 0.3
+                                  ? '(Regular)'
+                                  : '(Bajo)'}
+                              </span>
+                            </div>
+                          </div>
                         ) : (
-                          <span className="text-red-600">Sin datos NDVI</span>
+                          <div className="mb-1.5 bg-red-50 rounded px-2 py-1">
+                            <div className="text-[11px] sm:text-xs text-red-600">
+                              ⚠️ Sin datos satelitales disponibles
+                            </div>
+                          </div>
                         )}
-                      </div>
+                      </>
                     )}
 
                     {vistaActual === 'cultivo' && (
-                      <div className="text-xs mb-1">
-                        {lote.cultivos?.length > 0 ? (
-                          <span>🌾 {lote.cultivos.map(c => c.tipoCultivo).join(', ')}</span>
+                      <div className="mb-1.5">
+                        {lote.cultivos && lote.cultivos.length > 0 ? (
+                          <div className="text-[11px] sm:text-xs text-gray-600">
+                            🌾 {lote.cultivos.map((c) => c.tipoCultivo).join(', ')}
+                          </div>
                         ) : (
-                          <span className="text-gray-400 italic">Sin cultivos</span>
+                          <div className="text-[11px] sm:text-xs text-gray-400 italic">
+                            Sin cultivos
+                          </div>
                         )}
                       </div>
                     )}
 
-                    {/* Animales */}
                     {totalAnimales > 0 ? (
-                      <div className="text-xs text-gray-700">
+                      <div className="text-[11px] sm:text-xs text-gray-600">
                         🐄 {totalAnimales}{' '}
-                        <span className="text-gray-500">
-                          ({lote.animalesLote.map(a => a.categoria).join(', ')})
-                        </span>
+                        {lote.animalesLote && lote.animalesLote.length > 0 && (
+                          <span className="text-gray-500">
+                            (
+                            {lote.animalesLote
+                              .map((a) => a.categoria)
+                              .join(', ')}
+                            )
+                          </span>
+                        )}
                       </div>
                     ) : (
-                      <div className="text-xs text-gray-400 italic">
+                      <div className="text-[11px] sm:text-xs text-gray-400 italic">
                         Sin animales
                       </div>
                     )}
@@ -457,7 +694,6 @@ export default function MapaPage() {
               })}
             </div>
           </div>
-
         </div>
       </div>
     </div>
