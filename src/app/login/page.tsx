@@ -4,6 +4,7 @@ import { signIn } from "next-auth/react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link"; // ← agregué esto que te faltaba
 
 export default function LoginPage() {
   const router = useRouter();
@@ -39,39 +40,38 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 px-4">
-
+    <>
       {/* CARD LOGIN */}
-      <div className="bg-white p-10 rounded-2xl shadow-xl w-full max-w-md border border-gray-200">
-
-        {/* 🔥 LOGO ARRIBA ESTILO FIELDDATA */}
-        <div className="flex flex-col items-center mb-6">
-          <Image 
-  src="/BoTRURAL.svg"
-  alt="BotRural"
-  width={180}
-  height={180}
-  className="mx-auto mb-4 w-32 sm:w-40 md:w-48"
-  priority
-/>
-          <h1 className="text-3xl font-bold text-gray-900">Iniciar sesión</h1>
-          <p className="text-gray-500 text-sm mt-1">
-            Ingresa tus credenciales para continuar
-          </p>
+      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8">
+        {/* LOGO ARRIBA */}
+        <div className="flex justify-center mb-8">
+          <Image
+            src="/logo.png"
+            alt="Logo"
+            width={80}
+            height={80}
+            className="rounded-xl"
+          />
         </div>
 
+        <h2 className="text-3xl font-bold text-center text-gray-800 mb-2">
+          Iniciar sesión
+        </h2>
+        <p className="text-center text-gray-600 mb-6">
+          Ingresa tus credenciales para continuar
+        </p>
+
         {error && (
-          <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+          <div className="bg-red-50 text-red-600 p-4 rounded-lg text-sm mb-6 text-center">
             {error}
           </div>
         )}
 
         {/* FORMULARIO */}
-        <form onSubmit={handleLogin} className="space-y-4">
-
+        <form onSubmit={handleLogin} className="space-y-5">
           {/* Email */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               Email
             </label>
             <input
@@ -86,7 +86,7 @@ export default function LoginPage() {
 
           {/* Contraseña */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               Contraseña
             </label>
             <input
@@ -99,31 +99,32 @@ export default function LoginPage() {
             />
           </div>
 
-          {/* Botón */}
+          {/* Botón con tu verde exacto */}
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition font-medium shadow-md disabled:opacity-50"
+            className="w-full bg-[#008838] hover:bg-[#006b2d] text-white font-bold py-4 rounded-lg transition shadow-md disabled:opacity-70"
           >
-            {loading ? "⏳ Cargando..." : "🚀 Iniciar Sesión"}
+            {loading ? "Cargando..." : "Iniciar Sesión"}
           </button>
         </form>
 
         {/* Links */}
-        <p className="text-center text-gray-600 text-sm mt-6">
+        <div className="mt-6 text-center">
           ¿No tienes cuenta?{" "}
-          <a href="/register" className="text-green-600 font-medium hover:underline">
+          <Link
+            href="/register"
+            className="font-semibold text-[#008838] hover:text-[#006b2d] transition underline"
+          >
             Regístrate aquí
-          </a>
-        </p>
+          </Link>
+        </div>
       </div>
 
       {/* FOOTER */}
-      <div className="mt-4 text-center text-sm text-gray-500">
-        <a href="/privacy" className="hover:text-gray-700">Política de Privacidad</a>
-        {" • "}
-        <a href="/terms" className="hover:text-gray-700">Términos de Uso</a>
+      <div className="mt-10 text-center text-xs text-gray-500">
+        Política de Privacidad {" • "} Términos de Uso
       </div>
-    </div>
+    </>
   );
 }
