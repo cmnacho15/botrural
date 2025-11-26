@@ -90,8 +90,8 @@ function ModalFiltroTipoDato({
         { value: 'VENTA', label: 'Venta', icon: '💵' },
         { value: 'COMPRA', label: 'Compra', icon: '🛒' },
         { value: 'TRASLADO', label: 'Traslado', icon: '🚚' },
-        { value: 'NACIMIENTO', label: 'Nacimiento', icon: '🐣' },
-        { value: 'MORTANDAD', label: 'Mortandad', icon: '💀' },
+        { value: 'NACIMIENTO', label: 'Nacimiento', icon: '➕' },
+        { value: 'MORTANDAD', label: 'Mortandad', icon: '➖' },
         { value: 'CONSUMO', label: 'Consumo', icon: '🌾' },
         { value: 'ABORTO', label: 'Aborto', icon: '⊗' },
         { value: 'DESTETE', label: 'Destete', icon: '🥛' },
@@ -121,15 +121,15 @@ function ModalFiltroTipoDato({
     {
       category: 'Insumos',
       items: [
-        { value: 'USO_INSUMO', label: 'Uso de Insumos', icon: '📦' },
-        { value: 'INGRESO_INSUMO', label: 'Ingreso de Insumos', icon: '📥' },
+        { value: 'USO_INSUMO', label: 'Uso de Insumos', icon: '🔻' },
+        { value: 'INGRESO_INSUMO', label: 'Ingreso de Insumos', icon: '📦' },
       ],
     },
     {
       category: 'Finanzas',
       items: [
-        { value: 'GASTO', label: 'Gasto', icon: '💰' },
-        { value: 'INGRESO', label: 'Ingreso', icon: '👤' },
+        { value: 'GASTO', label: 'Gasto', icon: '💸' },
+        { value: 'INGRESO', label: 'Ingreso', icon: '💰' },
       ],
     },
   ]
