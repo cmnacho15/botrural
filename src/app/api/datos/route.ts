@@ -205,7 +205,7 @@ eventos
         descripcion: `${mov.tipo === 'INGRESO' ? 'Ingreso' : 'Uso'} de ${
           mov.insumo.nombre
         }`,
-        icono: mov.tipo === 'INGRESO' ? '📦' : '🧪',
+        icono: mov.tipo === 'INGRESO' ? '📦' : '🔻',
         usuario: null,
         lote: mov.lote?.nombre || null,
         // ✅ Campos directos
