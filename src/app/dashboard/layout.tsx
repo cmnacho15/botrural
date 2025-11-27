@@ -121,7 +121,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
     <div className="flex flex-col min-h-screen bg-gray-50">
 
       {/* HEADER */}
-      <header className="bg-white border-b px-3 sm:px-4 py-3 flex items-center justify-between sticky top-0 z-50">
+      <header className="bg-white border-b px-3 sm:px-4 py-3 flex items-center justify-between sticky top-0 z-20">
         <div className="flex items-center gap-2 sm:gap-3">
           <button
             onClick={() => setSidebarOpen(true)}
@@ -302,10 +302,10 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
       {/* SIDEBAR */}
       <div className="flex flex-1 overflow-hidden">
         <aside
-  className={`fixed lg:static inset-y-0 left-0 w-64 sm:w-72 lg:w-60 bg-white border-r transition-transform duration-300 z-40 ${
-            sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
-          } overflow-y-auto`}
-        >
+  className={`fixed lg:static inset-y-0 left-0 w-64 sm:w-72 lg:w-60 bg-white border-r transition-transform duration-300 z-30 ${
+    sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+  } overflow-y-auto`}
+>
           <nav className="p-3 sm:p-4 space-y-4 sm:space-y-6 pb-20 lg:pb-4">
             {menuSections.map((section, i) => (
               <div key={i}>
@@ -317,15 +317,15 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                   const isActive = pathname.startsWith(item.href);
                   return (
                     <Link
-                      key={item.href}
-                      href={item.href}
-                      className={`flex items-center gap-2 px-3 sm:px-4 py-2.5 sm:py-2 rounded-lg text-sm ${
-                        isActive
-                          ? "bg-blue-50 text-blue-600 font-medium"
-                          : "text-gray-700 hover:bg-gray-100"
-                      }`}
-                      onClick={() => setSidebarOpen(false)}
-                    >
+  key={item.href}
+  href={item.href}
+  className={`flex items-center gap-2 px-3 sm:px-4 py-2.5 sm:py-2 rounded-lg text-sm ${
+    isActive
+      ? "bg-blue-50 text-blue-600 font-medium"
+      : "text-gray-700 hover:bg-gray-100"
+  }`}
+  onClick={() => setSidebarOpen(false)}
+>
                       <span className="text-base sm:text-lg">{item.icon}</span> 
                       <span className="text-sm sm:text-base">{item.label}</span>
                     </Link>
