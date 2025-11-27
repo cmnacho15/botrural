@@ -381,34 +381,30 @@ enum TipoEvento {
   AJUSTE
   CAMBIO_POTRERO
 
-  // 🟢 NUEVOS TIPOS SNIG
-  SNIG_STOCK_INICIAL
-  SNIG_NACIMIENTO_CARAVANEO
-  SNIG_COMPRA
-  SNIG_VENTA
-  SNIG_MORTANDAD
+  STOCK_INICIAL
+
 }
 
 model SnigAnimal {
-  id         String   @id @default(cuid())
-  caravana   String   @unique
-  estado     SnigEstado
-  origen     SnigOrigen
-  fechaAlta  DateTime @default(now())
-  fechaBaja  DateTime?
-  campoId    String
-  meta       Json?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  // NUEVOS CAMPOS
-  fechaEvento DateTime?
+  id          String     @id @default(cuid())
+  caravana    String
+  estado      SnigEstado @default(EN_CAMPO)
+  origen      SnigOrigen @default(DESCONOCIDO)
+  fechaAlta   DateTime   @default(now())
+  fechaBaja   DateTime?
+  campoId     String
   sessionId   String?
-  session     SnigUploadSession? @relation(fields: [sessionId], references: [id])
+  fechaEvento DateTime?
+  meta        Json?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
 
-  campo Campo @relation(fields: [campoId], references: [id], onDelete: Cascade)
+  session SnigUploadSession? @relation(fields: [sessionId], references: [id])
+  campo   Campo              @relation(fields: [campoId], references: [id], onDelete: Cascade)
 
+  @@unique([caravana, campoId])
   @@index([campoId])
+  @@index([sessionId])
 }
 
 enum SnigEstado {
@@ -427,15 +423,20 @@ enum SnigOrigen {
 
 
 model SnigUploadSession {
-  id        String       @id @default(cuid())
-  campoId   String
-  usuarioId String?
-  fecha     DateTime     @default(now())
-  tipoDetectado String   @default("PENDIENTE")
-  estado    String       @default("PENDIENTE")
+  id            String       @id @default(cuid())
+  campoId       String
+  usuarioId     String?
+  fechaSnig     DateTime
+  cantidadTotal Int
+  estado        String       @default("PENDIENTE")
+  tipoDetectado String       @default("PENDIENTE")
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
 
   animales  SnigAnimal[]
-
   campo     Campo    @relation(fields: [campoId], references: [id], onDelete: Cascade)
   usuario   User?    @relation(fields: [usuarioId], references: [id])
+  
+  @@index([campoId])
+  @@index([estado])
 }
