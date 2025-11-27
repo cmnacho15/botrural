@@ -7,6 +7,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+
 model User {
   id                    String       @id @default(cuid())
   email                 String?      @unique
@@ -29,6 +30,9 @@ model User {
   usedInvitations       Invitation[] @relation("UsedInvitations")
   sessions              Session[]
   campo                 Campo?       @relation(fields: [campoId], references: [id])
+  
+  // 🟢 LADO INVERSO DE SnigUploadSession
+  snigUploadSessions    SnigUploadSession[]
 }
 
 model Account {
@@ -80,6 +84,10 @@ model Campo {
   tiposCultivo TipoCultivo[]
   categoriasAnimal CategoriaAnimal[] // ← AGREGAR ESTA LÍNEA
   categoriasGasto CategoriaGasto[]
+
+  // 🟢 NUEVA RELACIÓN SNIG
+  snigAnimales     SnigAnimal[]
+  snigUploadSessions SnigUploadSession[]
 }
 
 model CategoriaGasto {
@@ -206,6 +214,9 @@ model Evento {
   campo           Campo       @relation(fields: [campoId], references: [id], onDelete: Cascade)
   lote            Lote?       @relation(fields: [loteId], references: [id])
   usuario         User?       @relation(fields: [usuarioId], references: [id])  // ✅ AGREGAR "?" ACÁ TAMBIÉN
+
+    caravanas   Json?        // ← lista de caravanas involucradas (venta, compra, mortandad)
+  origenSnig  String?      // "BOT" | "WEB" | null
 }
 
 model Insumo {
@@ -367,4 +378,62 @@ enum TipoEvento {
   GASTO
   AJUSTE
   CAMBIO_POTRERO
+
+  // 🟢 NUEVOS TIPOS SNIG
+  SNIG_STOCK_INICIAL
+  SNIG_NACIMIENTO_CARAVANEO
+  SNIG_COMPRA
+  SNIG_VENTA
+  SNIG_MORTANDAD
+}
+
+model SnigAnimal {
+  id         String   @id @default(cuid())
+  caravana   String   @unique
+  estado     SnigEstado
+  origen     SnigOrigen
+  fechaAlta  DateTime @default(now())
+  fechaBaja  DateTime?
+  campoId    String
+  meta       Json?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // NUEVOS CAMPOS
+  fechaEvento DateTime?
+  sessionId   String?
+  session     SnigUploadSession? @relation(fields: [sessionId], references: [id])
+
+  campo Campo @relation(fields: [campoId], references: [id], onDelete: Cascade)
+
+  @@index([campoId])
+}
+
+enum SnigEstado {
+  EN_CAMPO
+  VENDIDO
+  MUERTO
+}
+
+enum SnigOrigen {
+  STOCK_INICIAL
+  NACIMIENTO
+  COMPRA
+  DESCONOCIDO
+}
+
+
+
+model SnigUploadSession {
+  id        String       @id @default(cuid())
+  campoId   String
+  usuarioId String?
+  fecha     DateTime     @default(now())
+  tipoDetectado String   @default("PENDIENTE")
+  estado    String       @default("PENDIENTE")
+
+  animales  SnigAnimal[]
+
+  campo     Campo    @relation(fields: [campoId], references: [id], onDelete: Cascade)
+  usuario   User?    @relation(fields: [usuarioId], references: [id])
 }
