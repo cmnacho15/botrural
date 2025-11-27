@@ -618,7 +618,7 @@ export default function MapaPoligono({
       {/* 🖥️ BOTÓN DE PANTALLA COMPLETA - Arriba a la izquierda */}
 <button
   onClick={toggleFullscreen}
-  className="hidden sm:flex absolute top-3 left-3 z-[50] bg-white rounded-lg shadow-lg hover:shadow-xl transition-all w-[34px] h-[34px] sm:w-[36px] sm:h-[36px] items-center justify-center border-2 border-gray-300"
+  className="hidden sm:flex absolute top-3 left-3 z-[10] bg-white rounded-lg shadow-lg hover:shadow-xl transition-all w-[34px] h-[34px] sm:w-[36px] sm:h-[36px] items-center justify-center border-2 border-gray-300"
   title={isFullscreen ? "Salir de pantalla completa" : "Pantalla completa"}
 >
         {isFullscreen ? (
@@ -638,7 +638,7 @@ export default function MapaPoligono({
       <button
         onClick={ubicarUsuario}
         disabled={ubicandoUsuario}
-        className="absolute top-[70px] right-3 z-[50] bg-white rounded-lg shadow-lg hover:shadow-xl transition-all w-[34px] h-[34px] sm:w-[36px] sm:h-[36px] flex items-center justify-center disabled:opacity-50 border-2 border-gray-300"
+        className="absolute top-[70px] right-3 z-[10] bg-white rounded-lg shadow-lg hover:shadow-xl transition-all w-[34px] h-[34px] sm:w-[36px] sm:h-[36px] flex items-center justify-center disabled:opacity-50 border-2 border-gray-300"
         title="Mi ubicación"
       >
         {ubicandoUsuario ? (
@@ -656,7 +656,7 @@ export default function MapaPoligono({
       </button>
 
       {!readOnly && (
-        <div className="absolute top-4 left-4 right-4 z-[50] md:left-16 md:w-96">
+        <div className="absolute top-4 left-4 right-4 z-[10] md:left-16 md:w-96">
           <div className="bg-white rounded-lg shadow-lg p-3">
             <div className="flex gap-2">
               <input
@@ -696,7 +696,7 @@ export default function MapaPoligono({
 
 
       {!readOnly && areaHectareas !== null && (
-        <div className="absolute top-4 right-4 z-[50] bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg">
+        <div className="absolute top-4 right-4 z-[10] bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg">
           <div className="text-sm">Área:</div>
           <div className="text-xl font-bold">{areaHectareas.toFixed(2)} ha</div>
         </div>
@@ -705,7 +705,7 @@ export default function MapaPoligono({
       <div id="map" className="flex-1 w-full h-full relative z-0" />
 
       {!readOnly && (
-        <div className="absolute bottom-4 left-4 right-4 z-[50] flex flex-col sm:flex-row gap-3">
+        <div className="absolute bottom-4 left-4 right-4 z-[10] flex flex-col sm:flex-row gap-3">
           <button
             onClick={confirmarPoligono}
             className="flex-1 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg"
