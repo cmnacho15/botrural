@@ -302,9 +302,9 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
       {/* SIDEBAR */}
       <div className="flex flex-1">
         <aside
-  className={`fixed lg:sticky lg:top-0 inset-y-0 left-0 w-64 sm:w-72 lg:w-60 bg-white border-r transition-transform duration-300 z-30 ${
+  className={`fixed lg:sticky lg:top-[73px] inset-y-0 left-0 w-64 sm:w-72 lg:w-60 bg-white border-r transition-transform duration-300 z-30 ${
     sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
-  } overflow-y-auto lg:h-screen`}
+  } overflow-y-auto lg:max-h-[calc(100vh-73px)]`}
 >
           <nav className="p-3 sm:p-4 space-y-4 sm:space-y-6 pb-20 lg:pb-4">
             {menuSections.map((section, i) => (
