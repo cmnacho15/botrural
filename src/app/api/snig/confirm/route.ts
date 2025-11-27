@@ -20,7 +20,8 @@ export async function POST(req: Request) {
     console.log("📥 [CONFIRM] Datos recibidos:", { 
       snigSessionId, 
       accion, 
-      cantidadCaravanas: caravanas?.length 
+      cantidadCaravanas: caravanas?.length,
+      campoId
     });
 
     // Validaciones básicas

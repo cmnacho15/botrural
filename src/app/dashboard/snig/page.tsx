@@ -167,17 +167,17 @@ export default function SnigPage() {
     setLoadingConfirm(true);
 
     try {
-      // ✅ Preparar body según la acción
+      // ✅ Siempre enviar las caravanas
       const body: any = {
         snigSessionId,
         accion,
+        caravanas,  // ✅ Siempre las enviamos
         campoId,
         usuarioId,
       };
 
-      // ✅ STOCK_INICIAL no necesita enviar caravanas, categoría ni lote
+      // ✅ Agregar campos opcionales según la acción
       if (accion !== "STOCK_INICIAL") {
-        body.caravanas = caravanas;
         body.categoria = categoria;
         body.loteId = loteId;
         
@@ -186,7 +186,11 @@ export default function SnigPage() {
         }
       }
 
-      console.log("📤 Enviando confirmación:", body);
+      console.log("📤 Enviando confirmación:", {
+        ...body,
+        accionEsStockInicial: accion === "STOCK_INICIAL",
+        caravanasLength: caravanas?.length
+      });
 
       const res = await fetch("/api/snig/confirm", {
         method: "POST",
