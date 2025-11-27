@@ -32,28 +32,39 @@ const CATEGORIAS_PREDETERMINADAS = {
   ],
 }
 
-// GET - Obtener todas las categorías (predeterminadas + personalizadas)
-export async function GET() {
+// ✅ FUNCIÓN GET MODIFICADA
+export async function GET(request: Request) {
   try {
     const session = await getServerSession(authOptions)
     
-    if (!session?.user?.id) {
+    // ✅ NUEVO: Extraer campoId de la URL si viene como parámetro
+    const { searchParams } = new URL(request.url);
+    const campoIdParam = searchParams.get("campoId");
+    
+    let campoId: string | null = null;
+    
+    // ✅ NUEVO: Lógica de dos caminos
+    if (campoIdParam) {
+      // Camino 1: Si viene campoId por parámetro, usarlo (para SNIG)
+      campoId = campoIdParam;
+    } else if (session?.user?.id) {
+      // Camino 2: Si no viene parámetro, usar el de la sesión (código existente)
+      const usuario = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { campoId: true },
+      })
+      campoId = usuario?.campoId || null;
+    }
+    
+    // Validar que tenemos campoId
+    if (!campoId) {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
     }
 
-    const usuario = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { campoId: true },
-    })
-
-    if (!usuario?.campoId) {
-      return NextResponse.json({ error: 'Usuario sin campo' }, { status: 400 })
-    }
-
-    // ✅ SOLO devolver categorías de la base de datos
+    // ✅ Buscar categorías (esta parte NO cambia)
     const categorias = await prisma.categoriaAnimal.findMany({
       where: {
-        campoId: usuario.campoId,
+        campoId: campoId,
       },
       select: {
         id: true,
@@ -79,8 +90,7 @@ export async function GET() {
   }
 }
 
-
-// POST - Crear nueva categoría personalizada
+// ✅ POST - NO CAMBIA NADA
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions)
@@ -147,7 +157,7 @@ export async function POST(request: Request) {
   }
 }
 
-// PATCH - Actualizar estado activo de una categoría
+// ✅ PATCH - NO CAMBIA NADA
 export async function PATCH(request: Request) {
   try {
     const session = await getServerSession(authOptions)

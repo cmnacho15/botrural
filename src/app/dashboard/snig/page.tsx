@@ -34,30 +34,47 @@ export default function SnigPage() {
   // CARGAR LOTES Y CATEGORÍAS AL MONTAR
   // ===========================================
   useEffect(() => {
-    if (status === "authenticated") {
-      loadLotesYCategorias();
-    }
-  }, [status]);
+  if (status === "authenticated" && campoId) { // ✅ AGREGADO: && campoId
+    console.log("✅ Usuario autenticado con campoId:", campoId); // ✅ AGREGADO
+    loadLotesYCategorias();
+  }
+}, [status, campoId]); // ✅ CAMBIADO: Agregado campoId como dependencia
 
   const loadLotesYCategorias = async () => {
-    try {
-      // Cargar lotes (tu API ya maneja la autenticación internamente)
-      const resLotes = await fetch("/api/lotes");
-      if (resLotes.ok) {
-        const lotesData = await resLotes.json();
-        setLotes(lotesData);
-      }
+  try {
+    console.log("🔄 Cargando lotes y categorías..."); // ✅ AGREGADO
 
-      // Cargar categorías (tu API ya maneja la autenticación internamente)
-      const resCat = await fetch("/api/categorias-animales");
-      if (resCat.ok) {
-        const catData = await resCat.json();
-        setCategorias(catData);
-      }
-    } catch (error) {
-      console.error("Error cargando lotes y categorías:", error);
+    // ✅ AGREGADO: Validar que tenemos campoId
+    if (!campoId) {
+      console.warn("⚠️ No hay campoId todavía, esperando...");
+      return;
     }
-  };
+
+    // Cargar lotes (esto no cambia)
+    const resLotes = await fetch("/api/lotes");
+    console.log("📦 Respuesta lotes:", resLotes.status); // ✅ AGREGADO
+    if (resLotes.ok) {
+      const lotesData = await resLotes.json();
+      console.log("📦 Lotes cargados:", lotesData); // ✅ AGREGADO
+      setLotes(lotesData);
+    }
+
+    // ✅ CAMBIADO: URL corregida + campoId como parámetro
+    const resCat = await fetch(`/api/categorias-animal?campoId=${campoId}`);
+    console.log("🏷️ Respuesta categorías:", resCat.status); // ✅ AGREGADO
+    
+    if (resCat.ok) {
+      const catData = await resCat.json();
+      console.log("🏷️ Categorías cargadas:", catData); // ✅ AGREGADO
+      setCategorias(catData);
+    } else {
+      const errorText = await resCat.text(); // ✅ AGREGADO
+      console.error("❌ Error cargando categorías:", errorText); // ✅ AGREGADO
+    }
+  } catch (error) {
+    console.error("❌ Error cargando lotes y categorías:", error);
+  }
+};
 
   // ===========================================
   // 1) SUBIR ARCHIVO SNIG
