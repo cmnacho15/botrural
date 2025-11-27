@@ -302,7 +302,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
       {/* SIDEBAR */}
       <div className="flex flex-1">
         <aside
-  className={`fixed lg:sticky lg:top-0 lg:h-screen inset-y-0 left-0 w-64 sm:w-72 lg:w-60 bg-white border-r transition-transform duration-300 z-30 ${
+  className={`fixed lg:sticky lg:top-[57px] lg:h-[calc(100vh-57px)] inset-y-0 left-0 w-64 sm:w-72 lg:w-60 bg-white border-r transition-transform duration-300 z-30 ${
     sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
   } overflow-y-auto`}
 >
