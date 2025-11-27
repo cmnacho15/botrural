@@ -17,6 +17,12 @@ export async function POST(req: Request) {
       campoId
     } = body;
 
+    console.log("📥 [CONFIRM] Datos recibidos:", { 
+      snigSessionId, 
+      accion, 
+      cantidadCaravanas: caravanas?.length 
+    });
+
     // Validaciones básicas
     if (!snigSessionId || !accion || !caravanas || caravanas.length === 0) {
       return NextResponse.json(
@@ -52,10 +58,23 @@ export async function POST(req: Request) {
       );
     }
 
-    // 2️⃣ Filtrar animales de esta sesión que coincidan con las caravanas
-    const animalesProcesados = snigSession.animales.filter(a =>
-      caravanas.includes(a.caravana)
-    );
+    console.log(`📦 [CONFIRM] Sesión encontrada con ${snigSession.animales.length} animales`);
+
+    // 2️⃣ STOCK_INICIAL: usar TODOS los animales de la sesión
+    //    Otras acciones: filtrar por caravanas específicas
+    let animalesProcesados;
+    
+    if (accion === "STOCK_INICIAL") {
+      // ✅ En STOCK_INICIAL usamos TODOS los animales de la sesión
+      animalesProcesados = snigSession.animales;
+      console.log(`📦 [STOCK_INICIAL] Procesando ${animalesProcesados.length} animales de la sesión`);
+    } else {
+      // Para otras acciones, filtramos por las caravanas específicas
+      animalesProcesados = snigSession.animales.filter(a =>
+        caravanas.includes(a.caravana)
+      );
+      console.log(`🔄 [${accion}] Filtrando ${animalesProcesados.length} animales de ${caravanas.length} caravanas`);
+    }
 
     if (animalesProcesados.length === 0) {
       return NextResponse.json(
@@ -63,8 +82,6 @@ export async function POST(req: Request) {
         { status: 404 }
       );
     }
-
-    console.log(`🔄 Procesando ${animalesProcesados.length} animales para acción: ${accion}`);
 
     // 3️⃣ Mapear acción a TipoEvento y SnigEstado
     let tipoEvento: TipoEvento;
@@ -90,7 +107,7 @@ export async function POST(req: Request) {
       case "VENTA":
         tipoEvento = "VENTA";
         estadoFinal = "VENDIDO";
-        origenFinal = "COMPRA"; // mantener origen original
+        origenFinal = "COMPRA";
         break;
       case "MORTANDAD":
         tipoEvento = "MORTANDAD";
@@ -112,6 +129,8 @@ export async function POST(req: Request) {
     const cantidad = animalesProcesados.length;
     const fechaEvento = new Date();
 
+    console.log(`🔄 Procesando ${cantidad} animales para acción: ${accion}`);
+
     // 4️⃣ ACTUALIZAR ANIMALES SNIG
     await prisma.snigAnimal.updateMany({
       where: {
@@ -125,36 +144,38 @@ export async function POST(req: Request) {
       }
     });
 
+    console.log(`✅ Actualizados ${cantidad} registros en SnigAnimal`);
+
     // 5️⃣ ACTUALIZAR POTREROS (AnimalLote)
-// ⚠️ STOCK_INICIAL solo registra caravanas, NO modifica potreros
-if (["NACIMIENTO", "COMPRA"].includes(accion)) {
-  // SUMAR animales al potrero
-  if (!loteId || !categoria) {
-    return NextResponse.json(
-      { error: "Para esta acción se requiere loteId y categoria" },
-      { status: 400 }
-    );
-  }
-
-  await prisma.animalLote.upsert({
-    where: {
-      loteId_categoria: {
-        loteId,
-        categoria
+    // ⚠️ STOCK_INICIAL solo registra caravanas, NO modifica potreros
+    if (["NACIMIENTO", "COMPRA"].includes(accion)) {
+      // SUMAR animales al potrero
+      if (!loteId || !categoria) {
+        return NextResponse.json(
+          { error: "Para esta acción se requiere loteId y categoria" },
+          { status: 400 }
+        );
       }
-    },
-    update: {
-      cantidad: { increment: cantidad }
-    },
-    create: {
-      loteId,
-      categoria,
-      cantidad
-    }
-  });
 
-  console.log(`✅ Sumados ${cantidad} animales a lote ${loteId}, categoría ${categoria}`);
-}
+      await prisma.animalLote.upsert({
+        where: {
+          loteId_categoria: {
+            loteId,
+            categoria
+          }
+        },
+        update: {
+          cantidad: { increment: cantidad }
+        },
+        create: {
+          loteId,
+          categoria,
+          cantidad
+        }
+      });
+
+      console.log(`✅ Sumados ${cantidad} animales a lote ${loteId}, categoría ${categoria}`);
+    }
 
     if (["VENTA", "MORTANDAD"].includes(accion)) {
       // RESTAR animales del potrero
@@ -265,6 +286,8 @@ if (["NACIMIENTO", "COMPRA"].includes(accion)) {
     }
 
     // 6️⃣ REGISTRAR EVENTO
+    const caravanasParaEvento = animalesProcesados.map(a => a.caravana);
+    
     await prisma.evento.create({
       data: {
         tipo: tipoEvento,
@@ -276,10 +299,12 @@ if (["NACIMIENTO", "COMPRA"].includes(accion)) {
         categoria: categoria || null,
         loteId: loteId || null,
         loteDestinoId: accion === "TRASLADO" ? loteDestinoId : null,
-        caravanas: JSON.parse(JSON.stringify(caravanas)), // ✅ Convertir a JSON explícitamente
+        caravanas: JSON.parse(JSON.stringify(caravanasParaEvento)),
         origenSnig: "WEB"
       }
     });
+
+    console.log(`✅ Evento registrado: ${tipoEvento}`);
 
     // 7️⃣ CERRAR SESIÓN SNIG
     await prisma.snigUploadSession.update({
@@ -296,7 +321,7 @@ if (["NACIMIENTO", "COMPRA"].includes(accion)) {
       ok: true,
       mensaje: `Acción SNIG "${accion}" procesada correctamente`,
       cantidad,
-      caravanas
+      caravanas: caravanasParaEvento
     });
 
   } catch (error: any) {
