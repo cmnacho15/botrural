@@ -93,8 +93,11 @@ export default function SnigPage() {
       });
 
       const data = await res.json();
+      
+      console.log("📥 Respuesta del servidor:", data); // ✅ DEBUG
 
       if (!res.ok) {
+        console.error("❌ Error del servidor:", data);
         alert(data.error || "Error procesando SNIG");
         return;
       }
