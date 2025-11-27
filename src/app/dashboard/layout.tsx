@@ -121,7 +121,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
     <div className="flex flex-col min-h-screen bg-gray-50">
 
       {/* HEADER */}
-      <header className="bg-white border-b px-3 sm:px-4 py-3 flex items-center justify-between sticky top-0 z-20">
+      <header className="bg-white border-b px-3 sm:px-4 py-3 flex items-center justify-between sticky top-0 z-40">
         <div className="flex items-center gap-2 sm:gap-3">
           <button
             onClick={() => setSidebarOpen(true)}
