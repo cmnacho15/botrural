@@ -34,47 +34,46 @@ export default function SnigPage() {
   // CARGAR LOTES Y CATEGORÍAS AL MONTAR
   // ===========================================
   useEffect(() => {
-  if (status === "authenticated" && campoId) { // ✅ AGREGADO: && campoId
-    console.log("✅ Usuario autenticado con campoId:", campoId); // ✅ AGREGADO
-    loadLotesYCategorias();
-  }
-}, [status, campoId]); // ✅ CAMBIADO: Agregado campoId como dependencia
+    if (status === "authenticated" && campoId) {
+      console.log("✅ Usuario autenticado con campoId:", campoId);
+      loadLotesYCategorias();
+    }
+  }, [status, campoId]);
 
   const loadLotesYCategorias = async () => {
-  try {
-    console.log("🔄 Cargando lotes y categorías..."); // ✅ AGREGADO
+    try {
+      console.log("🔄 Cargando lotes y categorías...");
 
-    // ✅ AGREGADO: Validar que tenemos campoId
-    if (!campoId) {
-      console.warn("⚠️ No hay campoId todavía, esperando...");
-      return;
-    }
+      if (!campoId) {
+        console.warn("⚠️ No hay campoId todavía, esperando...");
+        return;
+      }
 
-    // Cargar lotes (esto no cambia)
-    const resLotes = await fetch("/api/lotes");
-    console.log("📦 Respuesta lotes:", resLotes.status); // ✅ AGREGADO
-    if (resLotes.ok) {
-      const lotesData = await resLotes.json();
-      console.log("📦 Lotes cargados:", lotesData); // ✅ AGREGADO
-      setLotes(lotesData);
-    }
+      // Cargar lotes
+      const resLotes = await fetch("/api/lotes");
+      console.log("📦 Respuesta lotes:", resLotes.status);
+      if (resLotes.ok) {
+        const lotesData = await resLotes.json();
+        console.log("📦 Lotes cargados:", lotesData);
+        setLotes(lotesData);
+      }
 
-    // ✅ CAMBIADO: URL corregida + campoId como parámetro
-    const resCat = await fetch(`/api/categorias-animal?campoId=${campoId}`);
-    console.log("🏷️ Respuesta categorías:", resCat.status); // ✅ AGREGADO
-    
-    if (resCat.ok) {
-      const catData = await resCat.json();
-      console.log("🏷️ Categorías cargadas:", catData); // ✅ AGREGADO
-      setCategorias(catData);
-    } else {
-      const errorText = await resCat.text(); // ✅ AGREGADO
-      console.error("❌ Error cargando categorías:", errorText); // ✅ AGREGADO
+      // Cargar categorías
+      const resCat = await fetch(`/api/categorias-animal?campoId=${campoId}`);
+      console.log("🏷️ Respuesta categorías:", resCat.status);
+      
+      if (resCat.ok) {
+        const catData = await resCat.json();
+        console.log("🏷️ Categorías cargadas:", catData);
+        setCategorias(catData);
+      } else {
+        const errorText = await resCat.text();
+        console.error("❌ Error cargando categorías:", errorText);
+      }
+    } catch (error) {
+      console.error("❌ Error cargando lotes y categorías:", error);
     }
-  } catch (error) {
-    console.error("❌ Error cargando lotes y categorías:", error);
-  }
-};
+  };
 
   // ===========================================
   // 1) SUBIR ARCHIVO SNIG
@@ -111,7 +110,7 @@ export default function SnigPage() {
 
       const data = await res.json();
       
-      console.log("📥 Respuesta del servidor:", data); // ✅ DEBUG
+      console.log("📥 Respuesta del servidor:", data);
 
       if (!res.ok) {
         console.error("❌ Error del servidor:", data);
@@ -149,17 +148,16 @@ export default function SnigPage() {
     }
 
     // Validaciones según acción
-// ✅ STOCK_INICIAL no necesita validaciones de categoría/potrero
-if (["NACIMIENTO", "COMPRA", "VENTA", "MORTANDAD", "TRASLADO"].includes(accion)) {
-  if (!categoria) {
-    alert("Seleccioná una categoría");
-    return;
-  }
-  if (!loteId) {
-    alert("Seleccioná un potrero");
-    return;
-  }
-}
+    if (["NACIMIENTO", "COMPRA", "VENTA", "MORTANDAD", "TRASLADO"].includes(accion)) {
+      if (!categoria) {
+        alert("Seleccioná una categoría");
+        return;
+      }
+      if (!loteId) {
+        alert("Seleccioná un potrero");
+        return;
+      }
+    }
 
     if (accion === "TRASLADO" && !loteDestinoId) {
       alert("Seleccioná un potrero destino");
@@ -169,18 +167,30 @@ if (["NACIMIENTO", "COMPRA", "VENTA", "MORTANDAD", "TRASLADO"].includes(accion))
     setLoadingConfirm(true);
 
     try {
+      // ✅ Preparar body según la acción
+      const body: any = {
+        snigSessionId,
+        accion,
+        campoId,
+        usuarioId,
+      };
+
+      // ✅ STOCK_INICIAL no necesita enviar caravanas, categoría ni lote
+      if (accion !== "STOCK_INICIAL") {
+        body.caravanas = caravanas;
+        body.categoria = categoria;
+        body.loteId = loteId;
+        
+        if (accion === "TRASLADO") {
+          body.loteDestinoId = loteDestinoId;
+        }
+      }
+
+      console.log("📤 Enviando confirmación:", body);
+
       const res = await fetch("/api/snig/confirm", {
         method: "POST",
-        body: JSON.stringify({
-          snigSessionId,
-          accion,
-          caravanas,
-          categoria,
-          loteId,
-          loteDestinoId,
-          campoId,
-          usuarioId,
-        }),
+        body: JSON.stringify(body),
         headers: {
           "Content-Type": "application/json",
         },
@@ -219,7 +229,6 @@ if (["NACIMIENTO", "COMPRA", "VENTA", "MORTANDAD", "TRASLADO"].includes(accion))
   // ===========================================
   // DETERMINAR SI MOSTRAR CAMPOS EXTRA
   // ===========================================
-  // ✅ STOCK_INICIAL no necesita categoría ni potrero
   const necesitaLoteYCategoria = ["NACIMIENTO", "COMPRA", "VENTA", "MORTANDAD", "TRASLADO"].includes(accion);
   const necesitaLoteDestino = accion === "TRASLADO";
 
@@ -404,9 +413,16 @@ if (["NACIMIENTO", "COMPRA", "VENTA", "MORTANDAD", "TRASLADO"].includes(accion))
         <ol className="list-decimal list-inside space-y-1 text-gray-700">
           <li>Subí el archivo TXT exportado desde el SNIG</li>
           <li>Elegí la acción que representa este movimiento</li>
-          <li>Completá los datos requeridos (categoría, potrero, etc.)</li>
+          <li>Completá los datos requeridos (categoría, potrero, etc.) si es necesario</li>
           <li>Confirmá la operación</li>
         </ol>
+        
+        <div className="mt-3 p-3 bg-white rounded border border-blue-100">
+          <p className="text-xs text-gray-600">
+            <strong>💡 Nota:</strong> Para STOCK_INICIAL no necesitás seleccionar categoría ni potrero.
+            Esta acción solo registra las caravanas en el sistema.
+          </p>
+        </div>
       </div>
     </div>
   );
