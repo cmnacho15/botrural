@@ -61,28 +61,31 @@ export async function POST(req: Request) {
 
     console.log(`📦 [CONFIRM] Sesión encontrada con ${snigSession.animales.length} animales`);
 
-    // 2️⃣ STOCK_INICIAL: usar TODOS los animales de la sesión
-    //    Otras acciones: filtrar por caravanas específicas
-    let animalesProcesados;
+    // 2️⃣ Obtener animales de la sesión SNIG
+    const animalesSnig = snigSession.animales;
     
-    if (accion === "STOCK_INICIAL") {
-      // ✅ En STOCK_INICIAL usamos TODOS los animales de la sesión
-      animalesProcesados = snigSession.animales;
-      console.log(`📦 [STOCK_INICIAL] Procesando ${animalesProcesados.length} animales de la sesión`);
-    } else {
-      // Para otras acciones, filtramos por las caravanas específicas
-      animalesProcesados = snigSession.animales.filter(a =>
-        caravanas.includes(a.caravana)
-      );
-      console.log(`🔄 [${accion}] Filtrando ${animalesProcesados.length} animales de ${caravanas.length} caravanas`);
-    }
-
-    if (animalesProcesados.length === 0) {
+    if (animalesSnig.length === 0) {
       return NextResponse.json(
-        { error: "No se encontraron animales de esta sesión con las caravanas proporcionadas" },
+        { error: "No se encontraron animales en esta sesión SNIG" },
         { status: 404 }
       );
     }
+
+    console.log(`📦 [CONFIRM] Procesando ${animalesSnig.length} animales de la sesión`);
+    
+    // Filtrar por caravanas si se proporcionaron (para acciones específicas)
+    const animalesProcesados = caravanas && caravanas.length > 0
+      ? animalesSnig.filter(a => caravanas.includes(a.caravana))
+      : animalesSnig;
+
+    if (animalesProcesados.length === 0) {
+      return NextResponse.json(
+        { error: "No se encontraron animales que coincidan con las caravanas proporcionadas" },
+        { status: 404 }
+      );
+    }
+
+    console.log(`✅ Procesando ${animalesProcesados.length} animales para acción: ${accion}`);
 
     // 3️⃣ Mapear acción a TipoEvento y SnigEstado
     let tipoEvento: TipoEvento;
@@ -148,8 +151,11 @@ export async function POST(req: Request) {
     console.log(`✅ Actualizados ${cantidad} registros en SnigAnimal`);
 
     // 5️⃣ ACTUALIZAR POTREROS (AnimalLote)
-    // ⚠️ STOCK_INICIAL solo registra caravanas, NO modifica potreros
-    if (["NACIMIENTO", "COMPRA"].includes(accion)) {
+    // ⚠️ STOCK_INICIAL NO modifica potreros (solo registra caravanas)
+    
+    if (accion === "STOCK_INICIAL") {
+      console.log(`📦 [STOCK_INICIAL] Solo se registraron caravanas, sin modificar potreros`);
+    } else if (["NACIMIENTO", "COMPRA"].includes(accion)) {
       // SUMAR animales al potrero
       if (!loteId || !categoria) {
         return NextResponse.json(
