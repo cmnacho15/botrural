@@ -149,16 +149,17 @@ export default function SnigPage() {
     }
 
     // Validaciones según acción
-    if (["STOCK_INICIAL", "NACIMIENTO", "COMPRA", "VENTA", "MORTANDAD", "TRASLADO"].includes(accion)) {
-      if (!categoria) {
-        alert("Seleccioná una categoría");
-        return;
-      }
-      if (!loteId) {
-        alert("Seleccioná un potrero");
-        return;
-      }
-    }
+// ✅ STOCK_INICIAL no necesita validaciones de categoría/potrero
+if (["NACIMIENTO", "COMPRA", "VENTA", "MORTANDAD", "TRASLADO"].includes(accion)) {
+  if (!categoria) {
+    alert("Seleccioná una categoría");
+    return;
+  }
+  if (!loteId) {
+    alert("Seleccioná un potrero");
+    return;
+  }
+}
 
     if (accion === "TRASLADO" && !loteDestinoId) {
       alert("Seleccioná un potrero destino");
@@ -218,7 +219,8 @@ export default function SnigPage() {
   // ===========================================
   // DETERMINAR SI MOSTRAR CAMPOS EXTRA
   // ===========================================
-  const necesitaLoteYCategoria = ["STOCK_INICIAL", "NACIMIENTO", "COMPRA", "VENTA", "MORTANDAD", "TRASLADO"].includes(accion);
+  // ✅ STOCK_INICIAL no necesita categoría ni potrero
+  const necesitaLoteYCategoria = ["NACIMIENTO", "COMPRA", "VENTA", "MORTANDAD", "TRASLADO"].includes(accion);
   const necesitaLoteDestino = accion === "TRASLADO";
 
   // ===========================================

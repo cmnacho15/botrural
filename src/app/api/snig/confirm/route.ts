@@ -126,35 +126,35 @@ export async function POST(req: Request) {
     });
 
     // 5️⃣ ACTUALIZAR POTREROS (AnimalLote)
-    // Solo para acciones que afectan inventario físico
-    if (["STOCK_INICIAL", "NACIMIENTO", "COMPRA"].includes(accion)) {
-      // SUMAR animales al potrero
-      if (!loteId || !categoria) {
-        return NextResponse.json(
-          { error: "Para esta acción se requiere loteId y categoria" },
-          { status: 400 }
-        );
+// ⚠️ STOCK_INICIAL solo registra caravanas, NO modifica potreros
+if (["NACIMIENTO", "COMPRA"].includes(accion)) {
+  // SUMAR animales al potrero
+  if (!loteId || !categoria) {
+    return NextResponse.json(
+      { error: "Para esta acción se requiere loteId y categoria" },
+      { status: 400 }
+    );
+  }
+
+  await prisma.animalLote.upsert({
+    where: {
+      loteId_categoria: {
+        loteId,
+        categoria
       }
-
-      await prisma.animalLote.upsert({
-        where: {
-          loteId_categoria: {
-            loteId,
-            categoria
-          }
-        },
-        update: {
-          cantidad: { increment: cantidad }
-        },
-        create: {
-          loteId,
-          categoria,
-          cantidad
-        }
-      });
-
-      console.log(`✅ Sumados ${cantidad} animales a lote ${loteId}, categoría ${categoria}`);
+    },
+    update: {
+      cantidad: { increment: cantidad }
+    },
+    create: {
+      loteId,
+      categoria,
+      cantidad
     }
+  });
+
+  console.log(`✅ Sumados ${cantidad} animales a lote ${loteId}, categoría ${categoria}`);
+}
 
     if (["VENTA", "MORTANDAD"].includes(accion)) {
       // RESTAR animales del potrero
