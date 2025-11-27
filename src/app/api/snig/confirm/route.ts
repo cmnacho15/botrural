@@ -59,12 +59,23 @@ export async function POST(req: Request) {
       );
     }
 
-    console.log(`📦 [CONFIRM] Sesión encontrada con ${snigSession.animales.length} animales`);
+    console.log(`📦 [CONFIRM] Sesión encontrada:`, {
+      id: snigSession.id,
+      animalesCount: snigSession.animales.length,
+      estado: snigSession.estado
+    });
 
     // 2️⃣ Obtener animales de la sesión SNIG
     const animalesSnig = snigSession.animales;
     
+    console.log(`🐄 [CONFIRM] Animales en sesión:`, animalesSnig.map(a => ({
+      id: a.id,
+      caravana: a.caravana,
+      sessionId: a.sessionId
+    })));
+    
     if (animalesSnig.length === 0) {
+      console.error("❌ No hay animales en la sesión SNIG");
       return NextResponse.json(
         { error: "No se encontraron animales en esta sesión SNIG" },
         { status: 404 }
