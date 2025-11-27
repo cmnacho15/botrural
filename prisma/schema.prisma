@@ -182,6 +182,8 @@ model AnimalLote {
   updatedAt    DateTime @updatedAt
   lote         Lote     @relation(fields: [loteId], references: [id], onDelete: Cascade)
   eventos      Evento[]
+
+  @@unique([loteId, categoria])
 }
 
 model Evento {
