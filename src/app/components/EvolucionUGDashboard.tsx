@@ -63,50 +63,48 @@ export default function EvolucionUGDashboard() {
     }
   }
 
+  // CAMBIO 1: Exportación CSV corregida
   const exportarCSV = () => {
     if (!datos) return
 
-    // Encabezados
-    let csv = 'Fecha'
+    let csv = ''
+    let nombreArchivo = ''
+
     if (loteSeleccionado) {
       const lote = datos.lotes.find(l => l.loteId === loteSeleccionado)
-      csv += `,Medio (UG),Medio (UG/ha)\n`
+      if (!lote) return
+
+      // ENCABEZADO: Potrero específico
+      csv = `Fecha,${lote.nombre} (UG),${lote.nombre} (UG/ha)\n`
+      nombreArchivo = `evolucion-${lote.nombre.replace(/\s+/g, '-')}-${periodo}`
+
+      // DATOS
+      datos.dias.forEach((dia, index) => {
+        const fecha = new Date(dia).toLocaleDateString('es-UY')
+        const ug = lote.datos[index].toFixed(2)
+        const ugHa = lote.cargaPorHectarea[index].toFixed(2)
+        csv += `${fecha},${ug},${ugHa}\n`
+      })
     } else {
-      if (vistaActiva === 'ug') {
-        csv += ',Medio (UG),Medio (UG/ha)\n'
-      } else {
-        datos.lotes.forEach(l => {
-          csv += `,${l.nombre} (UG/ha)`
-        })
-        csv += '\n'
-      }
+      // ENCABEZADO: Vista global (todo el campo)
+      csv = 'Fecha,Todo el Campo (UG),Todo el Campo (UG/ha)\n'
+      nombreArchivo = `evolucion-campo-completo-${periodo}`
+
+      // DATOS
+      datos.dias.forEach((dia, index) => {
+        const fecha = new Date(dia).toLocaleDateString('es-UY')
+        const ugTotal = datos.global.ug[index].toFixed(2)
+        const ugPorHa = datos.global.ugPorHectarea[index].toFixed(2)
+        csv += `${fecha},${ugTotal},${ugPorHa}\n`
+      })
     }
 
-    // Datos
-    datos.dias.forEach((dia, index) => {
-      const fecha = new Date(dia).toLocaleDateString('es-UY')
-      csv += fecha
-      
-      if (loteSeleccionado) {
-        const lote = datos.lotes.find(l => l.loteId === loteSeleccionado)
-        if (lote) {
-          csv += `,${lote.datos[index].toFixed(2)},${lote.cargaPorHectarea[index].toFixed(2)}`
-        }
-      } else {
-        // Vista global - siempre mostrar ambas columnas
-        const ugTotal = datos.global.ug[index]
-        const ugPorHa = datos.global.ugPorHectarea[index]
-        csv += `,${ugTotal.toFixed(2)},${ugPorHa.toFixed(2)}`
-      }
-      
-      csv += '\n'
-    })
-
+    // Descargar archivo
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
     const url = window.URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `evolucion-ug-${periodo}-${new Date().toISOString().slice(0, 10)}.csv`
+    a.download = `${nombreArchivo}-${new Date().toISOString().slice(0, 10)}.csv`
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
@@ -148,85 +146,79 @@ export default function EvolucionUGDashboard() {
     }
   }
 
-  // Preparar datos para el gráfico
+  // CAMBIO 2: Preparar datos para el gráfico (ahora siempre usa global o lote único)
   const datosGrafico = datos.dias.map((dia, index) => {
     const punto: any = { dia }
 
     if (loteSeleccionado) {
       const lote = datos.lotes.find((l) => l.loteId === loteSeleccionado)
       if (lote) {
-        punto['UG'] = lote.datos[index]
+        punto['UG Totales'] = lote.datos[index]
         punto['UG/ha'] = lote.cargaPorHectarea[index]
       }
     } else {
-      if (vistaActiva === 'ug') {
-        datos.lotes.forEach((l) => {
-          punto[l.nombre] = l.datos[index]
-        })
-      } else {
-        datos.lotes.forEach((l) => {
-          punto[l.nombre] = l.cargaPorHectarea[index]
-        })
-      }
+      // VISTA GLOBAL: mostrar carga del campo completo
+      punto['UG Totales'] = datos.global.ug[index]
+      punto['UG/ha'] = datos.global.ugPorHectarea[index]
     }
 
     return punto
   })
 
   // Calcular estadísticas
-const calcularEstadisticas = () => {
-  if (!datos) return null
+  const calcularEstadisticas = () => {
+    if (!datos) return null
 
-  if (loteSeleccionado) {
-    const lote = datos.lotes.find(l => l.loteId === loteSeleccionado)
-    if (!lote) return null
+    if (loteSeleccionado) {
+      const lote = datos.lotes.find(l => l.loteId === loteSeleccionado)
+      if (!lote) return null
 
+      if (vistaActiva === 'ug-ha') {
+        const ugHaUltimoMes = lote.cargaPorHectarea.slice(-30)
+        const ugHaUltimoTrimestre = lote.cargaPorHectarea.slice(-90)
+
+        return {
+          promedioMes: (ugHaUltimoMes.reduce((a, b) => a + b, 0) / ugHaUltimoMes.length).toFixed(2),
+          promedioTrimestre: (ugHaUltimoTrimestre.reduce((a, b) => a + b, 0) / ugHaUltimoTrimestre.length).toFixed(2),
+          actual: lote.cargaPorHectarea[lote.cargaPorHectarea.length - 1].toFixed(2),
+          cargaHaActual: lote.cargaPorHectarea[lote.cargaPorHectarea.length - 1].toFixed(2),
+        }
+      } else {
+        const ugUltimoMes = lote.datos.slice(-30)
+        const ugUltimoTrimestre = lote.datos.slice(-90)
+
+        return {
+          promedioMes: (ugUltimoMes.reduce((a, b) => a + b, 0) / ugUltimoMes.length).toFixed(2),
+          promedioTrimestre: (ugUltimoTrimestre.reduce((a, b) => a + b, 0) / ugUltimoTrimestre.length).toFixed(2),
+          actual: lote.datos[lote.datos.length - 1].toFixed(2),
+          cargaHaActual: lote.cargaPorHectarea[lote.cargaPorHectarea.length - 1].toFixed(2),
+        }
+      }
+    }
+
+    // Vista global (todos los potreros)
     if (vistaActiva === 'ug-ha') {
-      const ugHaUltimoMes = lote.cargaPorHectarea.slice(-30)
-      const ugHaUltimoTrimestre = lote.cargaPorHectarea.slice(-90)
+      const ugHaUltimoMes = datos.global.ugPorHectarea.slice(-30)
+      const ugHaUltimoTrimestre = datos.global.ugPorHectarea.slice(-90)
 
       return {
         promedioMes: (ugHaUltimoMes.reduce((a, b) => a + b, 0) / ugHaUltimoMes.length).toFixed(2),
         promedioTrimestre: (ugHaUltimoTrimestre.reduce((a, b) => a + b, 0) / ugHaUltimoTrimestre.length).toFixed(2),
-        actual: lote.cargaPorHectarea[lote.cargaPorHectarea.length - 1].toFixed(2),
-        cargaHaActual: lote.cargaPorHectarea[lote.cargaPorHectarea.length - 1].toFixed(2),
+        actual: datos.global.ugPorHectarea[datos.global.ugPorHectarea.length - 1].toFixed(2),
+        cargaHaActual: datos.global.ugPorHectarea[datos.global.ugPorHectarea.length - 1].toFixed(2),
       }
     } else {
-      const ugUltimoMes = lote.datos.slice(-30)
-      const ugUltimoTrimestre = lote.datos.slice(-90)
+      const ugUltimoMes = datos.global.ug.slice(-30)
+      const ugUltimoTrimestre = datos.global.ug.slice(-90)
 
       return {
         promedioMes: (ugUltimoMes.reduce((a, b) => a + b, 0) / ugUltimoMes.length).toFixed(2),
         promedioTrimestre: (ugUltimoTrimestre.reduce((a, b) => a + b, 0) / ugUltimoTrimestre.length).toFixed(2),
-        actual: lote.datos[lote.datos.length - 1].toFixed(2),
-        cargaHaActual: lote.cargaPorHectarea[lote.cargaPorHectarea.length - 1].toFixed(2),
+        actual: datos.global.ug[datos.global.ug.length - 1].toFixed(2),
+        cargaHaActual: datos.global.ugPorHectarea[datos.global.ugPorHectarea.length - 1].toFixed(2),
       }
     }
   }
-
-  // Vista global (todos los potreros)
-  if (vistaActiva === 'ug-ha') {
-    const ugHaUltimoMes = datos.global.ugPorHectarea.slice(-30)
-    const ugHaUltimoTrimestre = datos.global.ugPorHectarea.slice(-90)
-
-    return {
-      promedioMes: (ugHaUltimoMes.reduce((a, b) => a + b, 0) / ugHaUltimoMes.length).toFixed(2),
-      promedioTrimestre: (ugHaUltimoTrimestre.reduce((a, b) => a + b, 0) / ugHaUltimoTrimestre.length).toFixed(2),
-      actual: datos.global.ugPorHectarea[datos.global.ugPorHectarea.length - 1].toFixed(2),
-      cargaHaActual: datos.global.ugPorHectarea[datos.global.ugPorHectarea.length - 1].toFixed(2),
-    }
-  } else {
-    const ugUltimoMes = datos.global.ug.slice(-30)
-    const ugUltimoTrimestre = datos.global.ug.slice(-90)
-
-    return {
-      promedioMes: (ugUltimoMes.reduce((a, b) => a + b, 0) / ugUltimoMes.length).toFixed(2),
-      promedioTrimestre: (ugUltimoTrimestre.reduce((a, b) => a + b, 0) / ugUltimoTrimestre.length).toFixed(2),
-      actual: datos.global.ug[datos.global.ug.length - 1].toFixed(2),
-      cargaHaActual: datos.global.ugPorHectarea[datos.global.ugPorHectarea.length - 1].toFixed(2),
-    }
-  }
-}
 
   const estadisticas = calcularEstadisticas()
 
@@ -275,20 +267,20 @@ const calcularEstadisticas = () => {
       <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold text-gray-900">
-            📊 Evolución de Carga Animal
+            Evolución de Carga Animal
           </h2>
           <div className="flex gap-2">
             <button
               onClick={() => setVistaTabla(!vistaTabla)}
               className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium transition-colors"
             >
-              {vistaTabla ? '📊 Ver Gráfico' : '📋 Ver Tabla'}
+              {vistaTabla ? 'Ver Gráfico' : 'Ver Tabla'}
             </button>
             <button
               onClick={exportarCSV}
               className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors"
             >
-              📥 Exportar CSV
+              Exportar CSV
             </button>
           </div>
         </div>
@@ -322,7 +314,8 @@ const calcularEstadisticas = () => {
               }}
               className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
-              <option value="">📍 Todos los potreros</option>
+              {/* CAMBIO 3 */}
+              <option value="">Campo completo</option>
               {datos.lotes.map((lote) => (
                 <option key={lote.loteId} value={lote.loteId}>
                   {lote.nombre} ({lote.hectareas} ha)
@@ -415,20 +408,28 @@ const calcularEstadisticas = () => {
       {vistaTabla ? (
         <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6 overflow-x-auto">
           <table className="w-full text-sm">
+            {/* CAMBIO 5: Tabla corregida */}
             <thead>
               <tr className="border-b border-gray-200">
                 <th className="text-left py-2 px-3 font-semibold text-gray-700">Fecha</th>
                 {loteSeleccionado ? (
                   <>
-                    <th className="text-right py-2 px-3 font-semibold text-gray-700">UG</th>
-                    <th className="text-right py-2 px-3 font-semibold text-gray-700">UG/ha</th>
+                    <th className="text-right py-2 px-3 font-semibold text-gray-700">
+                      {datos.lotes.find(l => l.loteId === loteSeleccionado)?.nombre} (UG)
+                    </th>
+                    <th className="text-right py-2 px-3 font-semibold text-gray-700">
+                      {datos.lotes.find(l => l.loteId === loteSeleccionado)?.nombre} (UG/ha)
+                    </th>
                   </>
                 ) : (
-                  datos.lotes.map((lote, idx) => (
-                    <th key={lote.loteId} className="text-right py-2 px-3 font-semibold text-gray-700">
-                      {lote.nombre}
+                  <>
+                    <th className="text-right py-2 px-3 font-semibold text-gray-700">
+                      Todo el Campo (UG)
                     </th>
-                  ))
+                    <th className="text-right py-2 px-3 font-semibold text-gray-700">
+                      Todo el Campo (UG/ha)
+                    </th>
+                  </>
                 )}
               </tr>
             </thead>
@@ -448,13 +449,14 @@ const calcularEstadisticas = () => {
                       </td>
                     </>
                   ) : (
-                    datos.lotes.map((lote) => (
-                      <td key={lote.loteId} className="text-right py-2 px-3 font-mono text-gray-900">
-                        {vistaActiva === 'ug' 
-                          ? lote.datos[index].toFixed(2) 
-                          : lote.cargaPorHectarea[index].toFixed(2)}
+                    <>
+                      <td className="text-right py-2 px-3 font-mono text-gray-900">
+                        {datos.global.ug[index].toFixed(2)}
                       </td>
-                    ))
+                      <td className="text-right py-2 px-3 font-mono text-gray-900">
+                        {datos.global.ugPorHectarea[index].toFixed(2)}
+                      </td>
+                    </>
                   )}
                 </tr>
               ))}
@@ -488,7 +490,7 @@ const calcularEstadisticas = () => {
                   fill="#bfdbfe"
                   fillOpacity={0.15}
                   label={{
-                    value: '❄️ Invierno',
+                    value: 'Invierno',
                     position: 'top',
                     fill: '#3b82f6',
                     fontSize: 11,
@@ -539,7 +541,7 @@ const calcularEstadisticas = () => {
                 iconType="line"
               />
 
-              {/* Si seleccionó un potrero */}
+              {/* CAMBIO 4: Gráfico completamente renovado */}
               {loteSeleccionado ? (
                 <>
                   {vistaActiva === 'ug' && (
@@ -547,7 +549,7 @@ const calcularEstadisticas = () => {
                       {mostrarArea && (
                         <Area
                           type="stepAfter"
-                          dataKey="UG"
+                          dataKey="UG Totales"
                           stroke="none"
                           fill="url(#gradientUG)"
                           fillOpacity={1}
@@ -555,13 +557,13 @@ const calcularEstadisticas = () => {
                       )}
                       <Line
                         type="stepAfter"
-                        dataKey="UG"
+                        dataKey="UG Totales"
                         stroke="#3b82f6"
                         strokeWidth={2}
                         dot={(props: any) => {
                           const { index, payload } = props
-                          const actual = payload['UG']
-                          const anterior = index > 0 ? datosGrafico[index - 1]['UG'] : null
+                          const actual = payload['UG Totales']
+                          const anterior = index > 0 ? datosGrafico[index - 1]['UG Totales'] : null
 
                           const cambioSignificativo = anterior && Math.abs((actual - anterior) / anterior) > 0.05
                           const esPrimerDiaMes = payload.dia.endsWith('-01')
@@ -607,36 +609,73 @@ const calcularEstadisticas = () => {
                   )}
                 </>
               ) : (
-                /* VISTA GLOBAL: todos los lotes */
+                /* VISTA GLOBAL: Campo completo */
                 <>
-                  {datos.lotes.map((lote, index) => (
-                    <Line
-                      key={lote.loteId}
-                      type="stepAfter"
-                      dataKey={lote.nombre}
-                      stroke={colores[index % colores.length]}
-                      strokeWidth={2}
-                      dot={(props: any) => {
-                        const { index: idx, payload, dataKey } = props
-                        const actual = payload[dataKey]
-                        const anterior = idx > 0 ? datosGrafico[idx - 1][dataKey] : null
+                  {vistaActiva === 'ug' && (
+                    <>
+                      {mostrarArea && (
+                        <Area
+                          type="stepAfter"
+                          dataKey="UG Totales"
+                          stroke="none"
+                          fill="url(#gradientUG)"
+                          fillOpacity={1}
+                        />
+                      )}
+                      <Line
+                        type="stepAfter"
+                        dataKey="UG Totales"
+                        stroke="#3b82f6"
+                        strokeWidth={3}
+                        name="UG Totales del Campo"
+                        dot={(props: any) => {
+                          const { index, payload } = props
+                          const actual = payload['UG Totales']
+                          const anterior = index > 0 ? datosGrafico[index - 1]['UG Totales'] : null
 
-                        const cambioSignificativo = anterior && Math.abs((actual - anterior) / anterior) > 0.05
-                        const esPrimerDiaMes = payload.dia.endsWith('-01')
+                          const cambioSignificativo = anterior && Math.abs((actual - anterior) / anterior) > 0.05
+                          const esPrimerDiaMes = payload.dia.endsWith('-01')
 
-                        return cambioSignificativo || esPrimerDiaMes ? (
-                          <circle
-                            cx={props.cx}
-                            cy={props.cy}
-                            r={4}
-                            fill={colores[index % colores.length]}
-                            stroke="white"
-                            strokeWidth={2}
-                          />
-                        ) : null
-                      }}
-                    />
-                  ))}
+                          return cambioSignificativo || esPrimerDiaMes ? (
+                            <circle cx={props.cx} cy={props.cy} r={5} fill="#3b82f6" stroke="white" strokeWidth={2} />
+                          ) : null
+                        }}
+                      />
+                    </>
+                  )}
+
+                  {vistaActiva === 'ug-ha' && (
+                    <>
+                      {mostrarArea && (
+                        <Area
+                          type="stepAfter"
+                          dataKey="UG/ha"
+                          stroke="none"
+                          fill="url(#gradientUGHA)"
+                          fillOpacity={1}
+                        />
+                      )}
+                      <Line
+                        type="stepAfter"
+                        dataKey="UG/ha"
+                        stroke="#10b981"
+                        strokeWidth={3}
+                        name="UG/ha Promedio del Campo"
+                        dot={(props: any) => {
+                          const { index, payload } = props
+                          const actual = payload['UG/ha']
+                          const anterior = index > 0 ? datosGrafico[index - 1]['UG/ha'] : null
+
+                          const cambioSignificativo = anterior && Math.abs((actual - anterior) / anterior) > 0.05
+                          const esPrimerDiaMes = payload.dia.endsWith('-01')
+
+                          return cambioSignificativo || esPrimerDiaMes ? (
+                            <circle cx={props.cx} cy={props.cy} r={5} fill="#10b981" stroke="white" strokeWidth={2} />
+                          ) : null
+                        }}
+                      />
+                    </>
+                  )}
                 </>
               )}
             </LineChart>
@@ -647,7 +686,7 @@ const calcularEstadisticas = () => {
       {/* RESUMEN GLOBAL */}
       {!loteSeleccionado && (
         <div className="bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 rounded-lg p-6">
-          <h3 className="font-semibold text-blue-900 mb-4 text-lg">🌍 Resumen del Campo</h3>
+          <h3 className="font-semibold text-blue-900 mb-4 text-lg">Resumen del Campo</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="text-center">
               <p className="text-3xl font-bold text-blue-600">
@@ -679,7 +718,7 @@ const calcularEstadisticas = () => {
 
       {/* LEYENDA INFORMATIVA */}
       <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-        <h4 className="font-semibold text-gray-900 mb-2 text-sm">💡 Guía de interpretación</h4>
+        <h4 className="font-semibold text-gray-900 mb-2 text-sm">Guía de interpretación</h4>
         <ul className="text-xs text-gray-600 space-y-1">
           <li>• <strong>Línea escalonada:</strong> Refleja cambios en la carga animal (altas/bajas)</li>
           <li>• <strong>Puntos marcados:</strong> Indican cambios significativos (&gt;5%) o inicio de mes</li>
