@@ -112,7 +112,7 @@ export default function EvolucionUGDashboard() {
               className="w-full border border-gray-300 rounded-lg px-4 py-2"
             >
               <option value="mensual">Últimos 12 meses</option>
-              <option value="ejercicio">Ejercicio actual (Jul-Jun)</option>
+              <option value="ejercicio">Ejercicio actual (1 Jul-30 Jun)</option>
             </select>
           </div>
 
