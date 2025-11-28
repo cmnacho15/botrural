@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/marcar-pagados",
       "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/capturar-carga",
+      "schedule": "5 3 * * *"
     }
   ]
 }

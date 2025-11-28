@@ -125,23 +125,64 @@ export async function POST(req: Request) {
 
     console.log(`✅ [SNIG] Sesión creada: ${session.id}`);
 
-    // ✅ GUARDAR ANIMALES EN BATCH
-    const animalesData = caravanas.map(caravana => ({
-      caravana,
-      campoId,
-      sessionId: session.id,
-      estado: "EN_CAMPO" as const,
-      origen: "DESCONOCIDO" as const,
-      fechaAlta: fechaUsada,
-      fechaEvento: fechaUsada
-    }));
-
-    await prisma.snigAnimal.createMany({
-      data: animalesData,
-      skipDuplicates: true
+    // 2. Buscar caravanas existentes (en una sola query)
+    const existentes = await prisma.snigAnimal.findMany({
+      where: {
+        caravana: { in: caravanas },
+        campoId
+      }
     });
 
-    console.log(`✅ [SNIG] ${caravanas.length} animales guardados en DB`);
+    const caravanasExistentes = new Set(existentes.map(a => a.caravana));
+    const caravanasNuevas = caravanas.filter(c => !caravanasExistentes.has(c));
+
+    console.log(`📊 [SNIG] Existentes: ${existentes.length}, Nuevas: ${caravanasNuevas.length}`);
+
+    // 3. Actualizar existentes (si hay) - ASIGNAR A LA NUEVA SESIÓN
+    if (existentes.length > 0) {
+      await prisma.snigAnimal.updateMany({
+        where: {
+          id: { in: existentes.map(a => a.id) }
+        },
+        data: {
+          sessionId: session.id,
+          estado: "EN_CAMPO",
+          fechaEvento: fechaUsada
+        }
+      });
+      console.log(`✅ [SNIG] ${existentes.length} animales existentes actualizados con sessionId: ${session.id}`);
+    }
+
+    // 4. Crear nuevos con sessionId explícito
+    if (caravanasNuevas.length > 0) {
+      const nuevosAnimales = await Promise.all(
+        caravanasNuevas.map(caravana =>
+          prisma.snigAnimal.create({
+            data: {
+              caravana,
+              campoId,
+              sessionId: session.id,
+              estado: "EN_CAMPO",
+              origen: "DESCONOCIDO",
+              fechaAlta: fechaUsada,
+              fechaEvento: fechaUsada
+            }
+          })
+        )
+      );
+      console.log(`✅ [SNIG] ${nuevosAnimales.length} animales nuevos creados con sessionId: ${session.id}`);
+    }
+
+    // 5. Verificar que se guardaron correctamente
+    const verificacion = await prisma.snigAnimal.count({
+      where: {
+        sessionId: session.id
+      }
+    });
+    
+    console.log(`🔍 [SNIG] Verificación: ${verificacion} animales asociados a sesión ${session.id}`);
+
+    console.log(`✅ [SNIG] Total ${caravanas.length} animales procesados`);
 
     // ✅ DEVOLVER RESPUESTA
     return NextResponse.json({

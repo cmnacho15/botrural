@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import type { TipoEvento, SnigEstado, SnigOrigen } from "@prisma/client";
 
+// ✅ NOTA: Este es el endpoint /api/snig/confirm
+// Si los animales no se están cargando, el problema está en /api/snig/upload
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -105,7 +108,7 @@ export async function POST(req: Request) {
 
     switch (accion) {
       case "STOCK_INICIAL":
-        tipoEvento = "STOCK_INICIAL";
+        tipoEvento = "SNIG_STOCK_INICIAL" as TipoEvento; // ✅ Usar el valor que existe en DB
         estadoFinal = "EN_CAMPO";
         origenFinal = "STOCK_INICIAL";
         break;

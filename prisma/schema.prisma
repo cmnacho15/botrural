@@ -88,6 +88,8 @@ model Campo {
   // 🟢 NUEVA RELACIÓN SNIG
   snigAnimales     SnigAnimal[]
   snigUploadSessions SnigUploadSession[]
+
+  cargaHistorica   CargaHistorica[]
 }
 
 model CategoriaGasto {
@@ -158,6 +160,7 @@ model Lote {
   gastos            Gasto[]
   campo             Campo              @relation(fields: [campoId], references: [id], onDelete: Cascade)
   movimientosInsumo MovimientoInsumo[]
+  cargaHistorica    CargaHistorica[]
 }
 
 model Cultivo {
@@ -380,9 +383,12 @@ enum TipoEvento {
   GASTO
   AJUSTE
   CAMBIO_POTRERO
-
-  STOCK_INICIAL
-
+  
+  SNIG_STOCK_INICIAL           // ✅ AGREGAR ESTOS
+  SNIG_NACIMIENTO_CARAVANEO    // ✅
+  SNIG_COMPRA                  // ✅
+  SNIG_VENTA                   // ✅
+  SNIG_MORTANDAD              // ✅
 }
 
 model SnigAnimal {
@@ -439,4 +445,22 @@ model SnigUploadSession {
   
   @@index([campoId])
   @@index([estado])
+}
+
+
+
+model CargaHistorica {
+  id        String   @id @default(cuid())
+  fecha     DateTime @db.Date // Solo fecha, sin hora
+  loteId    String
+  ugTotal   Float
+  campoId   String
+  createdAt DateTime @default(now())
+
+  lote  Lote  @relation(fields: [loteId], references: [id], onDelete: Cascade)
+  campo Campo @relation(fields: [campoId], references: [id], onDelete: Cascade)
+
+  @@unique([loteId, fecha]) // No puede haber dos snapshots del mismo potrero en la misma fecha
+  @@index([campoId, loteId, fecha(sort: Desc)]) // Búsqueda rápida del último snapshot
+  @@index([campoId, fecha(sort: Desc)]) // Búsqueda global por campo
 }
