@@ -523,10 +523,14 @@ const dotUGhaCampo = (props: any) => {
     </table>
   </div>
 ) : (
+  
   /* GRÁFICO PRINCIPAL */
   <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6">
     <ResponsiveContainer width="100%" height={450}>
-      <LineChart data={datosGrafico}>
+      <LineChart 
+        data={datosGrafico}
+        key={`${mostrarArea}-${loteSeleccionado}-${vistaActiva}`}
+      >
 
         {/* Gradientes */}
         <defs>
@@ -601,19 +605,12 @@ const dotUGhaCampo = (props: any) => {
         <Tooltip content={<CustomTooltip />} />
         <Legend wrapperStyle={{ paddingTop: 20 }} iconType="line" />
 
-        {/* GRÁFICO – CON ÁREA DESPUÉS DE LA LÍNEA */}
+        {/* GRÁFICO – ÁREA ANTES DE LÍNEA */}
         {loteSeleccionado ? (
           <>
             {/* UG por potrero */}
             {vistaActiva === 'ug' && (
               <>
-                <Line
-                  type="stepAfter"
-                  dataKey="UG Totales"
-                  stroke="#3b82f6"
-                  strokeWidth={2}
-                  dot={dotUG}
-                />
                 {mostrarArea && (
                   <Area
                     type="stepAfter"
@@ -621,21 +618,23 @@ const dotUGhaCampo = (props: any) => {
                     stroke="none"
                     fill="url(#gradientUG)"
                     fillOpacity={1}
+                    isAnimationActive={false}
                   />
                 )}
+                <Line
+                  type="stepAfter"
+                  dataKey="UG Totales"
+                  stroke="#3b82f6"
+                  strokeWidth={2}
+                  dot={dotUG}
+                  isAnimationActive={false}
+                />
               </>
             )}
 
             {/* UG/ha por potrero */}
             {vistaActiva === 'ug-ha' && (
               <>
-                <Line
-                  type="stepAfter"
-                  dataKey="UG/ha"
-                  stroke="#10b981"
-                  strokeWidth={2}
-                  dot={dotUGha}
-                />
                 {mostrarArea && (
                   <Area
                     type="stepAfter"
@@ -643,8 +642,17 @@ const dotUGhaCampo = (props: any) => {
                     stroke="none"
                     fill="url(#gradientUGHA)"
                     fillOpacity={1}
+                    isAnimationActive={false}
                   />
                 )}
+                <Line
+                  type="stepAfter"
+                  dataKey="UG/ha"
+                  stroke="#10b981"
+                  strokeWidth={2}
+                  dot={dotUGha}
+                  isAnimationActive={false}
+                />
               </>
             )}
           </>
@@ -653,14 +661,6 @@ const dotUGhaCampo = (props: any) => {
             {/* UG campo completo */}
             {vistaActiva === 'ug' && (
               <>
-                <Line
-                  type="stepAfter"
-                  dataKey="UG Totales"
-                  stroke="#3b82f6"
-                  strokeWidth={3}
-                  name="UG Totales del Campo"
-                  dot={dotUGcampo}
-                />
                 {mostrarArea && (
                   <Area
                     type="stepAfter"
@@ -668,22 +668,24 @@ const dotUGhaCampo = (props: any) => {
                     stroke="none"
                     fill="url(#gradientUG)"
                     fillOpacity={1}
+                    isAnimationActive={false}
                   />
                 )}
+                <Line
+                  type="stepAfter"
+                  dataKey="UG Totales"
+                  stroke="#3b82f6"
+                  strokeWidth={3}
+                  name="UG Totales del Campo"
+                  dot={dotUGcampo}
+                  isAnimationActive={false}
+                />
               </>
             )}
 
             {/* UG/ha campo completo */}
             {vistaActiva === 'ug-ha' && (
               <>
-                <Line
-                  type="stepAfter"
-                  dataKey="UG/ha"
-                  stroke="#10b981"
-                  strokeWidth={3}
-                  name="UG/ha Promedio del Campo"
-                  dot={dotUGhaCampo}
-                />
                 {mostrarArea && (
                   <Area
                     type="stepAfter"
@@ -691,8 +693,18 @@ const dotUGhaCampo = (props: any) => {
                     stroke="none"
                     fill="url(#gradientUGHA)"
                     fillOpacity={1}
+                    isAnimationActive={false}
                   />
                 )}
+                <Line
+                  type="stepAfter"
+                  dataKey="UG/ha"
+                  stroke="#10b981"
+                  strokeWidth={3}
+                  name="UG/ha Promedio del Campo"
+                  dot={dotUGhaCampo}
+                  isAnimationActive={false}
+                />
               </>
             )}
           </>
