@@ -178,7 +178,7 @@ export default function EvolucionUGDashboard() {
               <>
                 {vistaActiva === 'ug' && (
                   <Line 
-                    type="monotone" 
+                    type="stepAfter"
                     dataKey="UG" 
                     stroke="#3b82f6" 
                     strokeWidth={2}
@@ -187,7 +187,7 @@ export default function EvolucionUGDashboard() {
                 )}
                 {vistaActiva === 'ug-ha' && (
                   <Line 
-                    type="monotone" 
+                    type="stepAfter"
                     dataKey="UG/ha" 
                     stroke="#10b981" 
                     strokeWidth={2}
@@ -200,7 +200,7 @@ export default function EvolucionUGDashboard() {
                 {datos.lotes.map((lote, index) => (
                   <Line
                     key={lote.loteId}
-                    type="monotone"
+                    type="stepAfter"
                     dataKey={lote.nombre}
                     stroke={colores[index % colores.length]}
                     strokeWidth={2}
