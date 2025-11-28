@@ -609,9 +609,10 @@ console.log("datosAreaUGha:", datosAreaUGha)
       <>
         {mostrarArea && (
           <Area
-            type="step"
+            type="stepAfter"
             dataKey="UG Totales"
-            stroke="none"
+            stroke="#3b82f6"
+            strokeWidth={2}
             fill="url(#gradientUG)"
             fillOpacity={0.6}
             isAnimationActive={false}
@@ -633,9 +634,10 @@ console.log("datosAreaUGha:", datosAreaUGha)
       <>
         {mostrarArea && (
           <Area
-            type="step"
+            type="stepAfter"
             dataKey="UG/ha"
-            stroke="none"
+            stroke="#10b981"
+            strokeWidth={2}
             fill="url(#gradientUGHA)"
             fillOpacity={0.6}
             isAnimationActive={false}
@@ -659,9 +661,10 @@ console.log("datosAreaUGha:", datosAreaUGha)
       <>
         {mostrarArea && (
           <Area
-            type="step"
+            type="stepAfter"
             dataKey="UG Totales"
-            stroke="none"
+            stroke="#3b82f6"
+            strokeWidth={3}
             fill="url(#gradientUG)"
             fillOpacity={0.6}
             isAnimationActive={false}
@@ -684,9 +687,10 @@ console.log("datosAreaUGha:", datosAreaUGha)
       <>
         {mostrarArea && (
           <Area
-            type="step"
+            type="stepAfter"
             dataKey="UG/ha"
-            stroke="none"
+            stroke="#10b981"
+            strokeWidth={3}
             fill="url(#gradientUGHA)"
             fillOpacity={0.6}
             isAnimationActive={false}
