@@ -224,7 +224,63 @@ punto['UG/ha'] = datos.global?.ugPorHectarea?.[index] ?? 0
   }
 
   const estadisticas = calcularEstadisticas()
+   // === DOT FUNCTIONS (Puntos especiales en la línea) ===
 
+// UG por potrero
+const dotUG = (props: any) => {
+  const { index, payload, cx, cy } = props
+  const actual = payload['UG Totales']
+  const anterior = index > 0 ? datosGrafico[index - 1]['UG Totales'] : null
+
+  const cambioSignificativo = anterior && Math.abs((actual - anterior) / anterior) > 0.05
+  const esPrimerDiaMes = payload.dia.endsWith('-01')
+
+  return cambioSignificativo || esPrimerDiaMes ? (
+    <circle cx={cx} cy={cy} r={4} fill="#3b82f6" stroke="white" strokeWidth={2} />
+  ) : null
+}
+
+// UG/ha por potrero
+const dotUGha = (props: any) => {
+  const { index, payload, cx, cy } = props
+  const actual = payload['UG/ha']
+  const anterior = index > 0 ? datosGrafico[index - 1]['UG/ha'] : null
+
+  const cambioSignificativo = anterior && Math.abs((actual - anterior) / anterior) > 0.05
+  const esPrimerDiaMes = payload.dia.endsWith('-01')
+
+  return cambioSignificativo || esPrimerDiaMes ? (
+    <circle cx={cx} cy={cy} r={4} fill="#10b981" stroke="white" strokeWidth={2} />
+  ) : null
+}
+
+// UG Totales del campo completo
+const dotUGcampo = (props: any) => {
+  const { index, payload, cx, cy } = props
+  const actual = payload['UG Totales']
+  const anterior = index > 0 ? datosGrafico[index - 1]['UG Totales'] : null
+
+  const cambioSignificativo = anterior && Math.abs((actual - anterior) / anterior) > 0.05
+  const esPrimerDiaMes = payload.dia.endsWith('-01')
+
+  return cambioSignificativo || esPrimerDiaMes ? (
+    <circle cx={cx} cy={cy} r={5} fill="#3b82f6" stroke="white" strokeWidth={2} />
+  ) : null
+}
+
+// UG/ha del campo completo
+const dotUGhaCampo = (props: any) => {
+  const { index, payload, cx, cy } = props
+  const actual = payload['UG/ha']
+  const anterior = index > 0 ? datosGrafico[index - 1]['UG/ha'] : null
+
+  const cambioSignificativo = anterior && Math.abs((actual - anterior) / anterior) > 0.05
+  const esPrimerDiaMes = payload.dia.endsWith('-01')
+
+  return cambioSignificativo || esPrimerDiaMes ? (
+    <circle cx={cx} cy={cy} r={5} fill="#10b981" stroke="white" strokeWidth={2} />
+  ) : null
+}
   const colores = [
     '#3b82f6',
     '#10b981',
@@ -246,7 +302,9 @@ punto['UG/ha'] = datos.global?.ugPorHectarea?.[index] ?? 0
       month: 'long', 
       year: 'numeric' 
     })
+    
 
+    
     return (
       <div className="bg-white p-3 rounded-lg shadow-lg border border-gray-200">
         <p className="font-semibold text-gray-900 mb-2 text-sm">{mes}</p>
@@ -408,290 +466,241 @@ punto['UG/ha'] = datos.global?.ugPorHectarea?.[index] ?? 0
       )}
 
       {/* VISTA DE TABLA */}
-      {vistaTabla ? (
-        <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6 overflow-x-auto">
-          <table className="w-full text-sm">
-            {/* CAMBIO 5: Tabla corregida */}
-            <thead>
-              <tr className="border-b border-gray-200">
-                <th className="text-left py-2 px-3 font-semibold text-gray-700">Fecha</th>
-                {loteSeleccionado ? (
-                  <>
-                    <th className="text-right py-2 px-3 font-semibold text-gray-700">
-                      {datos.lotes.find(l => l.loteId === loteSeleccionado)?.nombre} (UG)
-                    </th>
-                    <th className="text-right py-2 px-3 font-semibold text-gray-700">
-                      {datos.lotes.find(l => l.loteId === loteSeleccionado)?.nombre} (UG/ha)
-                    </th>
-                  </>
-                ) : (
-                  <>
-                    <th className="text-right py-2 px-3 font-semibold text-gray-700">
-                      Todo el Campo (UG)
-                    </th>
-                    <th className="text-right py-2 px-3 font-semibold text-gray-700">
-                      Todo el Campo (UG/ha)
-                    </th>
-                  </>
-                )}
-              </tr>
-            </thead>
-            <tbody>
-              {datos.dias.map((dia, index) => (
-                <tr key={dia} className="border-b border-gray-100 hover:bg-gray-50">
-                  <td className="py-2 px-3 text-gray-600">
-                    {new Date(dia).toLocaleDateString('es-UY')}
-                  </td>
-                  {loteSeleccionado ? (
-                    <>
-                      <td className="text-right py-2 px-3 font-mono text-gray-900">
-                        {datos.lotes.find(l => l.loteId === loteSeleccionado)?.datos[index].toFixed(2)}
-                      </td>
-                      <td className="text-right py-2 px-3 font-mono text-gray-900">
-                        {datos.lotes.find(l => l.loteId === loteSeleccionado)?.cargaPorHectarea[index].toFixed(2)}
-                      </td>
-                    </>
-                  ) : (
-                    <>
-                      <td className="text-right py-2 px-3 font-mono text-gray-900">
-                        {datos.global?.ug?.[index]?.toFixed(2) ?? '0.00'}
-                      </td>
-                      <td className="text-right py-2 px-3 font-mono text-gray-900">
-  {datos.global?.ugPorHectarea?.[index]?.toFixed(2) ?? '0.00'}
-</td>
-                    </>
-                  )}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : (
-        /* GRÁFICO PRINCIPAL */
-        <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6">
-          <ResponsiveContainer width="100%" height={450}>
-            <LineChart data={datosGrafico}>
-              <defs>
-                <linearGradient id="gradientUG" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-                </linearGradient>
-                <linearGradient id="gradientUGHA" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-                </linearGradient>
-              </defs>
+{vistaTabla ? (
+  <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6 overflow-x-auto">
+    <table className="w-full text-sm">
+      <thead>
+        <tr className="border-b border-gray-200">
+          <th className="text-left py-2 px-3 font-semibold text-gray-700">Fecha</th>
 
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+          {loteSeleccionado ? (
+            <>
+              <th className="text-right py-2 px-3 font-semibold text-gray-700">
+                {datos.lotes.find(l => l.loteId === loteSeleccionado)?.nombre} (UG)
+              </th>
+              <th className="text-right py-2 px-3 font-semibold text-gray-700">
+                {datos.lotes.find(l => l.loteId === loteSeleccionado)?.nombre} (UG/ha)
+              </th>
+            </>
+          ) : (
+            <>
+              <th className="text-right py-2 px-3 font-semibold text-gray-700">Todo el Campo (UG)</th>
+              <th className="text-right py-2 px-3 font-semibold text-gray-700">Todo el Campo (UG/ha)</th>
+            </>
+          )}
+        </tr>
+      </thead>
 
-              {/* Bandas de temporada (invierno) */}
-              {temporadas.map((temp, idx) => (
-                <ReferenceArea
-                  key={idx}
-                  x1={temp.inicio}
-                  x2={temp.fin}
-                  fill="#bfdbfe"
-                  fillOpacity={0.15}
-                  label={{
-                    value: 'Invierno',
-                    position: 'top',
-                    fill: '#3b82f6',
-                    fontSize: 11,
-                  }}
-                />
-              ))}
+      <tbody>
+        {datos.dias.map((dia, index) => (
+          <tr key={dia} className="border-b border-gray-100 hover:bg-gray-50">
+            <td className="py-2 px-3 text-gray-600">
+              {new Date(dia).toLocaleDateString('es-UY')}
+            </td>
 
-              {/* Línea de carga recomendada (UG/ha) */}
-              {vistaActiva === 'ug-ha' && (
-                <ReferenceLine
-                  y={1.2}
-                  stroke="#ef4444"
-                  strokeDasharray="5 5"
-                  label={{
-                    value: 'Carga máx. recomendada',
-                    position: 'right',
-                    fill: '#ef4444',
-                    fontSize: 10,
-                  }}
-                />
-              )}
-
-              <XAxis
-                dataKey="dia"
-                ticks={ticksInteligentes}
-                tickFormatter={(value: string) => {
-                  const [y, m] = value.split('-')
-                  const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
-                  return meses[parseInt(m) - 1]
-                }}
-                tick={{ fontSize: 12, fill: '#6b7280' }}
-                height={40}
-              />
-
-              <YAxis 
-                tick={{ fontSize: 12, fill: '#6b7280' }}
-                label={{ 
-                  value: vistaActiva === 'ug' ? 'UG Totales' : 'UG/ha', 
-                  angle: -90, 
-                  position: 'insideLeft',
-                  style: { fill: '#374151', fontSize: 12 }
-                }}
-              />
-
-              <Tooltip content={<CustomTooltip />} />
-              <Legend 
-                wrapperStyle={{ paddingTop: '20px' }}
-                iconType="line"
-              />
-
-              {/* CAMBIO 4: Gráfico completamente renovado */}
-{loteSeleccionado ? (
-  <>
-    {vistaActiva === 'ug' && (
-      <>
-        {/* Línea primero */}
-        <Line
-          type="stepAfter"
-          dataKey="UG Totales"
-          stroke="#3b82f6"
-          strokeWidth={2}
-          dot={(props: any) => {
-            const { index, payload } = props
-            const actual = payload['UG Totales']
-            const anterior = index > 0 ? datosGrafico[index - 1]['UG Totales'] : null
-            const cambioSignificativo = anterior && Math.abs((actual - anterior) / anterior) > 0.05
-            const esPrimerDiaMes = payload.dia.endsWith('-01')
-
-            return cambioSignificativo || esPrimerDiaMes ? (
-              <circle cx={props.cx} cy={props.cy} r={4} fill="#3b82f6" stroke="white" strokeWidth={2} />
-            ) : null
-          }}
-        />
-
-        {/* Área después */}
-        {mostrarArea && (
-          <Area
-            type="stepAfter"
-            dataKey="UG Totales"
-            stroke="none"
-            fill="url(#gradientUG)"
-            fillOpacity={1}
-          />
-        )}
-      </>
-    )}
-
-    {vistaActiva === 'ug-ha' && (
-      <>
-        {/* Línea primero */}
-        <Line
-          type="stepAfter"
-          dataKey="UG/ha"
-          stroke="#10b981"
-          strokeWidth={2}
-          dot={(props: any) => {
-            const { index, payload } = props
-            const actual = payload['UG/ha']
-            const anterior = index > 0 ? datosGrafico[index - 1]['UG/ha'] : null
-            const cambioSignificativo = anterior && Math.abs((actual - anterior) / anterior) > 0.05
-            const esPrimerDiaMes = payload.dia.endsWith('-01')
-
-            return cambioSignificativo || esPrimerDiaMes ? (
-              <circle cx={props.cx} cy={props.cy} r={4} fill="#10b981" stroke="white" strokeWidth={2} />
-            ) : null
-          }}
-        />
-
-        {/* Área después */}
-        {mostrarArea && (
-          <Area
-            type="stepAfter"
-            dataKey="UG/ha"
-            stroke="none"
-            fill="url(#gradientUGHA)"
-            fillOpacity={1}
-          />
-        )}
-      </>
-    )}
-  </>
+            {loteSeleccionado ? (
+              <>
+                <td className="text-right py-2 px-3 font-mono text-gray-900">
+                  {datos.lotes.find(l => l.loteId === loteSeleccionado)?.datos[index].toFixed(2)}
+                </td>
+                <td className="text-right py-2 px-3 font-mono text-gray-900">
+                  {datos.lotes.find(l => l.loteId === loteSeleccionado)?.cargaPorHectarea[index].toFixed(2)}
+                </td>
+              </>
+            ) : (
+              <>
+                <td className="text-right py-2 px-3 font-mono text-gray-900">
+                  {datos.global?.ug?.[index]?.toFixed(2) ?? '0.00'}
+                </td>
+                <td className="text-right py-2 px-3 font-mono text-gray-900">
+                  {datos.global?.ugPorHectarea?.[index]?.toFixed(2) ?? '0.00'}
+                </td>
+              </>
+            )}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
 ) : (
-  /* VISTA GLOBAL: Campo completo */
-  <>
-    {vistaActiva === 'ug' && (
-      <>
-        {/* Línea primero */}
-        <Line
-          type="stepAfter"
-          dataKey="UG Totales"
-          stroke="#3b82f6"
-          strokeWidth={3}
-          name="UG Totales del Campo"
-          dot={(props: any) => {
-            const { index, payload } = props
-            const actual = payload['UG Totales']
-            const anterior = index > 0 ? datosGrafico[index - 1]['UG Totales'] : null
-            const cambioSignificativo = anterior && Math.abs((actual - anterior) / anterior) > 0.05
-            const esPrimerDiaMes = payload.dia.endsWith('-01')
+  /* GRÁFICO PRINCIPAL */
+  <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6">
+    <ResponsiveContainer width="100%" height={450}>
+      <LineChart data={datosGrafico}>
 
-            return cambioSignificativo || esPrimerDiaMes ? (
-              <circle cx={props.cx} cy={props.cy} r={5} fill="#3b82f6" stroke="white" strokeWidth={2} />
-            ) : null
+        {/* Gradientes */}
+        <defs>
+          <linearGradient id="gradientUG" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+            <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+          </linearGradient>
+
+          <linearGradient id="gradientUGHA" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+            <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+          </linearGradient>
+        </defs>
+
+        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+
+        {/* Bandas de temporadas */}
+        {temporadas.map((temp, idx) => (
+          <ReferenceArea
+            key={idx}
+            x1={temp.inicio}
+            x2={temp.fin}
+            fill="#bfdbfe"
+            fillOpacity={0.15}
+            label={{
+              value: 'Invierno',
+              position: 'top',
+              fill: '#3b82f6',
+              fontSize: 11,
+            }}
+          />
+        ))}
+
+        {/* Línea recomendada */}
+        {vistaActiva === 'ug-ha' && (
+          <ReferenceLine
+            y={1.2}
+            stroke="#ef4444"
+            strokeDasharray="5 5"
+            label={{
+              value: 'Carga máx. recomendada',
+              position: 'right',
+              fill: '#ef4444',
+              fontSize: 10,
+            }}
+          />
+        )}
+
+        {/* Ejes */}
+        <XAxis
+          dataKey="dia"
+          ticks={ticksInteligentes}
+          tickFormatter={(value) => {
+            const [y, m] = value.split('-')
+            const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
+            return meses[parseInt(m) - 1]
+          }}
+          tick={{ fontSize: 12, fill: '#6b7280' }}
+          height={40}
+        />
+
+        <YAxis 
+          tick={{ fontSize: 12, fill: '#6b7280' }}
+          label={{
+            value: vistaActiva === 'ug' ? 'UG Totales' : 'UG/ha',
+            angle: -90,
+            position: 'insideLeft',
+            style: { fill: '#374151', fontSize: 12 }
           }}
         />
 
-        {/* Área después */}
-        {mostrarArea && (
-          <Area
-            type="stepAfter"
-            dataKey="UG Totales"
-            stroke="none"
-            fill="url(#gradientUG)"
-            fillOpacity={1}
-          />
+        <Tooltip content={<CustomTooltip />} />
+        <Legend wrapperStyle={{ paddingTop: 20 }} iconType="line" />
+
+        {/* GRÁFICO – CON ÁREA DESPUÉS DE LA LÍNEA */}
+        {loteSeleccionado ? (
+          <>
+            {/* UG por potrero */}
+            {vistaActiva === 'ug' && (
+              <>
+                <Line
+                  type="stepAfter"
+                  dataKey="UG Totales"
+                  stroke="#3b82f6"
+                  strokeWidth={2}
+                  dot={dotUG}
+                />
+                {mostrarArea && (
+                  <Area
+                    type="stepAfter"
+                    dataKey="UG Totales"
+                    stroke="none"
+                    fill="url(#gradientUG)"
+                    fillOpacity={1}
+                  />
+                )}
+              </>
+            )}
+
+            {/* UG/ha por potrero */}
+            {vistaActiva === 'ug-ha' && (
+              <>
+                <Line
+                  type="stepAfter"
+                  dataKey="UG/ha"
+                  stroke="#10b981"
+                  strokeWidth={2}
+                  dot={dotUGha}
+                />
+                {mostrarArea && (
+                  <Area
+                    type="stepAfter"
+                    dataKey="UG/ha"
+                    stroke="none"
+                    fill="url(#gradientUGHA)"
+                    fillOpacity={1}
+                  />
+                )}
+              </>
+            )}
+          </>
+        ) : (
+          <>
+            {/* UG campo completo */}
+            {vistaActiva === 'ug' && (
+              <>
+                <Line
+                  type="stepAfter"
+                  dataKey="UG Totales"
+                  stroke="#3b82f6"
+                  strokeWidth={3}
+                  name="UG Totales del Campo"
+                  dot={dotUGcampo}
+                />
+                {mostrarArea && (
+                  <Area
+                    type="stepAfter"
+                    dataKey="UG Totales"
+                    stroke="none"
+                    fill="url(#gradientUG)"
+                    fillOpacity={1}
+                  />
+                )}
+              </>
+            )}
+
+            {/* UG/ha campo completo */}
+            {vistaActiva === 'ug-ha' && (
+              <>
+                <Line
+                  type="stepAfter"
+                  dataKey="UG/ha"
+                  stroke="#10b981"
+                  strokeWidth={3}
+                  name="UG/ha Promedio del Campo"
+                  dot={dotUGhaCampo}
+                />
+                {mostrarArea && (
+                  <Area
+                    type="stepAfter"
+                    dataKey="UG/ha"
+                    stroke="none"
+                    fill="url(#gradientUGHA)"
+                    fillOpacity={1}
+                  />
+                )}
+              </>
+            )}
+          </>
         )}
-      </>
-    )}
 
-    {vistaActiva === 'ug-ha' && (
-      <>
-        {/* Línea primero */}
-        <Line
-          type="stepAfter"
-          dataKey="UG/ha"
-          stroke="#10b981"
-          strokeWidth={3}
-          name="UG/ha Promedio del Campo"
-          dot={(props: any) => {
-            const { index, payload } = props
-            const actual = payload['UG/ha']
-            const anterior = index > 0 ? datosGrafico[index - 1]['UG/ha'] : null
-            const cambioSignificativo = anterior && Math.abs((actual - anterior) / anterior) > 0.05
-            const esPrimerDiaMes = payload.dia.endsWith('-01')
-
-            return cambioSignificativo || esPrimerDiaMes ? (
-              <circle cx={props.cx} cy={props.cy} r={5} fill="#10b981" stroke="white" strokeWidth={2} />
-            ) : null
-          }}
-        />
-
-        {/* Área después */}
-        {mostrarArea && (
-          <Area
-            type="stepAfter"
-            dataKey="UG/ha"
-            stroke="none"
-            fill="url(#gradientUGHA)"
-            fillOpacity={1}
-          />
-        )}
-      </>
-    )}
-  </>
-)}
-</LineChart>
-</ResponsiveContainer>
-</div>
+      </LineChart>
+    </ResponsiveContainer>
+  </div>
 )}
 
 {/* RESUMEN GLOBAL */}
@@ -728,16 +737,15 @@ punto['UG/ha'] = datos.global?.ugPorHectarea?.[index] ?? 0
   </div>
 )}
 
-{/* LEYENDA INFORMATIVA */}
+{/* LEYENDA */}
 <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
   <h4 className="font-semibold text-gray-900 mb-2 text-sm">Guía de interpretación</h4>
   <ul className="text-xs text-gray-600 space-y-1">
-    <li>• <strong>Línea escalonada:</strong> Refleja cambios en la carga animal (altas/bajas)</li>
-    <li>• <strong>Puntos marcados:</strong> Indican cambios significativos (&gt;5%) o inicio de mes</li>
-    <li>• <strong>Bandas azules:</strong> Períodos de invierno (menor disponibilidad forrajera)</li>
-    <li>• <strong>Línea roja punteada:</strong> Carga máxima recomendada (1.2 UG/ha)</li>
+    <li>• <strong>Línea escalonada:</strong> Cambios por altas/bajas</li>
+    <li>• <strong>Puntos marcados:</strong> Cambios &gt; 5% o inicio de mes</li>
+    <li>• <strong>Bandas azules:</strong> Invierno</li>
+    <li>• <strong>Línea roja:</strong> Máxima recomendada (1.2 UG/ha)</li>
   </ul>
 </div>
 </div>
-)
-}
+)}
