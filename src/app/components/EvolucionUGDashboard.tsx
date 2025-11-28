@@ -42,16 +42,19 @@ export default function EvolucionUGDashboard() {
   const [vistaTabla, setVistaTabla] = useState(false)
 
   useEffect(() => {
-    cargarDatos()
-  }, [periodo, loteSeleccionado])
+  cargarDatos()
+}, [periodo, loteSeleccionado])
 
   const cargarDatos = async () => {
     setLoading(true)
     try {
       const params = new URLSearchParams({ periodo })
-      if (loteSeleccionado) params.append('loteId', loteSeleccionado)
 
-      const response = await fetch(`/api/ug-evolution?${params}`)
+if (loteSeleccionado) {
+  params.append('loteId', loteSeleccionado)
+}
+
+const response = await fetch(`/api/ug-evolution?${params}`)
       if (response.ok) {
         const data = await response.json()
         setDatos(data)
