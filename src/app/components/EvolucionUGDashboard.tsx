@@ -473,13 +473,13 @@ punto['UG/ha'] = datos.global?.ugPorHectarea?.[index] ?? 0
             <LineChart data={datosGrafico}>
               <defs>
   <linearGradient id="gradientUG" x1="0" y1="0" x2="0" y2="1">
-    <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.45} />
-    <stop offset="100%" stopColor="#3b82f6" stopOpacity={0.05} />
+    <stop offset="0%" stopColor="#FF0000" stopOpacity={1} />
+    <stop offset="100%" stopColor="#FFFF00" stopOpacity={1} />
   </linearGradient>
 
   <linearGradient id="gradientUGHA" x1="0" y1="0" x2="0" y2="1">
-    <stop offset="0%" stopColor="#10b981" stopOpacity={0.45} />
-    <stop offset="100%" stopColor="#10b981" stopOpacity={0.05} />
+    <stop offset="0%" stopColor="#00FF00" stopOpacity={1} />
+    <stop offset="100%" stopColor="#00FFFF" stopOpacity={1} />
   </linearGradient>
 </defs>
 
