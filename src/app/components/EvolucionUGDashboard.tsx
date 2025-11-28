@@ -610,12 +610,13 @@ console.log("datosAreaUGha:", datosAreaUGha)
           <Area
             type="stepAfter"
             dataKey="UG Totales"
-            data={datosGrafico.slice(datosGrafico.findIndex(p => p['UG Totales'] > 0))}
-            stroke="#3b82f6"
-            strokeWidth={3}
+            stroke="none"
             fill="#3b82f6"
             fillOpacity={0.25}
             isAnimationActive={false}
+            // ESTO ES LO QUE LO HACE FUNCIONAR
+            baseLine={0}
+            connectNulls={false}
           />
         )}
         <Line
@@ -635,12 +636,12 @@ console.log("datosAreaUGha:", datosAreaUGha)
           <Area
             type="stepAfter"
             dataKey="UG/ha"
-            data={datosGrafico.slice(datosGrafico.findIndex(p => p['UG/ha'] > 0))}
-            stroke="#10b981"
-            strokeWidth={3}
+            stroke="none"
             fill="#10b981"
-            fillOpacity={0.3}
+            fillOpacity={0.35}
             isAnimationActive={false}
+            baseLine={0}
+            connectNulls={false}
           />
         )}
         <Line
@@ -662,12 +663,11 @@ console.log("datosAreaUGha:", datosAreaUGha)
           <Area
             type="stepAfter"
             dataKey="UG Totales"
-            data={datosGrafico.slice(datosGrafico.findIndex(p => p['UG Totales'] > 0))}
-            stroke="#3b82f6"
-            strokeWidth={4}
+            stroke="none"
             fill="#3b82f6"
             fillOpacity={0.3}
             isAnimationActive={false}
+            baseLine={0}
           />
         )}
         <Line
@@ -675,8 +675,8 @@ console.log("datosAreaUGha:", datosAreaUGha)
           dataKey="UG Totales"
           stroke="#3b82f6"
           strokeWidth={3}
-          name="UG Totales del Campo"
           dot={dotUGcampo}
+          name="UG Totales del Campo"
           isAnimationActive={false}
         />
       </>
@@ -688,12 +688,11 @@ console.log("datosAreaUGha:", datosAreaUGha)
           <Area
             type="stepAfter"
             dataKey="UG/ha"
-            data={datosGrafico.slice(datosGrafico.findIndex(p => p['UG/ha'] > 0))}
-            stroke="#10b981"
-            strokeWidth={4}
+            stroke="none"
             fill="#10b981"
-            fillOpacity={0.35}
+            fillOpacity={0.4}
             isAnimationActive={false}
+            baseLine={0}
           />
         )}
         <Line
@@ -701,8 +700,8 @@ console.log("datosAreaUGha:", datosAreaUGha)
           dataKey="UG/ha"
           stroke="#10b981"
           strokeWidth={3}
-          name="UG/ha Promedio del Campo"
           dot={dotUGhaCampo}
+          name="UG/ha Promedio del Campo"
           isAnimationActive={false}
         />
       </>
