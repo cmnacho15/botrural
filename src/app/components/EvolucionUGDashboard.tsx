@@ -38,6 +38,9 @@ export default function EvolucionUGDashboard() {
   const [loteSeleccionado, setLoteSeleccionado] = useState<string | null>(null)
   const [vistaActiva, setVistaActiva] = useState<'ug' | 'ug-ha'>('ug')
   const [mostrarArea, setMostrarArea] = useState(true)
+  // AGREGA ESTA LÍNEA DE DEBUG:
+  console.log('Estado mostrarArea:', mostrarArea)
+  
   const [mostrarTemporadas, setMostrarTemporadas] = useState(true)
   const [vistaTabla, setVistaTabla] = useState(false)
 
