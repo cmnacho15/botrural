@@ -549,14 +549,15 @@ export default function EvolucionUGDashboard() {
                         }}
                       />
                       {mostrarArea && (
-                        <Area
-                          type="stepAfter"
-                          dataKey="UG Totales"
-                          stroke="none"
-                          fill="url(#gradientUG)"
-                          fillOpacity={1}
-                        />
-                      )}
+  <Area
+    type="stepAfter"
+    dataKey="UG Totales"  // o "UG/ha"
+    stroke="#FF0000"
+    strokeWidth={3}
+    fill="url(#gradientUG)"  // o gradientUGHA
+    fillOpacity={0.5}
+  />
+)}
                     </>
                   )}
 
@@ -580,14 +581,15 @@ export default function EvolucionUGDashboard() {
                         }}
                       />
                       {mostrarArea && (
-                        <Area
-                          type="stepAfter"
-                          dataKey="UG/ha"
-                          stroke="none"
-                          fill="url(#gradientUGHA)"
-                          fillOpacity={1}
-                        />
-                      )}
+  <Area
+    type="stepAfter"
+    dataKey="UG Totales"  // o "UG/ha"
+    stroke="#FF0000"
+    strokeWidth={3}
+    fill="url(#gradientUG)"  // o gradientUGHA
+    fillOpacity={0.5}
+  />
+)}
                     </>
                   )}
                 </>
@@ -615,14 +617,15 @@ export default function EvolucionUGDashboard() {
                         }}
                       />
                       {mostrarArea && (
-                        <Area
-                          type="stepAfter"
-                          dataKey="UG Totales"
-                          stroke="none"
-                          fill="url(#gradientUG)"
-                          fillOpacity={1}
-                        />
-                      )}
+  <Area
+    type="stepAfter"
+    dataKey="UG Totales"  // o "UG/ha"
+    stroke="#FF0000"
+    strokeWidth={3}
+    fill="url(#gradientUG)"  // o gradientUGHA
+    fillOpacity={0.5}
+  />
+)}
                     </>
                   )}
 
@@ -647,14 +650,15 @@ export default function EvolucionUGDashboard() {
                         }}
                       />
                       {mostrarArea && (
-                        <Area
-                          type="stepAfter"
-                          dataKey="UG/ha"
-                          stroke="none"
-                          fill="url(#gradientUGHA)"
-                          fillOpacity={1}
-                        />
-                      )}
+  <Area
+    type="stepAfter"
+    dataKey="UG Totales"  // o "UG/ha"
+    stroke="#FF0000"
+    strokeWidth={3}
+    fill="url(#gradientUG)"  // o gradientUGHA
+    fillOpacity={0.5}
+  />
+)}
                     </>
                   )}
                 </>
