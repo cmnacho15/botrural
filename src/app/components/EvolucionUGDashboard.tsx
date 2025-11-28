@@ -66,33 +66,51 @@ export default function EvolucionUGDashboard() {
   const exportarCSV = () => {
     if (!datos) return
 
-    let csv = 'Fecha,'
+    // Encabezados
+    let csv = 'Fecha'
     if (loteSeleccionado) {
       const lote = datos.lotes.find(l => l.loteId === loteSeleccionado)
-      csv += `${lote?.nombre} (UG),${lote?.nombre} (UG/ha)\n`
+      csv += `,Medio (UG),Medio (UG/ha)\n`
     } else {
-      csv += datos.lotes.map(l => `${l.nombre} (${vistaActiva === 'ug' ? 'UG' : 'UG/ha'})`).join(',') + '\n'
+      if (vistaActiva === 'ug') {
+        csv += ',Medio (UG),Medio (UG/ha)\n'
+      } else {
+        datos.lotes.forEach(l => {
+          csv += `,${l.nombre} (UG/ha)`
+        })
+        csv += '\n'
+      }
     }
 
+    // Datos
     datos.dias.forEach((dia, index) => {
-      csv += `${dia},`
+      const fecha = new Date(dia).toLocaleDateString('es-UY')
+      csv += fecha
+      
       if (loteSeleccionado) {
         const lote = datos.lotes.find(l => l.loteId === loteSeleccionado)
-        csv += `${lote?.datos[index]},${lote?.cargaPorHectarea[index]}\n`
+        if (lote) {
+          csv += `,${lote.datos[index].toFixed(2)},${lote.cargaPorHectarea[index].toFixed(2)}`
+        }
       } else {
-        const valores = datos.lotes.map(lote => 
-          vistaActiva === 'ug' ? lote.datos[index] : lote.cargaPorHectarea[index]
-        )
-        csv += valores.join(',') + '\n'
+        // Vista global - siempre mostrar ambas columnas
+        const ugTotal = datos.global.ug[index]
+        const ugPorHa = datos.global.ugPorHectarea[index]
+        csv += `,${ugTotal.toFixed(2)},${ugPorHa.toFixed(2)}`
       }
+      
+      csv += '\n'
     })
 
-    const blob = new Blob([csv], { type: 'text/csv' })
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
     const url = window.URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
     a.download = `evolucion-ug-${periodo}-${new Date().toISOString().slice(0, 10)}.csv`
+    document.body.appendChild(a)
     a.click()
+    document.body.removeChild(a)
+    window.URL.revokeObjectURL(url)
   }
 
   if (loading) {
