@@ -380,7 +380,7 @@ punto['UG/ha'] = datos.global?.ugPorHectarea?.[index] ?? 0
           </div>
 
           <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-            <p className="text-sm text-green-700 mb-1">Promedio 30 días</p>
+            <p className="text-sm text-green-700 mb-1">Promedio ultimos 30 días</p>
             <p className="text-2xl font-bold text-green-900">{estadisticas.promedioMes}</p>
             <p className="text-xs text-green-600 mt-1">
               {vistaActiva === 'ug' ? 'UG' : 'UG/ha'}
@@ -388,7 +388,7 @@ punto['UG/ha'] = datos.global?.ugPorHectarea?.[index] ?? 0
           </div>
 
           <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-            <p className="text-sm text-purple-700 mb-1">Promedio 90 días</p>
+            <p className="text-sm text-purple-700 mb-1">Promedio ultimos 90 días</p>
             <p className="text-2xl font-bold text-purple-900">{estadisticas.promedioTrimestre}</p>
             <p className="text-xs text-purple-600 mt-1">
               {vistaActiva === 'ug' ? 'UG' : 'UG/ha'}
