@@ -167,6 +167,18 @@ punto['UG/ha'] = datos.global?.ugPorHectarea?.[index] ?? 0
   
   console.log("datosGrafico ejemplo:", datosGrafico[0])
   console.log("mostrarArea:", mostrarArea)
+  
+  // Filtrar datos para el área (eliminar ceros iniciales)
+const primerValorUG = datosGrafico.findIndex(p => p['UG Totales'] > 0)
+const primerValorUGha = datosGrafico.findIndex(p => p['UG/ha'] > 0)
+
+const datosGraficoAreaUG = primerValorUG > -1 
+  ? datosGrafico.slice(primerValorUG) 
+  : []
+
+const datosGraficoAreaUGha = primerValorUGha > -1 
+  ? datosGrafico.slice(primerValorUGha) 
+  : []
 
   // Calcular estadísticas
   const calcularEstadisticas = () => {
@@ -606,109 +618,113 @@ const dotUGhaCampo = (props: any) => {
         <Legend wrapperStyle={{ paddingTop: 20 }} iconType="line" />
 
         {/* GRÁFICO – ÁREA ANTES DE LÍNEA */}
-        {loteSeleccionado ? (
-          <>
-            {/* UG por potrero */}
-            {vistaActiva === 'ug' && (
-              <>
-                {mostrarArea && (
-                  <Area
-                    type="stepAfter"
-                    dataKey="UG Totales"
-                    stroke="none"
-                    fill="url(#gradientUG)"
-                    fillOpacity={1}
-                    isAnimationActive={false}
-                  />
-                )}
-                <Line
-                  type="stepAfter"
-                  dataKey="UG Totales"
-                  stroke="#3b82f6"
-                  strokeWidth={2}
-                  dot={dotUG}
-                  isAnimationActive={false}
-                />
-              </>
-            )}
-
-            {/* UG/ha por potrero */}
-            {vistaActiva === 'ug-ha' && (
-              <>
-                {mostrarArea && (
-                  <Area
-                    type="stepAfter"
-                    dataKey="UG/ha"
-                    stroke="none"
-                    fill="url(#gradientUGHA)"
-                    fillOpacity={1}
-                    isAnimationActive={false}
-                  />
-                )}
-                <Line
-                  type="stepAfter"
-                  dataKey="UG/ha"
-                  stroke="#10b981"
-                  strokeWidth={2}
-                  dot={dotUGha}
-                  isAnimationActive={false}
-                />
-              </>
-            )}
-          </>
-        ) : (
-          <>
-            {/* UG campo completo */}
-            {vistaActiva === 'ug' && (
-              <>
-                {mostrarArea && (
-                  <Area
-                    type="stepAfter"
-                    dataKey="UG Totales"
-                    stroke="none"
-                    fill="url(#gradientUG)"
-                    fillOpacity={1}
-                    isAnimationActive={false}
-                  />
-                )}
-                <Line
-                  type="stepAfter"
-                  dataKey="UG Totales"
-                  stroke="#3b82f6"
-                  strokeWidth={3}
-                  name="UG Totales del Campo"
-                  dot={dotUGcampo}
-                  isAnimationActive={false}
-                />
-              </>
-            )}
-
-            {/* UG/ha campo completo */}
-            {vistaActiva === 'ug-ha' && (
-              <>
-                {mostrarArea && (
-                  <Area
-                    type="stepAfter"
-                    dataKey="UG/ha"
-                    stroke="none"
-                    fill="url(#gradientUGHA)"
-                    fillOpacity={1}
-                    isAnimationActive={false}
-                  />
-                )}
-                <Line
-                  type="stepAfter"
-                  dataKey="UG/ha"
-                  stroke="#10b981"
-                  strokeWidth={3}
-                  name="UG/ha Promedio del Campo"
-                  dot={dotUGhaCampo}
-                  isAnimationActive={false}
-                />
-              </>
-            )}
-          </>
+{loteSeleccionado ? (
+  <>
+    {/* UG por potrero */}
+    {vistaActiva === 'ug' && (
+      <>
+        {mostrarArea && (
+          <Area
+            type="stepAfter"
+            data={datosGraficoAreaUG}
+            dataKey="UG Totales"
+            stroke="none"
+            fill="url(#gradientUG)"
+            fillOpacity={1}
+            isAnimationActive={false}
+          />
         )}
+        <Line
+          type="stepAfter"
+          dataKey="UG Totales"
+          stroke="#3b82f6"
+          strokeWidth={2}
+          dot={dotUG}
+          isAnimationActive={false}
+        />
+      </>
+    )}
+
+    {/* UG/ha por potrero */}
+    {vistaActiva === 'ug-ha' && (
+      <>
+        {mostrarArea && (
+          <Area
+            type="stepAfter"
+            data={datosGraficoAreaUGha}
+            dataKey="UG/ha"
+            stroke="none"
+            fill="url(#gradientUGHA)"
+            fillOpacity={1}
+            isAnimationActive={false}
+          />
+        )}
+        <Line
+          type="stepAfter"
+          dataKey="UG/ha"
+          stroke="#10b981"
+          strokeWidth={2}
+          dot={dotUGha}
+          isAnimationActive={false}
+        />
+      </>
+    )}
+  </>
+) : (
+  <>
+    {/* UG campo completo */}
+    {vistaActiva === 'ug' && (
+      <>
+        {mostrarArea && (
+          <Area
+            type="stepAfter"
+            data={datosGraficoAreaUG}
+            dataKey="UG Totales"
+            stroke="none"
+            fill="url(#gradientUG)"
+            fillOpacity={1}
+            isAnimationActive={false}
+          />
+        )}
+        <Line
+          type="stepAfter"
+          dataKey="UG Totales"
+          stroke="#3b82f6"
+          strokeWidth={3}
+          name="UG Totales del Campo"
+          dot={dotUGcampo}
+          isAnimationActive={false}
+        />
+      </>
+    )}
+
+    {/* UG/ha campo completo */}
+    {vistaActiva === 'ug-ha' && (
+      <>
+        {mostrarArea && (
+          <Area
+            type="stepAfter"
+            data={datosGraficoAreaUGha}
+            dataKey="UG/ha"
+            stroke="none"
+            fill="url(#gradientUGHA)"
+            fillOpacity={1}
+            isAnimationActive={false}
+          />
+        )}
+        <Line
+          type="stepAfter"
+          dataKey="UG/ha"
+          stroke="#10b981"
+          strokeWidth={3}
+          name="UG/ha Promedio del Campo"
+          dot={dotUGhaCampo}
+          isAnimationActive={false}
+        />
+      </>
+    )}
+  </>
+)}
 
       </LineChart>
     </ResponsiveContainer>
