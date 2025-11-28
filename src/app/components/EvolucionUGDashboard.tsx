@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 
 interface DatosEvolucion {
-  meses: string[]
+  dias: string[]
   lotes: Array<{
     loteId: string
     nombre: string
@@ -65,8 +65,8 @@ export default function EvolucionUGDashboard() {
   }
 
   // Preparar datos para el gráfico
-  const datosGrafico = datos.meses.map((mes, index) => {
-    const punto: any = { mes }
+  const datosGrafico = datos.dias.map((dia, index) => {
+  const punto: any = { dia }
 
     if (loteSeleccionado) {
       const lote = datos.lotes.find((l) => l.loteId === loteSeleccionado)
@@ -158,7 +158,7 @@ export default function EvolucionUGDashboard() {
           <LineChart data={datosGrafico}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis 
-              dataKey="mes" 
+              dataKey="dia"
               tick={{ fontSize: 12 }}
               angle={-45}
               textAnchor="end"
