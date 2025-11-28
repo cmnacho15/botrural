@@ -164,21 +164,38 @@ export default function EvolucionUGDashboard() {
           <LineChart data={datosGrafico}>
             
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis 
-              dataKey="dia"
-              tick={{ fontSize: 12 }}
-              angle={-45}
-              textAnchor="end"
-              height={80}
-            />
-            <YAxis tick={{ fontSize: 12 }} />
-            <Tooltip 
-              contentStyle={{ 
-                backgroundColor: 'white', 
-                border: '1px solid #e5e7eb',
-                borderRadius: '8px'
-              }}
-            />
+
+<XAxis
+  dataKey="dia"
+  interval={0} // forzamos todos los ticks pero los filtramos manualmente
+  tickFormatter={(value: string) => {
+    // Mostrar solo si el día es "01" → formato "YYYY-MM"
+    return value.endsWith("-01") ? value.slice(0, 7) : "";
+  }}
+  tick={{ fontSize: 12 }}
+  angle={-45}
+  textAnchor="end"
+  height={80}
+/>
+
+<YAxis tick={{ fontSize: 12 }} />
+
+<Tooltip
+  labelFormatter={(value) => {
+    // Mostrar fecha formateada linda en tooltip
+    const d = new Date(value);
+    return d.toLocaleDateString("es-UY", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  }}
+  contentStyle={{
+    backgroundColor: "white",
+    border: "1px solid #e5e7eb",
+    borderRadius: "8px",
+  }}
+/>
             <Legend />
 
             {loteSeleccionado ? (
