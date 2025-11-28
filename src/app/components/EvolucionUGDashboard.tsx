@@ -156,39 +156,48 @@ export default function EvolucionUGDashboard() {
   })
 
   // Calcular estadísticas
-  const calcularEstadisticas = () => {
-    if (!datos) return null
+const calcularEstadisticas = () => {
+  if (!datos) return null
 
-    const ultimoMes = datos.dias.slice(-30)
-    const ultimoTrimestre = datos.dias.slice(-90)
+  if (loteSeleccionado) {
+    const lote = datos.lotes.find(l => l.loteId === loteSeleccionado)
+    if (!lote) return null
 
-    if (loteSeleccionado) {
-  const lote = datos.lotes.find(l => l.loteId === loteSeleccionado)
-  if (!lote) return null
+    if (vistaActiva === 'ug-ha') {
+      const ugHaUltimoMes = lote.cargaPorHectarea.slice(-30)
+      const ugHaUltimoTrimestre = lote.cargaPorHectarea.slice(-90)
 
+      return {
+        promedioMes: (ugHaUltimoMes.reduce((a, b) => a + b, 0) / ugHaUltimoMes.length).toFixed(2),
+        promedioTrimestre: (ugHaUltimoTrimestre.reduce((a, b) => a + b, 0) / ugHaUltimoTrimestre.length).toFixed(2),
+        actual: lote.cargaPorHectarea[lote.cargaPorHectarea.length - 1].toFixed(2),
+        cargaHaActual: lote.cargaPorHectarea[lote.cargaPorHectarea.length - 1].toFixed(2),
+      }
+    } else {
+      const ugUltimoMes = lote.datos.slice(-30)
+      const ugUltimoTrimestre = lote.datos.slice(-90)
+
+      return {
+        promedioMes: (ugUltimoMes.reduce((a, b) => a + b, 0) / ugUltimoMes.length).toFixed(2),
+        promedioTrimestre: (ugUltimoTrimestre.reduce((a, b) => a + b, 0) / ugUltimoTrimestre.length).toFixed(2),
+        actual: lote.datos[lote.datos.length - 1].toFixed(2),
+        cargaHaActual: lote.cargaPorHectarea[lote.cargaPorHectarea.length - 1].toFixed(2),
+      }
+    }
+  }
+
+  // Vista global (todos los potreros)
   if (vistaActiva === 'ug-ha') {
-    const ugHaUltimoMes = lote.cargaPorHectarea.slice(-30)
-    const ugHaUltimoTrimestre = lote.cargaPorHectarea.slice(-90)
+    const ugHaUltimoMes = datos.global.ugPorHectarea.slice(-30)
+    const ugHaUltimoTrimestre = datos.global.ugPorHectarea.slice(-90)
 
     return {
       promedioMes: (ugHaUltimoMes.reduce((a, b) => a + b, 0) / ugHaUltimoMes.length).toFixed(2),
       promedioTrimestre: (ugHaUltimoTrimestre.reduce((a, b) => a + b, 0) / ugHaUltimoTrimestre.length).toFixed(2),
-      actual: lote.cargaPorHectarea[lote.cargaPorHectarea.length - 1].toFixed(2),
-      cargaHaActual: lote.cargaPorHectarea[lote.cargaPorHectarea.length - 1].toFixed(2),
+      actual: datos.global.ugPorHectarea[datos.global.ugPorHectarea.length - 1].toFixed(2),
+      cargaHaActual: datos.global.ugPorHectarea[datos.global.ugPorHectarea.length - 1].toFixed(2),
     }
   } else {
-    const ugUltimoMes = lote.datos.slice(-30)
-    const ugUltimoTrimestre = lote.datos.slice(-90)
-
-    return {
-      promedioMes: (ugUltimoMes.reduce((a, b) => a + b, 0) / ugUltimoMes.length).toFixed(2),
-      promedioTrimestre: (ugUltimoTrimestre.reduce((a, b) => a + b, 0) / ugUltimoTrimestre.length).toFixed(2),
-      actual: lote.datos[lote.datos.length - 1].toFixed(2),
-      cargaHaActual: lote.cargaPorHectarea[lote.cargaPorHectarea.length - 1].toFixed(2),
-    }
-  }
-}
-
     const ugUltimoMes = datos.global.ug.slice(-30)
     const ugUltimoTrimestre = datos.global.ug.slice(-90)
 
@@ -199,6 +208,7 @@ export default function EvolucionUGDashboard() {
       cargaHaActual: datos.global.ugPorHectarea[datos.global.ugPorHectarea.length - 1].toFixed(2),
     }
   }
+}
 
   const estadisticas = calcularEstadisticas()
 
