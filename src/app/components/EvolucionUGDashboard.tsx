@@ -93,8 +93,8 @@ export default function EvolucionUGDashboard() {
       // DATOS
       datos.dias.forEach((dia, index) => {
         const fecha = new Date(dia).toLocaleDateString('es-UY')
-        const ugTotal = datos.global.ug[index].toFixed(2)
-        const ugPorHa = datos.global.ugPorHectarea[index].toFixed(2)
+        const ugTotal = datos.global?.ug?.[index]?.toFixed(2) ?? '0.00'
+const ugPorHa = datos.global?.ugPorHectarea?.[index]?.toFixed(2) ?? '0.00'
         csv += `${fecha},${ugTotal},${ugPorHa}\n`
       })
     }
@@ -158,8 +158,8 @@ export default function EvolucionUGDashboard() {
       }
     } else {
       // VISTA GLOBAL: mostrar carga del campo completo
-      punto['UG Totales'] = datos.global.ug[index]
-      punto['UG/ha'] = datos.global.ugPorHectarea[index]
+      punto['UG Totales'] = datos.global?.ug?.[index] ?? 0
+punto['UG/ha'] = datos.global?.ugPorHectarea?.[index] ?? 0
     }
 
     return punto
@@ -451,11 +451,11 @@ export default function EvolucionUGDashboard() {
                   ) : (
                     <>
                       <td className="text-right py-2 px-3 font-mono text-gray-900">
-                        {datos.global.ug[index].toFixed(2)}
+                        {datos.global?.ug?.[index]?.toFixed(2) ?? '0.00'}
                       </td>
                       <td className="text-right py-2 px-3 font-mono text-gray-900">
-                        {datos.global.ugPorHectarea[index].toFixed(2)}
-                      </td>
+  {datos.global?.ugPorHectarea?.[index]?.toFixed(2) ?? '0.00'}
+</td>
                     </>
                   )}
                 </tr>
@@ -696,19 +696,19 @@ export default function EvolucionUGDashboard() {
             </div>
             <div className="text-center">
               <p className="text-3xl font-bold text-blue-600">
-                {datos.global.hectareasTotales.toFixed(1)}
+                {datos.global?.hectareasTotales?.toFixed(1) ?? '0.0'}
               </p>
               <p className="text-sm text-blue-700 mt-1">Hectáreas totales</p>
             </div>
             <div className="text-center">
               <p className="text-3xl font-bold text-blue-600">
-                {datos.global.ug[datos.global.ug.length - 1]?.toFixed(2)}
+                {datos.global?.ug?.[datos.global.ug.length - 1]?.toFixed(2) ?? '0.00'}
               </p>
               <p className="text-sm text-blue-700 mt-1">UG Totales hoy</p>
             </div>
             <div className="text-center">
               <p className="text-3xl font-bold text-blue-600">
-                {datos.global.ugPorHectarea[datos.global.ugPorHectarea.length - 1]?.toFixed(2)}
+                {datos.global?.ugPorHectarea?.[datos.global.ugPorHectarea.length - 1]?.toFixed(2) ?? '0.00'}
               </p>
               <p className="text-sm text-blue-700 mt-1">UG/ha promedio hoy</p>
             </div>
