@@ -604,17 +604,17 @@ console.log("datosAreaUGha:", datosAreaUGha)
               {/* GRÁFICO – ÁREA Y LÍNEA */}
 {loteSeleccionado ? (
   <>
-    {/* UG por potrero */}
     {vistaActiva === 'ug' && (
       <>
         {mostrarArea && (
           <Area
             type="stepAfter"
             dataKey="UG Totales"
+            data={datosGrafico.slice(datosGrafico.findIndex(p => p['UG Totales'] > 0))}
             stroke="#3b82f6"
-            strokeWidth={2}
-            fill="url(#gradientUG)"
-            fillOpacity={0.6}
+            strokeWidth={3}
+            fill="#3b82f6"
+            fillOpacity={0.25}
             isAnimationActive={false}
           />
         )}
@@ -629,17 +629,17 @@ console.log("datosAreaUGha:", datosAreaUGha)
       </>
     )}
 
-    {/* UG/ha por potrero */}
     {vistaActiva === 'ug-ha' && (
       <>
         {mostrarArea && (
           <Area
             type="stepAfter"
             dataKey="UG/ha"
+            data={datosGrafico.slice(datosGrafico.findIndex(p => p['UG/ha'] > 0))}
             stroke="#10b981"
-            strokeWidth={2}
-            fill="url(#gradientUGHA)"
-            fillOpacity={0.6}
+            strokeWidth={3}
+            fill="#10b981"
+            fillOpacity={0.3}
             isAnimationActive={false}
           />
         )}
@@ -656,17 +656,17 @@ console.log("datosAreaUGha:", datosAreaUGha)
   </>
 ) : (
   <>
-    {/* UG campo completo */}
     {vistaActiva === 'ug' && (
       <>
         {mostrarArea && (
           <Area
             type="stepAfter"
             dataKey="UG Totales"
+            data={datosGrafico.slice(datosGrafico.findIndex(p => p['UG Totales'] > 0))}
             stroke="#3b82f6"
-            strokeWidth={3}
-            fill="url(#gradientUG)"
-            fillOpacity={0.6}
+            strokeWidth={4}
+            fill="#3b82f6"
+            fillOpacity={0.3}
             isAnimationActive={false}
           />
         )}
@@ -682,17 +682,17 @@ console.log("datosAreaUGha:", datosAreaUGha)
       </>
     )}
 
-    {/* UG/ha campo completo */}
     {vistaActiva === 'ug-ha' && (
       <>
         {mostrarArea && (
           <Area
             type="stepAfter"
             dataKey="UG/ha"
+            data={datosGrafico.slice(datosGrafico.findIndex(p => p['UG/ha'] > 0))}
             stroke="#10b981"
-            strokeWidth={3}
-            fill="url(#gradientUGHA)"
-            fillOpacity={0.6}
+            strokeWidth={4}
+            fill="#10b981"
+            fillOpacity={0.35}
             isAnimationActive={false}
           />
         )}
