@@ -417,20 +417,30 @@ export default function LotesPage() {
           </div>
 
           {hayLotes && (
-            <div className="flex flex-wrap justify-center md:justify-end gap-3">
-              <Link
-                href="/dashboard/lotes/nuevo"
-                className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 bg-white hover:bg-gray-100 text-gray-800 shadow-sm transition text-sm"
-              >
-                <span className="text-lg">+</span> Nuevo potrero
-              </Link>
-              <button
-                className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 bg-white hover:bg-gray-100 text-gray-800 shadow-sm transition text-sm"
-              >
-                <span className="text-lg">⬆️</span> Importar CSV
-              </button>
-            </div>
-          )}
+  <div className="flex flex-wrap justify-center md:justify-end gap-3">
+    
+    {/* 🆕 ESTE ES EL NUEVO BOTÓN - PEGALO ACÁ */}
+    <Link
+      href="/dashboard/ug-evolution"
+      className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 shadow-sm transition text-sm font-medium"
+    >
+      <span className="text-lg">📊</span> Evolución de Carga Animal
+    </Link>
+    
+    {/* 👇 Los botones que ya tenías siguen igual */}
+    <Link
+      href="/dashboard/lotes/nuevo"
+      className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 bg-white hover:bg-gray-100 text-gray-800 shadow-sm transition text-sm"
+    >
+      <span className="text-lg">+</span> Nuevo potrero
+    </Link>
+    <button
+      className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 bg-white hover:bg-gray-100 text-gray-800 shadow-sm transition text-sm"
+    >
+      <span className="text-lg">⬆️</span> Importar CSV
+    </button>
+  </div>
+)}
         </div>
 
         {/* CONTENIDO */}
