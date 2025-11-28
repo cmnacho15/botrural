@@ -601,45 +601,41 @@ console.log("datosAreaUGha:", datosAreaUGha)
               <Tooltip content={<CustomTooltip />} />
               <Legend wrapperStyle={{ paddingTop: 20 }} iconType="line" />
 
-              {/* GRÁFICO – ÁREA Y LÍNEA */}
-{mostrarArea && (
-  <Area
-    type="stepAfter"
-    dataKey={vistaActiva === 'ug' ? 'UG Totales' : 'UG/ha'}
-    stroke="none"
-    fill={vistaActiva === 'ug' ? 'url(#gradientUG)' : 'url(#gradientUGHA)'}
-    fillOpacity={1}
-    baseLine={0}
-    connectNulls={false}
-    dot={false}
-    activeDot={false}
-    isAnimationActive={false}
-  />
-)}
+                            {/* GRÁFICO – ÁREA Y LÍNEA – SOLUCIÓN DEFINITVA */}
+              {mostrarArea && (
+                <Area
+                  type="monotoneX"                                  // ← EL ÚNICO CAMBIO QUE NECESITÁS
+                  dataKey={vistaActiva === 'ug' ? 'UG Totales' : 'UG/ha'}
+                  stroke="none"
+                  fill={vistaActiva === 'ug' ? 'url(#gradientUG)' : 'url(#gradientUGHA)'}
+                  fillOpacity={1}
+                  baseLine={0}
+                  connectNulls={false}
+                  dot={false}
+                  activeDot={false}
+                  isAnimationActive={false}
+                />
+              )}
 
-<Line
-  type="stepAfter"
-  dataKey={vistaActiva === 'ug' ? 'UG Totales' : 'UG/ha'}
-  stroke={vistaActiva === 'ug' ? '#3b82f6' : '#10b981'}
-  strokeWidth={loteSeleccionado ? 2 : 3}
-  dot={
-    loteSeleccionado
-      ? vistaActiva === 'ug'
-        ? dotUG
-        : dotUGha
-      : vistaActiva === 'ug'
-      ? dotUGcampo
-      : dotUGhaCampo
-  }
-  name={
-    loteSeleccionado
-      ? undefined
-      : vistaActiva === 'ug'
-      ? 'UG Totales del Campo'
-      : 'UG/ha Promedio del Campo'
-  }
-  isAnimationActive={false}
-/>
+              <Line
+                type="stepAfter"
+                dataKey={vistaActiva === 'ug' ? 'UG Totales' : 'UG/ha'}
+                stroke={vistaActiva === 'ug' ? '#3b82f6' : '#10b981'}
+                strokeWidth={loteSeleccionado ? 2 : 3}
+                dot={
+                  loteSeleccionado
+                    ? vistaActiva === 'ug' ? dotUG : dotUGha
+                    : vistaActiva === 'ug' ? dotUGcampo : dotUGhaCampo
+                }
+                name={
+                  loteSeleccionado
+                    ? undefined
+                    : vistaActiva === 'ug'
+                    ? 'UG Totales del Campo'
+                    : 'UG/ha Promedio del Campo'
+                }
+                isAnimationActive={false}
+              />
 
             </LineChart>
           </ResponsiveContainer>
