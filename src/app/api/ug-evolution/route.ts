@@ -87,86 +87,79 @@ export async function GET(request: Request) {
       })
     }
 
-    // Generar lista de meses
-    const meses: string[] = []
-    const fechaActual = new Date(fechaInicio)
+    // ===============================
+// 📅 Generar lista de días
+// ===============================
+const dias: string[] = []
+const cursor = new Date(fechaInicio)
 
-    while (fechaActual <= hoy) {
-      meses.push(fechaActual.toISOString().slice(0, 7)) // YYYY-MM
-      fechaActual.setMonth(fechaActual.getMonth() + 1)
+while (cursor <= hoy) {
+  dias.push(cursor.toISOString().slice(0, 10)) // YYYY-MM-DD
+  cursor.setDate(cursor.getDate() + 1)
+}
+
+// ===============================
+// 🔢 Calcular UG diaria por lote
+// ===============================
+const seriesPorLote = lotes.map((lote) => {
+  const snapshotsLote = snapshotsPorLote.get(lote.id) || []
+
+  const ugPorDia = dias.map((diaStr) => {
+    const fechaDia = new Date(diaStr)
+
+    // Buscar último snapshot <= fecha del día
+    let ugDelDia = 0
+    for (let i = snapshotsLote.length - 1; i >= 0; i--) {
+      if (snapshotsLote[i].fecha <= fechaDia) {
+        ugDelDia = snapshotsLote[i].ugTotal
+        break
+      }
     }
 
-    // Calcular UG mensual prorrateada por lote
-    const seriesPorLote = lotes.map((lote) => {
-      const snapshotsLote = snapshotsPorLote.get(lote.id) || []
+    return Math.round(ugDelDia * 100) / 100
+  })
 
-      const ugPorMes = meses.map((mes) => {
-        const [año, mesNum] = mes.split('-').map(Number)
-        const primerDia = new Date(año, mesNum - 1, 1)
-        const ultimoDia = new Date(año, mesNum, 0) // Último día del mes
-        const diasDelMes = ultimoDia.getDate()
-
-        // Reconstruir UG diaria del mes
-        let sumaUGDiaria = 0
-
-        for (let dia = 1; dia <= diasDelMes; dia++) {
-          const fechaDia = new Date(año, mesNum - 1, dia)
-
-          // Buscar último snapshot <= fechaDia
-          let ugDelDia = 0
-          for (let i = snapshotsLote.length - 1; i >= 0; i--) {
-            if (snapshotsLote[i].fecha <= fechaDia) {
-              ugDelDia = snapshotsLote[i].ugTotal
-              break
-            }
-          }
-
-          sumaUGDiaria += ugDelDia
-        }
-
-        // Prorrateo
-        const ugMensual = sumaUGDiaria / diasDelMes
-        return Math.round(ugMensual * 100) / 100
-      })
-
-      return {
-        loteId: lote.id,
-        nombre: lote.nombre,
-        hectareas: lote.hectareas,
-        datos: ugPorMes,
-        cargaPorHectarea: ugPorMes.map((ug) =>
-          lote.hectareas > 0 ? Math.round((ug / lote.hectareas) * 100) / 100 : 0
-        ),
-      }
-    })
-
-    // Calcular UG global (suma de todos los lotes)
-    const ugGlobalPorMes = meses.map((mes, mesIndex) => {
-      return seriesPorLote.reduce((suma, serie) => suma + serie.datos[mesIndex], 0)
-    })
-
-    const hectareasTotales = lotes.reduce((sum, l) => sum + l.hectareas, 0)
-    const ugPorHaGlobal = ugGlobalPorMes.map((ug) =>
-      hectareasTotales > 0 ? Math.round((ug / hectareasTotales) * 100) / 100 : 0
-    )
-
-    return NextResponse.json({
-      meses: meses.map((m) => {
-        const [año, mes] = m.split('-')
-        return `${mes}/${año.slice(2)}` // Formato MM/AA
-      }),
-      lotes: seriesPorLote,
-      global: {
-        ug: ugGlobalPorMes,
-        ugPorHectarea: ugPorHaGlobal,
-        hectareasTotales,
-      },
-    })
-  } catch (error) {
-    console.error('Error en /api/ug-evolution:', error)
-    return NextResponse.json(
-      { error: 'Error calculando evolución UG' },
-      { status: 500 }
-    )
+  return {
+    loteId: lote.id,
+    nombre: lote.nombre,
+    hectareas: lote.hectareas,
+    datos: ugPorDia,
+    cargaPorHectarea: ugPorDia.map((ug) =>
+      lote.hectareas > 0 ? Math.round((ug / lote.hectareas) * 100) / 100 : 0
+    ),
   }
+})
+
+// ===============================
+// 🌍 UG global diaria
+// ===============================
+const ugGlobalPorDia = dias.map((_, index) => {
+  return seriesPorLote.reduce((sum, lote) => sum + lote.datos[index], 0)
+})
+
+const hectareasTotales = lotes.reduce((sum, l) => sum + l.hectareas, 0)
+
+const ugPorHaGlobal = ugGlobalPorDia.map((ug) =>
+  hectareasTotales > 0 ? Math.round((ug / hectareasTotales) * 100) / 100 : 0
+)
+
+// ===============================
+// 📤 Respuesta final (SOLO ESTA)
+// ===============================
+return NextResponse.json({
+  dias, // ← FECHAS EXACTAS
+  lotes: seriesPorLote,
+  global: {
+    ug: ugGlobalPorDia,
+    ugPorHectarea: ugPorHaGlobal,
+    hectareasTotales,
+  },
+})
+} catch (error) {
+  console.error('Error en /api/ug-evolution:', error)
+  return NextResponse.json(
+    { error: 'Error calculando evolución UG' },
+    { status: 500 }
+  )
+}
 }
