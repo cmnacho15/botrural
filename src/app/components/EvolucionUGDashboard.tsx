@@ -545,11 +545,87 @@ punto['UG/ha'] = datos.global?.ugPorHectarea?.[index] ?? 0
                 iconType="line"
               />
 
-              {/* CAMBIO 4: Gráfico completamente renovado */}
+              {/* Gráfico: Potrero o Campo completo */}
               {loteSeleccionado ? (
                 <>
                   {vistaActiva === 'ug' && (
                     <>
+                      {mostrarArea && (
+                        <Area
+                          type="stepAfter"
+                          dataKey="UG Totales"
+                          stroke="none"
+                          fill="url(#gradientUG)"
+                          fillOpacity={1}
+                        />
+                      )}
+                      <Line
+                        type="stepAfter"
+                        dataKey="UG Totales"
+                        stroke="#3b82f6"
+                        strokeWidth={2}
+                        dot={(props: any) => {
+                          const { index, payload } = props
+                          const actual = payload['UG Totales']
+                          const anterior = index > 0 ? datosGrafico[index - 1]['UG Totales'] : null
+
+                          const cambioSignificativo = anterior && Math.abs((actual - anterior) / anterior) > 0.05
+                          const esPrimerDiaMes = payload.dia.endsWith('-01')
+
+                          return cambioSignificativo || esPrimerDiaMes ? (
+                            <circle cx={props.cx} cy={props.cy} r={4} fill="#3b82f6" stroke="white" strokeWidth={2} />
+                          ) : null
+                        }}
+                      />
+                    </>
+                  )}
+
+                  {vistaActiva === 'ug-ha' && (
+                    <>
+                      {mostrarArea && (
+                        <Area
+                          type="stepAfter"
+                          dataKey="UG/ha"
+                          stroke="none"
+                          fill="url(#gradientUGHA)"
+                          fillOpacity={1}
+                        />
+                      )}
+                      <Line
+                        type="stepAfter"
+                        dataKey="UG/ha"
+                        stroke="#10b981"
+                        strokeWidth={2}
+                        dot={(props: any) => {
+                          const { index, payload } = props
+                          const actual = payload['UG/ha']
+                          const anterior = index > 0 ? datosGrafico[index - 1]['UG/ha'] : null
+
+                          const cambioSignificativo = anterior && Math.abs((actual - anterior) / anterior) > 0.05
+                          const esPrimerDiaMes = payload.dia.endsWith('-01')
+
+                          return cambioSignificativo || esPrimerDiaMes ? (
+                            <circle cx={props.cx} cy={props.cy} r={4} fill="#10b981" stroke="white" strokeWidth={2} />
+                          ) : null
+                        }}
+                      />
+                    </>
+                  )}
+                </>
+              ) : (
+                /* VISTA GLOBAL: Campo completo */
+                <>
+                  {vistaActiva === 'ug' && (
+                    <>
+                      {mostrarArea && (
+                        <Area
+                          type="stepAfter"
+                          dataKey="UG Totales"
+                          stroke="none"
+                          fill="url(#gradientUG)"
+                          fillOpacity={1}
+                        />
+                      )}
                       <Line
                         type="stepAfter"
                         dataKey="UG Totales"
@@ -569,83 +645,6 @@ punto['UG/ha'] = datos.global?.ugPorHectarea?.[index] ?? 0
                           ) : null
                         }}
                       />
-                      {mostrarArea && (
-                        <Area
-                          type="stepAfter"
-                          dataKey="UG Totales"
-                          stroke="none"
-                          fill="url(#gradientUG)"
-                          fillOpacity={1}
-                        />
-                      )}
-                    </>
-                  )}
-
-                  {vistaActiva === 'ug-ha' && (
-                    <>
-                      <Line
-                        type="stepAfter"
-                        dataKey="UG/ha"
-                        stroke="#10b981"
-                        strokeWidth={3}
-                        name="UG/ha Promedio del Campo"
-                        dot={(props: any) => {
-                          const { index, payload } = props
-                          const actual = payload['UG/ha']
-                          const anterior = index > 0 ? datosGrafico[index - 1]['UG/ha'] : null
-
-                          const cambioSignificativo = anterior && Math.abs((actual - anterior) / anterior) > 0.05
-                          const esPrimerDiaMes = payload.dia.endsWith('-01')
-
-                          return cambioSignificativo || esPrimerDiaMes ? (
-                            <circle cx={props.cx} cy={props.cy} r={5} fill="#10b981" stroke="white" strokeWidth={2} />
-                          ) : null
-                        }}
-                      />
-                      {mostrarArea && (
-                        <Area
-                          type="stepAfter"
-                          dataKey="UG/ha"
-                          stroke="none"
-                          fill="url(#gradientUGHA)"
-                          fillOpacity={1}
-                        />
-                      )}
-                    </>
-                  )}
-                </>
-              ) : (
-                /* VISTA GLOBAL: Campo completo */
-                <>
-                  {vistaActiva === 'ug-ha' && (
-                    <>
-                      <Line
-                        type="stepAfter"
-                        dataKey="UG/ha"
-                        stroke="#10b981"
-                        strokeWidth={2}
-                        dot={(props: any) => {
-                          const { index, payload } = props
-                          const actual = payload['UG/ha']
-                          const anterior = index > 0 ? datosGrafico[index - 1]['UG/ha'] : null
-
-                          const cambioSignificativo = anterior && Math.abs((actual - anterior) / anterior) > 0.05
-                          const esPrimerDiaMes = payload.dia.endsWith('-01')
-
-                          return cambioSignificativo || esPrimerDiaMes ? (
-                            <circle cx={props.cx} cy={props.cy} r={4} fill="#10b981" stroke="white" strokeWidth={2} />
-                          ) : null
-                        }}
-                      />
-                      {mostrarArea && (
-                        <Area
-                          type="stepAfter"
-                          dataKey="UG/ha"
-                          stroke="none"
-                          fill="url(#gradientUGHA)"
-                          fillOpacity={1}
-                        />
-                      )}
                     </>
                   )}
 
