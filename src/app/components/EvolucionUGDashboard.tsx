@@ -166,7 +166,8 @@ punto['UG/ha'] = datos.global?.ugPorHectarea?.[index] ?? 0
   })
   
   console.log("datosGrafico ejemplo:", datosGrafico[0])
-  
+  console.log("mostrarArea:", mostrarArea)
+
   // Calcular estadísticas
   const calcularEstadisticas = () => {
     if (!datos) return null
