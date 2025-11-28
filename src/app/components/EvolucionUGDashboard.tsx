@@ -606,9 +606,10 @@ const datosAreaUGha = primerIndiceUGha >= 0 ? datosGrafico.slice(primerIndiceUGh
             type="stepAfter"
             data={datosAreaUG}
             dataKey="UG Totales"
-            stroke="none"
+            stroke="#3b82f6"
+            strokeWidth={2}
             fill="url(#gradientUG)"
-            fillOpacity={0.4}
+            fillOpacity={0.6}
             isAnimationActive={false}
           />
         )}
@@ -631,9 +632,10 @@ const datosAreaUGha = primerIndiceUGha >= 0 ? datosGrafico.slice(primerIndiceUGh
             type="stepAfter"
             data={datosAreaUGha}
             dataKey="UG/ha"
-            stroke="none"
+            stroke="#10b981"
+            strokeWidth={2}
             fill="url(#gradientUGHA)"
-            fillOpacity={0.4}
+            fillOpacity={0.6}
             isAnimationActive={false}
           />
         )}
@@ -658,9 +660,10 @@ const datosAreaUGha = primerIndiceUGha >= 0 ? datosGrafico.slice(primerIndiceUGh
             type="stepAfter"
             data={datosAreaUG}
             dataKey="UG Totales"
-            stroke="none"
+            stroke="#3b82f6"
+            strokeWidth={3}
             fill="url(#gradientUG)"
-            fillOpacity={0.4}
+            fillOpacity={0.6}
             isAnimationActive={false}
           />
         )}
@@ -684,9 +687,10 @@ const datosAreaUGha = primerIndiceUGha >= 0 ? datosGrafico.slice(primerIndiceUGh
             type="stepAfter"
             data={datosAreaUGha}
             dataKey="UG/ha"
-            stroke="none"
+            stroke="#10b981"
+            strokeWidth={3}
             fill="url(#gradientUGHA)"
-            fillOpacity={0.4}
+            fillOpacity={0.6}
             isAnimationActive={false}
           />
         )}
