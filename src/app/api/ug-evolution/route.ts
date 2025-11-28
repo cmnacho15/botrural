@@ -131,29 +131,35 @@ const seriesPorLote = lotes.map((lote) => {
 })
 
 // ===============================
-// 🌍 UG global diaria
+// 🌍 UG global diaria (solo si NO hay lote seleccionado)
 // ===============================
-const ugGlobalPorDia = dias.map((_, index) => {
-  return seriesPorLote.reduce((sum, lote) => sum + lote.datos[index], 0)
-})
+let global = null
 
-const hectareasTotales = lotes.reduce((sum, l) => sum + l.hectareas, 0)
+if (!loteId) {
+  const ugGlobalPorDia = dias.map((_, index) => {
+    return seriesPorLote.reduce((sum, lote) => sum + lote.datos[index], 0)
+  })
 
-const ugPorHaGlobal = ugGlobalPorDia.map((ug) =>
-  hectareasTotales > 0 ? Math.round((ug / hectareasTotales) * 100) / 100 : 0
-)
+  const hectareasTotales = lotes.reduce((sum, l) => sum + l.hectareas, 0)
+
+  const ugPorHaGlobal = ugGlobalPorDia.map((ug) =>
+    hectareasTotales > 0 ? Math.round((ug / hectareasTotales) * 100) / 100 : 0
+  )
+
+  global = {
+    ug: ugGlobalPorDia,
+    ugPorHectarea: ugPorHaGlobal,
+    hectareasTotales,
+  }
+}
 
 // ===============================
-// 📤 Respuesta final (SOLO ESTA)
+// 📤 Respuesta final
 // ===============================
 return NextResponse.json({
   dias, // ← FECHAS EXACTAS
   lotes: seriesPorLote,
-  global: {
-    ug: ugGlobalPorDia,
-    ugPorHectarea: ugPorHaGlobal,
-    hectareasTotales,
-  },
+  global, // ← solo existe si NO se seleccionó un lote
 })
 } catch (error) {
   console.error('Error en /api/ug-evolution:', error)
