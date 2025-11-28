@@ -165,6 +165,10 @@ export default function EvolucionUGDashboard() {
     return punto
   })
   
+  console.log("datosGrafico COMPLETO:", datosGrafico)
+console.log("primerIndiceUG:", datosGrafico.findIndex(p => p['UG Totales'] > 0))
+
+
   console.log("datosGrafico ejemplo:", datosGrafico[0])
   console.log("mostrarArea:", mostrarArea)
   // Filtrar datos para <Area>: eliminar ceros iniciales
@@ -173,6 +177,8 @@ const primerIndiceUGha = datosGrafico.findIndex(p => p['UG/ha'] > 0)
 
 const datosAreaUG = primerIndiceUG >= 0 ? datosGrafico.slice(primerIndiceUG) : []
 const datosAreaUGha = primerIndiceUGha >= 0 ? datosGrafico.slice(primerIndiceUGha) : []
+console.log("datosAreaUG:", datosAreaUG)
+console.log("datosAreaUGha:", datosAreaUGha)
 
   // Calcular estadísticas
   const calcularEstadisticas = () => {
