@@ -4,12 +4,15 @@ import { useState, useEffect } from 'react'
 import {
   LineChart,
   Line,
+  Area,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   Legend,
   ResponsiveContainer,
+  ReferenceLine,
+  ReferenceArea,
 } from 'recharts'
 
 interface DatosEvolucion {
@@ -34,6 +37,9 @@ export default function EvolucionUGDashboard() {
   const [periodo, setPeriodo] = useState<'mensual' | 'ejercicio'>('mensual')
   const [loteSeleccionado, setLoteSeleccionado] = useState<string | null>(null)
   const [vistaActiva, setVistaActiva] = useState<'ug' | 'ug-ha'>('ug')
+  const [mostrarArea, setMostrarArea] = useState(true)
+  const [mostrarTemporadas, setMostrarTemporadas] = useState(true)
+  const [vistaTabla, setVistaTabla] = useState(false)
 
   useEffect(() => {
     cargarDatos()
@@ -57,6 +63,38 @@ export default function EvolucionUGDashboard() {
     }
   }
 
+  const exportarCSV = () => {
+    if (!datos) return
+
+    let csv = 'Fecha,'
+    if (loteSeleccionado) {
+      const lote = datos.lotes.find(l => l.loteId === loteSeleccionado)
+      csv += `${lote?.nombre} (UG),${lote?.nombre} (UG/ha)\n`
+    } else {
+      csv += datos.lotes.map(l => `${l.nombre} (${vistaActiva === 'ug' ? 'UG' : 'UG/ha'})`).join(',') + '\n'
+    }
+
+    datos.dias.forEach((dia, index) => {
+      csv += `${dia},`
+      if (loteSeleccionado) {
+        const lote = datos.lotes.find(l => l.loteId === loteSeleccionado)
+        csv += `${lote?.datos[index]},${lote?.cargaPorHectarea[index]}\n`
+      } else {
+        const valores = datos.lotes.map(lote => 
+          vistaActiva === 'ug' ? lote.datos[index] : lote.cargaPorHectarea[index]
+        )
+        csv += valores.join(',') + '\n'
+      }
+    })
+
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `evolucion-ug-${periodo}-${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
@@ -73,9 +111,26 @@ export default function EvolucionUGDashboard() {
     )
   }
 
-  // ================================
-  // PREPARAR DATOS PARA EL GRÁFICO
-  // ================================
+  // Generar ticks inteligentes (solo primeros de mes)
+  const ticksInteligentes = datos.dias.filter(dia => dia.endsWith('-01'))
+
+  // Detectar temporadas (invierno en hemisferio sur: jun-sep)
+  const temporadas = []
+  if (mostrarTemporadas) {
+    const añoInicio = new Date(datos.dias[0]).getFullYear()
+    const añoFin = new Date(datos.dias[datos.dias.length - 1]).getFullYear()
+    
+    for (let año = añoInicio; año <= añoFin; año++) {
+      const inviernoInicio = `${año}-06-01`
+      const inviernoFin = `${año}-09-30`
+      
+      if (datos.dias.some(d => d >= inviernoInicio && d <= inviernoFin)) {
+        temporadas.push({ inicio: inviernoInicio, fin: inviernoFin, nombre: 'Invierno' })
+      }
+    }
+  }
+
+  // Preparar datos para el gráfico
   const datosGrafico = datos.dias.map((dia, index) => {
     const punto: any = { dia }
 
@@ -100,6 +155,41 @@ export default function EvolucionUGDashboard() {
     return punto
   })
 
+  // Calcular estadísticas
+  const calcularEstadisticas = () => {
+    if (!datos) return null
+
+    const ultimoMes = datos.dias.slice(-30)
+    const ultimoTrimestre = datos.dias.slice(-90)
+
+    if (loteSeleccionado) {
+      const lote = datos.lotes.find(l => l.loteId === loteSeleccionado)
+      if (!lote) return null
+
+      const ugUltimoMes = lote.datos.slice(-30)
+      const ugUltimoTrimestre = lote.datos.slice(-90)
+
+      return {
+        promedioMes: (ugUltimoMes.reduce((a, b) => a + b, 0) / ugUltimoMes.length).toFixed(2),
+        promedioTrimestre: (ugUltimoTrimestre.reduce((a, b) => a + b, 0) / ugUltimoTrimestre.length).toFixed(2),
+        actual: lote.datos[lote.datos.length - 1].toFixed(2),
+        cargaHaActual: lote.cargaPorHectarea[lote.cargaPorHectarea.length - 1].toFixed(2),
+      }
+    }
+
+    const ugUltimoMes = datos.global.ug.slice(-30)
+    const ugUltimoTrimestre = datos.global.ug.slice(-90)
+
+    return {
+      promedioMes: (ugUltimoMes.reduce((a, b) => a + b, 0) / ugUltimoMes.length).toFixed(2),
+      promedioTrimestre: (ugUltimoTrimestre.reduce((a, b) => a + b, 0) / ugUltimoTrimestre.length).toFixed(2),
+      actual: datos.global.ug[datos.global.ug.length - 1].toFixed(2),
+      cargaHaActual: datos.global.ugPorHectarea[datos.global.ugPorHectarea.length - 1].toFixed(2),
+    }
+  }
+
+  const estadisticas = calcularEstadisticas()
+
   const colores = [
     '#3b82f6',
     '#10b981',
@@ -111,17 +201,59 @@ export default function EvolucionUGDashboard() {
     '#84cc16',
   ]
 
+  // Tooltip personalizado
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (!active || !payload) return null
+
+    const fecha = new Date(label)
+    const mes = fecha.toLocaleDateString('es-UY', { 
+      day: 'numeric',
+      month: 'long', 
+      year: 'numeric' 
+    })
+
+    return (
+      <div className="bg-white p-3 rounded-lg shadow-lg border border-gray-200">
+        <p className="font-semibold text-gray-900 mb-2 text-sm">{mes}</p>
+        {payload.map((entry: any, index: number) => (
+          <div key={index} className="flex justify-between gap-4 text-sm">
+            <span style={{ color: entry.color }} className="font-medium">
+              {entry.name}:
+            </span>
+            <span className="font-mono font-semibold">
+              {entry.value.toFixed(2)} {vistaActiva === 'ug' ? 'UG' : 'UG/ha'}
+            </span>
+          </div>
+        ))}
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
-
       {/* CONTROLES */}
       <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6">
-        <h2 className="text-xl font-bold text-gray-900 mb-4">
-          📊 Evolución de Carga Animal
-        </h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold text-gray-900">
+            📊 Evolución de Carga Animal
+          </h2>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setVistaTabla(!vistaTabla)}
+              className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium transition-colors"
+            >
+              {vistaTabla ? '📊 Ver Gráfico' : '📋 Ver Tabla'}
+            </button>
+            <button
+              onClick={exportarCSV}
+              className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors"
+            >
+              📥 Exportar CSV
+            </button>
+          </div>
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-
           {/* Período */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -130,7 +262,7 @@ export default function EvolucionUGDashboard() {
             <select
               value={periodo}
               onChange={(e) => setPeriodo(e.target.value as any)}
-              className="w-full border border-gray-300 rounded-lg px-4 py-2"
+              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="mensual">Últimos 12 meses</option>
               <option value="ejercicio">Ejercicio actual (1 Jul - 30 Jun)</option>
@@ -144,8 +276,11 @@ export default function EvolucionUGDashboard() {
             </label>
             <select
               value={loteSeleccionado || ''}
-              onChange={(e) => setLoteSeleccionado(e.target.value || null)}
-              className="w-full border border-gray-300 rounded-lg px-4 py-2"
+              onChange={(e) => {
+                const valor = e.target.value
+                setLoteSeleccionado(valor === '' ? null : valor)
+              }}
+              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="">📍 Todos los potreros</option>
               {datos.lotes.map((lote) => (
@@ -164,161 +299,354 @@ export default function EvolucionUGDashboard() {
             <select
               value={vistaActiva}
               onChange={(e) => setVistaActiva(e.target.value as any)}
-              className="w-full border border-gray-300 rounded-lg px-4 py-2"
+              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="ug">UG Totales</option>
               <option value="ug-ha">UG por Hectárea</option>
             </select>
           </div>
+        </div>
 
+        {/* Opciones de visualización */}
+        <div className="flex gap-4 mt-4 pt-4 border-t border-gray-200">
+          <label className="flex items-center gap-2 text-sm cursor-pointer">
+            <input
+              type="checkbox"
+              checked={mostrarArea}
+              onChange={(e) => setMostrarArea(e.target.checked)}
+              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            />
+            <span className="text-gray-700">Mostrar área rellena</span>
+          </label>
+          <label className="flex items-center gap-2 text-sm cursor-pointer">
+            <input
+              type="checkbox"
+              checked={mostrarTemporadas}
+              onChange={(e) => setMostrarTemporadas(e.target.checked)}
+              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            />
+            <span className="text-gray-700">Marcar temporadas</span>
+          </label>
         </div>
       </div>
 
-      {/* GRÁFICO PRINCIPAL */}
-      <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6">
-        <ResponsiveContainer width="100%" height={400}>
-          <LineChart data={datosGrafico}>
-            <CartesianGrid strokeDasharray="3 3" />
+      {/* ESTADÍSTICAS */}
+      {estadisticas && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <p className="text-sm text-blue-700 mb-1">Actual</p>
+            <p className="text-2xl font-bold text-blue-900">
+              {vistaActiva === 'ug' ? estadisticas.actual : estadisticas.cargaHaActual}
+            </p>
+            <p className="text-xs text-blue-600 mt-1">
+              {vistaActiva === 'ug' ? 'UG totales' : 'UG/ha'}
+            </p>
+          </div>
 
-            <XAxis
-  dataKey="dia"
-  interval={Math.floor(datosGrafico.length / 12)} // 1 tick por mes aprox
-  tickFormatter={(value: string) => {
-    // value = "2025-01-05"
-    const [y, m, d] = value.split("-");
-    return `${d}/${m}`; // "05/01"
-  }}
-  tick={{ fontSize: 11 }}
-  angle={-25}
-  textAnchor="end"
-  height={60}
-/>
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+            <p className="text-sm text-green-700 mb-1">Promedio 30 días</p>
+            <p className="text-2xl font-bold text-green-900">{estadisticas.promedioMes}</p>
+            <p className="text-xs text-green-600 mt-1">
+              {vistaActiva === 'ug' ? 'UG' : 'UG/ha'}
+            </p>
+          </div>
 
-<YAxis tick={{ fontSize: 12 }} />
+          <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+            <p className="text-sm text-purple-700 mb-1">Promedio 90 días</p>
+            <p className="text-2xl font-bold text-purple-900">{estadisticas.promedioTrimestre}</p>
+            <p className="text-xs text-purple-600 mt-1">
+              {vistaActiva === 'ug' ? 'UG' : 'UG/ha'}
+            </p>
+          </div>
 
-<Tooltip
-  labelFormatter={(v) => {
-    const d = new Date(v);
-    return d.toLocaleDateString("es-UY", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  }}
-  contentStyle={{
-    backgroundColor: "white",
-    border: "1px solid #e5e7eb",
-    borderRadius: "8px",
-  }}
-/>
+          <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+            <p className="text-sm text-orange-700 mb-1">Superficie</p>
+            <p className="text-2xl font-bold text-orange-900">
+              {loteSeleccionado 
+                ? datos.lotes.find(l => l.loteId === loteSeleccionado)?.hectareas 
+                : datos.global.hectareasTotales}
+            </p>
+            <p className="text-xs text-orange-600 mt-1">hectáreas</p>
+          </div>
+        </div>
+      )}
 
-            <Legend />
-
-            {/* Si seleccionó un potrero */}
-            {loteSeleccionado ? (
-              <>
-                {/* UG */}
-                {vistaActiva === 'ug' && (
-                  <Line
-                    type="stepAfter"
-                    dataKey="UG"
-                    stroke="#3b82f6"
-                    strokeWidth={2}
-                    dot={(props: any) => {
-                      const { index, payload } = props
-                      const actual = payload['UG']
-                      const anterior = index > 0 ? datosGrafico[index - 1]['UG'] : null
-
-                      const cambio = actual !== anterior
-                      const esPrimerDiaMes = payload.dia.endsWith('-01')
-
-                      return cambio || esPrimerDiaMes ? (
-                        <circle cx={props.cx} cy={props.cy} r={4} fill="#3b82f6" />
-                      ) : null
-                    }}
-                  />
+      {/* VISTA DE TABLA */}
+      {vistaTabla ? (
+        <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6 overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-200">
+                <th className="text-left py-2 px-3 font-semibold text-gray-700">Fecha</th>
+                {loteSeleccionado ? (
+                  <>
+                    <th className="text-right py-2 px-3 font-semibold text-gray-700">UG</th>
+                    <th className="text-right py-2 px-3 font-semibold text-gray-700">UG/ha</th>
+                  </>
+                ) : (
+                  datos.lotes.map((lote, idx) => (
+                    <th key={lote.loteId} className="text-right py-2 px-3 font-semibold text-gray-700">
+                      {lote.nombre}
+                    </th>
+                  ))
                 )}
+              </tr>
+            </thead>
+            <tbody>
+              {datos.dias.map((dia, index) => (
+                <tr key={dia} className="border-b border-gray-100 hover:bg-gray-50">
+                  <td className="py-2 px-3 text-gray-600">
+                    {new Date(dia).toLocaleDateString('es-UY')}
+                  </td>
+                  {loteSeleccionado ? (
+                    <>
+                      <td className="text-right py-2 px-3 font-mono text-gray-900">
+                        {datos.lotes.find(l => l.loteId === loteSeleccionado)?.datos[index].toFixed(2)}
+                      </td>
+                      <td className="text-right py-2 px-3 font-mono text-gray-900">
+                        {datos.lotes.find(l => l.loteId === loteSeleccionado)?.cargaPorHectarea[index].toFixed(2)}
+                      </td>
+                    </>
+                  ) : (
+                    datos.lotes.map((lote) => (
+                      <td key={lote.loteId} className="text-right py-2 px-3 font-mono text-gray-900">
+                        {vistaActiva === 'ug' 
+                          ? lote.datos[index].toFixed(2) 
+                          : lote.cargaPorHectarea[index].toFixed(2)}
+                      </td>
+                    ))
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        /* GRÁFICO PRINCIPAL */
+        <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6">
+          <ResponsiveContainer width="100%" height={450}>
+            <LineChart data={datosGrafico}>
+              <defs>
+                <linearGradient id="gradientUG" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="gradientUGHA" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                </linearGradient>
+              </defs>
 
-                {/* UG/ha */}
-                {vistaActiva === 'ug-ha' && (
-                  <Line
-                    type="stepAfter"
-                    dataKey="UG/ha"
-                    stroke="#10b981"
-                    strokeWidth={2}
-                    dot={(props: any) => {
-                      const { index, payload } = props
-                      const actual = payload['UG/ha']
-                      const anterior = index > 0 ? datosGrafico[index - 1]['UG/ha'] : null
+              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
 
-                      const cambio = actual !== anterior
-                      const esPrimerDiaMes = payload.dia.endsWith('-01')
+              {/* Bandas de temporada (invierno) */}
+              {temporadas.map((temp, idx) => (
+                <ReferenceArea
+                  key={idx}
+                  x1={temp.inicio}
+                  x2={temp.fin}
+                  fill="#bfdbfe"
+                  fillOpacity={0.15}
+                  label={{
+                    value: '❄️ Invierno',
+                    position: 'top',
+                    fill: '#3b82f6',
+                    fontSize: 11,
+                  }}
+                />
+              ))}
 
-                      return cambio || esPrimerDiaMes ? (
-                        <circle cx={props.cx} cy={props.cy} r={4} fill="#10b981" />
-                      ) : null
-                    }}
-                  />
-                )}
-              </>
-            ) : (
-              /* VISTA GLOBAL: todos los lotes */
-              <>
-                {datos.lotes.map((lote, index) => (
-                  <Line
-                    key={lote.loteId}
-                    type="stepAfter"
-                    dataKey={lote.nombre}
-                    stroke={colores[index % colores.length]}
-                    strokeWidth={2}
-                    dot={(props: any) => {
-                      const { index: idx, payload, dataKey } = props
-                      const actual = payload[dataKey]
-                      const anterior =
-                        idx > 0 ? datosGrafico[idx - 1][dataKey] : null
+              {/* Línea de carga recomendada (UG/ha) */}
+              {vistaActiva === 'ug-ha' && (
+                <ReferenceLine
+                  y={1.2}
+                  stroke="#ef4444"
+                  strokeDasharray="5 5"
+                  label={{
+                    value: 'Carga máx. recomendada',
+                    position: 'right',
+                    fill: '#ef4444',
+                    fontSize: 10,
+                  }}
+                />
+              )}
 
-                      const cambio = actual !== anterior
-                      const esPrimerDiaMes = payload.dia.endsWith('-01')
+              <XAxis
+                dataKey="dia"
+                ticks={ticksInteligentes}
+                tickFormatter={(value: string) => {
+                  const [y, m] = value.split('-')
+                  const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+                  return meses[parseInt(m) - 1]
+                }}
+                tick={{ fontSize: 12, fill: '#6b7280' }}
+                height={40}
+              />
 
-                      return cambio || esPrimerDiaMes ? (
-                        <circle
-                          cx={props.cx}
-                          cy={props.cy}
-                          r={4}
-                          fill={colores[index % colores.length]}
+              <YAxis 
+                tick={{ fontSize: 12, fill: '#6b7280' }}
+                label={{ 
+                  value: vistaActiva === 'ug' ? 'UG Totales' : 'UG/ha', 
+                  angle: -90, 
+                  position: 'insideLeft',
+                  style: { fill: '#374151', fontSize: 12 }
+                }}
+              />
+
+              <Tooltip content={<CustomTooltip />} />
+              <Legend 
+                wrapperStyle={{ paddingTop: '20px' }}
+                iconType="line"
+              />
+
+              {/* Si seleccionó un potrero */}
+              {loteSeleccionado ? (
+                <>
+                  {vistaActiva === 'ug' && (
+                    <>
+                      {mostrarArea && (
+                        <Area
+                          type="stepAfter"
+                          dataKey="UG"
+                          stroke="none"
+                          fill="url(#gradientUG)"
+                          fillOpacity={1}
                         />
-                      ) : null
-                    }}
-                  />
-                ))}
-              </>
-            )}
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
+                      )}
+                      <Line
+                        type="stepAfter"
+                        dataKey="UG"
+                        stroke="#3b82f6"
+                        strokeWidth={2}
+                        dot={(props: any) => {
+                          const { index, payload } = props
+                          const actual = payload['UG']
+                          const anterior = index > 0 ? datosGrafico[index - 1]['UG'] : null
+
+                          const cambioSignificativo = anterior && Math.abs((actual - anterior) / anterior) > 0.05
+                          const esPrimerDiaMes = payload.dia.endsWith('-01')
+
+                          return cambioSignificativo || esPrimerDiaMes ? (
+                            <circle cx={props.cx} cy={props.cy} r={4} fill="#3b82f6" stroke="white" strokeWidth={2} />
+                          ) : null
+                        }}
+                      />
+                    </>
+                  )}
+
+                  {vistaActiva === 'ug-ha' && (
+                    <>
+                      {mostrarArea && (
+                        <Area
+                          type="stepAfter"
+                          dataKey="UG/ha"
+                          stroke="none"
+                          fill="url(#gradientUGHA)"
+                          fillOpacity={1}
+                        />
+                      )}
+                      <Line
+                        type="stepAfter"
+                        dataKey="UG/ha"
+                        stroke="#10b981"
+                        strokeWidth={2}
+                        dot={(props: any) => {
+                          const { index, payload } = props
+                          const actual = payload['UG/ha']
+                          const anterior = index > 0 ? datosGrafico[index - 1]['UG/ha'] : null
+
+                          const cambioSignificativo = anterior && Math.abs((actual - anterior) / anterior) > 0.05
+                          const esPrimerDiaMes = payload.dia.endsWith('-01')
+
+                          return cambioSignificativo || esPrimerDiaMes ? (
+                            <circle cx={props.cx} cy={props.cy} r={4} fill="#10b981" stroke="white" strokeWidth={2} />
+                          ) : null
+                        }}
+                      />
+                    </>
+                  )}
+                </>
+              ) : (
+                /* VISTA GLOBAL: todos los lotes */
+                <>
+                  {datos.lotes.map((lote, index) => (
+                    <Line
+                      key={lote.loteId}
+                      type="stepAfter"
+                      dataKey={lote.nombre}
+                      stroke={colores[index % colores.length]}
+                      strokeWidth={2}
+                      dot={(props: any) => {
+                        const { index: idx, payload, dataKey } = props
+                        const actual = payload[dataKey]
+                        const anterior = idx > 0 ? datosGrafico[idx - 1][dataKey] : null
+
+                        const cambioSignificativo = anterior && Math.abs((actual - anterior) / anterior) > 0.05
+                        const esPrimerDiaMes = payload.dia.endsWith('-01')
+
+                        return cambioSignificativo || esPrimerDiaMes ? (
+                          <circle
+                            cx={props.cx}
+                            cy={props.cy}
+                            r={4}
+                            fill={colores[index % colores.length]}
+                            stroke="white"
+                            strokeWidth={2}
+                          />
+                        ) : null
+                      }}
+                    />
+                  ))}
+                </>
+              )}
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      )}
 
       {/* RESUMEN GLOBAL */}
       {!loteSeleccionado && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <h3 className="font-semibold text-blue-900 mb-2">🌍 Carga Total del Campo</h3>
-          <div className="grid grid-cols-2 gap-4 text-center">
-            <div>
-              <p className="text-2xl font-bold text-blue-600">
+        <div className="bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 rounded-lg p-6">
+          <h3 className="font-semibold text-blue-900 mb-4 text-lg">🌍 Resumen del Campo</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="text-center">
+              <p className="text-3xl font-bold text-blue-600">
+                {datos.lotes.length}
+              </p>
+              <p className="text-sm text-blue-700 mt-1">Potreros</p>
+            </div>
+            <div className="text-center">
+              <p className="text-3xl font-bold text-blue-600">
+                {datos.global.hectareasTotales.toFixed(1)}
+              </p>
+              <p className="text-sm text-blue-700 mt-1">Hectáreas totales</p>
+            </div>
+            <div className="text-center">
+              <p className="text-3xl font-bold text-blue-600">
                 {datos.global.ug[datos.global.ug.length - 1]?.toFixed(2)}
               </p>
-              <p className="text-sm text-blue-700">UG Totales (último día)</p>
+              <p className="text-sm text-blue-700 mt-1">UG Totales hoy</p>
             </div>
-            <div>
-              <p className="text-2xl font-bold text-blue-600">
-                {datos.global.ugPorHectarea[
-                  datos.global.ugPorHectarea.length - 1
-                ]?.toFixed(2)}
+            <div className="text-center">
+              <p className="text-3xl font-bold text-blue-600">
+                {datos.global.ugPorHectarea[datos.global.ugPorHectarea.length - 1]?.toFixed(2)}
               </p>
-              <p className="text-sm text-blue-700">UG/ha Promedio (último día)</p>
+              <p className="text-sm text-blue-700 mt-1">UG/ha promedio hoy</p>
             </div>
           </div>
         </div>
       )}
+
+      {/* LEYENDA INFORMATIVA */}
+      <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+        <h4 className="font-semibold text-gray-900 mb-2 text-sm">💡 Guía de interpretación</h4>
+        <ul className="text-xs text-gray-600 space-y-1">
+          <li>• <strong>Línea escalonada:</strong> Refleja cambios en la carga animal (altas/bajas)</li>
+          <li>• <strong>Puntos marcados:</strong> Indican cambios significativos (&gt;5%) o inicio de mes</li>
+          <li>• <strong>Bandas azules:</strong> Períodos de invierno (menor disponibilidad forrajera)</li>
+          <li>• <strong>Línea roja punteada:</strong> Carga máxima recomendada (1.2 UG/ha)</li>
+        </ul>
+      </div>
     </div>
   )
 }
