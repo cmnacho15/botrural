@@ -607,13 +607,11 @@ console.log("datosAreaUGha:", datosAreaUGha)
     {/* UG por potrero */}
     {vistaActiva === 'ug' && (
       <>
-        {mostrarArea && datosAreaUG.length > 0 && (
+        {mostrarArea && (
           <Area
-            type="stepAfter"
-            data={datosAreaUG}
+            type="step"
             dataKey="UG Totales"
-            stroke="#3b82f6"
-            strokeWidth={2}
+            stroke="none"
             fill="url(#gradientUG)"
             fillOpacity={0.6}
             isAnimationActive={false}
@@ -633,13 +631,11 @@ console.log("datosAreaUGha:", datosAreaUGha)
     {/* UG/ha por potrero */}
     {vistaActiva === 'ug-ha' && (
       <>
-        {mostrarArea && datosAreaUGha.length > 0 && (
+        {mostrarArea && (
           <Area
-            type="stepAfter"
-            data={datosAreaUGha}
+            type="step"
             dataKey="UG/ha"
-            stroke="#10b981"
-            strokeWidth={2}
+            stroke="none"
             fill="url(#gradientUGHA)"
             fillOpacity={0.6}
             isAnimationActive={false}
@@ -661,13 +657,11 @@ console.log("datosAreaUGha:", datosAreaUGha)
     {/* UG campo completo */}
     {vistaActiva === 'ug' && (
       <>
-        {mostrarArea && datosAreaUG.length > 0 && (
+        {mostrarArea && (
           <Area
-            type="stepAfter"
-            data={datosAreaUG}
+            type="step"
             dataKey="UG Totales"
-            stroke="#3b82f6"
-            strokeWidth={3}
+            stroke="none"
             fill="url(#gradientUG)"
             fillOpacity={0.6}
             isAnimationActive={false}
@@ -688,13 +682,11 @@ console.log("datosAreaUGha:", datosAreaUGha)
     {/* UG/ha campo completo */}
     {vistaActiva === 'ug-ha' && (
       <>
-        {mostrarArea && datosAreaUGha.length > 0 && (
+        {mostrarArea && (
           <Area
-            type="stepAfter"
-            data={datosAreaUGha}
+            type="step"
             dataKey="UG/ha"
-            stroke="#10b981"
-            strokeWidth={3}
+            stroke="none"
             fill="url(#gradientUGHA)"
             fillOpacity={0.6}
             isAnimationActive={false}
