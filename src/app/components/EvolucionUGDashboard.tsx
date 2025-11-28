@@ -182,34 +182,11 @@ export default function EvolucionUGDashboard() {
 
             <XAxis
   dataKey="dia"
-  interval={0} // mostrar todos los puntos, pero los filtramos con tickFormatter
-  tickFormatter={(value: string, index: number) => {
-    const diaActual = value;
-    const puntoActual = datosGrafico[index];
-
-    // 1) Día 01 del mes → mostrar
-    const esPrimerDiaMes = diaActual.endsWith("-01");
-
-    // 2) Tick cada 30 días aproximado
-    const esCada30Dias = index % 30 === 0;
-
-    // 3) Cambios de UG (solo si hay lote seleccionado)
-    let esCambio = false;
-    if (index > 0 && loteSeleccionado) {
-      const valorHoy = puntoActual["UG"] ?? puntoActual["UG/ha"];
-      const valorAyer =
-        datosGrafico[index - 1]["UG"] ??
-        datosGrafico[index - 1]["UG/ha"];
-      esCambio = valorHoy !== valorAyer;
-    }
-
-    // Mostrar el tick si se cumple alguna condición
-    if (esPrimerDiaMes || esCada30Dias || esCambio || index === 0) {
-      const [y, m, d] = diaActual.split("-");
-      return `${d}/${m}`; // formato profesional
-    }
-
-    return ""; // el resto no se muestra
+  interval={Math.floor(datosGrafico.length / 12)} // 1 tick por mes aprox
+  tickFormatter={(value: string) => {
+    // value = "2025-01-05"
+    const [y, m, d] = value.split("-");
+    return `${d}/${m}`; // "05/01"
   }}
   tick={{ fontSize: 11 }}
   angle={-25}
@@ -221,17 +198,17 @@ export default function EvolucionUGDashboard() {
 
 <Tooltip
   labelFormatter={(v) => {
-    const d = new Date(v)
-    return d.toLocaleDateString('es-UY', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    })
+    const d = new Date(v);
+    return d.toLocaleDateString("es-UY", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
   }}
   contentStyle={{
-    backgroundColor: 'white',
-    border: '1px solid #e5e7eb',
-    borderRadius: '8px',
+    backgroundColor: "white",
+    border: "1px solid #e5e7eb",
+    borderRadius: "8px",
   }}
 />
 
