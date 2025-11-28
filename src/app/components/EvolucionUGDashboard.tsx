@@ -141,7 +141,7 @@ const ugPorHa = datos.global?.ugPorHectarea?.[index]?.toFixed(2) ?? '0.00'
     
     for (let año = añoInicio; año <= añoFin; año++) {
       const inviernoInicio = `${año}-06-01`
-      const inviernoFin = `${año}-09-30`
+      const inviernoFin = `${año}-08-31`
       
       if (datos.dias.some(d => d >= inviernoInicio && d <= inviernoFin)) {
         temporadas.push({ inicio: inviernoInicio, fin: inviernoFin, nombre: 'Invierno' })
@@ -472,15 +472,16 @@ punto['UG/ha'] = datos.global?.ugPorHectarea?.[index] ?? 0
           <ResponsiveContainer width="100%" height={450}>
             <LineChart data={datosGrafico}>
               <defs>
-                <linearGradient id="gradientUG" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-                </linearGradient>
-                <linearGradient id="gradientUGHA" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-                </linearGradient>
-              </defs>
+  <linearGradient id="gradientUG" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.45} />
+    <stop offset="100%" stopColor="#3b82f6" stopOpacity={0.05} />
+  </linearGradient>
+
+  <linearGradient id="gradientUGHA" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stopColor="#10b981" stopOpacity={0.45} />
+    <stop offset="100%" stopColor="#10b981" stopOpacity={0.05} />
+  </linearGradient>
+</defs>
 
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
 
