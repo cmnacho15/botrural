@@ -147,7 +147,8 @@ export default function EvolucionUGDashboard() {
   }
 
   
-  // DATOS DEL GRÁFICO — VERSIÓN CORRECTA (nunca undefined)
+  
+// DATOS DEL GRÁFICO — VERSIÓN CORRECTA (nunca undefined)
 const datosGrafico = datos.dias.map((dia, index) => {
   const lote = loteSeleccionado
     ? datos.lotes.find(l => l.loteId === loteSeleccionado)
