@@ -146,39 +146,22 @@ export default function EvolucionUGDashboard() {
     }
   }
 
-  // CAMBIO 2: Preparar datos para el gráfico (siempre global o lote único)
-  const datosGrafico = datos.dias.map((dia, index) => {
-    const punto: any = { dia }
-
-    if (loteSeleccionado) {
-      const lote = datos.lotes.find((l) => l.loteId === loteSeleccionado)
-      if (lote) {
-        punto['UG Totales'] = lote.datos[index]
-        punto['UG/ha'] = lote.cargaPorHectarea[index]
-      }
-    } else {
-      // VISTA GLOBAL
-      punto['UG Totales'] = datos.global?.ug?.[index] ?? 0
-      punto['UG/ha'] = datos.global?.ugPorHectarea?.[index] ?? 0
-    }
-
-    return punto
-  })
   
-  console.log("datosGrafico COMPLETO:", datosGrafico)
-console.log("primerIndiceUG:", datosGrafico.findIndex(p => p['UG Totales'] > 0))
+  // DATOS DEL GRÁFICO — VERSIÓN CORRECTA (nunca undefined)
+const datosGrafico = datos.dias.map((dia, index) => {
+  const lote = loteSeleccionado
+    ? datos.lotes.find(l => l.loteId === loteSeleccionado)
+    : null
 
+  const ug = lote ? lote.datos[index] : datos.global.ug[index]
+  const ugHa = lote ? lote.cargaPorHectarea[index] : datos.global.ugPorHectarea[index]
 
-  console.log("datosGrafico ejemplo:", datosGrafico[0])
-  console.log("mostrarArea:", mostrarArea)
-  // Filtrar datos para <Area>: eliminar ceros iniciales
-const primerIndiceUG = datosGrafico.findIndex(p => p['UG Totales'] > 0)
-const primerIndiceUGha = datosGrafico.findIndex(p => p['UG/ha'] > 0)
-
-const datosAreaUG = primerIndiceUG >= 0 ? datosGrafico.slice(primerIndiceUG) : []
-const datosAreaUGha = primerIndiceUGha >= 0 ? datosGrafico.slice(primerIndiceUGha) : []
-console.log("datosAreaUG:", datosAreaUG)
-console.log("datosAreaUGha:", datosAreaUGha)
+  return {
+    dia,
+    'UG Totales': ug ?? 0,   // ← nunca undefined
+    'UG/ha': ugHa ?? 0       // ← nunca undefined
+  }
+})
 
   // Calcular estadísticas
   const calcularEstadisticas = () => {
