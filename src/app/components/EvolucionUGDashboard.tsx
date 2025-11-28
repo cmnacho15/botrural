@@ -181,38 +181,59 @@ export default function EvolucionUGDashboard() {
             <CartesianGrid strokeDasharray="3 3" />
 
             <XAxis
-              dataKey="dia"
-              minTickGap={40}
-              tickFormatter={(value: string) => {
-                if (value.endsWith('-01')) {
-                  const [y, m] = value.split('-')
-                  return `${m}/${y.slice(2)}`
-                }
-                return ''
-              }}
-              tick={{ fontSize: 11 }}
-              angle={-25}
-              textAnchor="end"
-              height={60}
-            />
+  dataKey="dia"
+  interval={0} // mostrar todos los puntos, pero los filtramos con tickFormatter
+  tickFormatter={(value: string, index: number) => {
+    const diaActual = value;
+    const puntoActual = datosGrafico[index];
 
-            <YAxis tick={{ fontSize: 12 }} />
+    // 1) Día 01 del mes → mostrar
+    const esPrimerDiaMes = diaActual.endsWith("-01");
 
-            <Tooltip
-              labelFormatter={(v) => {
-                const d = new Date(v)
-                return d.toLocaleDateString('es-UY', {
-                  year: 'numeric',
-                  month: 'short',
-                  day: 'numeric',
-                })
-              }}
-              contentStyle={{
-                backgroundColor: 'white',
-                border: '1px solid #e5e7eb',
-                borderRadius: '8px',
-              }}
-            />
+    // 2) Tick cada 30 días aproximado
+    const esCada30Dias = index % 30 === 0;
+
+    // 3) Cambios de UG (solo si hay lote seleccionado)
+    let esCambio = false;
+    if (index > 0 && loteSeleccionado) {
+      const valorHoy = puntoActual["UG"] ?? puntoActual["UG/ha"];
+      const valorAyer =
+        datosGrafico[index - 1]["UG"] ??
+        datosGrafico[index - 1]["UG/ha"];
+      esCambio = valorHoy !== valorAyer;
+    }
+
+    // Mostrar el tick si se cumple alguna condición
+    if (esPrimerDiaMes || esCada30Dias || esCambio || index === 0) {
+      const [y, m, d] = diaActual.split("-");
+      return `${d}/${m}`; // formato profesional
+    }
+
+    return ""; // el resto no se muestra
+  }}
+  tick={{ fontSize: 11 }}
+  angle={-25}
+  textAnchor="end"
+  height={60}
+/>
+
+<YAxis tick={{ fontSize: 12 }} />
+
+<Tooltip
+  labelFormatter={(v) => {
+    const d = new Date(v)
+    return d.toLocaleDateString('es-UY', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    })
+  }}
+  contentStyle={{
+    backgroundColor: 'white',
+    border: '1px solid #e5e7eb',
+    borderRadius: '8px',
+  }}
+/>
 
             <Legend />
 
