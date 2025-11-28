@@ -529,16 +529,16 @@ console.log("datosAreaUGha:", datosAreaUGha)
 
               {/* Gradientes */}
               <defs>
-                <linearGradient id="gradientUG" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-                </linearGradient>
+  <linearGradient id="gradientUG" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.7} />
+    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.05} />
+  </linearGradient>
 
-                <linearGradient id="gradientUGHA" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-                </linearGradient>
-              </defs>
+  <linearGradient id="gradientUGHA" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stopColor="#10b981" stopOpacity={0.8} />
+    <stop offset="95%" stopColor="#10b981" stopOpacity={0.05} />
+  </linearGradient>
+</defs>
 
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
 
@@ -602,112 +602,44 @@ console.log("datosAreaUGha:", datosAreaUGha)
               <Legend wrapperStyle={{ paddingTop: 20 }} iconType="line" />
 
               {/* GRÁFICO – ÁREA Y LÍNEA */}
-{loteSeleccionado ? (
-  <>
-    {vistaActiva === 'ug' && (
-      <>
-        {mostrarArea && (
-          <Area
-            type="stepAfter"
-            dataKey="UG Totales"
-            stroke="none"
-            fill="#3b82f6"
-            fillOpacity={0.25}
-            isAnimationActive={false}
-            // ESTO ES LO QUE LO HACE FUNCIONAR
-            baseLine={0}
-            connectNulls={false}
-          />
-        )}
-        <Line
-          type="stepAfter"
-          dataKey="UG Totales"
-          stroke="#3b82f6"
-          strokeWidth={2}
-          dot={dotUG}
-          isAnimationActive={false}
-        />
-      </>
-    )}
-
-    {vistaActiva === 'ug-ha' && (
-      <>
-        {mostrarArea && (
-          <Area
-            type="stepAfter"
-            dataKey="UG/ha"
-            stroke="none"
-            fill="#10b981"
-            fillOpacity={0.35}
-            isAnimationActive={false}
-            baseLine={0}
-            connectNulls={false}
-          />
-        )}
-        <Line
-          type="stepAfter"
-          dataKey="UG/ha"
-          stroke="#10b981"
-          strokeWidth={2}
-          dot={dotUGha}
-          isAnimationActive={false}
-        />
-      </>
-    )}
-  </>
-) : (
-  <>
-    {vistaActiva === 'ug' && (
-      <>
-        {mostrarArea && (
-          <Area
-            type="stepAfter"
-            dataKey="UG Totales"
-            stroke="none"
-            fill="#3b82f6"
-            fillOpacity={0.3}
-            isAnimationActive={false}
-            baseLine={0}
-          />
-        )}
-        <Line
-          type="stepAfter"
-          dataKey="UG Totales"
-          stroke="#3b82f6"
-          strokeWidth={3}
-          dot={dotUGcampo}
-          name="UG Totales del Campo"
-          isAnimationActive={false}
-        />
-      </>
-    )}
-
-    {vistaActiva === 'ug-ha' && (
-      <>
-        {mostrarArea && (
-          <Area
-            type="stepAfter"
-            dataKey="UG/ha"
-            stroke="none"
-            fill="#10b981"
-            fillOpacity={0.4}
-            isAnimationActive={false}
-            baseLine={0}
-          />
-        )}
-        <Line
-          type="stepAfter"
-          dataKey="UG/ha"
-          stroke="#10b981"
-          strokeWidth={3}
-          dot={dotUGhaCampo}
-          name="UG/ha Promedio del Campo"
-          isAnimationActive={false}
-        />
-      </>
-    )}
-  </>
+{mostrarArea && (
+  <Area
+    type="stepAfter"
+    dataKey={vistaActiva === 'ug' ? 'UG Totales' : 'UG/ha'}
+    stroke="none"
+    fill={vistaActiva === 'ug' ? 'url(#gradientUG)' : 'url(#gradientUGHA)'}
+    fillOpacity={1}
+    baseLine={0}
+    connectNulls={false}
+    dot={false}
+    activeDot={false}
+    isAnimationActive={false}
+  />
 )}
+
+<Line
+  type="stepAfter"
+  dataKey={vistaActiva === 'ug' ? 'UG Totales' : 'UG/ha'}
+  stroke={vistaActiva === 'ug' ? '#3b82f6' : '#10b981'}
+  strokeWidth={loteSeleccionado ? 2 : 3}
+  dot={
+    loteSeleccionado
+      ? vistaActiva === 'ug'
+        ? dotUG
+        : dotUGha
+      : vistaActiva === 'ug'
+      ? dotUGcampo
+      : dotUGhaCampo
+  }
+  name={
+    loteSeleccionado
+      ? undefined
+      : vistaActiva === 'ug'
+      ? 'UG Totales del Campo'
+      : 'UG/ha Promedio del Campo'
+  }
+  isAnimationActive={false}
+/>
 
             </LineChart>
           </ResponsiveContainer>
