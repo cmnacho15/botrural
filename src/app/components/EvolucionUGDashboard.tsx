@@ -410,8 +410,8 @@ export default function EvolucionUGDashboard() {
             <p className="text-sm text-orange-700 mb-1">Superficie</p>
             <p className="text-2xl font-bold text-orange-900">
               {loteSeleccionado 
-                ? datos.lotes.find(l => l.loteId === loteSeleccionado)?.hectareas 
-                : datos.global.hectareasTotales}
+  ? datos.lotes.find(l => l.loteId === loteSeleccionado)?.hectareas.toFixed(2)
+  : datos.global.hectareasTotales.toFixed(2)}
             </p>
             <p className="text-xs text-orange-600 mt-1">hectáreas</p>
           </div>
@@ -582,7 +582,7 @@ export default function EvolucionUGDashboard() {
 
             <div className="text-center">
               <p className="text-3xl font-bold text-blue-600">
-                {datos.global?.hectareasTotales?.toFixed(1) ?? '0.0'}
+                {datos.global?.hectareasTotales?.toFixed(2) ?? '0.00'}
               </p>
               <p className="text-sm text-blue-700 mt-1">Hectáreas totales</p>
             </div>
