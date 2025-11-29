@@ -386,7 +386,6 @@ export default function LotesPage() {
               {hayLotes && (() => {
                 const totalHectareas = lotes.reduce((sum, l) => sum + l.hectareas, 0)
                 const todosAnimales = lotes.flatMap(l => l.animalesLote || [])
-                  .filter(a => !['Padrillos', 'Yeguas', 'Caballos', 'Potrillos'].includes(a.categoria))
 
                 const ugTotales = todosAnimales.reduce((total, animal) => {
                   const equivalencia = EQUIVALENCIAS_UG[animal.categoria] || 0
@@ -554,11 +553,10 @@ export default function LotesPage() {
                               {/* 🌾 CARGA UG/ha DEL POTRERO CON TOOLTIP */}
                               {(() => {
                                 const ugTotales = lote.animalesLote
-                                  .filter(a => !['Padrillos', 'Yeguas', 'Caballos', 'Potrillos'].includes(a.categoria))
-                                  .reduce((total, animal) => {
-                                    const equivalencia = EQUIVALENCIAS_UG[animal.categoria] || 0
-                                    return total + (animal.cantidad * equivalencia)
-                                  }, 0)
+  .reduce((total, animal) => {
+    const equivalencia = EQUIVALENCIAS_UG[animal.categoria] || 0
+    return total + (animal.cantidad * equivalencia)
+  }, 0)
                                 const cargaUG = lote.hectareas > 0 ? ugTotales / lote.hectareas : 0
                                 
                                 const color = 
