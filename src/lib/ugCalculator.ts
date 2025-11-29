@@ -22,11 +22,11 @@ export const EQUIVALENCIAS_UG: Record<string, number> = {
   'Corderos DL': 0.10,
   'Corderos/as Mamones': 0.10,
 
-  // 🐴 YEGUARIZOS (NO se cuentan en UG)
-  'Padrillos': 0,
-  'Yeguas': 0,
-  'Caballos': 0,
-  'Potrillos': 0,
+  // 🐴 EQUINOS (AHORA SÍ SE CUENTAN)
+  'Padrillos': 1.2,
+  'Yeguas': 1.2,
+  'Caballos': 1.2,
+  'Potrillos': 1.2,
 }
 
 // ============================================
@@ -59,22 +59,17 @@ export function calcularUGTotales(animales: Animal[]): number {
 
 /**
  * Calcula la CARGA GLOBAL (UG/ha) de un lote
- * Carga Global = Total UG ÷ Hectáreas totales
  */
 export function calcularCargaGlobal(
   animales: Animal[],
   hectareas: number
 ): number {
   if (hectareas <= 0) return 0
-  
-  const ugTotales = calcularUGTotales(animales)
-  return ugTotales / hectareas
+  return calcularUGTotales(animales) / hectareas
 }
 
 /**
- * Calcula la CARGA INSTANTÁNEA (UG/ha) de un potrero
- * En este caso es igual a la carga global porque los animales están
- * en ese potrero específico en ese momento
+ * Carga Instantánea = igual a carga global pero en tiempo real
  */
 export function calcularCargaInstantanea(
   animales: Animal[],
@@ -87,34 +82,40 @@ export function calcularCargaInstantanea(
  * Calcula estadísticas completas de un lote
  */
 export function calcularEstadisticasLote(lote: Lote) {
-  // ❌ EXCLUIR YEGUARIZOS del cálculo de UG
-  const animales = (lote.animalesLote || []).filter(
-    a => !['Padrillos', 'Yeguas', 'Caballos', 'Potrillos'].includes(a.categoria)
-  )
+  const animales = lote.animalesLote || []
+
   const ugTotales = calcularUGTotales(animales)
   const cargaGlobal = calcularCargaGlobal(animales, lote.hectareas)
   const cargaInstantanea = calcularCargaInstantanea(animales, lote.hectareas)
 
-  // Desglose por tipo de animal
+  // Desglose por tipo
   const desglosePorTipo = {
     vacunos: 0,
     ovinos: 0,
-    yeguarizos: 0
+    equinos: 0
   }
 
   animales.forEach(animal => {
-    const equivalencia = EQUIVALENCIAS_UG[animal.categoria] || 0
-    const ugAnimal = animal.cantidad * equivalencia
+    const eq = EQUIVALENCIAS_UG[animal.categoria] || 0
+    const ugAnimal = animal.cantidad * eq
 
-    if (['Toros', 'Vacas', 'Novillos +3 años', 'Novillos 2–3 años', 
-         'Novillos 1–2 años', 'Vaquillonas +2 años', 'Vaquillonas 1–2 años', 
-         'Terneros/as'].includes(animal.categoria)) {
+    if ([
+      'Toros', 'Vacas', 'Novillos +3 años', 'Novillos 2–3 años',
+      'Novillos 1–2 años', 'Vaquillonas +2 años', 'Vaquillonas 1–2 años',
+      'Terneros/as'
+    ].includes(animal.categoria)) {
       desglosePorTipo.vacunos += ugAnimal
-    } else if (['Carneros', 'Ovejas', 'Capones', 'Borregas 2–4 dientes', 
-                'Corderas DL', 'Corderos DL', 'Corderos/as Mamones'].includes(animal.categoria)) {
+
+    } else if ([
+      'Carneros', 'Ovejas', 'Capones',
+      'Borregas 2–4 dientes', 'Corderas DL', 'Corderos DL', 'Corderos/as Mamones'
+    ].includes(animal.categoria)) {
       desglosePorTipo.ovinos += ugAnimal
-    } else if (['Padrillos', 'Yeguas', 'Caballos', 'Potrillos'].includes(animal.categoria)) {
-      desglosePorTipo.yeguarizos += ugAnimal
+
+    } else if ([
+      'Padrillos', 'Yeguas', 'Caballos', 'Potrillos'
+    ].includes(animal.categoria)) {
+      desglosePorTipo.equinos += ugAnimal
     }
   })
 
@@ -136,40 +137,46 @@ export function calcularEstadisticasLote(lote: Lote) {
 }
 
 /**
- * Calcula estadísticas de TODOS los lotes (carga global del campo completo)
+ * Estadísticas del campo completo
  */
 export function calcularEstadisticasCampo(lotes: Lote[]) {
   const totalHectareas = lotes.reduce((sum, l) => sum + l.hectareas, 0)
-  // ❌ EXCLUIR YEGUARIZOS del cálculo de UG
-  const todosLosAnimales = lotes
-    .flatMap(l => l.animalesLote || [])
-    .filter(a => !['Padrillos', 'Yeguas', 'Caballos', 'Potrillos'].includes(a.categoria))
-  
+
+  const todosLosAnimales = lotes.flatMap(l => l.animalesLote || [])
+
   const ugTotalesCampo = calcularUGTotales(todosLosAnimales)
-  const cargaGlobalCampo = totalHectareas > 0 
-    ? ugTotalesCampo / totalHectareas 
+
+  const cargaGlobalCampo = totalHectareas > 0
+    ? ugTotalesCampo / totalHectareas
     : 0
 
-  // Desglose por tipo
   const desglosePorTipo = {
     vacunos: 0,
     ovinos: 0,
-    yeguarizos: 0
+    equinos: 0
   }
 
   todosLosAnimales.forEach(animal => {
-    const equivalencia = EQUIVALENCIAS_UG[animal.categoria] || 0
-    const ugAnimal = animal.cantidad * equivalencia
+    const eq = EQUIVALENCIAS_UG[animal.categoria] || 0
+    const ugAnimal = animal.cantidad * eq
 
-    if (['Toros', 'Vacas', 'Novillos +3 años', 'Novillos 2–3 años', 
-         'Novillos 1–2 años', 'Vaquillonas +2 años', 'Vaquillonas 1–2 años', 
-         'Terneros/as'].includes(animal.categoria)) {
+    if ([
+      'Toros', 'Vacas', 'Novillos +3 años', 'Novillos 2–3 años',
+      'Novillos 1–2 años', 'Vaquillonas +2 años', 'Vaquillonas 1–2 años',
+      'Terneros/as'
+    ].includes(animal.categoria)) {
       desglosePorTipo.vacunos += ugAnimal
-    } else if (['Carneros', 'Ovejas', 'Capones', 'Borregas 2–4 dientes', 
-                'Corderas DL', 'Corderos DL', 'Corderos/as Mamones'].includes(animal.categoria)) {
+
+    } else if ([
+      'Carneros', 'Ovejas', 'Capones',
+      'Borregas 2–4 dientes', 'Corderas DL', 'Corderos DL', 'Corderos/as Mamones'
+    ].includes(animal.categoria)) {
       desglosePorTipo.ovinos += ugAnimal
-    } else if (['Padrillos', 'Yeguas', 'Caballos', 'Potrillos'].includes(animal.categoria)) {
-      desglosePorTipo.yeguarizos += ugAnimal
+
+    } else if ([
+      'Padrillos', 'Yeguas', 'Caballos', 'Potrillos'
+    ].includes(animal.categoria)) {
+      desglosePorTipo.equinos += ugAnimal
     }
   })
 
@@ -184,27 +191,22 @@ export function calcularEstadisticasCampo(lotes: Lote[]) {
 }
 
 /**
- * Evalúa si la carga es adecuada para campo natural en Uruguay
- * Referencia: 0.7 - 1.5 UG/ha en campo natural
+ * Evaluación del nivel de carga
  */
-export function evaluarCarga(cargaUGHa: number): {
-  nivel: 'baja' | 'optima' | 'alta' | 'muy-alta'
-  mensaje: string
-  color: string
-} {
+export function evaluarCarga(cargaUGHa: number) {
   if (cargaUGHa < 0.7) {
     return {
       nivel: 'baja',
       mensaje: 'Carga baja - Potencial de aumentar dotación',
       color: 'text-blue-600'
     }
-  } else if (cargaUGHa >= 0.7 && cargaUGHa <= 1.5) {
+  } else if (cargaUGHa <= 1.5) {
     return {
       nivel: 'optima',
       mensaje: 'Carga óptima para campo natural',
       color: 'text-green-600'
     }
-  } else if (cargaUGHa > 1.5 && cargaUGHa <= 2.0) {
+  } else if (cargaUGHa <= 2.0) {
     return {
       nivel: 'alta',
       mensaje: 'Carga alta - Verificar estado de pasturas',

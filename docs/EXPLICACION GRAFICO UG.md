@@ -1,3 +1,32 @@
+
+
+
+
+
+
+
+Esto es todo lo relacionado al grafico de ug: 
+
+Crear: 1. prisma/schema.prisma → Agregar modelo CargaHistorica 
+
+2. lib/historico/calcularUGPotrero.ts → Wrapper que usa tu ugCalculator 
+
+3. lib/historico/capturarCargaDiaria.ts → Proceso de captura nocturna 
+
+4. app/api/cron/capturar-carga/route.ts → Endpoint para cron 
+
+5. app/api/ug-evolution/route.ts → Endpoint para consultar datos 
+
+6. app/components/EvolucionUGDashboard.tsx → Componente React (ya lo tenés) 
+
+7. app/dashboard/ug-evolution/page.tsx → Página para visualizar 
+
+8. vercel.json → Configuración del cron 9. .env → Agregar CRON_SECRET
+
+
+
+
+
 🟩 1. La UG de cada potrero se calcula en tiempo real según los animales que tiene
 
 Cada categoría tiene su equivalencia oficial (SUL – INIA).
