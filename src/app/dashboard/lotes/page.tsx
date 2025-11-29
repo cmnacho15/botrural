@@ -419,7 +419,7 @@ export default function LotesPage() {
                 
                 return (
                   <span className="px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-700">
-                    Relación Lanar/Vacuno: {relacion.toFixed(2)}
+                    Relación Lanar🐑//Vacuno🐄: {relacion.toFixed(2)}
                   </span>
                 )
               })()}
