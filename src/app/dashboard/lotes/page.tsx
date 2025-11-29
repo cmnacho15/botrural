@@ -410,7 +410,7 @@ export default function LotesPage() {
                 )
               })()}
 
-              {/* 🐑/🐄 RELACIÓN LANAR/VACUNO */}     👈👈👈 PEGÁ TODO ESTO ACÁ
+              {/* 🐑/🐄 RELACIÓN LANAR/VACUNO */}
   {hayLotes && (() => {
     const { relacion } = calcularRelacionLanarVacuno(lotes)
     
