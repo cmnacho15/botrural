@@ -125,6 +125,13 @@ const animalesAnterioresPorCategoria = animalesAnteriores.reduce((acc: any, a: a
     console.log("📊 Animales antes:", animalesAnterioresPorCategoria);
     console.log("📊 Animales ahora:", animalesPorCategoria);
 
+    // 🔥 DETECTAR SI CAMBIÓ EL ESTADO DE ANIMALES (vacío ↔ con animales)
+    const teniaAnimales = animalesAnteriores.length > 0;
+    const tendraAnimales = animalesValidos.length > 0;
+    const cambioEstadoAnimales = teniaAnimales !== tendraAnimales;
+
+    console.log("🔄 Cambió estado de animales:", cambioEstadoAnimales);
+
     // ========================
     // 💾 ACTUALIZAR LOTE
     // ========================
@@ -134,6 +141,7 @@ const animalesAnterioresPorCategoria = animalesAnteriores.reduce((acc: any, a: a
         nombre,
         hectareas: parseFloat(hectareas),
         ...(poligono && { poligono }),
+        ...(cambioEstadoAnimales && { ultimoCambio: new Date() }), // 🔥 AGREGADO: actualizar solo si cambió estado
         cultivos: {
           deleteMany: {},
           create: cultivosValidos,
