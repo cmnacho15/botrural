@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react'
 import {
   LineChart,
   Line,
-  Area,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -37,7 +36,6 @@ export default function EvolucionUGDashboard() {
   const [periodo, setPeriodo] = useState<'mensual' | 'ejercicio'>('mensual')
   const [loteSeleccionado, setLoteSeleccionado] = useState<string | null>(null)
   const [vistaActiva, setVistaActiva] = useState<'ug' | 'ug-ha'>('ug')
-  const [mostrarArea, setMostrarArea] = useState(true)
   const [mostrarTemporadas, setMostrarTemporadas] = useState(true)
   const [vistaTabla, setVistaTabla] = useState(false)
 
@@ -63,7 +61,6 @@ export default function EvolucionUGDashboard() {
     }
   }
 
-  // CAMBIO 1: Exportación CSV corregida
   const exportarCSV = () => {
     if (!datos) return
 
@@ -74,11 +71,9 @@ export default function EvolucionUGDashboard() {
       const lote = datos.lotes.find(l => l.loteId === loteSeleccionado)
       if (!lote) return
 
-      // ENCABEZADO: Potrero específico
       csv = `Fecha,${lote.nombre} (UG),${lote.nombre} (UG/ha)\n`
       nombreArchivo = `evolucion-${lote.nombre.replace(/\s+/g, '-')}-${periodo}`
 
-      // DATOS
       datos.dias.forEach((dia, index) => {
         const fecha = new Date(dia).toLocaleDateString('es-UY')
         const ug = lote.datos[index].toFixed(2)
@@ -86,11 +81,9 @@ export default function EvolucionUGDashboard() {
         csv += `${fecha},${ug},${ugHa}\n`
       })
     } else {
-      // ENCABEZADO: Vista global (todo el campo)
       csv = 'Fecha,Todo el Campo (UG),Todo el Campo (UG/ha)\n'
       nombreArchivo = `evolucion-campo-completo-${periodo}`
 
-      // DATOS
       datos.dias.forEach((dia, index) => {
         const fecha = new Date(dia).toLocaleDateString('es-UY')
         const ugTotal = datos.global?.ug?.[index]?.toFixed(2) ?? '0.00'
@@ -99,7 +92,6 @@ export default function EvolucionUGDashboard() {
       })
     }
 
-    // Descargar archivo
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
     const url = window.URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -127,10 +119,8 @@ export default function EvolucionUGDashboard() {
     )
   }
 
-  // Generar ticks inteligentes (solo primeros de mes)
   const ticksInteligentes = datos.dias.filter(dia => dia.endsWith('-01'))
 
-  // Detectar temporadas (invierno en hemisferio sur: jun-sep)
   const temporadas = []
   if (mostrarTemporadas) {
     const añoInicio = new Date(datos.dias[0]).getFullYear()
@@ -146,25 +136,21 @@ export default function EvolucionUGDashboard() {
     }
   }
 
-  
-  
-// DATOS DEL GRÁFICO — VERSIÓN CORRECTA (nunca undefined)
-const datosGrafico = datos.dias.map((dia, index) => {
-  const lote = loteSeleccionado
-    ? datos.lotes.find(l => l.loteId === loteSeleccionado)
-    : null
+  const datosGrafico = datos.dias.map((dia, index) => {
+    const lote = loteSeleccionado
+      ? datos.lotes.find(l => l.loteId === loteSeleccionado)
+      : null
 
-  const ug = lote ? lote.datos[index] : datos.global.ug[index]
-  const ugHa = lote ? lote.cargaPorHectarea[index] : datos.global.ugPorHectarea[index]
+    const ug = lote ? lote.datos[index] : datos.global.ug[index]
+    const ugHa = lote ? lote.cargaPorHectarea[index] : datos.global.ugPorHectarea[index]
 
-  return {
-    dia,
-    'UG Totales': ug ?? 0,   // ← nunca undefined
-    'UG/ha': ugHa ?? 0       // ← nunca undefined
-  }
-})
+    return {
+      dia,
+      'UG Totales': ug ?? 0,
+      'UG/ha': ugHa ?? 0
+    }
+  })
 
-  // Calcular estadísticas
   const calcularEstadisticas = () => {
     if (!datos) return null
 
@@ -195,7 +181,6 @@ const datosGrafico = datos.dias.map((dia, index) => {
       }
     }
 
-    // Vista global
     if (vistaActiva === 'ug-ha') {
       const ugHaUltimoMes = datos.global.ugPorHectarea.slice(-30)
       const ugHaUltimoTrimestre = datos.global.ugPorHectarea.slice(-90)
@@ -221,7 +206,6 @@ const datosGrafico = datos.dias.map((dia, index) => {
 
   const estadisticas = calcularEstadisticas()
 
-  // === DOT FUNCTIONS ===
   const dotUG = (props: any) => {
     const { index, payload, cx, cy } = props
     const actual = payload['UG Totales']
@@ -274,7 +258,6 @@ const datosGrafico = datos.dias.map((dia, index) => {
     ) : null
   }
 
-  // Tooltip personalizado
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload) return null
 
@@ -382,15 +365,6 @@ const datosGrafico = datos.dias.map((dia, index) => {
 
         {/* Opciones de visualización */}
         <div className="flex gap-4 mt-4 pt-4 border-t border-gray-200">
-          <label className="flex items-center gap-2 text-sm cursor-pointer">
-            <input
-              type="checkbox"
-              checked={mostrarArea}
-              onChange={(e) => setMostrarArea(e.target.checked)}
-              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-            />
-            <span className="text-gray-700">Mostrar área rellena</span>
-          </label>
           <label className="flex items-center gap-2 text-sm cursor-pointer">
             <input
               type="checkbox"
@@ -508,22 +482,8 @@ const datosGrafico = datos.dias.map((dia, index) => {
           <ResponsiveContainer width="100%" height={450}>
             <LineChart 
               data={datosGrafico}
-              key={`${mostrarArea}-${loteSeleccionado}-${vistaActiva}`}
+              key={`${loteSeleccionado}-${vistaActiva}`}
             >
-
-              {/* Gradientes */}
-              <defs>
-  <linearGradient id="gradientUG" x1="0" y1="0" x2="0" y2="1">
-    <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.7} />
-    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.05} />
-  </linearGradient>
-
-  <linearGradient id="gradientUGHA" x1="0" y1="0" x2="0" y2="1">
-    <stop offset="0%" stopColor="#10b981" stopOpacity={0.8} />
-    <stop offset="95%" stopColor="#10b981" stopOpacity={0.05} />
-  </linearGradient>
-</defs>
-
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
 
               {/* Bandas de temporadas */}
@@ -584,22 +544,6 @@ const datosGrafico = datos.dias.map((dia, index) => {
 
               <Tooltip content={<CustomTooltip />} />
               <Legend wrapperStyle={{ paddingTop: 20 }} iconType="line" />
-
-                            {/* GRÁFICO – ÁREA Y LÍNEA – SOLUCIÓN DEFINITVA */}
-              {mostrarArea && (
-                <Area
-                  type="monotoneX"                                  // ← EL ÚNICO CAMBIO QUE NECESITÁS
-                  dataKey={vistaActiva === 'ug' ? 'UG Totales' : 'UG/ha'}
-                  stroke="none"
-                  fill={vistaActiva === 'ug' ? 'url(#gradientUG)' : 'url(#gradientUGHA)'}
-                  fillOpacity={1}
-                  baseLine={0}
-                  connectNulls={false}
-                  dot={false}
-                  activeDot={false}
-                  isAnimationActive={false}
-                />
-              )}
 
               <Line
                 type="stepAfter"
@@ -665,7 +609,7 @@ const datosGrafico = datos.dias.map((dia, index) => {
         <h4 className="font-semibold text-gray-900 mb-2 text-sm">Guía de interpretación</h4>
         <ul className="text-xs text-gray-600 space-y-1">
           <li>• <strong>Línea escalonada:</strong> Cambios por altas/bajas</li>
-          <li>• <strong>Puntos marcados:</strong> Cambios greater than 5% o inicio de mes</li>
+          <li>• <strong>Puntos marcados:</strong> Cambios superiores al 5% o inicio de mes</li>
           <li>• <strong>Bandas azules:</strong> Invierno</li>
           <li>• <strong>Línea roja:</strong> Máxima recomendada (1.2 UG/ha)</li>
         </ul>
