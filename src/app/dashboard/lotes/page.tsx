@@ -410,18 +410,19 @@ export default function LotesPage() {
                 )
               })()}
 
-              {/* 🐑/🐄 RELACIÓN LANAR/VACUNO */}
-  {hayLotes && (() => {
-    const { relacion } = calcularRelacionLanarVacuno(lotes)
-    
-    if (relacion === null) return null
-    
-    return (
-      <span className="px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-700">
-        🐑/🐄 {relacion.toFixed(2)}
-      </span>
-    )
-  })()}
+              {/* RELACIÓN LANAR🐑/VACUNO🐄*/}
+              {hayLotes && (() => {
+                const { totalOvinos, totalVacunos, relacion } = calcularRelacionLanarVacuno(lotes)
+                
+                // Solo mostrar si HAY AMBOS (ovinos Y vacunos)
+                if (totalOvinos === 0 || totalVacunos === 0 || relacion === null) return null
+                
+                return (
+                  <span className="px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-700">
+                    Relación Lanar/Vacuno: {relacion.toFixed(2)}
+                  </span>
+                )
+              })()}
             </div>
             <p className="text-gray-600 text-sm">
               Gestión de potreros y lotes del campo
