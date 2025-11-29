@@ -86,6 +86,7 @@ export async function POST(request: Request) {
       );
     }
 
+    
     // ✨ Crear el lote con cultivos y animales relacionados
     const lote = await prisma.lote.create({
       data: {
@@ -93,6 +94,7 @@ export async function POST(request: Request) {
         hectareas: parseFloat(hectareas),
         poligono,
         campoId: usuario.campoId,
+        ultimoCambio: new Date(), // 🔥 AGREGADO: registrar fecha de creación
 
         cultivos: {
           create: cultivos.map((c: any) => ({
