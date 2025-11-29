@@ -5,7 +5,7 @@ import { useState, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import useSWR from 'swr'
-import { EQUIVALENCIAS_UG } from '@/lib/ugCalculator'
+import { EQUIVALENCIAS_UG, calcularRelacionLanarVacuno } from '@/lib/ugCalculator'
 
 interface Lote {
   id: string
@@ -409,6 +409,19 @@ export default function LotesPage() {
                   </Tooltip>
                 )
               })()}
+
+              {/* 🐑/🐄 RELACIÓN LANAR/VACUNO */}     👈👈👈 PEGÁ TODO ESTO ACÁ
+  {hayLotes && (() => {
+    const { relacion } = calcularRelacionLanarVacuno(lotes)
+    
+    if (relacion === null) return null
+    
+    return (
+      <span className="px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-700">
+        🐑/🐄 {relacion.toFixed(2)}
+      </span>
+    )
+  })()}
             </div>
             <p className="text-gray-600 text-sm">
               Gestión de potreros y lotes del campo

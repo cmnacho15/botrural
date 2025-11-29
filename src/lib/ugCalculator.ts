@@ -214,3 +214,38 @@ export function evaluarCarga(cargaUGHa: number): {
     }
   }
 }
+
+/**
+ * Calcula la relación Lanar/Vacuno del campo
+ * Relación = Total Ovinos ÷ Total Vacunos
+ */
+export function calcularRelacionLanarVacuno(lotes: Lote[]): {
+  totalOvinos: number
+  totalVacunos: number
+  relacion: number | null
+} {
+  const todosAnimales = lotes.flatMap(l => l.animalesLote || [])
+  
+  const categoriasOvinas = ['Carneros', 'Ovejas', 'Capones', 'Borregas 2–4 dientes', 
+                            'Corderas DL', 'Corderos DL', 'Corderos/as Mamones']
+  
+  const categoriasVacunas = ['Toros', 'Vacas', 'Novillos +3 años', 'Novillos 2–3 años', 
+                             'Novillos 1–2 años', 'Vaquillonas +2 años', 'Vaquillonas 1–2 años', 
+                             'Terneros/as']
+  
+  const totalOvinos = todosAnimales
+    .filter(a => categoriasOvinas.includes(a.categoria))
+    .reduce((sum, a) => sum + a.cantidad, 0)
+  
+  const totalVacunos = todosAnimales
+    .filter(a => categoriasVacunas.includes(a.categoria))
+    .reduce((sum, a) => sum + a.cantidad, 0)
+  
+  const relacion = totalVacunos > 0 ? totalOvinos / totalVacunos : null
+  
+  return {
+    totalOvinos,
+    totalVacunos,
+    relacion
+  }
+}
