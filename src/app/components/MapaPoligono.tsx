@@ -13,6 +13,16 @@ if (typeof window !== 'undefined') {
     const style = document.createElement('style')
     style.id = 'leaflet-tooltip-override'
     style.innerHTML = `
+      .leaflet-tile-container {
+        margin: -1px;
+      }
+      .leaflet-tile {
+        border: none !important;
+      }
+      .leaflet-tile-smooth {
+        image-rendering: -webkit-optimize-contrast;
+        image-rendering: crisp-edges;
+      }
       .potrero-label-transparent {
         background: transparent !important;
         border: none !important;
@@ -267,13 +277,28 @@ export default function MapaPoligono({
 
     const satelitalLayer = L.tileLayer(
       'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-      { attribution: '© Esri', maxZoom: 19 }
+      { 
+        attribution: '© Esri', 
+        maxZoom: 19,
+        crossOrigin: true,
+        className: 'leaflet-tile-smooth',
+        updateWhenIdle: false,
+        keepBuffer: 2
+      }
     )
+    
     satelitalLayer.addTo(map)
 
     const osmLayer = L.tileLayer(
       'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-      { attribution: '© OpenStreetMap', maxZoom: 19 }
+      { 
+        attribution: '© OpenStreetMap', 
+        maxZoom: 19,
+        crossOrigin: true,
+        className: 'leaflet-tile-smooth',
+        updateWhenIdle: false,
+        keepBuffer: 2
+      }
     )
 
     L.control.layers({ 'Satélite': satelitalLayer, 'Mapa': osmLayer }).addTo(map)
