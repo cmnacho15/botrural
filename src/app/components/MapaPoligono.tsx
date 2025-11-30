@@ -47,25 +47,7 @@ if (typeof window !== 'undefined') {
       .leaflet-top.leaflet-left {
         top: 50px !important;
       }
-      
-      /* ❌ ELIMINAR LÍNEAS BLANCAS DE GRILLA */
-      .leaflet-tile-pane img {
-        outline: none !important;
-      }
-      
-      .leaflet-layer,
-      .leaflet-tile,
-      .leaflet-tile-container,
-      .leaflet-tile-pane {
-        outline: none !important;
-        border: none !important;
-      }
-      
-      .leaflet-container {
-        outline: none !important;
-      }
     `
-    
     document.head.appendChild(style)
   }
 }
