@@ -85,11 +85,14 @@ model Campo {
   categoriasAnimal CategoriaAnimal[] // ← AGREGAR ESTA LÍNEA
   categoriasGasto CategoriaGasto[]
 
+  inventarios Inventario[]
+
   // 🟢 NUEVA RELACIÓN SNIG
   snigAnimales     SnigAnimal[]
   snigUploadSessions SnigUploadSession[]
 
   cargaHistorica   CargaHistorica[]
+
 }
 
 model CategoriaGasto {
@@ -463,4 +466,26 @@ model CargaHistorica {
   @@unique([loteId, fecha]) // No puede haber dos snapshots del mismo potrero en la misma fecha
   @@index([campoId, loteId, fecha(sort: Desc)]) // Búsqueda rápida del último snapshot
   @@index([campoId, fecha(sort: Desc)]) // Búsqueda global por campo
+}
+
+
+
+
+
+
+model Inventario {
+  id         String   @id @default(cuid())
+  campoId    String
+  fecha      DateTime // 1 de julio para inicial, 30 de junio para final
+  categoria  String
+  cantidad   Int
+  peso       Float?
+  precioKg   Float?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  
+  campo Campo @relation(fields: [campoId], references: [id], onDelete: Cascade)
+  
+  @@unique([campoId, fecha, categoria])
+  @@index([campoId, fecha])
 }
