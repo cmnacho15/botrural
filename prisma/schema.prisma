@@ -7,7 +7,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-
 model User {
   id                    String       @id @default(cuid())
   email                 String?      @unique
@@ -111,7 +110,6 @@ model CategoriaGasto {
   @@index([campoId])
 }
 
-
 model TipoCultivo {
   id        String   @id @default(cuid())
   nombre    String
@@ -201,7 +199,7 @@ model Evento {
   categoria       String?
   categoriaNueva  String?
   loteId          String?
-  usuarioId       String?
+  usuarioId       String?     // ✅ AGREGAR "?" ACÁ
   campoId         String
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
@@ -221,29 +219,10 @@ model Evento {
   animalLote      AnimalLote? @relation(fields: [animalLoteId], references: [id])
   campo           Campo       @relation(fields: [campoId], references: [id], onDelete: Cascade)
   lote            Lote?       @relation(fields: [loteId], references: [id])
-  usuario         User?       @relation(fields: [usuarioId], references: [id])
+  usuario         User?       @relation(fields: [usuarioId], references: [id])  // ✅ AGREGAR "?" ACÁ TAMBIÉN
 
-  caravanas       Json?
-  origenSnig      String?
-
-  // 🟢 DATOS PARA VENTA DE GANADO
-  tipoAnimal       TipoAnimal?
-  pesoLoteKg       Float?
-  precioKgUSD      Float?
-  montoBrutoUSD    Float?
-  montoNetoUSD     Float?
-  monedaVenta      String?       // "USD" | "UYU"
-  montoEnUYUVenta  Float?
-  tasaCambioVenta  Float?
-  fechaVencimiento DateTime?
-
-  // 🟢 DATOS PARA VENTA DE LANA
-  esVentaLana      Boolean?      @default(false)
-  kgVellon         Float?
-  kgBarriga        Float?
-  precioKgVellon   Float?
-  precioKgBarriga  Float?
-  numeroEsquilados Int?
+    caravanas   Json?        // ← lista de caravanas involucradas (venta, compra, mortandad)
+  origenSnig  String?      // "BOT" | "WEB" | null
 }
 
 model Insumo {
@@ -448,8 +427,6 @@ enum SnigOrigen {
   DESCONOCIDO
 }
 
-
-
 model SnigUploadSession {
   id            String       @id @default(cuid())
   campoId       String
@@ -469,8 +446,6 @@ model SnigUploadSession {
   @@index([estado])
 }
 
-
-
 model CargaHistorica {
   id        String   @id @default(cuid())
   fecha     DateTime @db.Date // Solo fecha, sin hora
@@ -486,11 +461,6 @@ model CargaHistorica {
   @@index([campoId, loteId, fecha(sort: Desc)]) // Búsqueda rápida del último snapshot
   @@index([campoId, fecha(sort: Desc)]) // Búsqueda global por campo
 }
-
-
-
-
-
 
 model Inventario {
   id         String   @id @default(cuid())
