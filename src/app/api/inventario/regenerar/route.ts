@@ -23,6 +23,24 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Usuario sin campo' }, { status: 400 });
     }
 
+    // ✅ Obtener todas las categorías del campo para filtrar EQUINOS
+    const categorias = await prisma.categoriaAnimal.findMany({
+      where: {
+        campoId: usuario.campoId,
+      },
+      select: {
+        nombreSingular: true,
+        tipoAnimal: true,
+      },
+    });
+
+    // Crear Set de categorías EQUINAS para excluir
+    const categoriasEquinas = new Set(
+      categorias
+        .filter(cat => cat.tipoAnimal === 'EQUINO')
+        .map(cat => cat.nombreSingular)
+    );
+
     // Obtener todos los potreros con sus animales
     const lotes = await prisma.lote.findMany({
       where: {
@@ -33,11 +51,16 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Agrupar por categoría y sumar cantidades
+    // Agrupar por categoría y sumar cantidades (EXCLUYENDO EQUINOS)
     const agrupado: { [categoria: string]: number } = {};
 
     lotes.forEach(lote => {
       lote.animalesLote.forEach(animal => {
+        // ✅ FILTRAR: Saltar si es categoría EQUINA
+        if (categoriasEquinas.has(animal.categoria)) {
+          return;
+        }
+
         if (agrupado[animal.categoria]) {
           agrupado[animal.categoria] += animal.cantidad;
         } else {
