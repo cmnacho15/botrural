@@ -167,9 +167,9 @@ export async function POST(req: NextRequest) {
             precioKgUSD,
             montoBrutoUSD,
             montoNetoUSD: montoNetoUSD || montoBrutoUSD,
-            moneda,
-            montoEnUYU,
-            tasaCambio: tasaCambioFinal,
+            monedaVenta: moneda,
+            montoEnUYUVenta: montoEnUYU,
+            tasaCambioVenta: tasaCambioFinal,
             animalLoteId: animalLoteId || null,
             
             // Fecha de vencimiento si hay plazo
