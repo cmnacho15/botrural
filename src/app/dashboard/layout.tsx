@@ -32,7 +32,6 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [modalTipo, setModalTipo] = useState<string | null>(null);
 
-  // ✅ Cerrar sidebar al hacer clic fuera (en móvil)
   useEffect(() => {
     if (sidebarOpen) {
       document.body.style.overflow = 'hidden';
@@ -67,7 +66,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
 
   const allMenuSections = [
     {
-      title: "Mi Campo",
+      title: campoNombre,
       items: [
         { href: "/dashboard/empezar", icon: "🚀", label: "Cómo Empezar", roles: ["ADMIN_GENERAL", "COLABORADOR"], requiresFinance: false },
         { href: "/dashboard", icon: "📊", label: "Resumen", roles: ["ADMIN_GENERAL", "COLABORADOR", "CONTADOR"], requiresFinance: false },
@@ -79,8 +78,50 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
       title: "Gestión",
       items: [
         { href: "/dashboard/lotes", icon: "🏞️", label: "Potreros", roles: ["ADMIN_GENERAL", "COLABORADOR"], requiresFinance: false },
-        { href: "/dashboard/insumos", icon: "📦", label: "Insumos", roles: ["ADMIN_GENERAL", "COLABORADOR"], requiresFinance: false },
-        { href: "/dashboard/mano-de-obra", icon: "👷", label: "Mano de Obra", roles: ["ADMIN_GENERAL", "COLABORADOR", "CONTADOR"], requiresFinance: false },
+        { 
+          href: "/dashboard/costos", 
+          icon: "💵", 
+          label: "Costos", 
+          roles: ["ADMIN_GENERAL", "COLABORADOR", "CONTADOR"], 
+          requiresFinance: true,
+          disabled: true // ← Marca como "próximamente"
+        },
+        { 
+          href: "/dashboard/ventas", 
+          icon: "🛒", 
+          label: "Ventas", 
+          roles: ["ADMIN_GENERAL", "COLABORADOR", "CONTADOR"], 
+          requiresFinance: true,
+          disabled: true
+        },
+        { 
+          href: "/dashboard/compras", 
+          icon: "📦", 
+          label: "Compras", 
+          roles: ["ADMIN_GENERAL", "COLABORADOR", "CONTADOR"], 
+          requiresFinance: true,
+          disabled: true
+        },
+        { 
+          href: "/dashboard/consumo", 
+          icon: "🥩", 
+          label: "Consumo", 
+          roles: ["ADMIN_GENERAL", "COLABORADOR", "CONTADOR"], 
+          requiresFinance: true,
+          disabled: true
+        },
+        { 
+          href: "/dashboard/inventario", 
+          icon: "📦", 
+          label: "Diferencia Inventario", 
+          roles: ["ADMIN_GENERAL", "COLABORADOR", "CONTADOR"], 
+          requiresFinance: true
+        },
+      ],
+    },
+    {
+      title: "Otros",
+      items: [
         { 
           href: "/dashboard/gastos", 
           icon: "💰", 
@@ -88,6 +129,8 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
           roles: ["ADMIN_GENERAL", "COLABORADOR", "CONTADOR"], 
           requiresFinance: true
         },
+        { href: "/dashboard/insumos", icon: "📦", label: "Insumos", roles: ["ADMIN_GENERAL", "COLABORADOR"], requiresFinance: false },
+        { href: "/dashboard/mano-de-obra", icon: "👷", label: "Mano de Obra", roles: ["ADMIN_GENERAL", "COLABORADOR", "CONTADOR"], requiresFinance: false },
       ],
     },
     {
@@ -132,12 +175,12 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
           </button>
 
           <Image 
-  src="/BoTRURAL.svg"
-  alt="BotRural"
-  width={140}
-  height={140}
-  priority
-/>
+            src="/BoTRURAL.svg"
+            alt="BotRural"
+            width={140}
+            height={140}
+            priority
+          />
         </div>
 
         {!isContador && (
@@ -302,30 +345,47 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
       {/* SIDEBAR */}
       <div className="flex flex-1">
         <aside
-  className={`fixed lg:sticky lg:top-[65px] lg:h-[calc(100vh-65px)] inset-y-0 left-0 w-64 sm:w-72 lg:w-60 bg-white border-r transition-transform duration-300 z-30 ${
-    sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
-  } overflow-y-auto`}
->
+          className={`fixed lg:sticky lg:top-[65px] lg:h-[calc(100vh-65px)] inset-y-0 left-0 w-64 sm:w-72 lg:w-60 bg-white border-r transition-transform duration-300 z-30 ${
+            sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+          } overflow-y-auto`}
+        >
           <nav className="p-3 sm:p-4 space-y-4 sm:space-y-6 pb-20 lg:pb-4">
             {menuSections.map((section, i) => (
               <div key={i}>
-                <h3 className="text-xs text-gray-500 px-3 sm:px-4 mb-2 font-medium">
-                  {section.title === "Mi Campo" ? campoNombre : section.title}
+                <h3 className="text-xs text-gray-500 px-3 sm:px-4 mb-2 font-medium uppercase">
+                  {section.title}
                 </h3>
 
                 {section.items.map((item: any) => {
                   const isActive = pathname.startsWith(item.href);
+                  
+                  // Si está disabled, mostrar como "próximamente"
+                  if (item.disabled) {
+                    return (
+                      <div
+                        key={item.href}
+                        className="flex items-center justify-between gap-2 px-3 sm:px-4 py-2.5 sm:py-2 rounded-lg text-sm text-gray-400 cursor-not-allowed"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="text-base sm:text-lg opacity-50">{item.icon}</span>
+                          <span className="text-sm sm:text-base">{item.label}</span>
+                        </div>
+                        <span className="text-xs bg-gray-100 px-2 py-0.5 rounded-full">Próximamente</span>
+                      </div>
+                    );
+                  }
+
                   return (
                     <Link
-  key={item.href}
-  href={item.href}
-  className={`flex items-center gap-2 px-3 sm:px-4 py-2.5 sm:py-2 rounded-lg text-sm ${
-    isActive
-      ? "bg-blue-50 text-blue-600 font-medium"
-      : "text-gray-700 hover:bg-gray-100"
-  }`}
-  onClick={() => setSidebarOpen(false)}
->
+                      key={item.href}
+                      href={item.href}
+                      className={`flex items-center gap-2 px-3 sm:px-4 py-2.5 sm:py-2 rounded-lg text-sm ${
+                        isActive
+                          ? "bg-blue-50 text-blue-600 font-medium"
+                          : "text-gray-700 hover:bg-gray-100"
+                      }`}
+                      onClick={() => setSidebarOpen(false)}
+                    >
                       <span className="text-base sm:text-lg">{item.icon}</span> 
                       <span className="text-sm sm:text-base">{item.label}</span>
                     </Link>
