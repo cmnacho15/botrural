@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import useSWR from 'swr';
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
@@ -8,15 +8,33 @@ const fetcher = (url: string) => fetch(url).then((res) => res.json());
 interface InventarioItem {
   id?: string;
   categoria: string;
-  cantidadInicial: number; // 30/6/24
-  cantidadFinal: number;   // 30/6/25
+  cantidadInicial: number; // 1/7 año inicio
+  cantidadFinal: number;   // 30/6 año fin
   peso: number | null;
   precioKg: number | null;
 }
 
 export default function InventarioPage() {
-  const FECHA_INICIAL = '2024-06-30';
-  const FECHA_FINAL = '2025-06-30';
+  // ==========================================
+  // 🗓️ CÁLCULO AUTOMÁTICO DEL EJERCICIO FISCAL
+  // ==========================================
+  const { FECHA_INICIAL, FECHA_FINAL, añoInicio, añoFin } = useMemo(() => {
+    const hoy = new Date();
+    const mesActual = hoy.getMonth(); // 0-11 (enero=0, julio=6)
+    const añoActual = hoy.getFullYear();
+
+    // Si estamos entre julio-diciembre, el ejercicio empezó este año
+    // Si estamos entre enero-junio, el ejercicio empezó el año pasado
+    const añoInicio = mesActual >= 6 ? añoActual : añoActual - 1;
+    const añoFin = añoInicio + 1;
+
+    return {
+      FECHA_INICIAL: `${añoInicio}-07-01`,
+      FECHA_FINAL: `${añoFin}-06-30`,
+      añoInicio,
+      añoFin
+    };
+  }, []);
 
   const [items, setItems] = useState<InventarioItem[]>([]);
   const [guardando, setGuardando] = useState(false);
@@ -25,10 +43,16 @@ export default function InventarioPage() {
   const [nuevaCategoria, setNuevaCategoria] = useState('');
 
   // Cargar inventario inicial
-  const { data: invInicial } = useSWR(`/api/inventario?fecha=${FECHA_INICIAL}`, fetcher);
+  const { data: invInicial, mutate: mutateInicial } = useSWR(
+    `/api/inventario?fecha=${FECHA_INICIAL}`, 
+    fetcher
+  );
   
   // Cargar inventario final
-  const { data: invFinal } = useSWR(`/api/inventario?fecha=${FECHA_FINAL}`, fetcher);
+  const { data: invFinal, mutate: mutateFinal } = useSWR(
+    `/api/inventario?fecha=${FECHA_FINAL}`, 
+    fetcher
+  );
 
   // Combinar ambos inventarios cuando se carguen
   useEffect(() => {
@@ -58,24 +82,63 @@ export default function InventarioPage() {
   // ==========================================
   // REGENERAR DESDE POTREROS
   // ==========================================
-  async function regenerarDesdePotreros() {
+  async function regenerarDesdePotreros(destino: 'INICIO' | 'FIN') {
     try {
       const res = await fetch('/api/inventario/regenerar', { method: 'POST' });
       const data = await res.json();
 
       if (res.ok) {
-        // Actualizar solo cantidadFinal, mantener peso y precio
-        const nuevosItems = data.map((item: any) => ({
-          categoria: item.categoria,
-          cantidadInicial: 0,
-          cantidadFinal: item.cantidad,
-          peso: null,
-          precioKg: null,
-        }));
+        // Crear mapa de categorías existentes
+        const categoriasExistentes = new Map(items.map(item => [item.categoria, item]));
+
+        // Actualizar o agregar categorías desde potreros
+        const nuevosItems: InventarioItem[] = data.map((item: any) => {
+          const existente = categoriasExistentes.get(item.categoria);
+          
+          if (destino === 'INICIO') {
+            return {
+              categoria: item.categoria,
+              cantidadInicial: item.cantidad,
+              cantidadFinal: existente?.cantidadFinal || 0,
+              peso: existente?.peso || null,
+              precioKg: existente?.precioKg || null,
+            };
+          } else {
+            return {
+              categoria: item.categoria,
+              cantidadInicial: existente?.cantidadInicial || 0,
+              cantidadFinal: item.cantidad,
+              peso: existente?.peso || null,
+              precioKg: existente?.precioKg || null,
+            };
+          }
+        });
+
+        // Agregar categorías que están en la tabla pero NO en potreros
+        items.forEach(item => {
+          if (!data.find((d: any) => d.categoria === item.categoria)) {
+            if (destino === 'INICIO') {
+              nuevosItems.push({
+                ...item,
+                cantidadInicial: 0,
+              });
+            } else {
+              nuevosItems.push({
+                ...item,
+                cantidadFinal: 0,
+              });
+            }
+          }
+        });
 
         setItems(nuevosItems);
         setModalRegenerar(false);
-        alert('Inventario regenerado desde potreros. Completa peso y precio manualmente.');
+        
+        const fechaTexto = destino === 'INICIO' 
+          ? `1 de julio ${añoInicio}` 
+          : `30 de junio ${añoFin}`;
+        
+        alert(`Stock de potreros cargado en ${fechaTexto}. Completá peso y precio manualmente.`);
       }
     } catch (error) {
       console.error('Error regenerando:', error);
@@ -117,12 +180,14 @@ export default function InventarioPage() {
 
     try {
       // Guardar inventario inicial
-      const invInicialData = items.map(item => ({
-        categoria: item.categoria,
-        cantidad: item.cantidadInicial,
-        peso: item.peso,
-        precioKg: item.precioKg,
-      }));
+      const invInicialData = items
+        .filter(item => item.cantidadInicial > 0 || item.cantidadFinal > 0)
+        .map(item => ({
+          categoria: item.categoria,
+          cantidad: item.cantidadInicial,
+          peso: item.peso,
+          precioKg: item.precioKg,
+        }));
 
       await fetch('/api/inventario', {
         method: 'POST',
@@ -134,12 +199,14 @@ export default function InventarioPage() {
       });
 
       // Guardar inventario final
-      const invFinalData = items.map(item => ({
-        categoria: item.categoria,
-        cantidad: item.cantidadFinal,
-        peso: item.peso,
-        precioKg: item.precioKg,
-      }));
+      const invFinalData = items
+        .filter(item => item.cantidadInicial > 0 || item.cantidadFinal > 0)
+        .map(item => ({
+          categoria: item.categoria,
+          cantidad: item.cantidadFinal,
+          peso: item.peso,
+          precioKg: item.precioKg,
+        }));
 
       await fetch('/api/inventario', {
         method: 'POST',
@@ -150,10 +217,14 @@ export default function InventarioPage() {
         }),
       });
 
-      alert('Inventario guardado correctamente');
+      // Recargar datos
+      mutateInicial();
+      mutateFinal();
+
+      alert('✅ Inventario guardado correctamente');
     } catch (error) {
       console.error('Error guardando:', error);
-      alert('Error al guardar inventario');
+      alert('❌ Error al guardar inventario');
     } finally {
       setGuardando(false);
     }
@@ -234,7 +305,9 @@ export default function InventarioPage() {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">📦 Diferencia de Inventario</h1>
-          <p className="text-gray-600 text-sm mt-1">30/6/2024 vs 30/6/2025</p>
+          <p className="text-gray-600 text-sm mt-1">
+            Ejercicio fiscal: 1/7/{añoInicio} → 30/6/{añoFin}
+          </p>
         </div>
 
         <div className="flex gap-3 flex-wrap">
@@ -265,20 +338,26 @@ export default function InventarioPage() {
         <table className="w-full text-sm">
           <thead className="bg-gray-100 border-b-2 border-gray-300">
             <tr>
-              <th className="px-4 py-3 text-left font-bold text-gray-700">Categoría</th>
-              <th className="px-4 py-3 text-center font-bold text-gray-700 bg-yellow-50">Nº Anim<br/>30/6/24</th>
-              <th className="px-4 py-3 text-center font-bold text-gray-700 bg-yellow-50">Nº Anim<br/>30/6/25</th>
+              <th className="px-4 py-3 text-left font-bold text-gray-700 sticky left-0 bg-gray-100 z-10">
+                Categoría
+              </th>
+              <th className="px-4 py-3 text-center font-bold text-gray-700 bg-yellow-50">
+                Nº Anim<br/>1/7/{añoInicio}
+              </th>
+              <th className="px-4 py-3 text-center font-bold text-gray-700 bg-yellow-50">
+                Nº Anim<br/>30/6/{añoFin}
+              </th>
               <th className="px-4 py-3 text-center font-bold text-gray-700 bg-yellow-50">Peso</th>
               <th className="px-4 py-3 text-center font-bold text-gray-700 bg-yellow-50">U$/kg</th>
               <th className="px-4 py-3 text-center font-bold text-gray-700">Dif en<br/>animales</th>
-              <th className="px-4 py-3 text-center font-bold text-gray-700">kg stock<br/>2024</th>
-              <th className="px-4 py-3 text-center font-bold text-gray-700">kg stock<br/>2025</th>
+              <th className="px-4 py-3 text-center font-bold text-gray-700">kg stock<br/>{añoInicio}</th>
+              <th className="px-4 py-3 text-center font-bold text-gray-700">kg stock<br/>{añoFin}</th>
               <th className="px-4 py-3 text-center font-bold text-gray-700">Dif en kg</th>
               <th className="px-4 py-3 text-center font-bold text-gray-700">U$S<br/>Inicio</th>
               <th className="px-4 py-3 text-center font-bold text-gray-700">U$S<br/>Final</th>
               <th className="px-4 py-3 text-center font-bold text-gray-700">U$S<br/>Totales</th>
               <th className="px-4 py-3 text-center font-bold text-gray-700">Precio /<br/>animal</th>
-              <th className="px-4 py-3 text-center font-bold text-gray-700">Acciones</th>
+              <th className="px-4 py-3 text-center font-bold text-gray-700">Acción</th>
             </tr>
           </thead>
 
@@ -288,7 +367,9 @@ export default function InventarioPage() {
 
               return (
                 <tr key={index} className="hover:bg-gray-50">
-                  <td className="px-4 py-2 font-medium text-gray-900">{item.categoria}</td>
+                  <td className="px-4 py-2 font-medium text-gray-900 sticky left-0 bg-white">
+                    {item.categoria}
+                  </td>
                   
                   {/* EDITABLE: Cantidad Inicial */}
                   <td className="px-4 py-2 bg-yellow-50">
@@ -353,6 +434,7 @@ export default function InventarioPage() {
                     <button
                       onClick={() => eliminarFila(index)}
                       className="text-red-600 hover:text-red-800"
+                      title="Eliminar"
                     >
                       🗑️
                     </button>
@@ -363,7 +445,7 @@ export default function InventarioPage() {
 
             {/* FILA TOTALES */}
             <tr className="bg-green-100 font-bold text-gray-900">
-              <td className="px-4 py-3">TOTALES</td>
+              <td className="px-4 py-3 sticky left-0 bg-green-100">TOTALES</td>
               <td className="px-4 py-3 text-center">{totales.cantidadInicial}</td>
               <td className="px-4 py-3 text-center">{totales.cantidadFinal}</td>
               <td className="px-4 py-3"></td>
@@ -390,25 +472,35 @@ export default function InventarioPage() {
       {modalRegenerar && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl max-w-md w-full p-6">
-            <h2 className="text-xl font-bold mb-4">Confirmar Regeneración</h2>
+            <h2 className="text-xl font-bold mb-4">🔄 Regenerar desde Potreros</h2>
             <p className="text-gray-700 mb-6">
-              Esto sobrescribirá las cantidades actuales con los datos de tus potreros. 
-              Los valores de peso y precio NO se modificarán.
+              ¿A qué fecha querés cargar el stock actual de tus potreros?
             </p>
-            <div className="flex gap-3">
+            
+            <div className="space-y-3 mb-6">
               <button
-                onClick={() => setModalRegenerar(false)}
-                className="flex-1 px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300"
+                onClick={() => regenerarDesdePotreros('INICIO')}
+                className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium text-left"
               >
-                Cancelar
+                📅 Inicio de Ejercicio
+                <div className="text-sm opacity-90">1 de julio {añoInicio}</div>
               </button>
+              
               <button
-                onClick={regenerarDesdePotreros}
-                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                onClick={() => regenerarDesdePotreros('FIN')}
+                className="w-full px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium text-left"
               >
-                Confirmar
+                📅 Fin de Ejercicio
+                <div className="text-sm opacity-90">30 de junio {añoFin}</div>
               </button>
             </div>
+
+            <button
+              onClick={() => setModalRegenerar(false)}
+              className="w-full px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300"
+            >
+              Cancelar
+            </button>
           </div>
         </div>
       )}
@@ -417,7 +509,7 @@ export default function InventarioPage() {
       {modalAgregar && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl max-w-md w-full p-6">
-            <h2 className="text-xl font-bold mb-4">Agregar Categoría Manual</h2>
+            <h2 className="text-xl font-bold mb-4">➕ Agregar Categoría Manual</h2>
             <input
               type="text"
               value={nuevaCategoria}
