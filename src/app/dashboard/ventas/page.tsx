@@ -3,9 +3,9 @@
 
 import { useState, useEffect } from 'react';
 import { Plus } from 'lucide-react';
-import ModalVentaGanado from '@/components/ventas/ModalVentaGanado';
-import ResumenVentas from '@/components/ventas/ResumenVentas';
-import TablaVentas from '@/components/ventas/TablaVentas';
+import ModalVentaGanado from '@/app/components/ventas/ModalVentaGanado';
+import ResumenVentas from '@/app/components/ventas/ResumenVentas';
+import TablaVentas from '@/app/components/ventas/TablaVentas';
 
 export default function VentasPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
