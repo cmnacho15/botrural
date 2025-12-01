@@ -8,8 +8,8 @@ const fetcher = (url: string) => fetch(url).then((res) => res.json());
 interface InventarioItem {
   id?: string;
   categoria: string;
-  cantidadInicial: number; // 1/7 año inicio
-  cantidadFinal: number;   // 30/6 año fin
+  cantidadInicial: number;
+  cantidadFinal: number;
   peso: number | null;
   precioKg: number | null;
 }
@@ -20,11 +20,8 @@ export default function InventarioPage() {
   // ==========================================
   const { FECHA_INICIAL, FECHA_FINAL, añoInicio, añoFin } = useMemo(() => {
     const hoy = new Date();
-    const mesActual = hoy.getMonth(); // 0-11 (enero=0, julio=6)
+    const mesActual = hoy.getMonth();
     const añoActual = hoy.getFullYear();
-
-    // Si estamos entre julio-diciembre, el ejercicio empezó este año
-    // Si estamos entre enero-junio, el ejercicio empezó el año pasado
     const añoInicio = mesActual >= 6 ? añoActual : añoActual - 1;
     const añoFin = añoInicio + 1;
 
@@ -42,19 +39,16 @@ export default function InventarioPage() {
   const [modalAgregar, setModalAgregar] = useState(false);
   const [nuevaCategoria, setNuevaCategoria] = useState('');
 
-  // Cargar inventario inicial
   const { data: invInicial, mutate: mutateInicial } = useSWR(
     `/api/inventario?fecha=${FECHA_INICIAL}`, 
     fetcher
   );
   
-  // Cargar inventario final
   const { data: invFinal, mutate: mutateFinal } = useSWR(
     `/api/inventario?fecha=${FECHA_FINAL}`, 
     fetcher
   );
 
-  // Combinar ambos inventarios cuando se carguen
   useEffect(() => {
     if (invInicial && invFinal) {
       const categorias = new Set<string>();
@@ -88,10 +82,8 @@ export default function InventarioPage() {
       const data = await res.json();
 
       if (res.ok) {
-        // Crear mapa de categorías existentes
         const categoriasExistentes = new Map(items.map(item => [item.categoria, item]));
 
-        // Actualizar o agregar categorías desde potreros
         const nuevosItems: InventarioItem[] = data.map((item: any) => {
           const existente = categoriasExistentes.get(item.categoria);
           
@@ -114,7 +106,6 @@ export default function InventarioPage() {
           }
         });
 
-        // Agregar categorías que están en la tabla pero NO en potreros
         items.forEach(item => {
           if (!data.find((d: any) => d.categoria === item.categoria)) {
             if (destino === 'INICIO') {
@@ -179,7 +170,6 @@ export default function InventarioPage() {
     setGuardando(true);
 
     try {
-      // Guardar inventario inicial
       const invInicialData = items
         .filter(item => item.cantidadInicial > 0 || item.cantidadFinal > 0)
         .map(item => ({
@@ -198,7 +188,6 @@ export default function InventarioPage() {
         }),
       });
 
-      // Guardar inventario final
       const invFinalData = items
         .filter(item => item.cantidadInicial > 0 || item.cantidadFinal > 0)
         .map(item => ({
@@ -217,7 +206,6 @@ export default function InventarioPage() {
         }),
       });
 
-      // Recargar datos
       mutateInicial();
       mutateFinal();
 
@@ -231,7 +219,7 @@ export default function InventarioPage() {
   }
 
   // ==========================================
-  // ACTUALIZAR VALORES
+  // ACTUALIZAR VALORES (CON MEJOR UX)
   // ==========================================
   function actualizarItem(index: number, campo: keyof InventarioItem, valor: any) {
     const nuevosItems = [...items];
@@ -239,9 +227,6 @@ export default function InventarioPage() {
     setItems(nuevosItems);
   }
 
-  // ==========================================
-  // ELIMINAR FILA
-  // ==========================================
   function eliminarFila(index: number) {
     if (confirm(`¿Eliminar ${items[index].categoria}?`)) {
       setItems(items.filter((_, i) => i !== index));
@@ -273,7 +258,6 @@ export default function InventarioPage() {
     };
   }
 
-  // Totales
   const totales = items.reduce((acc, item) => {
     const calc = calcularFila(item);
     return {
@@ -302,170 +286,198 @@ export default function InventarioPage() {
   return (
     <div className="bg-gray-50 min-h-screen p-4 sm:p-6 md:p-8">
       {/* HEADER */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-6 gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">📦 Diferencia de Inventario</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">📦 Diferencia de Inventario</h1>
           <p className="text-gray-600 text-sm mt-1">
             Ejercicio fiscal: 1/7/{añoInicio} → 30/6/{añoFin}
           </p>
         </div>
 
-        <div className="flex gap-3 flex-wrap">
+        <div className="flex gap-2 flex-wrap">
           <button
             onClick={() => setModalRegenerar(true)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium"
+            className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium"
           >
             🔄 Regenerar desde Potreros
           </button>
           <button
             onClick={() => setModalAgregar(true)}
-            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm font-medium"
+            className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm font-medium"
           >
             ➕ Agregar Categoría
           </button>
           <button
             onClick={guardarInventario}
             disabled={guardando}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm font-medium disabled:opacity-50"
+            className="px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm font-medium disabled:opacity-50"
           >
-            {guardando ? '💾 Guardando...' : '💾 Guardar Inventario'}
+            {guardando ? '💾 Guardando...' : '💾 Guardar'}
           </button>
         </div>
       </div>
 
-      {/* TABLA */}
-      <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-100 border-b-2 border-gray-300">
-            <tr>
-              <th className="px-4 py-3 text-left font-bold text-gray-700 sticky left-0 bg-gray-100 z-10">
-                Categoría
-              </th>
-              <th className="px-4 py-3 text-center font-bold text-gray-700 bg-yellow-50">
-                Nº Anim<br/>1/7/{añoInicio}
-              </th>
-              <th className="px-4 py-3 text-center font-bold text-gray-700 bg-yellow-50">
-                Nº Anim<br/>30/6/{añoFin}
-              </th>
-              <th className="px-4 py-3 text-center font-bold text-gray-700 bg-yellow-50">Peso</th>
-              <th className="px-4 py-3 text-center font-bold text-gray-700 bg-yellow-50">U$/kg</th>
-              <th className="px-4 py-3 text-center font-bold text-gray-700">Dif en<br/>animales</th>
-              <th className="px-4 py-3 text-center font-bold text-gray-700">kg stock<br/>{añoInicio}</th>
-              <th className="px-4 py-3 text-center font-bold text-gray-700">kg stock<br/>{añoFin}</th>
-              <th className="px-4 py-3 text-center font-bold text-gray-700">Dif en kg</th>
-              <th className="px-4 py-3 text-center font-bold text-gray-700">U$S<br/>Inicio</th>
-              <th className="px-4 py-3 text-center font-bold text-gray-700">U$S<br/>Final</th>
-              <th className="px-4 py-3 text-center font-bold text-gray-700">U$S<br/>Totales</th>
-              <th className="px-4 py-3 text-center font-bold text-gray-700">Precio /<br/>animal</th>
-              <th className="px-4 py-3 text-center font-bold text-gray-700">Acción</th>
-            </tr>
-          </thead>
-
-          <tbody className="divide-y divide-gray-100">
-            {items.map((item, index) => {
-              const calc = calcularFila(item);
-
-              return (
-                <tr key={index} className="hover:bg-gray-50">
-                  <td className="px-4 py-2 font-medium text-gray-900 sticky left-0 bg-white">
-                    {item.categoria}
-                  </td>
+      {/* TABLA CON SCROLL HORIZONTAL */}
+      <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs sm:text-sm border-collapse">
+            <thead className="bg-gray-100 border-b-2 border-gray-300">
+              <tr>
+                <th className="px-3 py-2 text-left font-bold text-gray-700 sticky left-0 bg-gray-100 z-20 min-w-[120px]">
+                  Categoría
+                </th>
+                <th className="px-2 py-2 text-center font-bold text-gray-700 bg-yellow-50 min-w-[80px]">
+                  Nº Anim<br/>1/7/{añoInicio.toString().slice(-2)}
+                </th>
+                <th className="px-2 py-2 text-center font-bold text-gray-700 bg-yellow-50 min-w-[80px]">
+                  Nº Anim<br/>30/6/{añoFin.toString().slice(-2)}
+                </th>
+                <th className="px-2 py-2 text-center font-bold text-gray-700 bg-yellow-50 min-w-[70px]">
+                  Peso
+                </th>
+                <th className="px-2 py-2 text-center font-bold text-gray-700 bg-yellow-50 min-w-[70px]">
+                  U$/kg
+                </th>
+                <th className="px-2 py-2 text-center font-bold text-gray-700 min-w-[70px]">
+                  Dif en<br/>animales
+                </th>
+                <th className="px-2 py-2 text-center font-bold text-gray-700 min-w-[80px]">
+                  kg stock<br/>{añoInicio.toString().slice(-2)}
+                </th>
+                <th className="px-2 py-2 text-center font-bold text-gray-700 min-w-[80px]">
+                  kg stock<br/>{añoFin.toString().slice(-2)}
+                </th>
+                <th className="px-2 py-2 text-center font-bold text-gray-700 min-w-[70px]">
+                  Dif en kg
+                </th>
+                <th className="px-2 py-2 text-center font-bold text-gray-700 min-w-[80px]">
+                  U$S<br/>Inicio
+                </th>
+                <th className="px-2 py-2 text-center font-bold text-gray-700 min-w-[80px]">
+                  U$S<br/>Final
+                </th>
+                <th className="px-2 py-2 text-center font-bold text-gray-700 min-w-[80px]">
+                  U$S<br/>Totales
+                </th>
+                <th className="px-2 py-2 text-center font-bold text-gray-700 min-w-[80px]">
+                  Precio /<br/>animal
+                </th>
+                <th className="px-2 py-2 text-center font-bold text-gray-700 min-w-[50px]">
                   
-                  {/* EDITABLE: Cantidad Inicial */}
-                  <td className="px-4 py-2 bg-yellow-50">
-                    <input
-                      type="number"
-                      value={item.cantidadInicial}
-                      onChange={(e) => actualizarItem(index, 'cantidadInicial', parseInt(e.target.value) || 0)}
-                      className="w-20 px-2 py-1 border rounded text-center"
-                    />
-                  </td>
+                </th>
+              </tr>
+            </thead>
 
-                  {/* EDITABLE: Cantidad Final */}
-                  <td className="px-4 py-2 bg-yellow-50">
-                    <input
-                      type="number"
-                      value={item.cantidadFinal}
-                      onChange={(e) => actualizarItem(index, 'cantidadFinal', parseInt(e.target.value) || 0)}
-                      className="w-20 px-2 py-1 border rounded text-center"
-                    />
-                  </td>
+            <tbody className="divide-y divide-gray-100">
+              {items.map((item, index) => {
+                const calc = calcularFila(item);
 
-                  {/* EDITABLE: Peso */}
-                  <td className="px-4 py-2 bg-yellow-50">
-                    <input
-                      type="number"
-                      step="0.1"
-                      value={item.peso || ''}
-                      onChange={(e) => actualizarItem(index, 'peso', parseFloat(e.target.value) || null)}
-                      className="w-20 px-2 py-1 border rounded text-center"
-                      placeholder="0"
-                    />
-                  </td>
+                return (
+                  <tr key={index} className="hover:bg-gray-50">
+                    <td className="px-3 py-2 font-medium text-gray-900 sticky left-0 bg-white z-10">
+                      {item.categoria}
+                    </td>
+                    
+                    {/* EDITABLE: Cantidad Inicial */}
+                    <td className="px-2 py-2 bg-yellow-50">
+                      <input
+                        type="number"
+                        value={item.cantidadInicial}
+                        onChange={(e) => actualizarItem(index, 'cantidadInicial', parseInt(e.target.value) || 0)}
+                        onFocus={(e) => e.target.select()}
+                        className="w-full px-2 py-1 border rounded text-center text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </td>
 
-                  {/* EDITABLE: Precio */}
-                  <td className="px-4 py-2 bg-yellow-50">
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={item.precioKg || ''}
-                      onChange={(e) => actualizarItem(index, 'precioKg', parseFloat(e.target.value) || null)}
-                      className="w-20 px-2 py-1 border rounded text-center"
-                      placeholder="0"
-                    />
-                  </td>
+                    {/* EDITABLE: Cantidad Final */}
+                    <td className="px-2 py-2 bg-yellow-50">
+                      <input
+                        type="number"
+                        value={item.cantidadFinal}
+                        onChange={(e) => actualizarItem(index, 'cantidadFinal', parseInt(e.target.value) || 0)}
+                        onFocus={(e) => e.target.select()}
+                        className="w-full px-2 py-1 border rounded text-center text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </td>
 
-                  {/* CALCULADOS */}
-                  <td className="px-4 py-2 text-center text-gray-700">{calc.difAnimales}</td>
-                  <td className="px-4 py-2 text-center text-gray-700">{calc.kgStock2024.toFixed(0)}</td>
-                  <td className="px-4 py-2 text-center text-gray-700">{calc.kgStock2025.toFixed(0)}</td>
-                  <td className={`px-4 py-2 text-center font-medium ${calc.difKg < 0 ? 'text-red-600' : 'text-green-600'}`}>
-                    {calc.difKg.toFixed(0)}
-                  </td>
-                  <td className="px-4 py-2 text-center text-gray-700">{calc.usdInicio.toFixed(0)}</td>
-                  <td className="px-4 py-2 text-center text-gray-700">{calc.usdFinal.toFixed(0)}</td>
-                  <td className={`px-4 py-2 text-center font-bold ${calc.usdTotales < 0 ? 'text-red-600' : 'text-green-600'}`}>
-                    {calc.usdTotales.toFixed(0)}
-                  </td>
-                  <td className="px-4 py-2 text-center text-gray-700">{calc.precioAnimal.toFixed(0)}</td>
+                    {/* EDITABLE: Peso */}
+                    <td className="px-2 py-2 bg-yellow-50">
+                      <input
+                        type="number"
+                        step="0.1"
+                        value={item.peso || ''}
+                        onChange={(e) => actualizarItem(index, 'peso', parseFloat(e.target.value) || null)}
+                        onFocus={(e) => e.target.select()}
+                        placeholder="0"
+                        className="w-full px-2 py-1 border rounded text-center text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </td>
 
-                  {/* ELIMINAR */}
-                  <td className="px-4 py-2 text-center">
-                    <button
-                      onClick={() => eliminarFila(index)}
-                      className="text-red-600 hover:text-red-800"
-                      title="Eliminar"
-                    >
-                      🗑️
-                    </button>
-                  </td>
-                </tr>
-              );
-            })}
+                    {/* EDITABLE: Precio */}
+                    <td className="px-2 py-2 bg-yellow-50">
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={item.precioKg || ''}
+                        onChange={(e) => actualizarItem(index, 'precioKg', parseFloat(e.target.value) || null)}
+                        onFocus={(e) => e.target.select()}
+                        placeholder="0"
+                        className="w-full px-2 py-1 border rounded text-center text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </td>
 
-            {/* FILA TOTALES */}
-            <tr className="bg-green-100 font-bold text-gray-900">
-              <td className="px-4 py-3 sticky left-0 bg-green-100">TOTALES</td>
-              <td className="px-4 py-3 text-center">{totales.cantidadInicial}</td>
-              <td className="px-4 py-3 text-center">{totales.cantidadFinal}</td>
-              <td className="px-4 py-3"></td>
-              <td className="px-4 py-3"></td>
-              <td className="px-4 py-3 text-center">{totales.difAnimales}</td>
-              <td className="px-4 py-3 text-center">{totales.kgStock2024.toFixed(0)}</td>
-              <td className="px-4 py-3 text-center">{totales.kgStock2025.toFixed(0)}</td>
-              <td className={`px-4 py-3 text-center ${totales.difKg < 0 ? 'text-red-600' : 'text-green-600'}`}>
-                {totales.difKg.toFixed(0)}
-              </td>
-              <td className="px-4 py-3 text-center">{totales.usdInicio.toFixed(0)}</td>
-              <td className="px-4 py-3 text-center">{totales.usdFinal.toFixed(0)}</td>
-              <td className={`px-4 py-3 text-center ${totales.usdTotales < 0 ? 'text-red-600' : 'text-green-600'}`}>
-                {totales.usdTotales.toFixed(0)}
-              </td>
-              <td className="px-4 py-3"></td>
-              <td className="px-4 py-3"></td>
-            </tr>
-          </tbody>
-        </table>
+                    {/* CALCULADOS */}
+                    <td className="px-2 py-2 text-center text-gray-700">{calc.difAnimales}</td>
+                    <td className="px-2 py-2 text-center text-gray-700">{calc.kgStock2024.toFixed(0)}</td>
+                    <td className="px-2 py-2 text-center text-gray-700">{calc.kgStock2025.toFixed(0)}</td>
+                    <td className={`px-2 py-2 text-center font-medium ${calc.difKg < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                      {calc.difKg.toFixed(0)}
+                    </td>
+                    <td className="px-2 py-2 text-center text-gray-700">{calc.usdInicio.toFixed(0)}</td>
+                    <td className="px-2 py-2 text-center text-gray-700">{calc.usdFinal.toFixed(0)}</td>
+                    <td className={`px-2 py-2 text-center font-bold ${calc.usdTotales < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                      {calc.usdTotales.toFixed(0)}
+                    </td>
+                    <td className="px-2 py-2 text-center text-gray-700">{calc.precioAnimal.toFixed(0)}</td>
+
+                    {/* ELIMINAR */}
+                    <td className="px-2 py-2 text-center">
+                      <button
+                        onClick={() => eliminarFila(index)}
+                        className="text-red-600 hover:text-red-800 text-lg"
+                        title="Eliminar"
+                      >
+                        🗑️
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+
+              {/* FILA TOTALES */}
+              <tr className="bg-green-100 font-bold text-gray-900">
+                <td className="px-3 py-3 sticky left-0 bg-green-100 z-10">TOTALES</td>
+                <td className="px-2 py-3 text-center">{totales.cantidadInicial}</td>
+                <td className="px-2 py-3 text-center">{totales.cantidadFinal}</td>
+                <td className="px-2 py-3"></td>
+                <td className="px-2 py-3"></td>
+                <td className="px-2 py-3 text-center">{totales.difAnimales}</td>
+                <td className="px-2 py-3 text-center">{totales.kgStock2024.toFixed(0)}</td>
+                <td className="px-2 py-3 text-center">{totales.kgStock2025.toFixed(0)}</td>
+                <td className={`px-2 py-3 text-center ${totales.difKg < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                  {totales.difKg.toFixed(0)}
+                </td>
+                <td className="px-2 py-3 text-center">{totales.usdInicio.toFixed(0)}</td>
+                <td className="px-2 py-3 text-center">{totales.usdFinal.toFixed(0)}</td>
+                <td className={`px-2 py-3 text-center ${totales.usdTotales < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                  {totales.usdTotales.toFixed(0)}
+                </td>
+                <td className="px-2 py-3"></td>
+                <td className="px-2 py-3"></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* MODAL REGENERAR */}
