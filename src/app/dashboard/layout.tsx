@@ -309,34 +309,34 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
     sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
   } overflow-y-auto`}
 >
-          <nav className="p-3 sm:p-4 space-y-4 sm:space-y-6 pb-20 lg:pb-4">
-            {menuSections.map((section, i) => (
-              <div key={i}>
-                <h3 className="text-xs text-gray-500 px-3 sm:px-4 mb-2 font-medium">
-                  {section.title === "Mi Campo" ? campoNombre : section.title}
-                </h3>
+          <nav className="p-3 sm:p-4 space-y-2.5 pb-20 lg:pb-4">
+  {menuSections.map((section, i) => (
+    <div key={i}>
+      <h3 className="text-xs text-gray-500 px-3 sm:px-4 mb-1.5 font-medium">
+        {section.title === "Mi Campo" ? campoNombre : section.title}
+      </h3>
 
-                {section.items.map((item: any) => {
-                  const isActive = pathname.startsWith(item.href);
-                  return (
-                    <Link
-  key={item.href}
-  href={item.href}
-  className={`flex items-center gap-2 px-3 sm:px-4 py-2.5 sm:py-2 rounded-lg text-sm ${
-    isActive
-      ? "bg-blue-50 text-blue-600 font-medium"
-      : "text-gray-700 hover:bg-gray-100"
-  }`}
-  onClick={() => setSidebarOpen(false)}
->
-                      <span className="text-base sm:text-lg">{item.icon}</span> 
-                      <span className="text-sm sm:text-base">{item.label}</span>
-                    </Link>
-                  );
-                })}
-              </div>
-            ))}
-          </nav>
+      {section.items.map((item: any) => {
+        const isActive = pathname.startsWith(item.href);
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            className={`flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-sm ${
+              isActive
+                ? "bg-blue-50 text-blue-600 font-medium"
+                : "text-gray-700 hover:bg-gray-100"
+            }`}
+            onClick={() => setSidebarOpen(false)}
+          >
+            <span className="text-base">{item.icon}</span> 
+            <span className="text-sm">{item.label}</span>
+          </Link>
+        );
+      })}
+    </div>
+  ))}
+</nav>
         </aside>
 
         <main className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6">{children}</main>
