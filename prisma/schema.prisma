@@ -201,7 +201,7 @@ model Evento {
   categoria       String?
   categoriaNueva  String?
   loteId          String?
-  usuarioId       String?     // ✅ AGREGAR "?" ACÁ
+  usuarioId       String?
   campoId         String
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
@@ -221,10 +221,29 @@ model Evento {
   animalLote      AnimalLote? @relation(fields: [animalLoteId], references: [id])
   campo           Campo       @relation(fields: [campoId], references: [id], onDelete: Cascade)
   lote            Lote?       @relation(fields: [loteId], references: [id])
-  usuario         User?       @relation(fields: [usuarioId], references: [id])  // ✅ AGREGAR "?" ACÁ TAMBIÉN
+  usuario         User?       @relation(fields: [usuarioId], references: [id])
 
-    caravanas   Json?        // ← lista de caravanas involucradas (venta, compra, mortandad)
-  origenSnig  String?      // "BOT" | "WEB" | null
+  caravanas       Json?
+  origenSnig      String?
+
+  // 🟢 DATOS PARA VENTA DE GANADO
+  tipoAnimal       TipoAnimal?
+  pesoLoteKg       Float?
+  precioKgUSD      Float?
+  montoBrutoUSD    Float?
+  montoNetoUSD     Float?
+  monedaVenta      String?       // "USD" | "UYU"
+  montoEnUYUVenta  Float?
+  tasaCambioVenta  Float?
+  fechaVencimiento DateTime?
+
+  // 🟢 DATOS PARA VENTA DE LANA
+  esVentaLana      Boolean?      @default(false)
+  kgVellon         Float?
+  kgBarriga        Float?
+  precioKgVellon   Float?
+  precioKgBarriga  Float?
+  numeroEsquilados Int?
 }
 
 model Insumo {
