@@ -481,6 +481,13 @@ const tooltip = (L as any).tooltip({
   opacity: 1,
 }).setContent(tooltipContent)
 
+// Guardar metadata en el tooltip para decisiones de visibilidad
+tooltip._potreroData = {
+  id: potrero.id,
+  hectareas: potrero.info?.hectareas || 0,
+  center: center
+}
+
 tooltip.setLatLng(center)
 existingLayersRef.current.addLayer(tooltip)
 
@@ -509,7 +516,92 @@ if (initialZoom < 13) {
   tooltip.setOpacity(0)
 }
     })
+    // 🎯 SISTEMA INTELIGENTE: Gestionar visibilidad de tooltips según zoom
+const gestionarVisibilidadTooltips = () => {
+  if (!mapRef.current) return
+  
+  const currentZoom = mapRef.current.getZoom()
+  const mapCenter = mapRef.current.getCenter()
+  
+  // Recopilar todos los tooltips
+  const tooltips: any[] = []
+  existingLayersRef.current.eachLayer((layer: any) => {
+    if (layer instanceof (L as any).Tooltip && layer._potreroData) {
+      tooltips.push(layer)
+    }
+  })
+  
+  if (tooltips.length === 0) return
+  
+  // 🔍 ZOOM BAJO (< 13): Mostrar solo el potrero MÁS GRANDE
+  if (currentZoom < 13) {
+    // Encontrar el potrero más grande
+    let mayorTooltip = tooltips[0]
+    tooltips.forEach(t => {
+      if (t._potreroData.hectareas > mayorTooltip._potreroData.hectareas) {
+        mayorTooltip = t
+      }
+    })
+    
+    // Ocultar todos excepto el más grande
+    tooltips.forEach(t => {
+      if (t === mayorTooltip) {
+        t.setOpacity(1)
+      } else {
+        t.setOpacity(0)
+      }
+    })
+  }
+  // 🔍 ZOOM MEDIO (13-15): Evitar colisiones
+  else if (currentZoom < 15) {
+    // Ordenar por tamaño (más grandes primero)
+    tooltips.sort((a, b) => b._potreroData.hectareas - a._potreroData.hectareas)
+    
+    const visibles: any[] = []
+    
+    tooltips.forEach(tooltip => {
+      const pos = mapRef.current.latLngToContainerPoint(tooltip._potreroData.center)
+      
+      // Verificar si colisiona con algún tooltip ya visible
+      let colisiona = false
+      const margen = 80 // píxeles de separación mínima
+      
+      for (const visible of visibles) {
+        const visiblePos = mapRef.current.latLngToContainerPoint(visible._potreroData.center)
+        const distancia = Math.sqrt(
+          Math.pow(pos.x - visiblePos.x, 2) + 
+          Math.pow(pos.y - visiblePos.y, 2)
+        )
+        
+        if (distancia < margen) {
+          colisiona = true
+          break
+        }
+      }
+      
+      if (!colisiona) {
+        tooltip.setOpacity(1)
+        visibles.push(tooltip)
+      } else {
+        tooltip.setOpacity(0)
+      }
+    })
+  }
+  // 🔍 ZOOM ALTO (≥ 15): Mostrar TODOS
+  else {
+    tooltips.forEach(t => t.setOpacity(1))
+  }
+}
 
+// Aplicar lógica inicial
+gestionarVisibilidadTooltips()
+
+// Actualizar cuando cambia el zoom o se mueve el mapa
+if (!mapRef.current._tooltipZoomHandler) {
+  mapRef.current._tooltipZoomHandler = true
+  mapRef.current.on('zoomend', gestionarVisibilidadTooltips)
+  mapRef.current.on('moveend', gestionarVisibilidadTooltips)
+}
     if (existingPolygons.length > 0 && existingLayersRef.current.getLayers().length > 0) {
       try {
         const bounds = (existingLayersRef.current as any).getBounds()
