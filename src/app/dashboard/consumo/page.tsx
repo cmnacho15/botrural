@@ -45,6 +45,8 @@ export default function ConsumoPage() {
   const [loading, setLoading] = useState(true)
   const [mostrarModal, setMostrarModal] = useState(false)
   const [categoriasExpandidas, setCategoriasExpandidas] = useState<Set<string>>(new Set())
+  const [valoresLocales, setValoresLocales] = useState<{ [key: string]: { peso?: string, precio?: string } }>({})
+  const timeoutRefs = useState<{ [key: string]: NodeJS.Timeout }>({})[0]
 
   useEffect(() => {
     cargarConsumos()
@@ -73,14 +75,42 @@ export default function ConsumoPage() {
     }
   }
 
-  const handlePesoChange = async (id: string, nuevoPeso: string) => {
-    const peso = parseFloat(nuevoPeso) || null
-    await actualizarRenglon(id, { pesoPromedio: peso })
+  const handlePesoChange = (id: string, nuevoPeso: string) => {
+    // Actualizar valor local inmediatamente
+    setValoresLocales(prev => ({
+      ...prev,
+      [id]: { ...prev[id], peso: nuevoPeso }
+    }))
+
+    // Limpiar timeout anterior
+    if (timeoutRefs[id]) {
+      clearTimeout(timeoutRefs[id])
+    }
+
+    // Esperar 800ms antes de guardar
+    timeoutRefs[id] = setTimeout(() => {
+      const peso = parseFloat(nuevoPeso) || null
+      actualizarRenglon(id, { pesoPromedio: peso })
+    }, 800)
   }
 
-  const handlePrecioKgChange = async (id: string, nuevoPrecio: string) => {
-    const precio = parseFloat(nuevoPrecio) || null
-    await actualizarRenglon(id, { precioKgUSD: precio })
+  const handlePrecioKgChange = (id: string, nuevoPrecio: string) => {
+    // Actualizar valor local inmediatamente
+    setValoresLocales(prev => ({
+      ...prev,
+      [id]: { ...prev[id], precio: nuevoPrecio }
+    }))
+
+    // Limpiar timeout anterior
+    if (timeoutRefs[id + '-precio']) {
+      clearTimeout(timeoutRefs[id + '-precio'])
+    }
+
+    // Esperar 800ms antes de guardar
+    timeoutRefs[id + '-precio'] = setTimeout(() => {
+      const precio = parseFloat(nuevoPrecio) || null
+      actualizarRenglon(id, { precioKgUSD: precio })
+    }, 800)
   }
 
   const actualizarRenglon = async (id: string, datos: { pesoPromedio?: number | null, precioKgUSD?: number | null }) => {
@@ -298,7 +328,7 @@ export default function ConsumoPage() {
                                 <input
                                   type="number"
                                   step="0.1"
-                                  value={renglon.pesoPromedio || ''}
+                                  value={valoresLocales[renglon.id]?.peso !== undefined ? valoresLocales[renglon.id].peso : (renglon.pesoPromedio || '')}
                                   onChange={(e) => handlePesoChange(renglon.id, e.target.value)}
                                   placeholder="kg"
                                   className="w-16 px-1 py-0.5 border border-gray-300 rounded text-xs"
@@ -309,7 +339,7 @@ export default function ConsumoPage() {
                                 <input
                                   type="number"
                                   step="0.01"
-                                  value={renglon.precioKgUSD || ''}
+                                  value={valoresLocales[renglon.id]?.precio !== undefined ? valoresLocales[renglon.id].precio : (renglon.precioKgUSD || '')}
                                   onChange={(e) => handlePrecioKgChange(renglon.id, e.target.value)}
                                   placeholder="U$S"
                                   className="w-16 px-1 py-0.5 border border-gray-300 rounded text-xs"
