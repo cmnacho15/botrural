@@ -465,11 +465,12 @@ model CargaHistorica {
 model Inventario {
   id         String   @id @default(cuid())
   campoId    String
-  fecha      DateTime // 1 de julio para inicial, 30 de junio para final
+  fecha      DateTime
   categoria  String
   cantidad   Int
   peso       Float?
-  precioKg   Float?
+  precioKg   Float?      // ← Este es el precio INICIO
+  precioKgFin Float?     // ← AGREGAR ESTE CAMPO (precio FIN)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
   

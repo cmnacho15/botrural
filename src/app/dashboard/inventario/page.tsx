@@ -11,7 +11,8 @@ interface InventarioItem {
   cantidadInicial: number;
   cantidadFinal: number;
   peso: number | null;
-  precioKg: number | null;
+  precioKg: number | null;      // Precio INICIO
+  precioKgFin: number | null;   // Precio FIN
 }
 
 export default function InventarioPage() {
@@ -65,7 +66,8 @@ export default function InventarioPage() {
           cantidadInicial: inicial?.cantidad || 0,
           cantidadFinal: final?.cantidad || 0,
           peso: final?.peso || inicial?.peso || null,
-          precioKg: final?.precioKg || inicial?.precioKg || null,
+          precioKg: inicial?.precioKg || null,        // Precio INICIO
+          precioKgFin: final?.precioKgFin || null,    // Precio FIN
         };
       });
 
@@ -94,6 +96,7 @@ export default function InventarioPage() {
               cantidadFinal: existente?.cantidadFinal || 0,
               peso: existente?.peso || null,
               precioKg: existente?.precioKg || null,
+              precioKgFin: existente?.precioKgFin || null,
             };
           } else {
             return {
@@ -102,6 +105,7 @@ export default function InventarioPage() {
               cantidadFinal: item.cantidad,
               peso: existente?.peso || null,
               precioKg: existente?.precioKg || null,
+              precioKgFin: existente?.precioKgFin || null,
             };
           }
         });
@@ -129,7 +133,7 @@ export default function InventarioPage() {
           ? `1 de julio ${añoInicio}` 
           : `30 de junio ${añoFin}`;
         
-        alert(`Stock de potreros cargado en ${fechaTexto}. Completá peso y precio manualmente.`);
+        alert(`Stock de potreros cargado en ${fechaTexto}. Completá peso y precios manualmente.`);
       }
     } catch (error) {
       console.error('Error regenerando:', error);
@@ -157,6 +161,7 @@ export default function InventarioPage() {
       cantidadFinal: 0,
       peso: null,
       precioKg: null,
+      precioKgFin: null,
     }]);
 
     setNuevaCategoria('');
@@ -177,6 +182,7 @@ export default function InventarioPage() {
           cantidad: item.cantidadInicial,
           peso: item.peso,
           precioKg: item.precioKg,
+          precioKgFin: item.precioKgFin,
         }));
 
       await fetch('/api/inventario', {
@@ -195,6 +201,7 @@ export default function InventarioPage() {
           cantidad: item.cantidadFinal,
           peso: item.peso,
           precioKg: item.precioKg,
+          precioKgFin: item.precioKgFin,
         }));
 
       await fetch('/api/inventario', {
@@ -219,7 +226,7 @@ export default function InventarioPage() {
   }
 
   // ==========================================
-  // ACTUALIZAR VALORES (CON MEJOR UX)
+  // ACTUALIZAR VALORES
   // ==========================================
   function actualizarItem(index: number, campo: keyof InventarioItem, valor: any) {
     const nuevosItems = [...items];
@@ -234,17 +241,28 @@ export default function InventarioPage() {
   }
 
   // ==========================================
-  // CÁLCULOS AUTOMÁTICOS
+  // ✨ CÁLCULOS ACTUALIZADOS CON NUEVAS FÓRMULAS
   // ==========================================
   function calcularFila(item: InventarioItem) {
     const difAnimales = item.cantidadFinal - item.cantidadInicial;
+    
+    // U$S Inicio = Nº Anim Inicio × Peso × U$/kg Inicio
+    const usdInicio = item.cantidadInicial * (item.peso || 0) * (item.precioKg || 0);
+    
+    // U$S Final = Nº Anim Final × Peso × U$/kg Fin
+    const usdFinal = item.cantidadFinal * (item.peso || 0) * (item.precioKgFin || 0);
+    
+    // U$S Totales = U$S Final - U$S Inicio
+    const usdTotales = usdFinal - usdInicio;
+    
+    // kg stock inicio y fin
     const kgStock2024 = item.cantidadInicial * (item.peso || 0);
     const kgStock2025 = item.cantidadFinal * (item.peso || 0);
     const difKg = kgStock2025 - kgStock2024;
-    const usdInicio = kgStock2024 * (item.precioKg || 0);
-    const usdFinal = kgStock2025 * (item.precioKg || 0);
-    const usdTotales = usdFinal - usdInicio;
-    const precioAnimal = (item.peso || 0) * (item.precioKg || 0);
+    
+    // Precio/animal = Peso × ((U$/kg Inicio + U$/kg Fin) / 2)
+    const precioPromedio = ((item.precioKg || 0) + (item.precioKgFin || 0)) / 2;
+    const precioAnimal = (item.peso || 0) * precioPromedio;
 
     return {
       difAnimales,
@@ -336,7 +354,10 @@ export default function InventarioPage() {
                   Peso
                 </th>
                 <th className="px-2 py-2 text-center font-bold text-gray-700 bg-yellow-50 min-w-[70px]">
-                  U$/kg
+                  U$/kg<br/>Inicio
+                </th>
+                <th className="px-2 py-2 text-center font-bold text-gray-700 bg-yellow-50 min-w-[70px]">
+                  U$/kg<br/>Fin
                 </th>
                 <th className="px-2 py-2 text-center font-bold text-gray-700 min-w-[70px]">
                   Dif en<br/>animales
@@ -413,13 +434,26 @@ export default function InventarioPage() {
                       />
                     </td>
 
-                    {/* EDITABLE: Precio */}
+                    {/* EDITABLE: Precio INICIO */}
                     <td className="px-2 py-2 bg-yellow-50">
                       <input
                         type="number"
                         step="0.01"
                         value={item.precioKg || ''}
                         onChange={(e) => actualizarItem(index, 'precioKg', parseFloat(e.target.value) || null)}
+                        onFocus={(e) => e.target.select()}
+                        placeholder="0"
+                        className="w-full px-2 py-1 border rounded text-center text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </td>
+
+                    {/* EDITABLE: Precio FIN */}
+                    <td className="px-2 py-2 bg-yellow-50">
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={item.precioKgFin || ''}
+                        onChange={(e) => actualizarItem(index, 'precioKgFin', parseFloat(e.target.value) || null)}
                         onFocus={(e) => e.target.select()}
                         placeholder="0"
                         className="w-full px-2 py-1 border rounded text-center text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -459,6 +493,7 @@ export default function InventarioPage() {
                 <td className="px-3 py-3 sticky left-0 bg-green-100 z-10">TOTALES</td>
                 <td className="px-2 py-3 text-center">{totales.cantidadInicial}</td>
                 <td className="px-2 py-3 text-center">{totales.cantidadFinal}</td>
+                <td className="px-2 py-3"></td>
                 <td className="px-2 py-3"></td>
                 <td className="px-2 py-3"></td>
                 <td className="px-2 py-3 text-center">{totales.difAnimales}</td>

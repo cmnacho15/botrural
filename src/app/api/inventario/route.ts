@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Crear nuevos registros
+    // Crear nuevos registros (incluye precioKgFin)
     const created = await prisma.inventario.createMany({
       data: inventarios.map((inv: any) => ({
         campoId: usuario.campoId,
@@ -88,6 +88,7 @@ export async function POST(req: NextRequest) {
         cantidad: inv.cantidad,
         peso: inv.peso || null,
         precioKg: inv.precioKg || null,
+        precioKgFin: inv.precioKgFin || null, // ✨ NUEVO CAMPO
       })),
     });
 
