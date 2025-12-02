@@ -1251,7 +1251,7 @@ const handleEditarGasto = (gasto: Gasto) => {
                                   ? `⏰ Faltan ${vencimiento.diasRestantes} días`
                                   : `📅 Faltan ${vencimiento.diasRestantes} días`}
                               </span>
-                              <span className="text-[12px] text-gray-500 leading-tight">
+                              <span className="text-[14px] text-gray-500 leading-tight">
                                 {esVencido ? 'Venció: ' : 'Vence: '}
                                 {vencimiento.fechaVencimiento}
                               </span>
