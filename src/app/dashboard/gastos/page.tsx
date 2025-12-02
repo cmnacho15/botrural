@@ -1237,7 +1237,7 @@ const handleEditarGasto = (gasto: Gasto) => {
                           return (
                             <div className="flex flex-col gap-0.5 min-w-[120px]">
                               <span
-                                className={`text-[14px] font-semibold leading-tight ${
+                                className={`text-[13px] font-semibold leading-tight ${
                                   esVencido
                                     ? 'text-red-600'
                                     : esCercano
@@ -1251,7 +1251,7 @@ const handleEditarGasto = (gasto: Gasto) => {
                                   ? `⏰ Faltan ${vencimiento.diasRestantes} días`
                                   : `📅 Faltan ${vencimiento.diasRestantes} días`}
                               </span>
-                              <span className="text-[14px] text-gray-500 leading-tight">
+                              <span className="text-[13px] text-gray-500 leading-tight">
                                 {esVencido ? 'Venció: ' : 'Vence: '}
                                 {vencimiento.fechaVencimiento}
                               </span>
