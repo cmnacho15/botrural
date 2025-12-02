@@ -306,7 +306,10 @@ export default function ConsumoPage() {
 
       {/* TABLAS POR TIPO DE ANIMAL */}
       <div className="space-y-8">
-        {Object.keys(consumosAgrupados).sort().map(tipoAnimal => {
+        {Object.keys(consumosAgrupados).sort((a, b) => {
+          const orden = { 'OVINO': 1, 'BOVINO': 2, 'OTRO': 3 }
+          return (orden[a as keyof typeof orden] || 99) - (orden[b as keyof typeof orden] || 99)
+        }).map(tipoAnimal => {
           const nombreTipo = getNombreTipo(tipoAnimal)
           const categorias = consumosAgrupados[tipoAnimal]
           
