@@ -31,7 +31,7 @@ export default function VentasPage() {
     fetcher,
     {
       revalidateOnFocus: true,
-      refreshInterval: 30000,
+      
     }
   )
 

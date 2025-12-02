@@ -56,32 +56,45 @@ export default function ModalVenta({ onClose, onSuccess }: ModalVentaProps) {
   // Cargar potreros con stock
   const [potreros, setPotreros] = useState<any[]>([])
 
+  // ✅ CORREGIDO: Funciones dentro del useEffect
   useEffect(() => {
+    const cargarCategorias = async () => {
+      try {
+        const res = await fetch('/api/categorias-animal')
+        if (res.ok) {
+          const data = await res.json()
+          const bovinas = data
+            .filter((c: any) => c.tipoAnimal === 'BOVINO')
+            .map((c: any) => c.nombreSingular)
+          const ovinas = data
+            .filter((c: any) => c.tipoAnimal === 'OVINO')
+            .map((c: any) => c.nombreSingular)
+          
+          setCategoriasBovinas(bovinas.length > 0 ? bovinas : ['Vaca', 'Vaquillona', 'Novillo', 'Ternero', 'Toro'])
+          setCategoriasOvinas(ovinas.length > 0 ? ovinas : ['Oveja', 'Cordero', 'Capón', 'Carnero'])
+        }
+      } catch (err) {
+        console.error('Error cargando categorías:', err)
+        setCategoriasBovinas(['Vaca', 'Vaquillona', 'Novillo', 'Ternero', 'Toro'])
+        setCategoriasOvinas(['Oveja', 'Cordero', 'Capón', 'Carnero'])
+      }
+    }
+
+    const cargarPotreros = async () => {
+      try {
+        const res = await fetch('/api/lotes')
+        if (res.ok) {
+          const data = await res.json()
+          setPotreros(data)
+        }
+      } catch (err) {
+        console.error('Error cargando potreros:', err)
+      }
+    }
+
     cargarCategorias()
     cargarPotreros()
-  }, [])
-
-  const cargarCategorias = async () => {
-    try {
-      const res = await fetch('/api/categorias-animal')
-      if (res.ok) {
-        const data = await res.json()
-        const bovinas = data
-          .filter((c: any) => c.tipoAnimal === 'BOVINO')
-          .map((c: any) => c.nombreSingular)
-        const ovinas = data
-          .filter((c: any) => c.tipoAnimal === 'OVINO')
-          .map((c: any) => c.nombreSingular)
-        
-        setCategoriasBovinas(bovinas.length > 0 ? bovinas : ['Vaca', 'Vaquillona', 'Novillo', 'Ternero', 'Toro'])
-        setCategoriasOvinas(ovinas.length > 0 ? ovinas : ['Oveja', 'Cordero', 'Capón', 'Carnero'])
-      }
-    } catch (err) {
-      console.error('Error cargando categorías:', err)
-      setCategoriasBovinas(['Vaca', 'Vaquillona', 'Novillo', 'Ternero', 'Toro'])
-      setCategoriasOvinas(['Oveja', 'Cordero', 'Capón', 'Carnero'])
-    }
-  }
+  }, []) // ✅ Ahora las funciones están dentro del effect
 
   const cargarPotreros = async () => {
     try {
