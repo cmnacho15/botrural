@@ -1171,7 +1171,7 @@ const handleEditarGasto = (gasto: Gasto) => {
 </td>
 
                       {/* USUARIO */}
-                      <td className="px-3 py-3">{t.usuario}</td>
+                      <td className="hidden lg:table-cell px-3 py-3">{t.usuario}</td>
 
                       {/* ESTADO DE PAGO */}
                       <td className="px-4 sm:px-6 py-3 text-sm">
