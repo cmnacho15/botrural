@@ -325,7 +325,15 @@ export default function ConsumoPage() {
 
               {/* TABLA */}
               <div className="overflow-x-auto">
-                <table className="w-full">
+                <table className="w-full table-fixed">
+                  <colgroup>
+                    <col className="w-[25%]" />
+                    <col className="w-[12%]" />
+                    <col className="w-[15%]" />
+                    <col className="w-[15%]" />
+                    <col className="w-[16%]" />
+                    <col className="w-[17%]" />
+                  </colgroup>
                   <thead className="bg-yellow-100">
                     <tr>
                       <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Categoría</th>
