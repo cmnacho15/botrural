@@ -1237,7 +1237,7 @@ const handleEditarGasto = (gasto: Gasto) => {
                           return (
                             <div className="flex flex-col gap-0.5 min-w-[120px]">
                               <span
-                                className={`text-[11px] font-semibold leading-tight ${
+                                className={`text-[14px] font-semibold leading-tight ${
                                   esVencido
                                     ? 'text-red-600'
                                     : esCercano
