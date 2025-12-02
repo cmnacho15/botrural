@@ -11,6 +11,9 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route"
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions)
+
+    console.log('🔐 Session:', session?.user?.id)
+
     if (!session?.user?.id)
       return NextResponse.json({ error: "No autenticado" }, { status: 401 })
 
@@ -18,11 +21,14 @@ export async function POST(request: Request) {
       where: { id: session.user.id },
       select: { campoId: true },
     })
+    console.log('👤 Usuario campoId:', usuario?.campoId)
 
     if (!usuario?.campoId)
       return NextResponse.json({ error: "Usuario sin campo" }, { status: 400 })
 
     const body = await request.json()
+    console.log('📦 Body recibido:', JSON.stringify(body, null, 2))
+    
     const { fecha, descripcion, notas, renglon } = body
 
     // Validar datos del renglón
