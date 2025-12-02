@@ -27,6 +27,8 @@ export default function ModalConsumo({ onClose, onSuccess }: ModalConsumoProps) 
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState('')
   const [cantidad, setCantidad] = useState('1')
   const [cantidadMaxima, setCantidadMaxima] = useState(0)
+  const [peso, setPeso] = useState('')
+  const [precioKg, setPrecioKg] = useState('')
   const [notas, setNotas] = useState('')
   const [loading, setLoading] = useState(false)
   const [loadingAnimales, setLoadingAnimales] = useState(false)
@@ -93,25 +95,52 @@ export default function ModalConsumo({ onClose, onSuccess }: ModalConsumoProps) 
       const potreroNombre = potreros.find(p => p.id === potreroSeleccionado)?.nombre
       const categoriaLabel = cant === 1 ? categoriaSeleccionada.replace(/s$/, '') : categoriaSeleccionada
 
-      const response = await fetch('/api/eventos', {
+      // Obtener el animalLoteId
+      const animalLote = animalesDisponibles.find(a => a.categoria === categoriaSeleccionada)
+
+      console.log('🐄 Animal Lote encontrado:', animalLote)
+      console.log('📦 Datos a enviar:', {
+        fecha,
+        descripcion: `Consumo de ${cant} ${categoriaLabel} del potrero ${potreroNombre}`,
+        notas: notas || null,
+        renglon: {
+          categoria: categoriaSeleccionada,
+          cantidad: cant,
+          pesoPromedio: peso ? parseFloat(peso) : null,
+          precioKgUSD: precioKg ? parseFloat(precioKg) : null,
+          animalLoteId: animalLote?.id || null,
+          loteId: potreroSeleccionado,
+        }
+      })
+
+      const response = await fetch('/api/consumos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          tipo: 'CONSUMO',
           fecha: fecha,
           descripcion: `Consumo de ${cant} ${categoriaLabel} del potrero ${potreroNombre}`,
-          loteId: potreroSeleccionado,
-          cantidad: cant,
-          categoria: categoriaSeleccionada,
           notas: notas || null,
+          renglon: {
+            categoria: categoriaSeleccionada,
+            cantidad: cant,
+            pesoPromedio: peso ? parseFloat(peso) : null,
+            precioKgUSD: precioKg ? parseFloat(precioKg) : null,
+            animalLoteId: animalLote?.id || null,
+            loteId: potreroSeleccionado,
+          }
         }),
       })
 
+      console.log('📡 Response status:', response.status)
+      
+      const responseData = await response.json()
+      console.log('📡 Response data:', responseData)
+
       if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || 'Error al guardar')
+        throw new Error(responseData.error || 'Error al guardar')
       }
 
+      console.log('✅ Consumo creado exitosamente')
       onSuccess()
       onClose()
     } catch (error) {
@@ -165,7 +194,7 @@ export default function ModalConsumo({ onClose, onSuccess }: ModalConsumoProps) 
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
             required
           >
-            <option value="">Potrero</option>
+            <option value="">Seleccionar potrero</option>
             {potreros.map((lote) => (
               <option key={lote.id} value={lote.id}>
                 {lote.nombre}
@@ -183,7 +212,7 @@ export default function ModalConsumo({ onClose, onSuccess }: ModalConsumoProps) 
               <p className="text-sm text-gray-600 italic">Cargando animales...</p>
             ) : animalesDisponibles.length === 0 ? (
               <p className="text-sm text-gray-600 italic">
-                Selecciona un potrero para cargar los animales
+                No hay animales en este potrero
               </p>
             ) : (
               <div className="space-y-3">
@@ -196,7 +225,7 @@ export default function ModalConsumo({ onClose, onSuccess }: ModalConsumoProps) 
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white text-sm"
                     required
                   >
-                    <option value="">Tipo de animal</option>
+                    <option value="">Seleccionar tipo</option>
                     {animalesDisponibles.map((animal) => (
                       <option key={animal.id} value={animal.categoria}>
                         {animal.categoria} ({animal.cantidad} disponibles)
@@ -222,12 +251,28 @@ export default function ModalConsumo({ onClose, onSuccess }: ModalConsumoProps) 
                   </div>
                 )}
 
-                {/* Peso (opcional) - solo visual, no se guarda */}
+                {/* Peso (opcional) */}
                 <div>
-                  <label className="block text-xs text-gray-600 mb-1">Peso (Opcional)</label>
+                  <label className="block text-xs text-gray-600 mb-1">Peso promedio (kg) - Opcional</label>
                   <input
-                    type="text"
-                    placeholder="Peso"
+                    type="number"
+                    step="0.1"
+                    value={peso}
+                    onChange={(e) => setPeso(e.target.value)}
+                    placeholder="Ej: 380"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+                  />
+                </div>
+
+                {/* Precio/kg (opcional) */}
+                <div>
+                  <label className="block text-xs text-gray-600 mb-1">Precio U$S/kg - Opcional</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={precioKg}
+                    onChange={(e) => setPrecioKg(e.target.value)}
+                    placeholder="Ej: 1.60"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
                   />
                 </div>
@@ -242,7 +287,7 @@ export default function ModalConsumo({ onClose, onSuccess }: ModalConsumoProps) 
           <textarea
             value={notas}
             onChange={(e) => setNotas(e.target.value)}
-            placeholder="Notas (Opcional)"
+            placeholder="Notas adicionales..."
             rows={3}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 resize-none"
           />
