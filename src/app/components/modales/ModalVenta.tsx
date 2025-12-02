@@ -80,18 +80,6 @@ export default function ModalVenta({ onClose, onSuccess }: ModalVentaProps) {
       }
     }
 
-    const cargarPotreros = async () => {
-      try {
-        const res = await fetch('/api/lotes')
-        if (res.ok) {
-          const data = await res.json()
-          setPotreros(data)
-        }
-      } catch (err) {
-        console.error('Error cargando potreros:', err)
-      }
-    }
-
     cargarCategorias()
     cargarPotreros()
   }, []) // ✅ Ahora las funciones están dentro del effect
