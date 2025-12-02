@@ -1061,15 +1061,18 @@ const handleEditarGasto = (gasto: Gasto) => {
           </h2>
 
           <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
+            <div className="inline-block min-w-full align-middle">
+              <table className="min-w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-200">
                   {['Fecha', 'Precio', 'Ítem', 'Categoría', 'Proveedor/Comprador', 'Usuario', 'Estado', 'Vencimiento', ''].map(
-                    (th, i) => (
-                      <th
-                        key={i}
-                        className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase"
-                      >
+  (th, i) => (
+    <th
+      key={i}
+      className={`px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap ${
+        th === 'Usuario' ? 'hidden lg:table-cell' : ''
+      }`}
+    >
                         {th}
                       </th>
                     )
@@ -1095,10 +1098,10 @@ const handleEditarGasto = (gasto: Gasto) => {
                       }`}
                     >
                       {/* FECHA */}
-                      <td className="px-4 sm:px-6 py-3">{t.fecha}</td>
+                      <td className="px-3 py-3">{t.fecha}</td>
 
                       {/* MONTO */}
-<td className="px-4 sm:px-6 py-3">
+<td className="px-3 py-3">
   {(() => {
     const g = t.gastoCompleto;
     let montoMostrar = 0;
@@ -1145,10 +1148,10 @@ const handleEditarGasto = (gasto: Gasto) => {
 </td>
 
                       {/* ÍTEM */}
-                      <td className="px-4 sm:px-6 py-3">{t.item}</td>
+                      <td className="px-3 py-3">{t.item}</td>
 
                       {/* CATEGORÍA */}
-                      <td className="px-4 sm:px-6 py-3">
+                      <td className="px-3 py-3">
                         <span
                           className="inline-block px-3 py-1 rounded-lg text-xs font-medium"
                           style={{ backgroundColor: `${t.color}15`, color: t.color }}
@@ -1158,7 +1161,7 @@ const handleEditarGasto = (gasto: Gasto) => {
                       </td>
 
                       {/* PROVEEDOR/COMPRADOR */}
-<td className="px-4 sm:px-6 py-3">
+<td className="px-3 py-3">
   <span className="text-sm text-gray-700">
     {t.esIngreso 
       ? (t.gastoCompleto?.comprador || '-')
@@ -1168,7 +1171,7 @@ const handleEditarGasto = (gasto: Gasto) => {
 </td>
 
                       {/* USUARIO */}
-                      <td className="px-4 sm:px-6 py-3">{t.usuario}</td>
+                      <td className="px-3 py-3">{t.usuario}</td>
 
                       {/* ESTADO DE PAGO */}
                       <td className="px-4 sm:px-6 py-3 text-sm">
@@ -1220,21 +1223,21 @@ const handleEditarGasto = (gasto: Gasto) => {
                       </td>
 
                       {/* 🆕 VENCIMIENTO */}
-                      <td className="px-4 sm:px-6 py-3 text-sm">
+                      <td className="px-3 py-3 text-sm">
                         {(() => {
                           const vencimiento = calcularVencimiento(t.gastoCompleto)
                           
                           if (!vencimiento) {
-                            return <span className="text-gray-400">—</span>
+                            return <span className="text-gray-400 text-xs">—</span>
                           }
 
                           const esVencido = vencimiento.diasRestantes < 0
                           const esCercano = vencimiento.diasRestantes >= 0 && vencimiento.diasRestantes <= 3
 
                           return (
-                            <div className="flex flex-col gap-1">
+                            <div className="flex flex-col gap-0.5 min-w-[120px]">
                               <span
-                                className={`text-xs font-semibold ${
+                                className={`text-[11px] font-semibold leading-tight ${
                                   esVencido
                                     ? 'text-red-600'
                                     : esCercano
@@ -1248,7 +1251,7 @@ const handleEditarGasto = (gasto: Gasto) => {
                                   ? `⏰ Faltan ${vencimiento.diasRestantes} días`
                                   : `📅 Faltan ${vencimiento.diasRestantes} días`}
                               </span>
-                              <span className="text-xs text-gray-500">
+                              <span className="text-[10px] text-gray-500 leading-tight">
                                 {esVencido ? 'Venció: ' : 'Vence: '}
                                 {vencimiento.fechaVencimiento}
                               </span>
@@ -1304,6 +1307,7 @@ const handleEditarGasto = (gasto: Gasto) => {
                 })}
               </tbody>
             </table>
+            </div>
           </div>
 
           {/* Totales */}
