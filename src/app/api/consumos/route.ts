@@ -116,11 +116,13 @@ export async function POST(request: Request) {
 
     // Crear consumo con renglón en una transacción
     const consumo = await prisma.$transaction(async (tx) => {
-      // 1. Crear el consumo
+      // 1. Crear el consumo con fecha corregida (evitar problema de zona horaria)
+      const fechaLocal = new Date(fecha + 'T12:00:00')
+      
       const nuevoConsumo = await tx.consumo.create({
         data: {
           campoId: usuario.campoId!,
-          fecha: new Date(fecha),
+          fecha: fechaLocal,
           descripcion: descripcion || null,
           notas: notas || null,
         }
