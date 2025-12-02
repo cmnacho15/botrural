@@ -14,6 +14,9 @@ type ConsumoRenglon = {
   precioAnimalUSD: number | null
   pesoTotalKg: number | null
   valorTotalUSD: number | null
+  consumo: {
+    fecha: string
+  }
   animalLote: {
     lote: {
       nombre: string
@@ -28,15 +31,20 @@ type Consumo = {
   renglones: ConsumoRenglon[]
 }
 
-type ConsumosPorTipo = {
-  [tipoAnimal: string]: ConsumoRenglon[]
+type ConsumoAgrupado = {
+  categoria: string
+  totalAnimales: number
+  totalKg: number
+  totalUSD: number
+  renglones: ConsumoRenglon[]
 }
 
 export default function ConsumoPage() {
   const { data: session } = useSession()
-  const [consumos, setConsumos] = useState<ConsumosPorTipo>({})
+  const [consumos, setConsumos] = useState<Consumo[]>([])
   const [loading, setLoading] = useState(true)
   const [mostrarModal, setMostrarModal] = useState(false)
+  const [categoriasExpandidas, setCategoriasExpandidas] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     cargarConsumos()
@@ -47,19 +55,16 @@ export default function ConsumoPage() {
       const res = await fetch('/api/consumos')
       const data: Consumo[] = await res.json()
       
-      // Agrupar renglones por TIPO DE ANIMAL (BOVINO, OVINO, etc.)
-      const agrupados: ConsumosPorTipo = {}
-      data.forEach((consumo) => {
-        consumo.renglones.forEach((renglon) => {
-          const tipo = renglon.tipoAnimal || 'OTRO'
-          if (!agrupados[tipo]) {
-            agrupados[tipo] = []
-          }
-          agrupados[tipo].push(renglon)
-        })
-      })
+      // Agregar la fecha del consumo a cada renglón
+      const consumosConFecha = data.map(consumo => ({
+        ...consumo,
+        renglones: consumo.renglones.map(renglon => ({
+          ...renglon,
+          consumo: { fecha: consumo.fecha }
+        }))
+      }))
       
-      setConsumos(agrupados)
+      setConsumos(consumosConFecha)
     } catch (error) {
       console.error('Error al cargar consumos:', error)
       alert('Error al cargar los consumos')
@@ -88,31 +93,60 @@ export default function ConsumoPage() {
 
       if (!res.ok) throw new Error('Error al actualizar')
 
-      const renglonActualizado = await res.json()
-
-      // Actualizar estado local
-      setConsumos(prev => {
-        const nuevos = { ...prev }
-        Object.keys(nuevos).forEach(cat => {
-          nuevos[cat] = nuevos[cat].map(r => 
-            r.id === id ? { ...r, ...renglonActualizado } : r
-          )
-        })
-        return nuevos
-      })
+      await cargarConsumos()
     } catch (error) {
       console.error('Error:', error)
       alert('Error al actualizar el consumo')
     }
   }
 
-  const calcularTotales = (tipoAnimal: string) => {
-    const items = consumos[tipoAnimal] || []
-    const totalAnimales = items.reduce((sum, item) => sum + item.cantidad, 0)
-    const totalKg = items.reduce((sum, item) => sum + (item.pesoTotalKg || 0), 0)
-    const totalUSD = items.reduce((sum, item) => sum + (item.valorTotalUSD || 0), 0)
+  const agruparPorTipoYCategoria = () => {
+    const agrupado: { [tipoAnimal: string]: ConsumoAgrupado[] } = {}
 
-    return { totalAnimales, totalKg, totalUSD }
+    consumos.forEach(consumo => {
+      consumo.renglones.forEach(renglon => {
+        const tipo = renglon.tipoAnimal || 'OTRO'
+        
+        if (!agrupado[tipo]) {
+          agrupado[tipo] = []
+        }
+
+        // Buscar si ya existe esta categoría
+        let categoriaExistente = agrupado[tipo].find(c => c.categoria === renglon.categoria)
+        
+        if (!categoriaExistente) {
+          categoriaExistente = {
+            categoria: renglon.categoria,
+            totalAnimales: 0,
+            totalKg: 0,
+            totalUSD: 0,
+            renglones: []
+          }
+          agrupado[tipo].push(categoriaExistente)
+        }
+
+        // Sumar totales
+        categoriaExistente.totalAnimales += renglon.cantidad
+        categoriaExistente.totalKg += renglon.pesoTotalKg || 0
+        categoriaExistente.totalUSD += renglon.valorTotalUSD || 0
+        categoriaExistente.renglones.push(renglon)
+      })
+    })
+
+    return agrupado
+  }
+
+  const toggleDetalleCategoria = (tipoAnimal: string, categoria: string) => {
+    const key = `${tipoAnimal}-${categoria}`
+    setCategoriasExpandidas(prev => {
+      const nuevo = new Set(prev)
+      if (nuevo.has(key)) {
+        nuevo.delete(key)
+      } else {
+        nuevo.add(key)
+      }
+      return nuevo
+    })
   }
 
   const getNombreTipo = (tipo: string) => {
@@ -125,6 +159,14 @@ export default function ConsumoPage() {
     return nombres[tipo] || tipo
   }
 
+  const formatearFecha = (fecha: string) => {
+    return new Date(fecha).toLocaleDateString('es-UY', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    })
+  }
+
   if (loading) {
     return (
       <div className="p-8">
@@ -133,7 +175,9 @@ export default function ConsumoPage() {
     )
   }
 
-  if (Object.keys(consumos).length === 0) {
+  const consumosAgrupados = agruparPorTipoYCategoria()
+
+  if (Object.keys(consumosAgrupados).length === 0) {
     return (
       <div className="p-8">
         <div className="flex items-center justify-between mb-6">
@@ -154,7 +198,6 @@ export default function ConsumoPage() {
           <p className="text-gray-600">No hay consumos registrados aún</p>
         </div>
 
-        {/* MODAL */}
         {mostrarModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
@@ -192,9 +235,15 @@ export default function ConsumoPage() {
 
       {/* TABLAS POR TIPO DE ANIMAL */}
       <div className="space-y-8">
-        {Object.keys(consumos).sort().map(tipoAnimal => {
-          const totales = calcularTotales(tipoAnimal)
+        {Object.keys(consumosAgrupados).sort().map(tipoAnimal => {
           const nombreTipo = getNombreTipo(tipoAnimal)
+          const categorias = consumosAgrupados[tipoAnimal]
+          
+          const totalesGenerales = categorias.reduce((acc, cat) => ({
+            animales: acc.animales + cat.totalAnimales,
+            kg: acc.kg + cat.totalKg,
+            usd: acc.usd + cat.totalUSD
+          }), { animales: 0, kg: 0, usd: 0 })
           
           return (
             <div key={tipoAnimal} className="bg-white rounded-lg shadow overflow-hidden">
@@ -210,63 +259,79 @@ export default function ConsumoPage() {
                     <tr>
                       <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Categoría</th>
                       <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Nº Animales</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 bg-yellow-200">Peso</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 bg-yellow-200">U$S/kg</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 bg-yellow-200">U$S x cabeza</th>
                       <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 bg-yellow-200">U$S totales</th>
                       <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 bg-yellow-200">kg totales</th>
+                      <th className="px-4 py-3 text-center text-sm font-semibold text-gray-700">Acciones</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {consumos[tipoAnimal].map((renglon) => (
-                      <tr key={renglon.id} className="border-b border-gray-200 hover:bg-gray-50">
-                        <td className="px-4 py-3 text-sm text-gray-900">{renglon.categoria}</td>
-                        <td className="px-4 py-3 text-sm text-gray-900">{renglon.cantidad}</td>
-                        
-                        {/* PESO - EDITABLE */}
-                        <td className="px-4 py-3 text-sm bg-yellow-50">
-                          <input
-                            type="number"
-                            step="0.1"
-                            value={renglon.pesoPromedio || ''}
-                            onChange={(e) => handlePesoChange(renglon.id, e.target.value)}
-                            placeholder="kg"
-                            className="w-20 px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          />
-                        </td>
+                    {categorias.map((categoria) => {
+                      const key = `${tipoAnimal}-${categoria.categoria}`
+                      const estaExpandido = categoriasExpandidas.has(key)
+                      
+                      return (
+                        <>
+                          {/* FILA AGRUPADA */}
+                          <tr key={categoria.categoria} className="border-b border-gray-200 hover:bg-gray-50">
+                            <td className="px-4 py-3 text-sm font-medium text-gray-900">{categoria.categoria}</td>
+                            <td className="px-4 py-3 text-sm text-gray-900">{categoria.totalAnimales}</td>
+                            <td className="px-4 py-3 text-sm text-gray-900 bg-yellow-50">{categoria.totalUSD.toFixed(2)}</td>
+                            <td className="px-4 py-3 text-sm text-gray-900 bg-yellow-50">{categoria.totalKg.toFixed(2)}</td>
+                            <td className="px-4 py-3 text-center">
+                              <button
+                                onClick={() => toggleDetalleCategoria(tipoAnimal, categoria.categoria)}
+                                className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 font-medium"
+                              >
+                                {estaExpandido ? '▲ Ocultar' : '▼ Ver detalle'}
+                              </button>
+                            </td>
+                          </tr>
 
-                        {/* PRECIO KG - EDITABLE */}
-                        <td className="px-4 py-3 text-sm bg-yellow-50">
-                          <input
-                            type="number"
-                            step="0.01"
-                            value={renglon.precioKgUSD || ''}
-                            onChange={(e) => handlePrecioKgChange(renglon.id, e.target.value)}
-                            placeholder="U$S"
-                            className="w-20 px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          />
-                        </td>
+                          {/* FILAS DE DETALLE */}
+                          {estaExpandido && categoria.renglones.map((renglon) => (
+                            <tr key={renglon.id} className="bg-blue-50 border-b border-blue-100">
+                              <td className="px-8 py-2 text-xs text-gray-600">
+                                📅 {formatearFecha(renglon.consumo.fecha)}
+                              </td>
+                              <td className="px-4 py-2 text-xs text-gray-700">{renglon.cantidad}</td>
+                              <td className="px-4 py-2 text-xs bg-blue-100">
+                                <input
+                                  type="number"
+                                  step="0.1"
+                                  value={renglon.pesoPromedio || ''}
+                                  onChange={(e) => handlePesoChange(renglon.id, e.target.value)}
+                                  placeholder="kg"
+                                  className="w-16 px-1 py-0.5 border border-gray-300 rounded text-xs"
+                                />
+                                <span className="ml-1 text-gray-600">kg</span>
+                              </td>
+                              <td className="px-4 py-2 text-xs bg-blue-100">
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  value={renglon.precioKgUSD || ''}
+                                  onChange={(e) => handlePrecioKgChange(renglon.id, e.target.value)}
+                                  placeholder="U$S"
+                                  className="w-16 px-1 py-0.5 border border-gray-300 rounded text-xs"
+                                />
+                                <span className="ml-1 text-gray-600">U$S/kg</span>
+                              </td>
+                              <td className="px-4 py-2 text-xs text-gray-600 text-center">
+                                {renglon.valorTotalUSD?.toFixed(2) || '0.00'} U$S | {renglon.pesoTotalKg?.toFixed(2) || '0.00'} kg
+                              </td>
+                            </tr>
+                          ))}
+                        </>
+                      )
+                    })}
 
-                        {/* CALCULADOS AUTOMÁTICAMENTE */}
-                        <td className="px-4 py-3 text-sm text-gray-900 bg-yellow-50">
-                          {renglon.precioAnimalUSD?.toFixed(2) || '0.00'}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-900 bg-yellow-50">
-                          {renglon.valorTotalUSD?.toFixed(2) || '0.00'}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-900 bg-yellow-50">
-                          {renglon.pesoTotalKg?.toFixed(2) || '0.00'}
-                        </td>
-                      </tr>
-                    ))}
-
-                    {/* FILA DE TOTALES */}
+                    {/* FILA DE TOTALES GENERALES */}
                     <tr className="bg-amber-100 font-bold">
+                      <td className="px-4 py-3 text-sm">TOTAL</td>
+                      <td className="px-4 py-3 text-sm">{totalesGenerales.animales}</td>
+                      <td className="px-4 py-3 text-sm">{totalesGenerales.usd.toFixed(2)}</td>
+                      <td className="px-4 py-3 text-sm">{totalesGenerales.kg.toFixed(2)}</td>
                       <td className="px-4 py-3 text-sm"></td>
-                      <td className="px-4 py-3 text-sm">{totales.totalAnimales}</td>
-                      <td className="px-4 py-3 text-sm" colSpan={3}></td>
-                      <td className="px-4 py-3 text-sm">{totales.totalUSD.toFixed(2)}</td>
-                      <td className="px-4 py-3 text-sm">{totales.totalKg.toFixed(2)}</td>
                     </tr>
                   </tbody>
                 </table>
