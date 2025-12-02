@@ -53,7 +53,12 @@ export default function ModalConsumo({ onClose, onSuccess }: ModalConsumoProps) 
     fetch(`/api/lotes/${potreroSeleccionado}/animales`)
       .then((res) => res.json())
       .then((data) => {
-        setAnimalesDisponibles(data)
+        // ✅ FILTRAR YEGUARIZOS
+        const animalesFiltrados = data.filter((animal: AnimalLote) => {
+          const categoria = animal.categoria.toLowerCase()
+          return !categoria.includes('yeguarizo') && !categoria.includes('yeguarizos')
+        })
+        setAnimalesDisponibles(animalesFiltrados)
         setLoadingAnimales(false)
       })
       .catch(() => {
@@ -212,7 +217,7 @@ export default function ModalConsumo({ onClose, onSuccess }: ModalConsumoProps) 
               <p className="text-sm text-gray-600 italic">Cargando animales...</p>
             ) : animalesDisponibles.length === 0 ? (
               <p className="text-sm text-gray-600 italic">
-                No hay animales en este potrero
+                No hay animales disponibles para consumo en este potrero
               </p>
             ) : (
               <div className="space-y-3">
