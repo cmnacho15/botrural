@@ -1,7 +1,7 @@
 'use client'
 export const dynamic = "force-dynamic"
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import useSWR from 'swr'
 import ModalVenta from '@/app/components/modales/ModalVenta'
 import ResumenVentas from '@/app/components/ventas/ResumenVentas'
@@ -12,18 +12,22 @@ const fetcher = (url: string) => fetch(url).then((res) => res.json())
 export default function VentasPage() {
   const [modalOpen, setModalOpen] = useState(false)
   
-  // Filtros de fecha (ejercicio fiscal: 1/7 a 30/6)
-  const [fechaInicio, setFechaInicio] = useState(() => {
+  // Calcular fechas iniciales UNA SOLA VEZ
+  const fechaInicioDefault = useMemo(() => {
     const hoy = new Date()
     const año = hoy.getMonth() >= 6 ? hoy.getFullYear() : hoy.getFullYear() - 1
     return `${año}-07-01`
-  })
+  }, [])
   
-  const [fechaFin, setFechaFin] = useState(() => {
+  const fechaFinDefault = useMemo(() => {
     const hoy = new Date()
     const año = hoy.getMonth() >= 6 ? hoy.getFullYear() + 1 : hoy.getFullYear()
     return `${año}-06-30`
-  })
+  }, [])
+
+  // Filtros de fecha (ejercicio fiscal: 1/7 a 30/6)
+  const [fechaInicio, setFechaInicio] = useState(fechaInicioDefault)
+  const [fechaFin, setFechaFin] = useState(fechaFinDefault)
 
   // Cargar ventas con filtros
   const { data, isLoading, mutate } = useSWR(
@@ -31,7 +35,8 @@ export default function VentasPage() {
     fetcher,
     {
       revalidateOnFocus: false,
-      revalidateOnReconnect: false,  // ✅ AGREGAR ESTO TAMBIÉN
+      revalidateOnReconnect: false,
+      revalidateIfStale: false,
     }
   )
 
