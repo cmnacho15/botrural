@@ -29,6 +29,7 @@ type Gasto = {
   categoria: string
   descripcion?: string
   metodoPago?: string
+  diasPlazo?: number       // 👈 AGREGAR ESTA LÍNEA
   pagado?: boolean
   proveedor?: string
   comprador?: string
@@ -386,6 +387,31 @@ const datosBarChart = (() => {
 
   return Object.values(gastosPorMes)
 })()
+// 🗓️ FUNCIÓN PARA CALCULAR VENCIMIENTO
+const calcularVencimiento = (gasto: Gasto) => {
+  if (!gasto.diasPlazo || gasto.metodoPago !== 'Plazo' || gasto.pagado) {
+    return null
+  }
+
+  const fechaGasto = new Date(gasto.fecha)
+  const fechaVencimiento = new Date(fechaGasto)
+  fechaVencimiento.setDate(fechaVencimiento.getDate() + gasto.diasPlazo)
+
+  // Calcular días restantes (considerando zona horaria de Uruguay)
+  const hoy = new Date()
+  const diffTime = fechaVencimiento.getTime() - hoy.getTime()
+  const diasRestantes = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+
+  return {
+    diasRestantes,
+    fechaVencimiento: fechaVencimiento.toLocaleDateString('es-UY', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    })
+  }
+}
+
 
 const transacciones = gastosFiltrados
   .map((gasto) => {
@@ -1038,7 +1064,7 @@ const handleEditarGasto = (gasto: Gasto) => {
             <table className="min-w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-200">
-                  {['Fecha', 'Precio', 'Ítem', 'Categoría', 'Proveedor/Comprador', 'Usuario', 'Estado', ''].map(
+                  {['Fecha', 'Precio', 'Ítem', 'Categoría', 'Proveedor/Comprador', 'Usuario', 'Estado', 'Vencimiento', ''].map(
                     (th, i) => (
                       <th
                         key={i}
@@ -1191,6 +1217,44 @@ const handleEditarGasto = (gasto: Gasto) => {
                         ) : (
                           <span className="text-gray-500">—</span>
                         )}
+                      </td>
+
+                      {/* 🆕 VENCIMIENTO */}
+                      <td className="px-4 sm:px-6 py-3 text-sm">
+                        {(() => {
+                          const vencimiento = calcularVencimiento(t.gastoCompleto)
+                          
+                          if (!vencimiento) {
+                            return <span className="text-gray-400">—</span>
+                          }
+
+                          const esVencido = vencimiento.diasRestantes < 0
+                          const esCercano = vencimiento.diasRestantes >= 0 && vencimiento.diasRestantes <= 3
+
+                          return (
+                            <div className="flex flex-col gap-1">
+                              <span
+                                className={`text-xs font-semibold ${
+                                  esVencido
+                                    ? 'text-red-600'
+                                    : esCercano
+                                    ? 'text-orange-600'
+                                    : 'text-blue-600'
+                                }`}
+                              >
+                                {esVencido
+                                  ? `⚠️ Vencido hace ${Math.abs(vencimiento.diasRestantes)} días`
+                                  : esCercano
+                                  ? `⏰ Faltan ${vencimiento.diasRestantes} días`
+                                  : `📅 Faltan ${vencimiento.diasRestantes} días`}
+                              </span>
+                              <span className="text-xs text-gray-500">
+                                {esVencido ? 'Venció: ' : 'Vence: '}
+                                {vencimiento.fechaVencimiento}
+                              </span>
+                            </div>
+                          )
+                        })()}
                       </td>
 
                       {/* ACCIONES */}
