@@ -30,8 +30,8 @@ export default function VentasPage() {
     `/api/ventas?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}`,
     fetcher,
     {
-      revalidateOnFocus: true,
-      
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,  // ✅ AGREGAR ESTO TAMBIÉN
     }
   )
 
