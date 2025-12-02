@@ -18,6 +18,7 @@ export { default as ModalMonitoreo } from './ModalMonitoreo'  // ← AGREGAR
 export { default as ModalRiego } from './ModalRiego'
 export { default as ModalRefertilizacion } from './ModalRefertilizacion'
 export { default as ModalPulverizacion } from './ModalPulverizacion'
+export { default as ModalVenta } from './ModalVenta'  // ← AGREGAR ESTA LÍNEA
 
 // Importar y re-exportar directamente
 import ModalRecategorizacion from './ModalRecategorizacion'

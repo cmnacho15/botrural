@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, Fragment } from 'react'
 
 interface Venta {
   id: string
@@ -113,8 +113,8 @@ export default function TablaVentas({ ventas, onRefresh }: TablaVentasProps) {
             </thead>
             <tbody className="bg-white divide-y divide-gray-100">
               {ventasFiltradas.map((venta) => (
-                <>
-                  {venta.renglones.map((renglon, idx) => (
+  <Fragment key={venta.id}>
+    {venta.renglones.map((renglon, idx) => (
                     <tr key={renglon.id} className="hover:bg-gray-50">
                       {idx === 0 && (
                         <>
@@ -172,7 +172,7 @@ export default function TablaVentas({ ventas, onRefresh }: TablaVentasProps) {
                       )}
                     </tr>
                   ))}
-                </>
+                </Fragment>
               ))}
               {/* TOTALES */}
               <tr className="bg-blue-50 font-bold border-t-2 border-blue-200">
