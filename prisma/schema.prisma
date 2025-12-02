@@ -84,6 +84,8 @@ model Campo {
   categoriasAnimal CategoriaAnimal[] // ← AGREGAR ESTA LÍNEA
   categoriasGasto CategoriaGasto[]
 
+  consumos Consumo[]
+
   inventarios Inventario[]
 
   // 🟢 NUEVA RELACIÓN SNIG
@@ -192,6 +194,9 @@ model AnimalLote {
   @@unique([loteId, categoria])
 
   ventasRenglones VentaRenglon[]
+
+  consumosRenglones ConsumoRenglon[]
+
 }
 
 model Evento {
@@ -577,3 +582,50 @@ model VentaRenglon {
   @@index([animalLoteId])
 }
 
+
+
+
+
+
+
+
+
+model Consumo {
+  id          String    @id @default(cuid())
+  campoId     String
+  fecha       DateTime
+  descripcion String?
+  notas       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  campo       Campo     @relation(fields: [campoId], references: [id], onDelete: Cascade)
+  renglones   ConsumoRenglon[]
+  
+  @@index([campoId])
+  @@index([fecha])
+}
+
+model ConsumoRenglon {
+  id                String   @id @default(cuid())
+  consumoId         String
+  tipoAnimal        String
+  categoria         String
+  cantidad          Int
+  pesoPromedio      Float?
+  precioKgUSD       Float?
+  precioAnimalUSD   Float?
+  pesoTotalKg       Float?
+  valorTotalUSD     Float?
+  descontadoDeStock Boolean  @default(true)
+  animalLoteId      String?
+  fechaDescuento    DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  consumo           Consumo      @relation(fields: [consumoId], references: [id], onDelete: Cascade)
+  animalLote        AnimalLote? @relation(fields: [animalLoteId], references: [id])
+  
+  @@index([consumoId])
+  @@index([animalLoteId])
+}
