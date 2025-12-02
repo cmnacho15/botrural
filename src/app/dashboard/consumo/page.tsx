@@ -130,6 +130,47 @@ export default function ConsumoPage() {
     }
   }
 
+  const eliminarRenglon = async (id: string) => {
+    if (!confirm('¿Estás seguro de eliminar este consumo?')) return
+
+    try {
+      const res = await fetch(`/api/consumos/renglones/${id}`, {
+        method: 'DELETE'
+      })
+
+      if (!res.ok) throw new Error('Error al eliminar')
+
+      await cargarConsumos()
+    } catch (error) {
+      console.error('Error:', error)
+      alert('Error al eliminar el consumo')
+    }
+  }
+
+  const eliminarCategoria = async (tipoAnimal: string, categoria: string, renglones: ConsumoRenglon[]) => {
+    const cantidad = renglones.length
+    const totalAnimales = renglones.reduce((sum, r) => sum + r.cantidad, 0)
+    
+    if (!confirm(`¿Estás seguro de eliminar TODOS los consumos de ${categoria}?\n\n` +
+                 `Se eliminarán ${cantidad} registro(s) con un total de ${totalAnimales} animales.`)) {
+      return
+    }
+
+    try {
+      // Eliminar todos los renglones de esta categoría
+      await Promise.all(
+        renglones.map(renglon => 
+          fetch(`/api/consumos/renglones/${renglon.id}`, { method: 'DELETE' })
+        )
+      )
+
+      await cargarConsumos()
+    } catch (error) {
+      console.error('Error:', error)
+      alert('Error al eliminar la categoría')
+    }
+  }
+
   const agruparPorTipoYCategoria = () => {
     const agrupado: { [tipoAnimal: string]: ConsumoAgrupado[] } = {}
 
@@ -291,7 +332,7 @@ export default function ConsumoPage() {
                       <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Nº Animales</th>
                       <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 bg-yellow-200">U$S totales</th>
                       <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 bg-yellow-200">kg totales</th>
-                      <th className="px-4 py-3 text-center text-sm font-semibold text-gray-700">Acciones</th>
+                      <th className="px-4 py-3 text-center text-sm font-semibold text-gray-700" colSpan={2}>Acciones</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -315,6 +356,15 @@ export default function ConsumoPage() {
                                 {estaExpandido ? '▲ Ocultar' : '▼ Ver detalle'}
                               </button>
                             </td>
+                            <td className="px-4 py-3 text-center">
+                              <button
+                                onClick={() => eliminarCategoria(tipoAnimal, categoria.categoria, categoria.renglones)}
+                                className="px-3 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200 font-medium"
+                                title="Eliminar todos los consumos de esta categoría"
+                              >
+                                🗑️ Eliminar todo
+                              </button>
+                            </td>
                           </tr>
 
                           {/* FILAS DE DETALLE */}
@@ -324,30 +374,40 @@ export default function ConsumoPage() {
                                 📅 {formatearFecha(renglon.consumo.fecha)}
                               </td>
                               <td className="px-4 py-2 text-xs text-gray-700">{renglon.cantidad}</td>
-                              <td className="px-4 py-2 text-xs bg-blue-100">
-                                <input
-                                  type="number"
-                                  step="0.1"
-                                  value={valoresLocales[renglon.id]?.peso !== undefined ? valoresLocales[renglon.id].peso : (renglon.pesoPromedio || '')}
-                                  onChange={(e) => handlePesoChange(renglon.id, e.target.value)}
-                                  placeholder="kg"
-                                  className="w-16 px-1 py-0.5 border border-gray-300 rounded text-xs"
-                                />
-                                <span className="ml-1 text-gray-600">kg</span>
+                              <td className="px-4 py-2 text-xs bg-blue-100" colSpan={2}>
+                                <div className="flex gap-2 items-center">
+                                  <input
+                                    type="number"
+                                    step="0.1"
+                                    value={valoresLocales[renglon.id]?.peso !== undefined ? valoresLocales[renglon.id].peso : (renglon.pesoPromedio || '')}
+                                    onChange={(e) => handlePesoChange(renglon.id, e.target.value)}
+                                    placeholder="kg"
+                                    className="w-16 px-1 py-0.5 border border-gray-300 rounded text-xs"
+                                  />
+                                  <span className="text-gray-600">kg</span>
+                                  <span className="mx-2">|</span>
+                                  <input
+                                    type="number"
+                                    step="0.01"
+                                    value={valoresLocales[renglon.id]?.precio !== undefined ? valoresLocales[renglon.id].precio : (renglon.precioKgUSD || '')}
+                                    onChange={(e) => handlePrecioKgChange(renglon.id, e.target.value)}
+                                    placeholder="U$S"
+                                    className="w-16 px-1 py-0.5 border border-gray-300 rounded text-xs"
+                                  />
+                                  <span className="text-gray-600">U$S/kg</span>
+                                </div>
                               </td>
-                              <td className="px-4 py-2 text-xs bg-blue-100">
-                                <input
-                                  type="number"
-                                  step="0.01"
-                                  value={valoresLocales[renglon.id]?.precio !== undefined ? valoresLocales[renglon.id].precio : (renglon.precioKgUSD || '')}
-                                  onChange={(e) => handlePrecioKgChange(renglon.id, e.target.value)}
-                                  placeholder="U$S"
-                                  className="w-16 px-1 py-0.5 border border-gray-300 rounded text-xs"
-                                />
-                                <span className="ml-1 text-gray-600">U$S/kg</span>
-                              </td>
-                              <td className="px-4 py-2 text-xs text-gray-600 text-center">
+                              <td className="px-4 py-2 text-xs text-gray-600">
                                 {renglon.valorTotalUSD?.toFixed(2) || '0.00'} U$S | {renglon.pesoTotalKg?.toFixed(2) || '0.00'} kg
+                              </td>
+                              <td className="px-4 py-2 text-center">
+                                <button
+                                  onClick={() => eliminarRenglon(renglon.id)}
+                                  className="px-2 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200"
+                                  title="Eliminar este consumo"
+                                >
+                                  🗑️
+                                </button>
                               </td>
                             </tr>
                           ))}
