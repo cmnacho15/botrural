@@ -6,6 +6,7 @@ import ModalConsumo from '@/app/components/modales/ModalConsumo'
 
 type ConsumoRenglon = {
   id: string
+  tipoAnimal: string
   categoria: string
   cantidad: number
   pesoPromedio: number | null
@@ -27,13 +28,13 @@ type Consumo = {
   renglones: ConsumoRenglon[]
 }
 
-type ConsumosPorCategoria = {
-  [categoria: string]: ConsumoRenglon[]
+type ConsumosPorTipo = {
+  [tipoAnimal: string]: ConsumoRenglon[]
 }
 
 export default function ConsumoPage() {
   const { data: session } = useSession()
-  const [consumos, setConsumos] = useState<ConsumosPorCategoria>({})
+  const [consumos, setConsumos] = useState<ConsumosPorTipo>({})
   const [loading, setLoading] = useState(true)
   const [mostrarModal, setMostrarModal] = useState(false)
 
@@ -46,15 +47,15 @@ export default function ConsumoPage() {
       const res = await fetch('/api/consumos')
       const data: Consumo[] = await res.json()
       
-      // Agrupar renglones por categoría
-      const agrupados: ConsumosPorCategoria = {}
+      // Agrupar renglones por TIPO DE ANIMAL (BOVINO, OVINO, etc.)
+      const agrupados: ConsumosPorTipo = {}
       data.forEach((consumo) => {
         consumo.renglones.forEach((renglon) => {
-          const categoria = renglon.categoria || 'Sin categoría'
-          if (!agrupados[categoria]) {
-            agrupados[categoria] = []
+          const tipo = renglon.tipoAnimal || 'OTRO'
+          if (!agrupados[tipo]) {
+            agrupados[tipo] = []
           }
-          agrupados[categoria].push(renglon)
+          agrupados[tipo].push(renglon)
         })
       })
       
@@ -105,13 +106,23 @@ export default function ConsumoPage() {
     }
   }
 
-  const calcularTotales = (categoria: string) => {
-    const items = consumos[categoria] || []
+  const calcularTotales = (tipoAnimal: string) => {
+    const items = consumos[tipoAnimal] || []
     const totalAnimales = items.reduce((sum, item) => sum + item.cantidad, 0)
     const totalKg = items.reduce((sum, item) => sum + (item.pesoTotalKg || 0), 0)
     const totalUSD = items.reduce((sum, item) => sum + (item.valorTotalUSD || 0), 0)
 
     return { totalAnimales, totalKg, totalUSD }
+  }
+
+  const getNombreTipo = (tipo: string) => {
+    const nombres: { [key: string]: string } = {
+      'BOVINO': 'Vacuno',
+      'OVINO': 'Ovino',
+      'EQUINO': 'Equino',
+      'OTRO': 'Otros'
+    }
+    return nombres[tipo] || tipo
   }
 
   if (loading) {
@@ -179,16 +190,17 @@ export default function ConsumoPage() {
         </button>
       </div>
 
-      {/* TABLAS POR CATEGORÍA */}
+      {/* TABLAS POR TIPO DE ANIMAL */}
       <div className="space-y-8">
-        {Object.keys(consumos).sort().map(categoria => {
-          const totales = calcularTotales(categoria)
+        {Object.keys(consumos).sort().map(tipoAnimal => {
+          const totales = calcularTotales(tipoAnimal)
+          const nombreTipo = getNombreTipo(tipoAnimal)
           
           return (
-            <div key={categoria} className="bg-white rounded-lg shadow overflow-hidden">
-              {/* HEADER CATEGORÍA */}
+            <div key={tipoAnimal} className="bg-white rounded-lg shadow overflow-hidden">
+              {/* HEADER TIPO */}
               <div className="bg-amber-500 px-6 py-3">
-                <h2 className="text-lg font-bold text-white">{categoria}</h2>
+                <h2 className="text-lg font-bold text-white">{nombreTipo}</h2>
               </div>
 
               {/* TABLA */}
@@ -196,17 +208,19 @@ export default function ConsumoPage() {
                 <table className="w-full">
                   <thead className="bg-yellow-100">
                     <tr>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Categoría</th>
                       <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Nº Animales</th>
                       <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 bg-yellow-200">Peso</th>
                       <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 bg-yellow-200">U$S/kg</th>
                       <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 bg-yellow-200">U$S x cabeza</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 bg-yellow-200">kg totales</th>
                       <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 bg-yellow-200">U$S totales</th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 bg-yellow-200">kg totales</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {consumos[categoria].map((renglon) => (
+                    {consumos[tipoAnimal].map((renglon) => (
                       <tr key={renglon.id} className="border-b border-gray-200 hover:bg-gray-50">
+                        <td className="px-4 py-3 text-sm text-gray-900">{renglon.categoria}</td>
                         <td className="px-4 py-3 text-sm text-gray-900">{renglon.cantidad}</td>
                         
                         {/* PESO - EDITABLE */}
@@ -238,20 +252,21 @@ export default function ConsumoPage() {
                           {renglon.precioAnimalUSD?.toFixed(2) || '0.00'}
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-900 bg-yellow-50">
-                          {renglon.pesoTotalKg?.toFixed(2) || '0.00'}
+                          {renglon.valorTotalUSD?.toFixed(2) || '0.00'}
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-900 bg-yellow-50">
-                          {renglon.valorTotalUSD?.toFixed(2) || '0.00'}
+                          {renglon.pesoTotalKg?.toFixed(2) || '0.00'}
                         </td>
                       </tr>
                     ))}
 
                     {/* FILA DE TOTALES */}
                     <tr className="bg-amber-100 font-bold">
+                      <td className="px-4 py-3 text-sm"></td>
                       <td className="px-4 py-3 text-sm">{totales.totalAnimales}</td>
                       <td className="px-4 py-3 text-sm" colSpan={3}></td>
-                      <td className="px-4 py-3 text-sm">{totales.totalKg.toFixed(2)}</td>
                       <td className="px-4 py-3 text-sm">{totales.totalUSD.toFixed(2)}</td>
+                      <td className="px-4 py-3 text-sm">{totales.totalKg.toFixed(2)}</td>
                     </tr>
                   </tbody>
                 </table>
