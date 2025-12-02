@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
+import ModalConsumo from '@/app/components/modales/ModalConsumo'
 
 type ConsumoRenglon = {
   id: string
@@ -34,6 +35,7 @@ export default function ConsumoPage() {
   const { data: session } = useSession()
   const [consumos, setConsumos] = useState<ConsumosPorCategoria>({})
   const [loading, setLoading] = useState(true)
+  const [mostrarModal, setMostrarModal] = useState(false)
 
   useEffect(() => {
     cargarConsumos()
@@ -123,15 +125,38 @@ export default function ConsumoPage() {
   if (Object.keys(consumos).length === 0) {
     return (
       <div className="p-8">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center text-2xl">
-            🍖
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center text-2xl">
+              🍖
+            </div>
+            <h1 className="text-2xl font-bold text-gray-900">Consumos</h1>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Consumos</h1>
+          <button
+            onClick={() => setMostrarModal(true)}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+          >
+            + Nuevo Consumo
+          </button>
         </div>
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
           <p className="text-gray-600">No hay consumos registrados aún</p>
         </div>
+
+        {/* MODAL */}
+        {mostrarModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <ModalConsumo
+                onClose={() => setMostrarModal(false)}
+                onSuccess={() => {
+                  cargarConsumos()
+                  setMostrarModal(false)
+                }}
+              />
+            </div>
+          </div>
+        )}
       </div>
     )
   }
@@ -146,6 +171,12 @@ export default function ConsumoPage() {
           </div>
           <h1 className="text-2xl font-bold text-gray-900">Consumos</h1>
         </div>
+        <button
+          onClick={() => setMostrarModal(true)}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+        >
+          + Nuevo Consumo
+        </button>
       </div>
 
       {/* TABLAS POR CATEGORÍA */}
@@ -229,6 +260,21 @@ export default function ConsumoPage() {
           )
         })}
       </div>
+
+      {/* MODAL */}
+      {mostrarModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <ModalConsumo
+              onClose={() => setMostrarModal(false)}
+              onSuccess={() => {
+                cargarConsumos()
+                setMostrarModal(false)
+              }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   )
 }
