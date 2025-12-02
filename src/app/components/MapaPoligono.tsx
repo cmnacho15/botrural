@@ -413,195 +413,190 @@ export default function MapaPoligono({
 
       existingLayersRef.current.addLayer(polygon)
 
-      // 🏷️ Tooltip con nombre Y DETALLE COMPLETO de animales
+      // 🎯 SISTEMA PROFESIONAL: Label inteligente con DivIcon
 const center = polygon.getBounds().getCenter()
 
-let animalesText = ''
+// Preparar texto de animales
+let animalesHTML = ''
 if (potrero.info?.animales?.length) {
-  const lineas = potrero.info.animales
+  animalesHTML = potrero.info.animales
     .map((a: any) => `${a.categoria}: ${a.cantidad}`)
     .join('<br>')
-  animalesText = lineas
 }
 
-// Función para determinar tamaño según zoom
-const getFontSizes = () => {
-  const currentZoom = mapRef.current?.getZoom() || 14
-  
-  if (currentZoom >= 16) return { nombre: '20px', animales: '18px' }
-  if (currentZoom >= 14) return { nombre: '18px', animales: '16px' }
-  if (currentZoom >= 13) return { nombre: '16px', animales: '14px' }
-  return { nombre: '14px', animales: '12px' }
-}
+// Crear marker con divIcon (más flexible que tooltip)
+const labelMarker = (L as any).marker(center, {
+  icon: (L as any).divIcon({
+    className: 'potrero-label-custom',
+    html: `
+      <div class="label-wrapper" data-potrero-id="${potrero.id}">
+        <div class="label-nombre">${potrero.nombre}</div>
+        ${animalesHTML ? `<div class="label-animales">${animalesHTML}</div>` : ''}
+      </div>
+    `,
+    iconSize: [200, 100],
+    iconAnchor: [100, 50]
+  }),
+  interactive: false,
+  keyboard: false
+})
 
-const sizes = getFontSizes()
-
-const tooltipContent = `
-  <div style="
-    font-family: system-ui, -apple-system, sans-serif;
-    text-align: center;
-    white-space: nowrap;
-  ">
-    <div style="
-      font-weight: bold; 
-      font-size: ${sizes.nombre}; 
-      color: black; 
-      text-shadow: 
-        -1px -1px 0 white,
-        1px -1px 0 white,
-        -1px 1px 0 white,
-        1px 1px 0 white,
-        -2px 0 0 white,
-        2px 0 0 white,
-        0 -2px 0 white,
-        0 2px 0 white;
-      margin-bottom: 2px;
-    ">
-      ${potrero.nombre}
-    </div>
-    <div style="
-      font-size: ${sizes.animales}; 
-      color: black; 
-      text-shadow: 
-        -1px -1px 0 white,
-        1px -1px 0 white,
-        -1px 1px 0 white,
-        1px 1px 0 white;
-      line-height: 1.3;
-    ">
-      ${animalesText}
-    </div>
-  </div>
-`
-
-const tooltip = (L as any).tooltip({
-  permanent: true,
-  direction: 'center',
-  className: 'potrero-label-transparent',
-  opacity: 1,
-}).setContent(tooltipContent)
-
-// Guardar metadata en el tooltip para decisiones de visibilidad
-tooltip._potreroData = {
+// Guardar metadata para gestión de visibilidad
+labelMarker._potreroData = {
   id: potrero.id,
+  nombre: potrero.nombre,
   hectareas: potrero.info?.hectareas || 0,
-  center: center
+  center: center,
+  bounds: polygon.getBounds()
 }
 
-tooltip.setLatLng(center)
-existingLayersRef.current.addLayer(tooltip)
+existingLayersRef.current.addLayer(labelMarker)
+    })
 
-// 🎯 MAGIA: Ocultar/mostrar tooltips según zoom para evitar superposición
-if (!mapRef.current._tooltipZoomHandler) {
-  mapRef.current._tooltipZoomHandler = true
-  mapRef.current.on('zoomend', () => {
-    const currentZoom = mapRef.current.getZoom()
-    
-    existingLayersRef.current.eachLayer((layer: any) => {
-      if (layer instanceof (L as any).Tooltip) {
-        // Ocultar en zoom bajo, mostrar en zoom medio/alto
-        if (currentZoom < 13) {
-          layer.setOpacity(0) // Invisible en zoom bajo
-        } else {
-          layer.setOpacity(1) // Visible en zoom medio/alto
+    // 🎯 SISTEMA PROFESIONAL: Gestión inteligente de labels (como FieldsData)
+    const gestionarVisibilidadLabels = () => {
+      if (!mapRef.current) return
+      
+      const currentZoom = mapRef.current.getZoom()
+      const bounds = mapRef.current.getBounds()
+      
+      // Recopilar todos los markers con labels
+      const markers: any[] = []
+      existingLayersRef.current.eachLayer((layer: any) => {
+        if (layer._potreroData && layer.getElement) {
+          markers.push(layer)
         }
-      }
-    })
-  })
-}
-
-// Aplicar visibilidad inicial según zoom actual
-const initialZoom = mapRef.current?.getZoom() || 14
-if (initialZoom < 13) {
-  tooltip.setOpacity(0)
-}
-    })
-    // 🎯 SISTEMA INTELIGENTE: Gestionar visibilidad de tooltips según zoom
-const gestionarVisibilidadTooltips = () => {
-  if (!mapRef.current) return
-  
-  const currentZoom = mapRef.current.getZoom()
-  const mapCenter = mapRef.current.getCenter()
-  
-  // Recopilar todos los tooltips
-  const tooltips: any[] = []
-  existingLayersRef.current.eachLayer((layer: any) => {
-    if (layer instanceof (L as any).Tooltip && layer._potreroData) {
-      tooltips.push(layer)
-    }
-  })
-  
-  if (tooltips.length === 0) return
-  
-  // 🔍 ZOOM BAJO (< 13): Mostrar solo el potrero MÁS GRANDE
-  if (currentZoom < 13) {
-    // Encontrar el potrero más grande
-    let mayorTooltip = tooltips[0]
-    tooltips.forEach(t => {
-      if (t._potreroData.hectareas > mayorTooltip._potreroData.hectareas) {
-        mayorTooltip = t
-      }
-    })
-    
-    // Ocultar todos excepto el más grande
-    tooltips.forEach(t => {
-      if (t === mayorTooltip) {
-        t.setOpacity(1)
-      } else {
-        t.setOpacity(0)
-      }
-    })
-  }
-  // 🔍 ZOOM MEDIO (13-15): Evitar colisiones
-  else if (currentZoom < 15) {
-    // Ordenar por tamaño (más grandes primero)
-    tooltips.sort((a, b) => b._potreroData.hectareas - a._potreroData.hectareas)
-    
-    const visibles: any[] = []
-    
-    tooltips.forEach(tooltip => {
-      const pos = mapRef.current.latLngToContainerPoint(tooltip._potreroData.center)
+      })
       
-      // Verificar si colisiona con algún tooltip ya visible
-      let colisiona = false
-      const margen = 80 // píxeles de separación mínima
+      if (markers.length === 0) return
       
-      for (const visible of visibles) {
-        const visiblePos = mapRef.current.latLngToContainerPoint(visible._potreroData.center)
-        const distancia = Math.sqrt(
-          Math.pow(pos.x - visiblePos.x, 2) + 
-          Math.pow(pos.y - visiblePos.y, 2)
-        )
+      // 🎨 Aplicar clase de zoom para escalar texto
+      let zoomClass = 'zoom-medium'
+      if (currentZoom < 12) zoomClass = 'zoom-low'
+      else if (currentZoom < 14) zoomClass = 'zoom-medium'
+      else if (currentZoom < 16) zoomClass = 'zoom-high'
+      else zoomClass = 'zoom-very-high'
+      
+      markers.forEach(marker => {
+        const element = marker.getElement()
+        if (element) {
+          const wrapper = element.querySelector('.label-wrapper')
+          if (wrapper) {
+            wrapper.className = `label-wrapper ${zoomClass}`
+          }
+        }
+      })
+      
+      // 🧮 ALGORITMO DE COLISIÓN PROFESIONAL
+      
+      // 1. Filtrar solo markers visibles en pantalla
+      const visibleMarkers = markers.filter(m => 
+        bounds.contains(m._potreroData.center)
+      )
+      
+      // 2. Ordenar por PRIORIDAD (más grandes primero)
+      visibleMarkers.sort((a, b) => 
+        b._potreroData.hectareas - a._potreroData.hectareas
+      )
+      
+      // 3. Calcular distancia mínima según zoom
+      let minDistance = 120
+      if (currentZoom < 12) minDistance = 180
+      else if (currentZoom < 13) minDistance = 140
+      else if (currentZoom < 14) minDistance = 100
+      else if (currentZoom < 15) minDistance = 80
+      else if (currentZoom < 16) minDistance = 60
+      else minDistance = 40
+      
+      // 4. Sistema de cuadrícula para mejor distribución
+      const grid: Map<string, any> = new Map()
+      const gridSize = minDistance / 2
+      
+      const getGridKey = (lat: number, lng: number) => {
+        const x = Math.floor(lat / gridSize)
+        const y = Math.floor(lng / gridSize)
+        return `${x},${y}`
+      }
+      
+      // 5. Decidir qué labels mostrar
+      const labelsToShow: any[] = []
+      
+      visibleMarkers.forEach(marker => {
+        const pos = marker._potreroData.center
+        const gridKey = getGridKey(pos.lat, pos.lng)
         
-        if (distancia < margen) {
-          colisiona = true
-          break
+        // Verificar celdas vecinas en la cuadrícula
+        let tooClose = false
+        
+        for (let dx = -1; dx <= 1; dx++) {
+          for (let dy = -1; dy <= 1; dy++) {
+            const neighborKey = `${parseInt(gridKey.split(',')[0]) + dx},${parseInt(gridKey.split(',')[1]) + dy}`
+            const neighbor = grid.get(neighborKey)
+            
+            if (neighbor) {
+              const neighborPos = neighbor._potreroData.center
+              const pixelDistance = mapRef.current.latLngToContainerPoint(pos)
+                .distanceTo(mapRef.current.latLngToContainerPoint(neighborPos))
+              
+              if (pixelDistance < minDistance) {
+                tooClose = true
+                break
+              }
+            }
+          }
+          if (tooClose) break
         }
-      }
+        
+        if (!tooClose) {
+          labelsToShow.push(marker)
+          grid.set(gridKey, marker)
+        }
+      })
       
-      if (!colisiona) {
-        tooltip.setOpacity(1)
-        visibles.push(tooltip)
-      } else {
-        tooltip.setOpacity(0)
+      // 6. Aplicar visibilidad con fade suave
+      markers.forEach(marker => {
+        const element = marker.getElement()
+        if (!element) return
+        
+        if (labelsToShow.includes(marker)) {
+          element.style.opacity = '1'
+          element.style.visibility = 'visible'
+          element.style.pointerEvents = 'none'
+        } else {
+          element.style.opacity = '0'
+          element.style.visibility = 'hidden'
+        }
+      })
+      
+      // 🔍 REGLA ESPECIAL: En zoom MUY bajo, solo mostrar los 3 más grandes
+      if (currentZoom < 11) {
+        const top3 = visibleMarkers.slice(0, 3)
+        markers.forEach(marker => {
+          const element = marker.getElement()
+          if (element) {
+            element.style.opacity = top3.includes(marker) ? '1' : '0'
+            element.style.visibility = top3.includes(marker) ? 'visible' : 'hidden'
+          }
+        })
       }
-    })
-  }
-  // 🔍 ZOOM ALTO (≥ 15): Mostrar TODOS
-  else {
-    tooltips.forEach(t => t.setOpacity(1))
-  }
-}
+    }
 
-// Aplicar lógica inicial
-gestionarVisibilidadTooltips()
+    // Aplicar al cargar
+    setTimeout(gestionarVisibilidadLabels, 300)
 
-// Actualizar cuando cambia el zoom o se mueve el mapa
-if (!mapRef.current._tooltipZoomHandler) {
-  mapRef.current._tooltipZoomHandler = true
-  mapRef.current.on('zoomend', gestionarVisibilidadTooltips)
-  mapRef.current.on('moveend', gestionarVisibilidadTooltips)
-}
+    // Actualizar en zoom y movimiento (con debounce para performance)
+    let debounceTimer: any
+    const debouncedUpdate = () => {
+      clearTimeout(debounceTimer)
+      debounceTimer = setTimeout(gestionarVisibilidadLabels, 150)
+    }
+
+    if (!mapRef.current._labelZoomHandler) {
+      mapRef.current._labelZoomHandler = true
+      mapRef.current.on('zoomend', gestionarVisibilidadLabels)
+      mapRef.current.on('moveend', debouncedUpdate)
+    }
+
     if (existingPolygons.length > 0 && existingLayersRef.current.getLayers().length > 0) {
       try {
         const bounds = (existingLayersRef.current as any).getBounds()
