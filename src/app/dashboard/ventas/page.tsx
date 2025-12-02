@@ -5,7 +5,39 @@ import ModalVenta from '@/app/components/modales/ModalVenta'
 import ResumenVentas from '@/app/components/ventas/ResumenVentas'
 import TablaVentas from '@/app/components/ventas/TablaVentas'
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json())
+// ✅ Fetcher mejorado con manejo robusto de errores
+const fetcher = async (url: string) => {
+  const res = await fetch(url)
+  
+  // Obtener el texto de la respuesta primero
+  const text = await res.text()
+  
+  // Si no es OK, intentar parsear el error
+  if (!res.ok) {
+    let errorMessage = `HTTP ${res.status}`
+    try {
+      const errorData = JSON.parse(text)
+      errorMessage = errorData.error || errorMessage
+    } catch {
+      errorMessage = text || errorMessage
+    }
+    throw new Error(errorMessage)
+  }
+  
+  // Si está vacío, retornar datos por defecto
+  if (!text || text.trim() === '') {
+    console.warn('⚠️ Respuesta vacía del servidor')
+    return { ventas: [], resumen: null }
+  }
+  
+  // Intentar parsear el JSON
+  try {
+    return JSON.parse(text)
+  } catch (err) {
+    console.error('❌ Error parseando JSON:', text.substring(0, 100))
+    throw new Error('Respuesta inválida del servidor')
+  }
+}
 
 export default function VentasPage() {
   const [modalOpen, setModalOpen] = useState(false)
@@ -28,15 +60,28 @@ export default function VentasPage() {
   const [fechaFin, setFechaFin] = useState(fechaFinDefault)
 
   // Cargar ventas con filtros
-  const { data, isLoading, mutate } = useSWR(
+  const { data, isLoading, mutate, error } = useSWR(
     `/api/ventas?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}`,
     fetcher,
     {
       revalidateOnFocus: false,
       revalidateOnReconnect: false,
       revalidateIfStale: false,
+      shouldRetryOnError: false, // ✅ No reintentar automáticamente
+      onError: (err) => {
+        console.error('❌ ERROR SWR:', err.message || err)
+      }
     }
   )
+
+  // LOG para debugging
+  console.log('🔍 SWR State:', { 
+    hasData: !!data, 
+    isLoading, 
+    errorMessage: error?.message,
+    fechaInicio,
+    fechaFin 
+  })
 
   const ventas = data?.ventas || []
   const resumen = data?.resumen || null
@@ -46,10 +91,34 @@ export default function VentasPage() {
     setModalOpen(false)
   }
 
+  // ✅ Mostrar error específico si hay problemas
+  if (error) {
+    return (
+      <div className="bg-gray-50 min-h-screen p-4 sm:p-6 md:p-8 flex items-center justify-center">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md">
+          <div className="flex items-center gap-3 mb-3">
+            <span className="text-3xl">⚠️</span>
+            <h2 className="text-lg font-semibold text-red-900">Error al cargar ventas</h2>
+          </div>
+          <p className="text-red-700 mb-4">{error.message}</p>
+          <button
+            onClick={() => mutate()}
+            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+          >
+            Reintentar
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   if (isLoading) {
     return (
       <div className="bg-gray-50 min-h-screen p-4 sm:p-6 md:p-8 flex items-center justify-center">
-        <p className="text-gray-600">Cargando ventas...</p>
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Cargando ventas...</p>
+        </div>
       </div>
     )
   }
