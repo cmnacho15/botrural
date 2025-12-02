@@ -413,160 +413,101 @@ export default function MapaPoligono({
 
       existingLayersRef.current.addLayer(polygon)
 
-      // 🏷️ Tooltip permanente SOLO CON NOMBRE (se adapta al zoom)
+      // 🏷️ Tooltip con nombre Y DETALLE COMPLETO de animales
 const center = polygon.getBounds().getCenter()
 
-// Función para actualizar el tooltip según el zoom
-const updateTooltipContent = () => {
+let animalesText = ''
+if (potrero.info?.animales?.length) {
+  const lineas = potrero.info.animales
+    .map((a: any) => `${a.categoria}: ${a.cantidad}`)
+    .join('<br>')
+  animalesText = lineas
+}
+
+// Función para determinar tamaño según zoom
+const getFontSizes = () => {
   const currentZoom = mapRef.current?.getZoom() || 14
   
-  // Determinar tamaño de fuente según zoom
-  let fontSize = '14px'
-  if (currentZoom >= 16) fontSize = '18px'
-  else if (currentZoom >= 14) fontSize = '16px'
-  else if (currentZoom >= 12) fontSize = '14px'
-  else fontSize = '12px'
-  
-  // En zoom bajo, solo nombre
-  // En zoom medio/alto, agregar info básica de animales
-  let content = `
-    <div style="
-      font-family: system-ui, -apple-system, sans-serif;
-      text-align: center;
-      white-space: nowrap;
-    ">
-      <div style="
-        font-weight: bold; 
-        font-size: ${fontSize}; 
-        color: black; 
-        text-shadow: 
-          -1px -1px 0 white,
-          1px -1px 0 white,
-          -1px 1px 0 white,
-          1px 1px 0 white,
-          -2px 0 0 white,
-          2px 0 0 white,
-          0 -2px 0 white,
-          0 2px 0 white;
-      ">
-        ${potrero.nombre}
-      </div>
-  `
-  
-  // Solo mostrar animales en zoom >= 14
-  if (currentZoom >= 14 && potrero.info?.animales?.length) {
-    const totalAnimales = potrero.info.animales.reduce((sum: number, a: any) => sum + a.cantidad, 0)
-    const smallerFont = currentZoom >= 16 ? '16px' : '14px'
-    
-    content += `
-      <div style="
-        font-size: ${smallerFont}; 
-        color: black; 
-        text-shadow: 
-          -1px -1px 0 white,
-          1px -1px 0 white,
-          -1px 1px 0 white,
-          1px 1px 0 white;
-        margin-top: 2px;
-      ">
-        🐄 ${totalAnimales}
-      </div>
-    `
-  }
-  
-  content += `</div>`
-  return content
+  if (currentZoom >= 16) return { nombre: '20px', animales: '18px' }
+  if (currentZoom >= 14) return { nombre: '18px', animales: '16px' }
+  if (currentZoom >= 13) return { nombre: '16px', animales: '14px' }
+  return { nombre: '14px', animales: '12px' }
 }
+
+const sizes = getFontSizes()
+
+const tooltipContent = `
+  <div style="
+    font-family: system-ui, -apple-system, sans-serif;
+    text-align: center;
+    white-space: nowrap;
+  ">
+    <div style="
+      font-weight: bold; 
+      font-size: ${sizes.nombre}; 
+      color: black; 
+      text-shadow: 
+        -1px -1px 0 white,
+        1px -1px 0 white,
+        -1px 1px 0 white,
+        1px 1px 0 white,
+        -2px 0 0 white,
+        2px 0 0 white,
+        0 -2px 0 white,
+        0 2px 0 white;
+      margin-bottom: 2px;
+    ">
+      ${potrero.nombre}
+    </div>
+    <div style="
+      font-size: ${sizes.animales}; 
+      color: black; 
+      text-shadow: 
+        -1px -1px 0 white,
+        1px -1px 0 white,
+        -1px 1px 0 white,
+        1px 1px 0 white;
+      line-height: 1.3;
+    ">
+      ${animalesText}
+    </div>
+  </div>
+`
 
 const tooltip = (L as any).tooltip({
   permanent: true,
   direction: 'center',
   className: 'potrero-label-transparent',
   opacity: 1,
-}).setContent(updateTooltipContent())
+}).setContent(tooltipContent)
 
 tooltip.setLatLng(center)
 existingLayersRef.current.addLayer(tooltip)
 
-// 🎯 Actualizar tooltip cuando cambia el zoom
+// 🎯 MAGIA: Ocultar/mostrar tooltips según zoom para evitar superposición
 if (!mapRef.current._tooltipZoomHandler) {
   mapRef.current._tooltipZoomHandler = true
   mapRef.current.on('zoomend', () => {
+    const currentZoom = mapRef.current.getZoom()
+    
     existingLayersRef.current.eachLayer((layer: any) => {
       if (layer instanceof (L as any).Tooltip) {
-        // Recalcular contenido según nuevo zoom
-        const currentZoom = mapRef.current.getZoom()
-        
-        // Ocultar tooltips en zoom muy bajo para evitar saturación
-        if (currentZoom < 11) {
-          layer.setOpacity(0)
+        // Ocultar en zoom bajo, mostrar en zoom medio/alto
+        if (currentZoom < 13) {
+          layer.setOpacity(0) // Invisible en zoom bajo
         } else {
-          layer.setOpacity(1)
+          layer.setOpacity(1) // Visible en zoom medio/alto
         }
       }
     })
   })
 }
 
-// 📋 Popup con INFORMACIÓN COMPLETA (solo al hacer click)
-let popupContent = `
-  <div style="padding: 12px; min-width: 200px;">
-    <div style="
-      font-size: 18px; 
-      font-weight: bold; 
-      color: ${potrero.color || '#10b981'};
-      margin-bottom: 8px;
-      border-bottom: 2px solid ${potrero.color || '#10b981'};
-      padding-bottom: 6px;
-    ">
-      ${potrero.nombre}
-    </div>
-    
-    <div style="margin-bottom: 8px;">
-      <span style="color: #666; font-size: 13px;">📐 Área:</span>
-      <span style="font-weight: 600; font-size: 15px; margin-left: 6px;">
-        ${potrero.info?.hectareas?.toFixed(2) || '0'} ha
-      </span>
-    </div>
-`
-
-// Agregar cultivos si existen
-if (potrero.info?.cultivos?.length > 0) {
-  popupContent += `
-    <div style="margin-bottom: 8px;">
-      <div style="color: #666; font-size: 13px; margin-bottom: 4px;">🌾 Cultivos:</div>
-      ${potrero.info.cultivos.map((c: any) => `
-        <div style="margin-left: 8px; font-size: 13px;">
-          • ${c.tipoCultivo} (${c.hectareas?.toFixed(1) || 0} ha)
-        </div>
-      `).join('')}
-    </div>
-  `
+// Aplicar visibilidad inicial según zoom actual
+const initialZoom = mapRef.current?.getZoom() || 14
+if (initialZoom < 13) {
+  tooltip.setOpacity(0)
 }
-
-// Agregar animales con DETALLE COMPLETO
-if (potrero.info?.animales?.length > 0) {
-  const totalAnimales = potrero.info.animales.reduce((sum: number, a: any) => sum + a.cantidad, 0)
-  popupContent += `
-    <div>
-      <div style="color: #666; font-size: 13px; margin-bottom: 4px;">
-        🐄 Animales: <strong>${totalAnimales}</strong>
-      </div>
-      ${potrero.info.animales.map((a: any) => `
-        <div style="margin-left: 8px; font-size: 13px;">
-          • ${a.categoria}: <strong>${a.cantidad}</strong>
-        </div>
-      `).join('')}
-    </div>
-  `
-}
-
-popupContent += `</div>`
-
-polygon.bindPopup(popupContent, {
-  maxWidth: 300,
-  closeButton: true,
-})
     })
 
     if (existingPolygons.length > 0 && existingLayersRef.current.getLayers().length > 0) {
