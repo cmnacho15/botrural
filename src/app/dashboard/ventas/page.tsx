@@ -1,6 +1,4 @@
 'use client'
-export const dynamic = "force-dynamic"
-
 import { useState, useMemo } from 'react'
 import useSWR from 'swr'
 import ModalVenta from '@/app/components/modales/ModalVenta'
