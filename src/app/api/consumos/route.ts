@@ -1,9 +1,44 @@
-// Crear archivo: app/api/consumos/route.ts
+// app/api/consumos/route.ts
 
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/app/api/auth/[...nextauth]/route"
+
+// ====================================================
+// FUNCIÓN AUXILIAR PARA DETERMINAR TIPO DE ANIMAL
+// ====================================================
+function determinarTipoAnimal(categoria: string): string {
+  const categoriaLower = categoria.toLowerCase()
+  
+  // BOVINOS
+  if (categoriaLower.includes('vaca') || 
+      categoriaLower.includes('toro') || 
+      categoriaLower.includes('novillo') || 
+      categoriaLower.includes('vaquillona') ||
+      categoriaLower.includes('ternero') || 
+      categoriaLower.includes('ternera')) {
+    return 'BOVINO'
+  }
+  
+  // OVINOS
+  if (categoriaLower.includes('oveja') || 
+      categoriaLower.includes('carnero') || 
+      categoriaLower.includes('cordero') || 
+      categoriaLower.includes('capón')) {
+    return 'OVINO'
+  }
+  
+  // EQUINOS
+  if (categoriaLower.includes('caballo') || 
+      categoriaLower.includes('yegua') || 
+      categoriaLower.includes('potrillo') || 
+      categoriaLower.includes('potro')) {
+    return 'EQUINO'
+  }
+  
+  return 'OTRO'
+}
 
 // ====================================================
 // POST – CREAR CONSUMO
@@ -75,6 +110,10 @@ export async function POST(request: Request) {
       ? pesoTotalKg * precioKgUSD
       : null
 
+    // ✅ DETERMINAR TIPO DE ANIMAL AUTOMÁTICAMENTE
+    const tipoAnimal = determinarTipoAnimal(renglon.categoria)
+    console.log(`🐄 Tipo detectado: ${tipoAnimal} para categoría: ${renglon.categoria}`)
+
     // Crear consumo con renglón en una transacción
     const consumo = await prisma.$transaction(async (tx) => {
       // 1. Crear el consumo
@@ -87,11 +126,11 @@ export async function POST(request: Request) {
         }
       })
 
-      // 2. Crear el renglón
+      // 2. Crear el renglón con el tipo correcto
       await tx.consumoRenglon.create({
         data: {
           consumoId: nuevoConsumo.id,
-          tipoAnimal: "BOVINO", // Puedes detectar esto automáticamente si lo deseas
+          tipoAnimal, // ✅ AHORA USA EL TIPO DETECTADO
           categoria: renglon.categoria,
           cantidad: renglon.cantidad,
           pesoPromedio,
