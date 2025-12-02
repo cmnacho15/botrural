@@ -92,6 +92,8 @@ model Campo {
 
   cargaHistorica   CargaHistorica[]
 
+  ventas Venta[]
+
 }
 
 model CategoriaGasto {
@@ -188,6 +190,8 @@ model AnimalLote {
   eventos      Evento[]
 
   @@unique([loteId, categoria])
+
+  ventasRenglones VentaRenglon[]
 }
 
 model Evento {
@@ -479,3 +483,97 @@ model Inventario {
   @@unique([campoId, fecha, categoria])
   @@index([campoId, fecha])
 }
+
+
+
+
+
+
+
+
+// ==========================================
+// 💰 MODELOS DE VENTAS (agregar al final del schema)
+// ==========================================
+
+model Venta {
+  id                String    @id @default(cuid())
+  campoId           String
+  fecha             DateTime
+  comprador         String
+  consignatario     String?   // quien vende/intermedia
+  nroTropa          String?
+  nroFactura        String?
+  
+  metodoPago        String    @default("Contado")  // "Contado" | "Plazo"
+  diasPlazo         Int?
+  fechaVencimiento  DateTime?
+  pagado            Boolean   @default(false)
+  
+  moneda            String    @default("USD")  // "USD" | "UYU"
+  tasaCambio        Float?    // si es UYU
+  
+  subtotalUSD       Float     // suma de importes de renglones
+  totalImpuestosUSD Float     @default(0) // suma de todos los impuestos
+  totalNetoUSD      Float     // subtotal - impuestos
+  
+  // 📎 ADJUNTAR BOLETA
+  imageUrl          String?   // URL de la boleta guardada
+  imageName         String?   // nombre del archivo
+  
+  // 📊 IMPUESTOS DESGLOSADOS (JSON)
+  impuestos         Json?     // {mevir: 64.95, inia: 129.90, imeba: 649.49, ...}
+  
+  notas             String?
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  campo             Campo     @relation(fields: [campoId], references: [id], onDelete: Cascade)
+  renglones         VentaRenglon[]
+  
+  @@index([campoId])
+  @@index([fecha])
+  @@index([comprador])
+}
+
+model VentaRenglon {
+  id                      String   @id @default(cuid())
+  ventaId                 String
+  
+  tipo                    String   @default("GANADO")  // "GANADO" | "LANA"
+  tipoAnimal              String   // "BOVINO" | "OVINO" | "EQUINO" | "OTRO"
+  categoria               String   // "Vaca gorda", "Novillo gordo", "Ovejas", etc.
+  raza                    String?  // "GEN S/Clasif", "HEREFORD"
+  
+  cantidad                Int      // nº de animales
+  
+  // 💰 PRECIOS Y MONTOS (simplificado para el Excel)
+  pesoPromedio            Float    // kg/animal (peso/animal del Excel)
+  precioKgUSD             Float    // precio/kg (US$/kg del Excel)
+  precioAnimalUSD         Float    // pesoPromedio * precioKgUSD
+  pesoTotalKg             Float    // cantidad * pesoPromedio
+  importeBrutoUSD         Float    // pesoTotalKg * precioKgUSD
+  
+  // 🏦 DESCUENTO DE STOCK
+  descontadoDeStock       Boolean  @default(false)  // si se descontó del AnimalLote
+  animalLoteId            String?  // potrero del cual se descontó
+  fechaDescuento          DateTime?
+  
+  // 🐑 CAMPOS PARA LANA (para futuro)
+  esVentaLana             Boolean  @default(false)
+  kgVellon                Float?
+  kgBarriga               Float?
+  precioKgVellon          Float?
+  precioKgBarriga         Float?
+  numeroEsquilados        Int?
+  
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+  
+  venta                   Venta      @relation(fields: [ventaId], references: [id], onDelete: Cascade)
+  animalLote              AnimalLote? @relation(fields: [animalLoteId], references: [id])
+  
+  @@index([ventaId])
+  @@index([animalLoteId])
+}
+
