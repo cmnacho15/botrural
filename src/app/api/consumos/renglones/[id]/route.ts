@@ -1,4 +1,4 @@
-// Crear archivo: app/api/consumos/renglones/[id]/route.ts
+// app/api/consumos/renglones/[id]/route.ts
 
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
@@ -10,7 +10,7 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route"
 // ====================================================
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions)
@@ -25,7 +25,7 @@ export async function PATCH(
     if (!usuario?.campoId)
       return NextResponse.json({ error: "Usuario sin campo" }, { status: 400 })
 
-    const { id } = params
+    const { id } = await params
     const body = await request.json()
 
     // Verificar que el renglón pertenece al campo del usuario
@@ -85,6 +85,77 @@ export async function PATCH(
     return NextResponse.json(
       {
         error: "Error al actualizar renglón",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 }
+    )
+  }
+}
+
+// ====================================================
+// DELETE – ELIMINAR RENGLÓN
+// ====================================================
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.id)
+      return NextResponse.json({ error: "No autenticado" }, { status: 401 })
+
+    const usuario = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { campoId: true },
+    })
+
+    if (!usuario?.campoId)
+      return NextResponse.json({ error: "Usuario sin campo" }, { status: 400 })
+
+    const { id } = await params
+
+    // Verificar que el renglón pertenece al campo del usuario
+    const renglon = await prisma.consumoRenglon.findFirst({
+      where: {
+        id,
+        consumo: {
+          campoId: usuario.campoId
+        }
+      },
+      include: {
+        consumo: {
+          include: {
+            renglones: true
+          }
+        }
+      }
+    })
+
+    if (!renglon)
+      return NextResponse.json(
+        { error: "Renglón no encontrado" },
+        { status: 404 }
+      )
+
+    // Eliminar el renglón
+    await prisma.consumoRenglon.delete({
+      where: { id }
+    })
+
+    // Si era el último renglón del consumo, eliminar el consumo también
+    if (renglon.consumo.renglones.length === 1) {
+      await prisma.consumo.delete({
+        where: { id: renglon.consumoId }
+      })
+    }
+
+    return NextResponse.json({ success: true, message: "Renglón eliminado" }, { status: 200 })
+
+  } catch (error) {
+    console.error("ERROR EN DELETE /api/consumos/renglones/[id]:", error)
+    return NextResponse.json(
+      {
+        error: "Error al eliminar renglón",
         details: error instanceof Error ? error.message : "Unknown error",
       },
       { status: 500 }
