@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { METODOS_PAGO } from '@/lib/constants'
 import { obtenerFechaLocal } from '@/lib/fechas'
+import { esCategoriaVariable, ESPECIES_VALIDAS } from '@/lib/costos/categoriasCostos'
 
 type ModalGastoProps = {
   onClose: () => void
@@ -16,6 +17,7 @@ type ItemGasto = {
   precio: number
   iva: number
   precioFinal: number
+  especie: string | null // ✅ NUEVO CAMPO
 }
 
 export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
@@ -40,10 +42,11 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
     {
       id: '1',
       item: '',
-      categoria: '', // 👈 inicial vacío
+      categoria: '',
       precio: 0,
       iva: 0,
       precioFinal: 0,
+      especie: null, // ✅ NUEVO
     },
   ])
 
@@ -120,6 +123,12 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
           const numValue = parseFloat(value)
           updated.iva = isNaN(numValue) ? 0 : numValue
           updated.precioFinal = calcularPrecioFinal(updated.precio, updated.iva)
+        } else if (field === 'categoria') {
+          // ✅ Si cambia a categoría variable, resetear especie
+          updated.categoria = value
+          if (esCategoriaVariable(value)) {
+            updated.especie = null
+          }
         } else {
           updated = { ...updated, [field]: value }
         }
@@ -138,6 +147,7 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
         precio: 0,
         iva: 0,
         precioFinal: 0,
+        especie: null, // ✅ NUEVO
       },
     ])
   }
@@ -183,6 +193,7 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
             diasPlazo: esPlazo ? diasPlazo : null,
             pagado: esPlazo ? pagado : true,
             proveedor: proveedor.trim() || null,
+            especie: item.especie, // ✅ NUEVO CAMPO
           }),
         })
 
@@ -396,103 +407,146 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
         </div>
 
         <div className="space-y-3">
-          {items.map(item => (
-            <div
-              key={item.id}
-              className="border-l-4 border-blue-500 pl-4 py-3 bg-gray-50 rounded-r-lg relative"
-            >
-              {items.length > 1 && (
-                <button
-                  type="button"
-                  onClick={() => eliminarItem(item.id)}
-                  className="absolute top-2 right-2 text-red-600 hover:text-red-800"
-                >
-                  🗑️
-                </button>
-              )}
+          {items.map(item => {
+            const esVariable = esCategoriaVariable(item.categoria)
+            
+            return (
+              <div
+                key={item.id}
+                className="border-l-4 border-blue-500 pl-4 py-3 bg-gray-50 rounded-r-lg relative"
+              >
+                {items.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => eliminarItem(item.id)}
+                    className="absolute top-2 right-2 text-red-600 hover:text-red-800"
+                  >
+                    🗑️
+                  </button>
+                )}
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-                <input
-                  type="text"
-                  value={item.item}
-                  onChange={e =>
-                    handleItemChange(item.id, 'item', e.target.value)
-                  }
-                  placeholder="Item"
-                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  required
-                />
-
-                {/* CATEGORÍAS DINÁMICAS */}
-                <select
-                  value={item.categoria}
-                  onChange={e =>
-                    handleItemChange(item.id, 'categoria', e.target.value)
-                  }
-                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  disabled={categorias.length === 0}
-                >
-                  {categorias.length === 0 ? (
-                    <option value="">Cargando categorías...</option>
-                  ) : (
-                    categorias.map(cat => (
-                      <option key={cat} value={cat}>
-                        {cat}
-                      </option>
-                    ))
-                  )}
-                </select>
-              </div>
-
-              <div className="grid grid-cols-3 gap-3 items-center">
-                <div>
-                  <label className="block text-xs text-gray-600 mb-1">
-                    Precio
-                  </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
                   <input
-                    type="number"
-                    step="0.01"
-                    value={item.precio || ''}
+                    type="text"
+                    value={item.item}
                     onChange={e =>
-                      handleItemChange(item.id, 'precio', e.target.value)
+                      handleItemChange(item.id, 'item', e.target.value)
                     }
-                    placeholder="0.00"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    placeholder="Item"
+                    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                     required
                   />
-                </div>
 
-                <div>
-                  <label className="block text-xs text-gray-600 mb-1">
-                    IVA
-                  </label>
+                  {/* CATEGORÍAS DINÁMICAS */}
                   <select
-                    value={item.iva}
+                    value={item.categoria}
                     onChange={e =>
-                      handleItemChange(item.id, 'iva', e.target.value)
+                      handleItemChange(item.id, 'categoria', e.target.value)
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    disabled={categorias.length === 0}
                   >
-                    <option value="0">Sin IVA</option>
-                    <option value="10">10%</option>
-                    <option value="22">22%</option>
+                    {categorias.length === 0 ? (
+                      <option value="">Cargando categorías...</option>
+                    ) : (
+                      categorias.map(cat => (
+                        <option key={cat} value={cat}>
+                          {cat}
+                        </option>
+                      ))
+                    )}
                   </select>
                 </div>
 
-                <div>
-                  <label className="block text-xs text-gray-600 mb-1">
-                    Precio Final
-                  </label>
-                  <input
-                    type="text"
-                    readOnly
-                    value={item.precioFinal.toFixed(2)}
-                    className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-lg text-gray-700 font-semibold"
-                  />
+                {/* ✅ CAMPO ESPECIE (solo si NO es variable) */}
+                {!esVariable && (
+                  <div className="mb-3">
+                    <label className="block text-xs text-gray-600 mb-1">
+                      Especie (opcional)
+                      <span className="ml-2 text-blue-600 text-[10px] font-semibold">
+                        COSTO FIJO
+                      </span>
+                    </label>
+                    <select
+                      value={item.especie || ''}
+                      onChange={e =>
+                        handleItemChange(
+                          item.id,
+                          'especie',
+                          e.target.value || null
+                        )
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+                    >
+                      <option value="">Global (sin asignar)</option>
+                      {ESPECIES_VALIDAS.map(esp => (
+                        <option key={esp} value={esp}>
+                          {esp.charAt(0) + esp.slice(1).toLowerCase()}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* ✅ BADGE para categorías variables */}
+                {esVariable && (
+                  <div className="mb-3">
+                    <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded">
+                      💚 Costo Variable - Distribución automática según % UG
+                    </span>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-3 gap-3 items-center">
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">
+                      Precio
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={item.precio || ''}
+                      onChange={e =>
+                        handleItemChange(item.id, 'precio', e.target.value)
+                      }
+                      placeholder="0.00"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">
+                      IVA
+                    </label>
+                    <select
+                      value={item.iva}
+                      onChange={e =>
+                        handleItemChange(item.id, 'iva', e.target.value)
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="0">Sin IVA</option>
+                      <option value="10">10%</option>
+                      <option value="22">22%</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">
+                      Precio Final
+                    </label>
+                    <input
+                      type="text"
+                      readOnly
+                      value={item.precioFinal.toFixed(2)}
+                      className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-lg text-gray-700 font-semibold"
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
 
         {/* AGREGAR ITEM */}

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { requireAuth, canAccessFinanzas, canWriteFinanzas } from "@/lib/auth-helpers"
-import { getUSDToUYU } from "@/lib/currency" // Agregado nuevo import
+import { getUSDToUYU } from "@/lib/currency"
 
 /**
  * Listar gastos
@@ -12,7 +12,6 @@ export async function GET(request: Request) {
     const { error, user } = await requireAuth()
     if (error) return error
 
-    // Acceso lectura
     if (!canAccessFinanzas(user!)) {
       return NextResponse.json(
         { error: "No tienes acceso a información financiera" },
@@ -62,7 +61,6 @@ export async function POST(request: Request) {
     const { error, user } = await requireAuth()
     if (error) return error
 
-    // Acceso escritura
     if (!canWriteFinanzas(user!)) {
       return NextResponse.json(
         { error: "No tienes permisos para crear gastos" },
@@ -84,7 +82,8 @@ export async function POST(request: Request) {
       diasPlazo,
       pagado,
       loteId,
-      moneda, // nuevo campo
+      moneda,
+      especie, // ✅ NUEVO CAMPO
     } = body
 
     if (!tipo || !monto || !fecha) {
@@ -94,51 +93,74 @@ export async function POST(request: Request) {
       )
     }
 
-    // Manejar moneda y conversión
-const monedaGasto = moneda === "USD" ? "USD" : "UYU"
-const montoOriginal = parseFloat(monto)
-let tasaCambio: number | null = null
-let montoEnUYU = montoOriginal
+    // ✅ Validar especie si se proporciona
+    if (especie && !['VACUNOS', 'OVINOS', 'EQUINOS'].includes(especie)) {
+      return NextResponse.json(
+        { error: "Especie inválida. Debe ser VACUNOS, OVINOS o EQUINOS" },
+        { status: 400 }
+      )
+    }
 
-if (monedaGasto === "USD") {
-  try {
-    tasaCambio = await getUSDToUYU()
-  } catch (err) {
-    console.log("Error obteniendo dólar → uso 40 por defecto")
-    tasaCambio = 40
-  }
-  montoEnUYU = montoOriginal * tasaCambio
-}
+    // ---------------------------------------------------------
+    // 💵 Conversión de moneda
+    // ---------------------------------------------------------
+    const monedaGasto = moneda === "USD" ? "USD" : "UYU"
+    const montoOriginal = parseFloat(monto)
+    let tasaCambio: number
+    let montoEnUYU: number
+    let montoEnUSD: number
 
-// -----------------------------------------------------
-// 📅 CORREGIR FECHA (evitar cambio de día por zona horaria)
-// -----------------------------------------------------
-const fechaISO = fecha.includes('T') ? fecha : `${fecha}T12:00:00.000Z`
+    // Obtener tasa de cambio del día
+    try {
+      tasaCambio = await getUSDToUYU()
+    } catch (err) {
+      console.log("Error obteniendo dólar → uso 40 por defecto")
+      tasaCambio = 40
+    }
 
-const gasto = await prisma.gasto.create({
-  data: {
-    tipo,
-    fecha: new Date(fechaISO),  // 👈 AQUÍ el cambio
-    descripcion,
-    categoria,
-    proveedor: proveedor?.trim().toLowerCase() || null,
-    comprador: comprador?.trim().toLowerCase() || null,
-    metodoPago: metodoPago || "Contado",
-    diasPlazo: diasPlazo ? Number(diasPlazo) : null,
-    pagado: pagado ?? metodoPago === "Contado",
-    iva: iva ? Number(iva) : null,
-    loteId: loteId || null,
-    campoId: user!.campoId!,
-    
-    // Nuevos campos obligatorios
-    moneda: monedaGasto,
-    montoOriginal,
-    tasaCambio,
-    montoEnUYU,
-    monto: montoEnUYU,
-  },
-  include: { lote: true },
-})
+    if (monedaGasto === "USD") {
+      // Gasto en dólares
+      montoEnUSD = montoOriginal
+      montoEnUYU = montoOriginal * tasaCambio
+    } else {
+      // Gasto en pesos uruguayos
+      montoEnUYU = montoOriginal
+      montoEnUSD = montoOriginal / tasaCambio
+    }
+
+    // ---------------------------------------------------------
+    // 📅 Corregir fecha (evitar cambio de día por zona horaria)
+    // ---------------------------------------------------------
+    const fechaISO = fecha.includes('T') ? fecha : `${fecha}T12:00:00.000Z`
+
+    const gasto = await prisma.gasto.create({
+      data: {
+        tipo,
+        fecha: new Date(fechaISO),
+        descripcion,
+        categoria,
+        proveedor: proveedor?.trim().toLowerCase() || null,
+        comprador: comprador?.trim().toLowerCase() || null,
+        metodoPago: metodoPago || "Contado",
+        diasPlazo: diasPlazo ? Number(diasPlazo) : null,
+        pagado: pagado ?? metodoPago === "Contado",
+        iva: iva ? Number(iva) : null,
+        loteId: loteId || null,
+        campoId: user!.campoId!,
+        
+        // Campos de moneda
+        moneda: monedaGasto,
+        montoOriginal,
+        tasaCambio,
+        montoEnUYU,
+        montoEnUSD, // ✅ NUEVO
+        monto: montoEnUYU, // deprecated pero lo mantenemos
+        
+        // Campo de especie
+        especie: especie || null, // ✅ NUEVO
+      },
+      include: { lote: true },
+    })
 
     return NextResponse.json(gasto, { status: 201 })
   } catch (error) {

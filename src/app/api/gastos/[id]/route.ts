@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { requireAuth, canWriteFinanzas } from "@/lib/auth-helpers"
-import { convertirAUYU, obtenerTasaCambio } from "@/lib/currency"
+import { getUSDToUYU } from "@/lib/currency"
 
 /**
  * ✏️ PUT - Actualizar gasto (compatible con USD / UYU)
@@ -32,7 +32,8 @@ export async function PUT(
       pagado,
       diasPlazo,
       proveedor,
-      moneda
+      moneda,
+      especie, // ✅ NUEVO CAMPO
     } = body
 
     // Verificar existencia
@@ -47,33 +48,64 @@ export async function PUT(
       )
     }
 
+    // ✅ Validar especie si se proporciona
+    if (especie && !['VACUNOS', 'OVINOS', 'EQUINOS'].includes(especie)) {
+      return NextResponse.json(
+        { error: "Especie inválida. Debe ser VACUNOS, OVINOS o EQUINOS" },
+        { status: 400 }
+      )
+    }
+
     // ---------------------------------------------------------
     // 💵 Conversión de moneda
     // ---------------------------------------------------------
     const montoFloat = parseFloat(monto)
     const monedaFinal = moneda || gastoExistente.moneda || "UYU"
+    
+    let tasaCambio: number
+    let montoEnUYU: number
+    let montoEnUSD: number
 
-    const montoEnUYU = await convertirAUYU(montoFloat, monedaFinal)
-    const tasaCambio = await obtenerTasaCambio(monedaFinal)
+    // Obtener tasa de cambio del día
+    try {
+      tasaCambio = await getUSDToUYU()
+    } catch (err) {
+      console.log("Error obteniendo dólar → uso 40 por defecto")
+      tasaCambio = 40
+    }
+
+    if (monedaFinal === "USD") {
+      // Gasto en dólares
+      montoEnUSD = montoFloat
+      montoEnUYU = montoFloat * tasaCambio
+    } else {
+      // Gasto en pesos uruguayos
+      montoEnUYU = montoFloat
+      montoEnUSD = montoFloat / tasaCambio
+    }
 
     // ---------------------------------------------------------
     // 🧱 Data para actualizar
     // ---------------------------------------------------------
     const dataToUpdate: any = {
-      monto: montoEnUYU,          // SIEMPRE en UYU
-      montoOriginal: montoFloat,   // valor ingresado
+      monto: montoEnUYU,          // deprecated pero lo mantenemos
+      montoOriginal: montoFloat,
       moneda: monedaFinal,
-      montoEnUYU: montoEnUYU,
+      montoEnUYU,
+      montoEnUSD,                 // ✅ NUEVO
       tasaCambio,
+      especie: especie !== undefined ? especie : gastoExistente.especie, // ✅ NUEVO
 
-      fecha: fecha ? new Date(fecha.includes('T') ? fecha : `${fecha}T12:00:00.000Z`) : gastoExistente.fecha,
-      descripcion,
-      categoria,
-      metodoPago,
+      fecha: fecha 
+        ? new Date(fecha.includes('T') ? fecha : `${fecha}T12:00:00.000Z`) 
+        : gastoExistente.fecha,
+      descripcion: descripcion !== undefined ? descripcion : gastoExistente.descripcion,
+      categoria: categoria !== undefined ? categoria : gastoExistente.categoria,
+      metodoPago: metodoPago !== undefined ? metodoPago : gastoExistente.metodoPago,
       iva: iva !== undefined ? parseFloat(String(iva)) : gastoExistente.iva,
-      diasPlazo: diasPlazo ? parseInt(diasPlazo) : null,
-      pagado: pagado ?? gastoExistente.pagado,
-      proveedor: proveedor?.trim() || null,
+      diasPlazo: diasPlazo !== undefined ? (diasPlazo ? parseInt(diasPlazo) : null) : gastoExistente.diasPlazo,
+      pagado: pagado !== undefined ? pagado : gastoExistente.pagado,
+      proveedor: proveedor !== undefined ? (proveedor?.trim() || null) : gastoExistente.proveedor,
     }
 
     const gastoActualizado = await prisma.gasto.update({

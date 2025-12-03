@@ -269,7 +269,7 @@ model MovimientoInsumo {
 model Gasto {
   id              String    @id @default(cuid())
   tipo            String
-  monto           Float            // ❌ LO VAMOS A DEJAR POR COMPATIBILIDAD (pero ya no se usa para cálculos)
+  monto           Float     // ❌ deprecated
   fecha           DateTime
   descripcion     String?
   categoria       String
@@ -289,19 +289,23 @@ model Gasto {
   animalLoteId    String?
   cantidadVendida Int?
 
-  // ✨ NUEVOS CAMPOS PARA FACTURAS
   imageUrl        String?
   imageName       String?
 
-  // 💵 NUEVOS CAMPOS PARA MONEDA Y CONVERSIÓN
-  moneda        String     // "USD" | "UYU"
-  montoOriginal Float      // Tal cual aparece en la factura
-  tasaCambio    Float?     // Si moneda = "USD" → tasa del día; si "UYU" = null
-  montoEnUYU    Float      // montoOriginal * tasaCambio o montoOriginal si es en UYU
+  // 💵 CAMPOS DE MONEDA Y CONVERSIÓN
+  moneda          String
+  montoOriginal   Float
+  tasaCambio      Float?
+  montoEnUYU      Float
+  montoEnUSD      Float      // ✅ NUEVO: valor histórico en USD
+
+  // 🐄 ASIGNACIÓN DE ESPECIE (para costos fijos)
+  especie         String?    // ✅ NUEVO: "VACUNOS" | "OVINOS" | "EQUINOS" | null
 
   @@index([campoId])
   @@index([fecha])
   @@index([tipo])
+  @@index([especie])  // ✅ índice para filtrar por especie
 }
 
 model Invitation {
