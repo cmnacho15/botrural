@@ -96,6 +96,8 @@ model Campo {
 
   ventas Venta[]
 
+  compras Compra[]
+
 }
 
 model CategoriaGasto {
@@ -196,6 +198,7 @@ model AnimalLote {
   ventasRenglones VentaRenglon[]
 
   consumosRenglones ConsumoRenglon[]
+  comprasRenglones CompraRenglon[] 
 
 }
 
@@ -627,5 +630,83 @@ model ConsumoRenglon {
   animalLote        AnimalLote? @relation(fields: [animalLoteId], references: [id])
   
   @@index([consumoId])
+  @@index([animalLoteId])
+}
+
+
+
+
+
+
+
+
+// ==========================================
+// 🛒 MODELOS DE COMPRAS
+// ==========================================
+
+model Compra {
+  id                String    @id @default(cuid())
+  campoId           String
+  fecha             DateTime
+  proveedor         String    // ← CAMBIO: en vez de "comprador"
+  consignatario     String?
+  nroTropa          String?
+  nroFactura        String?
+  
+  metodoPago        String    @default("Contado")
+  diasPlazo         Int?
+  fechaVencimiento  DateTime?
+  pagado            Boolean   @default(false)
+  
+  moneda            String    @default("USD")
+  tasaCambio        Float?
+  
+  subtotalUSD       Float
+  totalImpuestosUSD Float     @default(0)
+  totalNetoUSD      Float
+  
+  imageUrl          String?
+  imageName         String?
+  impuestos         Json?
+  notas             String?
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  campo             Campo     @relation(fields: [campoId], references: [id], onDelete: Cascade)
+  renglones         CompraRenglon[]
+  
+  @@index([campoId])
+  @@index([fecha])
+  @@index([proveedor])
+}
+
+model CompraRenglon {
+  id                      String   @id @default(cuid())
+  compraId                String
+  
+  tipoAnimal              String   // "BOVINO" | "OVINO" | "EQUINO" | "OTRO"
+  categoria               String
+  raza                    String?
+  cantidad                Int
+  
+  pesoPromedio            Float
+  precioKgUSD             Float
+  precioAnimalUSD         Float
+  pesoTotalKg             Float
+  importeBrutoUSD         Float
+  
+  // 🏦 INGRESO AL STOCK (en vez de descuento)
+  agregarAlStock          Boolean  @default(false)  // ← CAMBIO: agregar en vez de descontar
+  animalLoteId            String?  // potrero al cual se agregó
+  fechaIngreso            DateTime?
+  
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+  
+  compra                  Compra      @relation(fields: [compraId], references: [id], onDelete: Cascade)
+  animalLote              AnimalLote? @relation(fields: [animalLoteId], references: [id])
+  
+  @@index([compraId])
   @@index([animalLoteId])
 }
