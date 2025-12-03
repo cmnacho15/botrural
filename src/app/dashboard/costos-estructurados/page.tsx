@@ -8,10 +8,10 @@ type CostoMensual = {
   id: string
   mes: number
   anio: number
-  hectareasVacuno: number
-  hectareasOvino: number
-  hectareasEquino: number
-  hectareasDesperdicios: number
+  hectareasVacuno: number      // ✅ Debe estar
+  hectareasOvino: number        // ✅ Debe estar
+  hectareasEquino: number       // ✅ Debe estar
+  hectareasDesperdicios: number // ✅ Debe estar
   hectareasTotal: number
   bloqueado: boolean
   notas?: string
@@ -97,9 +97,30 @@ export default function CostosEstructuradosPage() {
   // Edición inline
   const [celdasEditando, setCeldasEditando] = useState<Record<string, number>>({})
 
+  // 🆕 NUEVOS ESTADOS PARA DISTRIBUCIÓN AUTOMÁTICA
+  const [distribucionAutomatica, setDistribucionAutomatica] = useState<any>(null)
+  const [usarDistribucionAuto, setUsarDistribucionAuto] = useState(true)
+
   useEffect(() => {
     cargarCostos()
   }, [])
+
+  // 🆕 CARGAR DISTRIBUCIÓN AUTOMÁTICA AL INICIAR
+  useEffect(() => {
+    cargarDistribucionAutomatica()
+  }, [])
+
+  const cargarDistribucionAutomatica = async () => {
+    try {
+      const res = await fetch('/api/costos-estructurados/calcular-distribucion')
+      if (res.ok) {
+        const data = await res.json()
+        setDistribucionAutomatica(data)
+      }
+    } catch (error) {
+      console.error('Error cargando distribución:', error)
+    }
+  }
 
   const cargarCostos = async () => {
     try {
@@ -121,18 +142,33 @@ export default function CostosEstructuradosPage() {
     }
   }
 
+  // 🔧 FUNCIÓN MODIFICADA: crearNuevoMes con distribución automática
   const crearNuevoMes = async () => {
     try {
+      // Si está activado "usar distribución automática", usar esos valores
+      let hectareasFinales = {
+        hectareasVacuno,
+        hectareasOvino,
+        hectareasEquino,
+        hectareasDesperdicios,
+      }
+
+      if (usarDistribucionAuto && distribucionAutomatica) {
+        hectareasFinales = {
+          hectareasVacuno: distribucionAutomatica.hectareasVacuno,
+          hectareasOvino: distribucionAutomatica.hectareasOvino,
+          hectareasEquino: distribucionAutomatica.hectareasEquino,
+          hectareasDesperdicios: distribucionAutomatica.hectareasDesperdicios,
+        }
+      }
+
       const res = await fetch('/api/costos-estructurados', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           mes: nuevoMes,
           anio: nuevoAnio,
-          hectareasVacuno,
-          hectareasOvino,
-          hectareasEquino,
-          hectareasDesperdicios,
+          ...hectareasFinales,
         }),
       })
 
@@ -146,7 +182,7 @@ export default function CostosEstructuradosPage() {
       setCostosMensuales([nuevoCosto, ...costosMensuales])
       setCostoActual(nuevoCosto)
       setModalNuevoMes(false)
-      alert('✅ Mes creado exitosamente')
+      alert('Mes creado exitosamente')
     } catch (error) {
       console.error('Error:', error)
       alert('Error al crear mes')
@@ -173,12 +209,10 @@ export default function CostosEstructuradosPage() {
       }
 
       const resultado = await res.json()
-      alert(`✅ Importados ${resultado.gastosImportados} gastos en ${resultado.categoriasActualizadas} categorías`)
+      alert(`Importados ${resultado.gastosImportados} gastos en ${resultado.categoriasActualizadas} categorías`)
       
-      // Recargar
       await cargarCostos()
       
-      // Actualizar el actual
       const resActual = await fetch(`/api/costos-estructurados/${costoActual.id}`)
       if (resActual.ok) {
         const dataActual = await resActual.json()
@@ -211,7 +245,6 @@ export default function CostosEstructuradosPage() {
         return
       }
 
-      // Recargar
       const resActual = await fetch(`/api/costos-estructurados/${costoActual.id}`)
       if (resActual.ok) {
         const dataActual = await resActual.json()
@@ -247,13 +280,12 @@ export default function CostosEstructuradosPage() {
       const actualizado = await res.json()
       setCostoActual(actualizado)
       
-      // Actualizar en la lista
       setCostosMensuales(costosMensuales.map(c => 
         c.id === actualizado.id ? actualizado : c
       ))
       
       setModalEditarHectareas(false)
-      alert('✅ Hectáreas actualizadas')
+      alert('Hectáreas actualizadas')
     } catch (error) {
       console.error('Error:', error)
       alert('Error al actualizar hectáreas')
@@ -299,7 +331,7 @@ export default function CostosEstructuradosPage() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center">
-              <span className="text-xl">💰</span>
+              <span className="text-xl">Money</span>
             </div>
             <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">
               Costos Estructurados
@@ -311,7 +343,7 @@ export default function CostosEstructuradosPage() {
               href="/costos-estructurados/mapeo"
               className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 text-sm font-medium"
             >
-              ⚙️ Configurar Mapeo
+              Configurar Mapeo
             </Link>
             <button
               onClick={() => setModalNuevoMes(true)}
@@ -327,7 +359,7 @@ export default function CostosEstructuradosPage() {
       <div className="px-4 sm:px-6 lg:px-8 py-6">
         {costosMensuales.length === 0 ? (
           <div className="bg-white rounded-xl shadow-sm p-12 text-center">
-            <div className="text-6xl mb-4">📊</div>
+            <div className="text-6xl mb-4">Chart</div>
             <h2 className="text-xl font-semibold text-gray-900 mb-2">
               No hay meses registrados
             </h2>
@@ -368,7 +400,6 @@ export default function CostosEstructuradosPage() {
                   <div className="flex gap-2">
                     <button
                       onClick={() => {
-                        // Cargar valores actuales al modal
                         setHectareasVacuno(costoActual.hectareasVacuno)
                         setHectareasOvino(costoActual.hectareasOvino)
                         setHectareasEquino(costoActual.hectareasEquino)
@@ -377,14 +408,14 @@ export default function CostosEstructuradosPage() {
                       }}
                       className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 text-sm font-medium"
                     >
-                      ✏️ Editar Hectáreas
+                      Editar Hectáreas
                     </button>
                     <button
                       onClick={importarGastos}
                       disabled={loadingImportar || costoActual.bloqueado}
                       className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 text-sm font-medium"
                     >
-                      {loadingImportar ? 'Importando...' : '📥 Importar Gastos'}
+                      {loadingImportar ? 'Importando...' : 'Importar Gastos'}
                     </button>
                   </div>
                 )}
@@ -646,7 +677,9 @@ export default function CostosEstructuradosPage() {
                           {totalesGenerales.vacuno.toFixed(0)}
                         </td>
                         <td className="px-4 py-4 text-right text-blue-700">
-                          {(totalesGenerales.vacuno / costoActual.hectareasVacuno).toFixed(0)}
+                          {costoActual.hectareasVacuno > 0
+  ? (totalesGenerales.vacuno / costoActual.hectareasVacuno).toFixed(0)
+  : '0'}
                         </td>
                         <td className="px-4 py-4 text-right text-blue-900">
                           {totalesGenerales.ovino.toFixed(0)}
@@ -674,211 +707,262 @@ export default function CostosEstructuradosPage() {
         )}
       </div>
 
-      {/* MODAL NUEVO MES */}
-  {modalNuevoMes && (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full p-8">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">Crear Nuevo Mes</h2>
-          <button
-            onClick={() => setModalNuevoMes(false)}
-            className="text-gray-400 hover:text-gray-600"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-
-        <div className="space-y-6">
-          {/* Mes y Año */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Mes</label>
-              <select
-                value={nuevoMes}
-                onChange={(e) => setNuevoMes(parseInt(e.target.value))}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+      {/* MODAL NUEVO MES - VERSIÓN MEJORADA CON DISTRIBUCIÓN AUTOMÁTICA */}
+      {modalNuevoMes && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full p-8">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-gray-900">Crear Nuevo Mes</h2>
+              <button
+                onClick={() => setModalNuevoMes(false)}
+                className="text-gray-400 hover:text-gray-600"
               >
-                {MESES.map((mes, idx) => (
-                  <option key={idx} value={idx + 1}>
-                    {mes}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Año</label>
-              <input
-                type="number"
-                value={nuevoAnio}
-                onChange={(e) => setNuevoAnio(parseInt(e.target.value))}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-          </div>
-
-          {/* Hectáreas */}
-          <div className="p-4 bg-gray-50 rounded-lg space-y-3">
-            <h3 className="font-semibold text-gray-900">Distribución de Hectáreas</h3>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm text-gray-700 mb-1">Vacuno</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={hectareasVacuno}
-                  onChange={(e) => setHectareasVacuno(parseFloat(e.target.value) || 0)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm text-gray-700 mb-1">Ovino</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={hectareasOvino}
-                  onChange={(e) => setHectareasOvino(parseFloat(e.target.value) || 0)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm text-gray-700 mb-1">Equino</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={hectareasEquino}
-                  onChange={(e) => setHectareasEquino(parseFloat(e.target.value) || 0)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm text-gray-700 mb-1">Desperdicios</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={hectareasDesperdicios}
-                  onChange={(e) => setHectareasDesperdicios(parseFloat(e.target.value) || 0)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
 
-            <div className="pt-2 border-t border-gray-200">
-              <span className="text-sm text-gray-600">Total: </span>
-              <span className="text-lg font-bold text-blue-600">
-                {(hectareasVacuno + hectareasOvino + hectareasEquino + hectareasDesperdicios).toFixed(2)} ha
-              </span>
+            <div className="space-y-6">
+              {/* Mes y Año */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Mes</label>
+                  <select
+                    value={nuevoMes}
+                    onChange={(e) => setNuevoMes(parseInt(e.target.value))}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  >
+                    {MESES.map((mes, idx) => (
+                      <option key={idx} value={idx + 1}>
+                        {mes}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Año</label>
+                  <input
+                    type="number"
+                    value={nuevoAnio}
+                    onChange={(e) => setNuevoAnio(parseInt(e.target.value))}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+
+              {/* CHECKBOX PARA USAR DISTRIBUCIÓN AUTOMÁTICA */}
+              {distribucionAutomatica && (
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-start gap-3">
+                    <input
+                      type="checkbox"
+                      checked={usarDistribucionAuto}
+                      onChange={(e) => setUsarDistribucionAuto(e.target.checked)}
+                      className="mt-1 w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                    />
+                    <div className="flex-1">
+                      <label className="text-sm font-medium text-blue-900 cursor-pointer">
+                        Usar distribución automática desde potreros
+                      </label>
+                      <p className="text-xs text-blue-700 mt-1">
+                        Calcula las hectáreas según las UG actuales de tus animales
+                      </p>
+                      
+                      {usarDistribucionAuto && (
+                        <div className="mt-3 p-3 bg-white rounded border border-blue-200 text-sm">
+                          <div className="font-semibold text-blue-900 mb-2">Distribución calculada:</div>
+                          <div className="grid grid-cols-2 gap-2 text-xs">
+                            <div>
+                              <span className="text-gray-600">Vacuno:</span>
+                              <span className="ml-2 font-medium">{distribucionAutomatica.hectareasVacuno} ha ({distribucionAutomatica.porcentajes.vacuno.toFixed(0)}%)</span>
+                            </div>
+                            <div>
+                              <span className="text-gray-600">Ovino:</span>
+                              <span className="ml-2 font-medium">{distribucionAutomatica.hectareasOvino} ha ({distribucionAutomatica.porcentajes.ovino.toFixed(0)}%)</span>
+                            </div>
+                            <div>
+                              <span className="text-gray-600">Equino:</span>
+                              <span className="ml-2 font-medium">{distribucionAutomatica.hectareasEquino} ha ({distribucionAutomatica.porcentajes.equino.toFixed(0)}%)</span>
+                            </div>
+                            <div>
+                              <span className="text-gray-600">Total:</span>
+                              <span className="ml-2 font-bold text-blue-600">{distribucionAutomatica.totalHectareas} ha</span>
+                            </div>
+                          </div>
+                          <div className="mt-2 pt-2 border-t border-blue-100 text-xs text-blue-700">
+                            Carga global: <strong>{distribucionAutomatica.cargaGlobal.toFixed(2)} UG/ha</strong>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* HECTÁREAS MANUALES (solo si NO usa automática) */}
+              {!usarDistribucionAuto && (
+                <div className="p-4 bg-gray-50 rounded-lg space-y-3">
+                  <h3 className="font-semibold text-gray-900">Distribución Manual de Hectáreas</h3>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm text-gray-700 mb-1">Vacuno</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={hectareasVacuno}
+                        onChange={(e) => setHectareasVacuno(parseFloat(e.target.value) || 0)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-gray-700 mb-1">Ovino</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={hectareasOvino}
+                        onChange={(e) => setHectareasOvino(parseFloat(e.target.value) || 0)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-gray-700 mb-1">Equino</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={hectareasEquino}
+                        onChange={(e) => setHectareasEquino(parseFloat(e.target.value) || 0)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-gray-700 mb-1">Desperdicios</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={hectareasDesperdicios}
+                        onChange={(e) => setHectareasDesperdicios(parseFloat(e.target.value) || 0)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="pt-2 border-t border-gray-200">
+                    <span className="text-sm text-gray-600">Total: </span>
+                    <span className="text-lg font-bold text-blue-600">
+                      {(hectareasVacuno + hectareasOvino + hectareasEquino + hectareasDesperdicios).toFixed(2)} ha
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-8 flex gap-3">
+              <button
+                onClick={() => setModalNuevoMes(false)}
+                className="flex-1 px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={crearNuevoMes}
+                className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+              >
+                Crear Mes
+              </button>
             </div>
           </div>
         </div>
+      )}
 
-        <div className="mt-8 flex gap-3">
-          <button
-            onClick={() => setModalNuevoMes(false)}
-            className="flex-1 px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium"
-          >
-            Cancelar
-          </button>
-          <button
-            onClick={crearNuevoMes}
-            className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
-          >
-            Crear Mes
-          </button>
+      {/* MODAL EDITAR HECTÁREAS (sin cambios) */}
+      {modalEditarHectareas && costoActual && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full p-8">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-gray-900">
+                Editar Hectáreas - {MESES[costoActual.mes - 1]} {costoActual.anio}
+              </h2>
+              <button
+                onClick={() => setModalEditarHectareas(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="p-4 bg-gray-50 rounded-lg space-y-3">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm text-gray-700 mb-1">Vacuno</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={hectareasVacuno}
+                    onChange={(e) => setHectareasVacuno(parseFloat(e.target.value) || 0)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-700 mb-1">Ovino</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={hectareasOvino}
+                    onChange={(e) => setHectareasOvino(parseFloat(e.target.value) || 0)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-700 mb-1">Equino</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={hectareasEquino}
+                    onChange={(e) => setHectareasEquino(parseFloat(e.target.value) || 0)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-700 mb-1">Desperdicios</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={hectareasDesperdicios}
+                    onChange={(e) => setHectareasDesperdicios(parseFloat(e.target.value) || 0)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-gray-200">
+                <span className="text-sm text-gray-600">Total: </span>
+                <span className="text-lg font-bold text-blue-600">
+                  {(hectareasVacuno + hectareasOvino + hectareasEquino + hectareasDesperdicios).toFixed(2)} ha
+                </span>
+              </div>
+            </div>
+
+            <div className="mt-8 flex gap-3">
+              <button
+                onClick={() => setModalEditarHectareas(false)}
+                className="flex-1 px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={guardarHectareas}
+                className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+              >
+                Guardar Cambios
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
     </div>
-  )}
-
-  {/* MODAL EDITAR HECTÁREAS */}
-  {modalEditarHectareas && costoActual && (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full p-8">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">
-            Editar Hectáreas - {MESES[costoActual.mes - 1]} {costoActual.anio}
-          </h2>
-          <button
-            onClick={() => setModalEditarHectareas(false)}
-            className="text-gray-400 hover:text-gray-600"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-
-        <div className="p-4 bg-gray-50 rounded-lg space-y-3">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm text-gray-700 mb-1">Vacuno</label>
-              <input
-                type="number"
-                step="0.01"
-                value={hectareasVacuno}
-                onChange={(e) => setHectareasVacuno(parseFloat(e.target.value) || 0)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm text-gray-700 mb-1">Ovino</label>
-              <input
-                type="number"
-                step="0.01"
-                value={hectareasOvino}
-                onChange={(e) => setHectareasOvino(parseFloat(e.target.value) || 0)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm text-gray-700 mb-1">Equino</label>
-              <input
-                type="number"
-                step="0.01"
-                value={hectareasEquino}
-                onChange={(e) => setHectareasEquino(parseFloat(e.target.value) || 0)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm text-gray-700 mb-1">Desperdicios</label>
-              <input
-                type="number"
-                step="0.01"
-                value={hectareasDesperdicios}
-                onChange={(e) => setHectareasDesperdicios(parseFloat(e.target.value) || 0)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-          </div>
-
-          <div className="pt-2 border-t border-gray-200">
-            <span className="text-sm text-gray-600">Total: </span>
-            <span className="text-lg font-bold text-blue-600">
-              {(hectareasVacuno + hectareasOvino + hectareasEquino + hectareasDesperdicios).toFixed(2)} ha
-            </span>
-          </div>
-        </div>
-
-        <div className="mt-8 flex gap-3">
-          <button
-            onClick={() => setModalEditarHectareas(false)}
-            className="flex-1 px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium"
-          >
-            Cancelar
-          </button>
-          <button
-            onClick={guardarHectareas}
-            className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
-          >
-            Guardar Cambios
-          </button>
-        </div>
-      </div>
-    </div>
-  )}
-</div>
-)
+  )
 }
