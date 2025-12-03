@@ -557,37 +557,47 @@ async function handleInvoiceButtonResponse(
       }
 
       // Guardar cada ítem como gasto
-      for (const item of invoiceData.items) {
-        const montoOriginal = item.precioFinal
-        const montoEnUYU =
-          monedaFactura === "USD" ? montoOriginal * tasaCambio : montoOriginal
+for (const item of invoiceData.items) {
+  const montoOriginal = item.precioFinal
+  const montoEnUYU =
+    monedaFactura === "USD" ? montoOriginal * tasaCambio : montoOriginal
+  
+  // ✅ Calcular montoEnUSD
+  const montoEnUSD =
+    monedaFactura === "USD" 
+      ? montoOriginal 
+      : montoOriginal / (tasaCambio || 40)
 
-        await prisma.gasto.create({
-          data: {
-            tipo: invoiceData.tipo,
-            fecha: new Date(invoiceData.fecha),
-            descripcion: item.descripcion,
-            categoria: item.categoria,
-            proveedor: invoiceData.proveedor,
-            metodoPago: invoiceData.metodoPago,
-            pagado: invoiceData.pagado,
-            diasPlazo: invoiceData.diasPlazo || null,
-            iva: item.iva,
-            campoId,
-            imageUrl,
-            imageName,
+  await prisma.gasto.create({
+    data: {
+      tipo: invoiceData.tipo,
+      fecha: new Date(invoiceData.fecha),
+      descripcion: item.descripcion,
+      categoria: item.categoria,
+      proveedor: invoiceData.proveedor,
+      metodoPago: invoiceData.metodoPago,
+      pagado: invoiceData.pagado,
+      diasPlazo: invoiceData.diasPlazo || null,
+      iva: item.iva,
+      campoId,
+      imageUrl,
+      imageName,
 
-            // nuevos campos
-            moneda: monedaFactura,
-            montoOriginal,
-            tasaCambio,
-            montoEnUYU,
+      // campos de moneda
+      moneda: monedaFactura,
+      montoOriginal,
+      tasaCambio,
+      montoEnUYU,
+      montoEnUSD,  // ✅ AGREGAR
+      
+      // asignación de especie
+      especie: null,  // ✅ AGREGAR (el bot no asigna especie)
 
-            // compatibilidad
-            monto: montoEnUYU,
-          },
-        })
-      }
+      // compatibilidad
+      monto: montoEnUYU,
+    },
+  })
+}
 
       await sendWhatsAppMessage(
         phoneNumber,
@@ -1066,16 +1076,15 @@ async function handleDataEntry(data: any) {
   }
 
   if (data.tipo === "GASTO") {
-  // 👇 Si no viene nada, asumimos que es un gasto en pesos uruguayos
   const moneda = data.moneda === "USD" ? "USD" : "UYU"
-
   const montoOriginal = data.monto ?? 0
 
   let tasaCambio: number | null = null
   let montoEnUYU = montoOriginal
+  let montoEnUSD = montoOriginal  // ✅ NUEVO
 
-  // Si algún día el parser manda USD desde texto/audio, ya queda cubierto
   if (moneda === "USD") {
+    // Gasto en dólares
     try {
       tasaCambio = await getUSDToUYU()
     } catch (err) {
@@ -1083,6 +1092,15 @@ async function handleDataEntry(data: any) {
       tasaCambio = 40
     }
     montoEnUYU = montoOriginal * tasaCambio
+    montoEnUSD = montoOriginal
+  } else {
+    // Gasto en pesos uruguayos
+    try {
+      tasaCambio = await getUSDToUYU()
+      montoEnUSD = montoOriginal / tasaCambio
+    } catch (err) {
+      montoEnUSD = montoOriginal / 40
+    }
   }
 
   await prisma.gasto.create({
@@ -1104,43 +1122,45 @@ async function handleDataEntry(data: any) {
       proveedor: data.proveedor || null,
       iva: data.iva ?? null,
 
-      // 💵 nuevos campos de moneda
+      // 💵 campos de moneda
       moneda,
       montoOriginal,
       tasaCambio,
       montoEnUYU,
+      montoEnUSD,  // ✅ NUEVO
+      especie: null,  // ✅ NUEVO (el bot no asigna especie)
 
-      // compatibilidad con lo viejo
+      // compatibilidad
       monto: montoEnUYU,
     },
   })
 
   return
 } else if (data.tipo === "LLUVIA") {
-    await prisma.evento.create({
-      data: {
-        tipo: "LLUVIA",
-        descripcion: data.descripcion,
-        fecha: new Date(),
-        cantidad: data.cantidad,
-        usuarioId: user.id,
-        campoId: user.campoId,
-      },
-    })
-  } else {
-    await prisma.evento.create({
-      data: {
-        tipo: data.tipo,
-        descripcion: data.descripcion || `${data.tipo} registrado`,
-        fecha: new Date(),
-        cantidad: data.cantidad || null,
-        categoria: data.categoria || null,
-        loteId,
-        usuarioId: user.id,
-        campoId: user.campoId,
-      },
-    })
-  }
+  await prisma.evento.create({
+    data: {
+      tipo: "LLUVIA",
+      descripcion: data.descripcion,
+      fecha: new Date(),
+      cantidad: data.cantidad,
+      usuarioId: user.id,
+      campoId: user.campoId,
+    },
+  })
+} else {
+  await prisma.evento.create({
+    data: {
+      tipo: data.tipo,
+      descripcion: data.descripcion || `${data.tipo} registrado`,
+      fecha: new Date(),
+      cantidad: data.cantidad || null,
+      categoria: data.categoria || null,
+      loteId,
+      usuarioId: user.id,
+      campoId: user.campoId,
+    },
+  })
+}
 
   console.log(`Dato guardado: ${data.tipo}`)
 }
