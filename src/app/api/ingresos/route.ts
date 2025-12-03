@@ -151,6 +151,12 @@ const fechaISO = fecha.includes('T') ? fecha : `${fecha}T12:00:00.000Z`
 // -----------------------------------------------------
 // 🧱 DATA FINAL PARA CREAR INGRESO
 // -----------------------------------------------------
+
+// ✅ Calcular montoEnUSD
+const montoEnUSD = monedaIngreso === "USD" 
+  ? montoOriginalFinal 
+  : montoOriginalFinal / (tasaCambio || 40)
+
 const dataToCreate = {
   tipo: 'INGRESO',
 
@@ -159,9 +165,11 @@ const dataToCreate = {
   montoOriginal: montoOriginalFinal,
   moneda: monedaIngreso,
   montoEnUYU: montoEnUYUFinal,
+  montoEnUSD: montoEnUSD,  // ✅ NUEVO
   tasaCambio: tasaCambio,
+  especie: null,  // ✅ NUEVO (ingresos no se asignan a especies)
 
-  fecha: new Date(fechaISO),  // 👈 AQUÍ el cambio
+  fecha: new Date(fechaISO),
   descripcion,
   categoria: categoria || 'Otros',
 
