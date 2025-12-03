@@ -98,11 +98,23 @@ model Campo {
 
   compras Compra[]
 
-  costosEstructurados CostoMensual[]
-
 }
 
-
+model CategoriaGasto {
+  id        String   @id @default(cuid())
+  nombre    String
+  color     String
+  campoId   String
+  activo    Boolean  @default(true)
+  orden     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  campo Campo @relation(fields: [campoId], references: [id], onDelete: Cascade)
+  
+  @@unique([nombre, campoId])
+  @@index([campoId])
+}
 
 model TipoCultivo {
   id        String   @id @default(cuid())
@@ -698,109 +710,3 @@ model CompraRenglon {
   @@index([compraId])
   @@index([animalLoteId])
 }
-
-
-
-
-
-
-
-
-
-
-
-// ==========================================
-// 🔗 EXTENDER CategoriaGasto CON MAPEO
-// ==========================================
-
-model CategoriaGasto {
-  id        String   @id @default(cuid())
-  nombre    String
-  color     String
-  campoId   String
-  activo    Boolean  @default(true)
-  orden     Int      @default(0)
-  
-  // 🆕 MAPEO A COSTOS ESTRUCTURADOS
-  mapeadaACostos            Boolean  @default(false)  // si se importa a costos estructurados
-  categoriaCostoEstructurado String?  // "COSTOS_FIJOS", "COMBUSTIBLES", etc
-  subcategoriaCosto          String?  // "BPS Rural", "Gas Oil", etc
-  
-  // 🆕 DISTRIBUCIÓN POR TIPO DE ANIMAL (suma debe ser 100)
-  porcentajeVacuno    Float    @default(100)
-  porcentajeOvino     Float    @default(0)
-  porcentajeEquino    Float    @default(0)
-  porcentajeDesperdicios Float @default(0)
-  
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
-  campo Campo @relation(fields: [campoId], references: [id], onDelete: Cascade)
-  
-  @@unique([nombre, campoId])
-  @@index([campoId])
-}
-
-// ==========================================
-// 💰 COSTOS MENSUALES ESTRUCTURADOS
-// ==========================================
-
-model CostoMensual {
-  id          String   @id @default(cuid())
-  campoId     String
-  mes         Int      // 1-12
-  anio        Int      // 2024, 2025...
-  
-  // 📊 DISTRIBUCIÓN DE HECTÁREAS (como en Excel imagen 1)
-  hectareasVacuno       Float  @default(0)
-  hectareasOvino        Float  @default(0)
-  hectareasEquino       Float  @default(0)
-  hectareasDesperdicios Float  @default(0)
-  hectareasTotal        Float  @default(0)
-  
-  // 📝 ESTADO
-  bloqueado   Boolean  @default(false)  // si está cerrado, no se puede editar
-  notas       String?
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  campo       Campo    @relation(fields: [campoId], references: [id], onDelete: Cascade)
-  renglones   CostoRenglon[]
-  
-  @@unique([campoId, mes, anio])
-  @@index([campoId, anio, mes])
-}
-
-model CostoRenglon {
-  id               String   @id @default(cuid())
-  costoMensualId   String
-  
-  // 🏷️ CATEGORÍA Y SUBCATEGORÍA (estructura fija del Excel)
-  categoria        String   // "COSTOS_FIJOS", "ADMINISTRACION", etc
-  subcategoria     String   // "BPS Rural", "Asesoramiento", etc
-  orden            Int      @default(0)
-  
-  // 💵 MONTOS POR TIPO (en USD)
-  montoTotalUSD        Float    @default(0)
-  montoVacunoUSD       Float    @default(0)
-  montoOvinoUSD        Float    @default(0)
-  montoEquinoUSD       Float    @default(0)
-  montoDesperdiciosUSD Float    @default(0)
-  
-  // 📝 METADATA
-  esTotal          Boolean  @default(false)  // si es fila de TOTAL (calculada)
-  editable         Boolean  @default(true)   // si permite edición manual
-  ultimaImportacion DateTime?                // última vez que se importó desde gastos
-  
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-  
-  costoMensual     CostoMensual @relation(fields: [costoMensualId], references: [id], onDelete: Cascade)
-  
-  @@unique([costoMensualId, categoria, subcategoria])
-  @@index([costoMensualId])
-  @@index([categoria, orden])
-}
-
-
