@@ -22,7 +22,9 @@ import {
   ModalRiego,
   ModalRefertilizacion,
   ModalPulverizacion,
+  ModalCompra,
   ModalVenta,  // ← AGREGAR ESTE IMPORT
+  
 } from '@/app/components/modales'
 
 type ModalNuevoDatoProps = {
@@ -97,7 +99,8 @@ export default function ModalNuevoDato({
         {tipo === 'refertilizacion' && <ModalRefertilizacion onClose={onClose} onSuccess={handleSuccess} />}
         {tipo === 'pulverizacion' && <ModalPulverizacion onClose={onClose} onSuccess={handleSuccess} />}
         {tipo === 'venta' && <ModalVenta onClose={onClose} onSuccess={handleSuccess} />} 
-        
+        {tipo === 'compra' && <ModalCompra onClose={onClose} onSuccess={handleSuccess} />}
+
         {tipo === 'recategorizacion' && (         
           <ModalRecategorizacion 
             isOpen={isOpen}
