@@ -68,6 +68,11 @@ async function crearGastoFinanciero({
   const tasaCambio = await obtenerTasaCambio(moneda)
   const montoEnUYU = await convertirAUYU(monto, moneda)
   
+  // ✅ Calcular montoEnUSD
+  const montoEnUSD = moneda === "USD" 
+    ? monto 
+    : monto / (tasaCambio || 40)
+  
   return prisma.gasto.create({
     data: {
       tipo,
@@ -76,6 +81,8 @@ async function crearGastoFinanciero({
       moneda,
       tasaCambio,
       montoEnUYU,
+      montoEnUSD,  // ✅ NUEVO
+      especie: null,  // ✅ NUEVO (eventos del sistema no asignan especie)
       fecha,
       descripcion,
       categoria: categoria || "Otros",
