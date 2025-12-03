@@ -155,7 +155,14 @@ export async function POST(request: Request) {
         }
       }
 
-      // Guardar en BD
+      
+// Guardar en BD
+
+// ✅ Calcular montoEnUSD
+const montoEnUSD = moneda === "USD" 
+  ? precioFinal 
+  : precioFinal / (tasaCambio || 40)
+
 await prisma.gasto.create({
   data: {
     tipo: "GASTO",
@@ -171,11 +178,13 @@ await prisma.gasto.create({
     imageUrl,
     imageName,
     
-    // 💵 Campos de moneda (para que coincida con tu nuevo modelo)
+    // 💵 Campos de moneda
     moneda,
     montoOriginal: precioFinal,
     tasaCambio,
     montoEnUYU,
+    montoEnUSD,  // ✅ NUEVO
+    especie: null,  // ✅ NUEVO (flows no asignan especie)
     monto: montoEnUYU
   }
 })
