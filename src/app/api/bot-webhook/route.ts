@@ -8,6 +8,8 @@ import {
   uploadInvoiceToSupabase,
 } from "@/lib/supabase-storage"
 import crypto from "crypto"
+// CAMBIO 1: Import agregado
+import { buscarPotreroPorNombre, buscarAnimalesEnPotrero, obtenerNombresPotreros } from "@/lib/potrero-helpers"
 
 const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || "mi_token_secreto"
 const WHATSAPP_TOKEN = process.env.WHATSAPP_TOKEN
@@ -156,10 +158,13 @@ export async function POST(request: Request) {
     // FASE 3: Procesar con GPT (texto/audio)
     const parsedData = await parseMessageWithAI(messageText, from)
 
+    // CAMBIO 2: Agregado manejo de CAMBIO_POTRERO
     if (parsedData) {
-      // DECIDIR: Flow para GASTOS, botones para el resto
+      // DECIDIR: Flow para GASTOS, CAMBIO_POTRERO especial, botones para el resto
       if (parsedData.tipo === "GASTO") {
         await solicitarConfirmacionConFlow(from, parsedData)
+      } else if (parsedData.tipo === "CAMBIO_POTRERO") {
+        await handleCambioPotrero(from, parsedData)
       } else {
         await solicitarConfirmacion(from, parsedData)
       }
@@ -173,7 +178,8 @@ export async function POST(request: Request) {
         "• nacieron 3 terneros en potrero norte\n" +
         "• murieron 2 vacas en lote sur\n" +
         "• llovieron 25mm\n" +
-        "• gasté $5000 en alimento\n\n" +
+        "• gasté $5000 en alimento\n" +
+        "• moví 10 vacas del potrero norte al sur\n\n" +
         "También podés enviarme un *audio* o una *foto de factura*"
     )
 
@@ -188,12 +194,8 @@ export async function POST(request: Request) {
    FLOW PARA GASTOS
    =============================== */
 
-/**
- * Solicitar confirmación con Flow (solo para GASTOS)
- */
 async function solicitarConfirmacionConFlow(phone: string, data: any) {
   try {
-    // Si no está configurado el Flow, usar botones tradicionales
     if (!FLOW_GASTO_ID) {
       console.log("Flow no configurado, usando botones")
       await solicitarConfirmacion(phone, data)
@@ -202,7 +204,6 @@ async function solicitarConfirmacionConFlow(phone: string, data: any) {
 
     const flowToken = crypto.randomBytes(16).toString('hex')
 
-    // Guardar datos del gasto en pendingConfirmation
     await prisma.pendingConfirmation.upsert({
       where: { telefono: phone },
       create: {
@@ -282,8 +283,6 @@ async function solicitarConfirmacionConFlow(phone: string, data: any) {
     if (!response.ok) {
       const error = await response.json()
       console.error("Error enviando Flow:", error)
-      
-      // Fallback a botones si falla
       await solicitarConfirmacion(phone, data)
       return
     }
@@ -292,24 +291,19 @@ async function solicitarConfirmacionConFlow(phone: string, data: any) {
 
   } catch (error) {
     console.error("Error en solicitarConfirmacionConFlow:", error)
-    // Fallback a botones si hay error
     await solicitarConfirmacion(phone, data)
   }
 }
 
 /* ===============================
-   🧾 FACTURAS POR IMAGEN
+   FACTURAS POR IMAGEN
    =============================== */
 
-/**
- * Handler para IMÁGENES DE FACTURAS
- */
 async function handleImageMessage(message: any, phoneNumber: string) {
   try {
     const mediaId = message.image.id
     const caption = message.image.caption || ""
 
-    // Buscar usuario y campo asociado
     const user = await prisma.user.findUnique({
       where: { telefono: phoneNumber },
       include: { campo: true },
@@ -323,13 +317,11 @@ async function handleImageMessage(message: any, phoneNumber: string) {
       return
     }
 
-    // Mensaje de procesamiento
     await sendWhatsAppMessage(
       phoneNumber,
       "Procesando factura... un momento"
     )
 
-    // 1️⃣ Descargar imagen de WhatsApp
     const imageData = await downloadWhatsAppImage(mediaId)
     if (!imageData) {
       await sendWhatsAppMessage(
@@ -339,7 +331,6 @@ async function handleImageMessage(message: any, phoneNumber: string) {
       return
     }
 
-    // 2️⃣ Subir a Supabase Storage (para tener URL permanente)
     const uploadResult = await uploadInvoiceToSupabase(
       imageData.buffer,
       imageData.mimeType,
@@ -351,7 +342,6 @@ async function handleImageMessage(message: any, phoneNumber: string) {
       return
     }
 
-    // 3️⃣ Procesar con Vision API
     const invoiceData = await processInvoiceImage(uploadResult.url)
 
     if (!invoiceData || !invoiceData.items || invoiceData.items.length === 0) {
@@ -362,9 +352,8 @@ async function handleImageMessage(message: any, phoneNumber: string) {
       return
     }
 
-    // 4️⃣ Guardar SOLO en pendingConfirmation (NO guardar gastos todavía)
     const invoiceConfirmationData = {
-      tipo: "INVOICE", // marcador especial
+      tipo: "INVOICE",
       invoiceData,
       imageUrl: uploadResult.url,
       imageName: uploadResult.fileName,
@@ -380,7 +369,6 @@ async function handleImageMessage(message: any, phoneNumber: string) {
       },
     })
 
-    // 5️⃣ Enviar Flow en lugar de botones
     await sendInvoiceFlowMessage(phoneNumber, invoiceData)
   } catch (error) {
     console.error("Error en handleImageMessage:", error)
@@ -391,15 +379,11 @@ async function handleImageMessage(message: any, phoneNumber: string) {
   }
 }
 
-/**
- * Enviar Flow para editar factura
- */
 async function sendInvoiceFlowMessage(
   phoneNumber: string,
   invoiceData: any
 ) {
   try {
-    // Si no está configurado el Flow, usar botones tradicionales
     if (!FLOW_GASTO_ID) {
       console.error("FLOW_GASTO_ID no configurado")
       await sendInvoiceConfirmation(phoneNumber, invoiceData)
@@ -408,7 +392,6 @@ async function sendInvoiceFlowMessage(
 
     const flowToken = crypto.randomBytes(16).toString('hex')
 
-    // Actualizar pendingConfirmation con el token del Flow
     await prisma.pendingConfirmation.upsert({
       where: { telefono: phoneNumber },
       create: {
@@ -488,8 +471,6 @@ async function sendInvoiceFlowMessage(
     if (!response.ok) {
       const error = await response.json()
       console.error("Error enviando Flow:", error)
-      
-      // Fallback a botones tradicionales
       await sendInvoiceConfirmation(phoneNumber, invoiceData)
       return false
     }
@@ -504,10 +485,6 @@ async function sendInvoiceFlowMessage(
   }
 }
 
-/**
- * Manejar respuestas de botones de FACTURA
- * IDs: "invoice_confirm", "invoice_edit", "invoice_cancel"
- */
 async function handleInvoiceButtonResponse(
   phoneNumber: string,
   buttonId: string
@@ -535,11 +512,8 @@ async function handleInvoiceButtonResponse(
       return
     }
 
-    const action = buttonId.replace("invoice_", "") // confirm | edit | cancel
+    const action = buttonId.replace("invoice_", "")
 
-    // ============================
-    // CONFIRMAR FACTURA
-    // ============================
     if (action === "confirm") {
       const { invoiceData, imageUrl, imageName, campoId } = savedData
 
@@ -556,48 +530,40 @@ async function handleInvoiceButtonResponse(
         }
       }
 
-      // Guardar cada ítem como gasto
-for (const item of invoiceData.items) {
-  const montoOriginal = item.precioFinal
-  const montoEnUYU =
-    monedaFactura === "USD" ? montoOriginal * tasaCambio : montoOriginal
-  
-  // ✅ Calcular montoEnUSD
-  const montoEnUSD =
-    monedaFactura === "USD" 
-      ? montoOriginal 
-      : montoOriginal / (tasaCambio || 40)
+      for (const item of invoiceData.items) {
+        const montoOriginal = item.precioFinal
+        const montoEnUYU =
+          monedaFactura === "USD" ? montoOriginal * tasaCambio : montoOriginal
+        
+        const montoEnUSD =
+          monedaFactura === "USD" 
+            ? montoOriginal 
+            : montoOriginal / (tasaCambio || 40)
 
-  await prisma.gasto.create({
-    data: {
-      tipo: invoiceData.tipo,
-      fecha: new Date(invoiceData.fecha),
-      descripcion: item.descripcion,
-      categoria: item.categoria,
-      proveedor: invoiceData.proveedor,
-      metodoPago: invoiceData.metodoPago,
-      pagado: invoiceData.pagado,
-      diasPlazo: invoiceData.diasPlazo || null,
-      iva: item.iva,
-      campoId,
-      imageUrl,
-      imageName,
-
-      // campos de moneda
-      moneda: monedaFactura,
-      montoOriginal,
-      tasaCambio,
-      montoEnUYU,
-      montoEnUSD,  // ✅ AGREGAR
-      
-      // asignación de especie
-      especie: null,  // ✅ AGREGAR (el bot no asigna especie)
-
-      // compatibilidad
-      monto: montoEnUYU,
-    },
-  })
-}
+        await prisma.gasto.create({
+          data: {
+            tipo: invoiceData.tipo,
+            fecha: new Date(invoiceData.fecha),
+            descripcion: item.descripcion,
+            categoria: item.categoria,
+            proveedor: invoiceData.proveedor,
+            metodoPago: invoiceData.metodoPago,
+            pagado: invoiceData.pagado,
+            diasPlazo: invoiceData.diasPlazo || null,
+            iva: item.iva,
+            campoId,
+            imageUrl,
+            imageName,
+            moneda: monedaFactura,
+            montoOriginal,
+            tasaCambio,
+            montoEnUYU,
+            montoEnUSD,
+            especie: null,
+            monto: montoEnUYU,
+          },
+        })
+      }
 
       await sendWhatsAppMessage(
         phoneNumber,
@@ -611,9 +577,6 @@ for (const item of invoiceData.items) {
       return
     }
 
-    // ============================
-    // CANCELAR FACTURA
-    // ============================
     if (action === "cancel") {
       await sendWhatsAppMessage(
         phoneNumber,
@@ -626,9 +589,6 @@ for (const item of invoiceData.items) {
       return
     }
 
-    // ============================
-    // EDITAR FACTURA
-    // ============================
     if (action === "edit") {
       await sendWhatsAppMessage(
         phoneNumber,
@@ -649,9 +609,6 @@ for (const item of invoiceData.items) {
   }
 }
 
-/**
- * Enviar resumen de factura con botones (usa ids invoice_*)
- */
 async function sendInvoiceConfirmation(phoneNumber: string, data: any) {
   const itemsList = data.items
     .map(
@@ -684,9 +641,6 @@ async function sendInvoiceConfirmation(phoneNumber: string, data: any) {
    INVITACIONES / REGISTRO
    =============================== */
 
-/**
- * Detectar si el mensaje es un token
- */
 async function isToken(message: string): Promise<boolean> {
   if (message.length < 20 || message.length > 50) return false
 
@@ -697,9 +651,6 @@ async function isToken(message: string): Promise<boolean> {
   return !!invitation
 }
 
-/**
- * Manejar registro por token
- */
 async function handleTokenRegistration(phone: string, token: string) {
   try {
     const invitation = await prisma.invitation.findUnique({
@@ -722,7 +673,6 @@ async function handleTokenRegistration(phone: string, token: string) {
       return
     }
 
-    // COLABORADOR → Guardar teléfono y enviar link web
     if (invitation.role === "COLABORADOR") {
       const existingUser = await prisma.user.findUnique({
         where: { telefono: phone },
@@ -756,7 +706,6 @@ async function handleTokenRegistration(phone: string, token: string) {
       return
     }
 
-    // CONTADOR → Solo web
     if (invitation.role === "CONTADOR") {
       const webUrl = process.env.NEXTAUTH_URL || "https://botrural.vercel.app"
       const registerLink = `${webUrl}/register?token=${token}`
@@ -767,7 +716,6 @@ async function handleTokenRegistration(phone: string, token: string) {
       return
     }
 
-    // EMPLEADO → Flujo por WhatsApp
     if (invitation.role === "EMPLEADO") {
       const existingUser = await prisma.user.findUnique({
         where: { telefono: phone },
@@ -800,9 +748,6 @@ async function handleTokenRegistration(phone: string, token: string) {
   }
 }
 
-/**
- * Manejar nombre del empleado
- */
 async function handleNombreRegistro(
   phone: string,
   nombreCompleto: string,
@@ -833,6 +778,7 @@ async function handleNombreRegistro(
         `• nacieron 3 terneros en potrero norte\n` +
         `• llovieron 25mm\n` +
         `• gasté $5000 en alimento\n` +
+        `• moví 10 vacas del potrero norte al sur\n` +
         `• foto de factura`
     )
   } catch (error) {
@@ -841,9 +787,6 @@ async function handleNombreRegistro(
   }
 }
 
-/**
- * Registrar empleado en la BD
- */
 async function registrarEmpleadoBot(
   telefono: string,
   nombreCompleto: string,
@@ -896,9 +839,6 @@ async function registrarEmpleadoBot(
    CONFIRMACIÓN TEXTO / AUDIO
    =============================== */
 
-/**
- * Solicitar confirmación al usuario (para texto/audio)
- */
 async function solicitarConfirmacion(phone: string, data: any) {
   let mensaje = "*Entendí:*\n\n"
 
@@ -952,9 +892,6 @@ async function solicitarConfirmacion(phone: string, data: any) {
   await sendWhatsAppMessageWithButtons(phone, mensaje)
 }
 
-/**
- * Manejar confirmación del usuario (SOLO texto/audio, NO facturas)
- */
 async function handleConfirmacion(
   phone: string,
   respuesta: string,
@@ -964,7 +901,6 @@ async function handleConfirmacion(
 
   const data = JSON.parse(confirmacion.data)
 
-  // Si es una factura, no se maneja acá
   if (data.tipo === "INVOICE") {
     await sendWhatsAppMessage(
       phone,
@@ -973,7 +909,7 @@ async function handleConfirmacion(
     return
   }
 
-  // CONFIRMAR
+  // CAMBIO 3: Soporte para CAMBIO_POTRERO en confirmación
   if (
     respuestaLower === "confirmar" ||
     respuestaLower === "si" ||
@@ -982,7 +918,11 @@ async function handleConfirmacion(
     respuesta === "btn_confirmar"
   ) {
     try {
-      await handleDataEntry(data)
+      if (data.tipo === "CAMBIO_POTRERO") {
+        await ejecutarCambioPotrero(data)
+      } else {
+        await handleDataEntry(data)
+      }
       await sendWhatsAppMessage(
         phone,
         "*Dato guardado correctamente* en el sistema."
@@ -1004,7 +944,6 @@ async function handleConfirmacion(
     return
   }
 
-  // EDITAR
   if (
     respuestaLower === "editar" ||
     respuestaLower === "modificar" ||
@@ -1012,7 +951,7 @@ async function handleConfirmacion(
   ) {
     await sendWhatsAppMessage(
       phone,
-      "Ok, enviame los datos corregidos.\n\nEjemplo:\n• llovieron 30mm\n• nacieron 5 terneros"
+      "Ok, enviame los datos corregidos.\n\nEjemplo:\n• llovieron 30mm\n• nacieron 5 terneros\n• moví 10 vacas del norte al sur"
     )
 
     await prisma.pendingConfirmation
@@ -1024,7 +963,6 @@ async function handleConfirmacion(
     return
   }
 
-  // CANCELAR
   if (
     respuestaLower === "cancelar" ||
     respuestaLower === "no" ||
@@ -1050,9 +988,6 @@ async function handleConfirmacion(
   )
 }
 
-/**
- * Guardar dato en la BD (texto/audio)
- */
 async function handleDataEntry(data: any) {
   const user = await prisma.user.findUnique({
     where: { telefono: data.telefono },
@@ -1076,91 +1011,85 @@ async function handleDataEntry(data: any) {
   }
 
   if (data.tipo === "GASTO") {
-  const moneda = data.moneda === "USD" ? "USD" : "UYU"
-  const montoOriginal = data.monto ?? 0
+    const moneda = data.moneda === "USD" ? "USD" : "UYU"
+    const montoOriginal = data.monto ?? 0
 
-  let tasaCambio: number | null = null
-  let montoEnUYU = montoOriginal
-  let montoEnUSD = montoOriginal  // ✅ NUEVO
+    let tasaCambio: number | null = null
+    let montoEnUYU = montoOriginal
+    let montoEnUSD = montoOriginal
 
-  if (moneda === "USD") {
-    // Gasto en dólares
-    try {
-      tasaCambio = await getUSDToUYU()
-    } catch (err) {
-      console.log("Error obteniendo dólar → uso 40 por defecto")
-      tasaCambio = 40
+    if (moneda === "USD") {
+      try {
+        tasaCambio = await getUSDToUYU()
+      } catch (err) {
+        console.log("Error obteniendo dólar → uso 40 por defecto")
+        tasaCambio = 40
+      }
+      montoEnUYU = montoOriginal * tasaCambio
+      montoEnUSD = montoOriginal
+    } else {
+      try {
+        tasaCambio = await getUSDToUYU()
+        montoEnUSD = montoOriginal / tasaCambio
+      } catch (err) {
+        montoEnUSD = montoOriginal / 40
+      }
     }
-    montoEnUYU = montoOriginal * tasaCambio
-    montoEnUSD = montoOriginal
+
+    await prisma.gasto.create({
+      data: {
+        tipo: "GASTO",
+        fecha: new Date(),
+        descripcion: data.descripcion,
+        categoria: data.categoria || "Otros",
+        campoId: user.campoId,
+        metodoPago: data.metodoPago || "Contado",
+        diasPlazo:
+          data.metodoPago === "Plazo"
+            ? data.diasPlazo ?? null
+            : null,
+        pagado:
+          data.metodoPago === "Plazo"
+            ? (data.pagado !== undefined ? data.pagado : false)
+            : true,
+        proveedor: data.proveedor || null,
+        iva: data.iva ?? null,
+        moneda,
+        montoOriginal,
+        tasaCambio,
+        montoEnUYU,
+        montoEnUSD,
+        especie: null,
+        monto: montoEnUYU,
+      },
+    })
+
+    return
+  } else if (data.tipo === "LLUVIA") {
+    await prisma.evento.create({
+      data: {
+        tipo: "LLUVIA",
+        descripcion: data.descripcion,
+        fecha: new Date(),
+        cantidad: data.cantidad,
+        usuarioId: user.id,
+        campoId: user.campoId,
+      },
+    })
   } else {
-    // Gasto en pesos uruguayos
-    try {
-      tasaCambio = await getUSDToUYU()
-      montoEnUSD = montoOriginal / tasaCambio
-    } catch (err) {
-      montoEnUSD = montoOriginal / 40
-    }
+    await prisma.evento.create({
+      data: {
+        tipo: data.tipo,
+        descripcion: data.descripcion || `${data.tipo} registrado`,
+        fecha: new Date(),
+        cantidad: data.cantidad || null,
+        categoria: data.categoria || null,
+        loteId,
+        usuarioId: user.id,
+        campoId: user.campoId,
+      },
+    })
   }
-
-  await prisma.gasto.create({
-    data: {
-      tipo: "GASTO",
-      fecha: new Date(),
-      descripcion: data.descripcion,
-      categoria: data.categoria || "Otros",
-      campoId: user.campoId,
-      metodoPago: data.metodoPago || "Contado",
-      diasPlazo:
-        data.metodoPago === "Plazo"
-          ? data.diasPlazo ?? null
-          : null,
-      pagado:
-        data.metodoPago === "Plazo"
-          ? (data.pagado !== undefined ? data.pagado : false)
-          : true,
-      proveedor: data.proveedor || null,
-      iva: data.iva ?? null,
-
-      // 💵 campos de moneda
-      moneda,
-      montoOriginal,
-      tasaCambio,
-      montoEnUYU,
-      montoEnUSD,  // ✅ NUEVO
-      especie: null,  // ✅ NUEVO (el bot no asigna especie)
-
-      // compatibilidad
-      monto: montoEnUYU,
-    },
-  })
-
-  return
-} else if (data.tipo === "LLUVIA") {
-  await prisma.evento.create({
-    data: {
-      tipo: "LLUVIA",
-      descripcion: data.descripcion,
-      fecha: new Date(),
-      cantidad: data.cantidad,
-      usuarioId: user.id,
-      campoId: user.campoId,
-    },
-  })
-} else {
-  await prisma.evento.create({
-    data: {
-      tipo: data.tipo,
-      descripcion: data.descripcion || `${data.tipo} registrado`,
-      fecha: new Date(),
-      cantidad: data.cantidad || null,
-      categoria: data.categoria || null,
-      loteId,
-      usuarioId: user.id,
-      campoId: user.campoId,
-    },
-  })
-}
 
   console.log(`Dato guardado: ${data.tipo}`)
 }
@@ -1169,9 +1098,6 @@ async function handleDataEntry(data: any) {
    ENVÍO DE MENSAJES
    =============================== */
 
-/**
- * Enviar mensaje de WhatsApp (texto simple)
- */
 async function sendWhatsAppMessage(to: string, message: string) {
   try {
     const response = await fetch(
@@ -1200,9 +1126,6 @@ async function sendWhatsAppMessage(to: string, message: string) {
   }
 }
 
-/**
- * Enviar mensaje con botones interactivos (para texto/audio)
- */
 async function sendWhatsAppMessageWithButtons(
   to: string,
   bodyText: string
@@ -1258,7 +1181,6 @@ async function sendWhatsAppMessageWithButtons(
     if (!response.ok) {
       const error = await response.json()
       console.error("Error enviando botones:", error)
-
       await sendWhatsAppMessage(
         to,
         bodyText +
@@ -1267,7 +1189,6 @@ async function sendWhatsAppMessageWithButtons(
     }
   } catch (error) {
     console.error("Error en sendWhatsAppMessageWithButtons:", error)
-
     await sendWhatsAppMessage(
       to,
       bodyText +
@@ -1276,9 +1197,6 @@ async function sendWhatsAppMessageWithButtons(
   }
 }
 
-/**
- * Enviar mensaje con botones personalizados (para facturas)
- */
 async function sendCustomButtons(
   to: string,
   bodyText: string,
@@ -1319,7 +1237,6 @@ async function sendCustomButtons(
     if (!response.ok) {
       const error = await response.json()
       console.error("Error enviando botones personalizados:", error)
-
       await sendWhatsAppMessage(
         to,
         bodyText +
@@ -1328,11 +1245,260 @@ async function sendCustomButtons(
     }
   } catch (error) {
     console.error("Error en sendCustomButtons:", error)
-
     await sendWhatsAppMessage(
       to,
       bodyText +
         "\n\n¿Es correcto?\nRespondé: *confirmar*, *editar* o *cancelar*"
     )
   }
+}
+
+/* ===============================
+   CAMBIO DE POTRERO - NUEVAS FUNCIONES
+   =============================== */
+
+/**
+ * Manejar cambio de potrero desde WhatsApp
+ */
+async function handleCambioPotrero(phoneNumber: string, data: any) {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { telefono: phoneNumber },
+      select: { id: true, campoId: true },
+    })
+
+    if (!user || !user.campoId) {
+      await sendWhatsAppMessage(
+        phoneNumber,
+        "No encontré tu cuenta. Registrate primero."
+      )
+      return
+    }
+
+    const { cantidad, categoria, loteOrigen, loteDestino } = data
+
+    if (!categoria) {
+      await sendWhatsAppMessage(
+        phoneNumber,
+        "No entendí qué animales querés mover.\n\nEjemplo: *moví 10 vacas del potrero norte al sur*"
+      )
+      return
+    }
+
+    if (!loteOrigen || !loteDestino) {
+      await sendWhatsAppMessage(
+        phoneNumber,
+        "No entendí los potreros.\n\nEjemplo: *moví 10 vacas del potrero norte al sur*"
+      )
+      return
+    }
+
+    const potreroOrigen = await buscarPotreroPorNombre(loteOrigen, user.campoId)
+    
+    if (!potreroOrigen) {
+      const potreros = await obtenerNombresPotreros(user.campoId)
+      await sendWhatsAppMessage(
+        phoneNumber,
+        `No encontré el potrero "${loteOrigen}".\n\n` +
+        `Tus potreros son:\n${potreros.map(p => `• ${p}`).join('\n')}`
+      )
+      return
+    }
+
+    const potreroDestino = await buscarPotreroPorNombre(loteDestino, user.campoId)
+    
+    if (!potreroDestino) {
+      const potreros = await obtenerNombresPotreros(user.campoId)
+      await sendWhatsAppMessage(
+        phoneNumber,
+        `No encontré el potrero "${loteDestino}".\n\n` +
+        `Tus potreros son:\n${potreros.map(p => `• ${p}`).join('\n')}`
+      )
+      return
+    }
+
+    if (potreroOrigen.id === potreroDestino.id) {
+      await sendWhatsAppMessage(
+        phoneNumber,
+        "El potrero origen y destino son el mismo."
+      )
+      return
+    }
+
+    const resultadoBusqueda = await buscarAnimalesEnPotrero(categoria, potreroOrigen.id, user.campoId)
+    
+    if (!resultadoBusqueda.encontrado) {
+      if (resultadoBusqueda.opciones && resultadoBusqueda.opciones.length > 0) {
+        const opcionesTexto = resultadoBusqueda.opciones
+          .map(o => `• ${o.cantidad} ${o.categoria}`)
+          .join('\n')
+        
+        await sendWhatsAppMessage(
+          phoneNumber,
+          `${resultadoBusqueda.mensaje}\n\n` +
+          `En "${potreroOrigen.nombre}" hay:\n${opcionesTexto}\n\n` +
+          `Especificá cuál querés mover.`
+        )
+      } else {
+        await sendWhatsAppMessage(
+          phoneNumber,
+          `${resultadoBusqueda.mensaje || `No hay "${categoria}" en el potrero "${potreroOrigen.nombre}".`}`
+        )
+      }
+      return
+    }
+
+    const animalesOrigen = resultadoBusqueda.animal!
+
+    let cantidadMover = cantidad ? parseInt(cantidad) : animalesOrigen.cantidad
+    
+    if (cantidadMover <= 0) {
+      await sendWhatsAppMessage(
+        phoneNumber,
+        "La cantidad debe ser mayor a 0."
+      )
+      return
+    }
+
+    if (cantidadMover > animalesOrigen.cantidad) {
+      await sendWhatsAppMessage(
+        phoneNumber,
+        `No hay suficientes animales.\n\n` +
+        `Solo hay *${animalesOrigen.cantidad} ${animalesOrigen.categoria}* en "${potreroOrigen.nombre}".\n\n` +
+        `¿Querés mover los ${animalesOrigen.cantidad}?`
+      )
+      return
+    }
+
+    const confirmationData = {
+      tipo: "CAMBIO_POTRERO",
+      cantidad: cantidadMover,
+      categoria: animalesOrigen.categoria,
+      loteId: potreroOrigen.id,
+      loteDestinoId: potreroDestino.id,
+      loteOrigenNombre: potreroOrigen.nombre,
+      loteDestinoNombre: potreroDestino.nombre,
+      cantidadDisponible: animalesOrigen.cantidad,
+      telefono: phoneNumber,
+    }
+
+    await prisma.pendingConfirmation.upsert({
+      where: { telefono: phoneNumber },
+      create: {
+        telefono: phoneNumber,
+        data: JSON.stringify(confirmationData),
+      },
+      update: {
+        data: JSON.stringify(confirmationData),
+      },
+    })
+
+    const mensaje = 
+      `*Cambio de Potrero*\n\n` +
+      `*${cantidadMover} ${animalesOrigen.categoria}*\n` +
+      `De: *${potreroOrigen.nombre}*\n` +
+      `A: *${potreroDestino.nombre}*\n\n` +
+      (cantidadMover < animalesOrigen.cantidad 
+        ? `Quedarán ${animalesOrigen.cantidad - cantidadMover} ${animalesOrigen.categoria} en ${potreroOrigen.nombre}\n\n`
+        : '') +
+      `¿Confirmar?`
+
+    await sendWhatsAppMessageWithButtons(phoneNumber, mensaje)
+
+  } catch (error) {
+    console.error("Error en handleCambioPotrero:", error)
+    await sendWhatsAppMessage(
+      phoneNumber,
+      "Error procesando el cambio de potrero. Intentá de nuevo."
+    )
+  }
+}
+
+/**
+ * Ejecutar el cambio de potrero (después de confirmación)
+ */
+async function ejecutarCambioPotrero(data: any) {
+  const user = await prisma.user.findUnique({
+    where: { telefono: data.telefono },
+    select: { id: true, campoId: true },
+  })
+
+  if (!user || !user.campoId) {
+    throw new Error("Usuario no encontrado")
+  }
+
+  const animalOrigen = await prisma.animalLote.findFirst({
+    where: { 
+      loteId: data.loteId, 
+      categoria: data.categoria,
+      lote: { campoId: user.campoId }
+    },
+  })
+
+  if (!animalOrigen || animalOrigen.cantidad < data.cantidad) {
+    throw new Error("No hay suficientes animales")
+  }
+
+  const nuevaCantidadOrigen = animalOrigen.cantidad - data.cantidad
+  
+  if (nuevaCantidadOrigen === 0) {
+    await prisma.animalLote.delete({ where: { id: animalOrigen.id } })
+  } else {
+    await prisma.animalLote.update({
+      where: { id: animalOrigen.id },
+      data: { cantidad: nuevaCantidadOrigen },
+    })
+  }
+
+  const animalDestino = await prisma.animalLote.findFirst({
+    where: { 
+      loteId: data.loteDestinoId, 
+      categoria: data.categoria,
+      lote: { campoId: user.campoId }
+    },
+  })
+
+  if (animalDestino) {
+    await prisma.animalLote.update({
+      where: { id: animalDestino.id },
+      data: { cantidad: animalDestino.cantidad + data.cantidad },
+    })
+  } else {
+    await prisma.animalLote.create({
+      data: {
+        categoria: data.categoria,
+        cantidad: data.cantidad,
+        loteId: data.loteDestinoId,
+      },
+    })
+  }
+
+  await prisma.lote.update({
+    where: { id: data.loteId },
+    data: { ultimoCambio: new Date() },
+  })
+
+  await prisma.lote.update({
+    where: { id: data.loteDestinoId },
+    data: { ultimoCambio: new Date() },
+  })
+
+  const descripcion = `Cambio de ${data.cantidad} ${data.categoria} del potrero "${data.loteOrigenNombre}" al potrero "${data.loteDestinoNombre}".`
+
+  await prisma.evento.create({
+    data: {
+      tipo: "CAMBIO_POTRERO",
+      descripcion,
+      fecha: new Date(),
+      cantidad: data.cantidad,
+      categoria: data.categoria,
+      loteId: data.loteId,
+      loteDestinoId: data.loteDestinoId,
+      usuarioId: user.id,
+      campoId: user.campoId,
+      origenSnig: "BOT",
+    },
+  })
+
+  console.log(`Cambio de potrero ejecutado: ${descripcion}`)
 }
