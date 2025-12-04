@@ -35,7 +35,7 @@ export default function EvolucionUGDashboard() {
   const [loading, setLoading] = useState(true)
   const [periodo, setPeriodo] = useState<'mensual' | 'ejercicio'>('mensual')
   const [loteSeleccionado, setLoteSeleccionado] = useState<string | null>(null)
-  const [vistaActiva, setVistaActiva] = useState<'ug' | 'ug-ha'>('ug')
+  const [vistaActiva, setVistaActiva] = useState<'ug' | 'ug-ha'>('ug-ha')
   const [mostrarTemporadas, setMostrarTemporadas] = useState(true)
   const [vistaTabla, setVistaTabla] = useState(false)
 
