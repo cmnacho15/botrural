@@ -32,6 +32,7 @@ interface CostosData {
       vacunos: number
       ovinos: number
       equinos: number
+      sinAsignar: number
     }
     detalle: Array<{
       categoria: string
@@ -39,6 +40,7 @@ interface CostosData {
       vacunos: number
       ovinos: number
       equinos: number
+      sinAsignar: number
     }>
   }
   costosFijos: {
@@ -47,7 +49,6 @@ interface CostosData {
       vacunos: number
       ovinos: number
       equinos: number
-      global: number
     }
     detalle: Array<{
       categoria: string
@@ -55,14 +56,12 @@ interface CostosData {
       vacunos: number
       ovinos: number
       equinos: number
-      global: number
     }>
   }
   totales: {
     vacunos: number
     ovinos: number
     equinos: number
-    global: number
     general: number
   }
   usdPorHectarea: {
@@ -320,13 +319,23 @@ export default function CostosPage() {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>Costos Variables</CardTitle>
+            <CardTitle>Costos Variables Directos</CardTitle>
             <Badge variant="secondary" className="bg-green-100 text-green-800">
-              Distribución automática según % UG
+              Asignación directa por especie
             </Badge>
           </div>
         </CardHeader>
         <CardContent>
+          {data.costosVariables.porEspecie.sinAsignar > 0 && (
+            <Alert className="mb-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Hay ${formatUSD(data.costosVariables.porEspecie.sinAsignar)} en costos variables sin especie asignada. 
+                Editá esos gastos para asignarles una especie.
+              </AlertDescription>
+            </Alert>
+          )}
+          
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50">
@@ -358,13 +367,13 @@ export default function CostosPage() {
                       {formatUSD(item.totalUSD)}
                     </td>
                     <td className="px-4 py-3 text-sm text-right text-blue-600">
-                      {formatUSD(item.vacunos)}
+                      {item.vacunos > 0 ? formatUSD(item.vacunos) : '-'}
                     </td>
                     <td className="px-4 py-3 text-sm text-right text-green-600">
-                      {formatUSD(item.ovinos)}
+                      {item.ovinos > 0 ? formatUSD(item.ovinos) : '-'}
                     </td>
                     <td className="px-4 py-3 text-sm text-right text-amber-600">
-                      {formatUSD(item.equinos)}
+                      {item.equinos > 0 ? formatUSD(item.equinos) : '-'}
                     </td>
                   </tr>
                 ))}
@@ -395,7 +404,7 @@ export default function CostosPage() {
           <div className="flex items-center justify-between">
             <CardTitle>Costos Fijos</CardTitle>
             <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-              Asignación manual por especie
+              Distribución automática según % UG
             </Badge>
           </div>
         </CardHeader>
@@ -419,9 +428,6 @@ export default function CostosPage() {
                   <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
                     Equinos
                   </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                    Global
-                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
@@ -434,16 +440,13 @@ export default function CostosPage() {
                       {formatUSD(item.totalUSD)}
                     </td>
                     <td className="px-4 py-3 text-sm text-right text-blue-600">
-                      {item.vacunos > 0 ? formatUSD(item.vacunos) : '-'}
+                      {formatUSD(item.vacunos)}
                     </td>
                     <td className="px-4 py-3 text-sm text-right text-green-600">
-                      {item.ovinos > 0 ? formatUSD(item.ovinos) : '-'}
+                      {formatUSD(item.ovinos)}
                     </td>
                     <td className="px-4 py-3 text-sm text-right text-amber-600">
-                      {item.equinos > 0 ? formatUSD(item.equinos) : '-'}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-right text-gray-600">
-                      {item.global > 0 ? formatUSD(item.global) : '-'}
+                      {formatUSD(item.equinos)}
                     </td>
                   </tr>
                 ))}
@@ -460,9 +463,6 @@ export default function CostosPage() {
                   </td>
                   <td className="px-4 py-3 text-sm text-right text-amber-700">
                     {formatUSD(data.costosFijos.porEspecie.equinos)}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-right text-gray-700">
-                    {formatUSD(data.costosFijos.porEspecie.global)}
                   </td>
                 </tr>
               </tbody>

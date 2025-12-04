@@ -160,17 +160,27 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
   const montoTotal = items.reduce((sum, item) => sum + item.precioFinal, 0)
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  e.preventDefault()
 
-    if (items.some(item => !item.item || item.precio <= 0)) {
-      alert('Completá todos los ítems con nombre y precio válido')
-      return
-    }
+  if (items.some(item => !item.item || item.precio <= 0)) {
+    alert('Completá todos los ítems con nombre y precio válido')
+    return
+  }
 
-    if (esPlazo && diasPlazo < 1) {
-      alert('Si es pago a plazo, ingresá una cantidad de días válida')
-      return
-    }
+  // ✅ VALIDACIÓN: Variables requieren especie
+  const itemSinEspecie = items.find(item => 
+    esCategoriaVariable(item.categoria) && !item.especie
+  )
+  
+  if (itemSinEspecie) {
+    alert(`El item "${itemSinEspecie.item}" es un costo variable y requiere que asignes una especie (Vacunos/Ovinos/Equinos)`)
+    return
+  }
+
+  if (esPlazo && diasPlazo < 1) {
+    alert('Si es pago a plazo, ingresá una cantidad de días válida')
+    return
+  }
 
     setLoading(true)
 
@@ -458,13 +468,13 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
                   </select>
                 </div>
 
-                {/* ✅ CAMPO ESPECIE (solo si NO es variable) */}
-                {!esVariable && (
+                {/* ✅ CAMPO ESPECIE (solo si es VARIABLE) */}
+                {esVariable && (
                   <div className="mb-3">
                     <label className="block text-xs text-gray-600 mb-1">
-                      Especie (opcional)
-                      <span className="ml-2 text-blue-600 text-[10px] font-semibold">
-                        COSTO FIJO
+                      Especie (requerido para variables)
+                      <span className="ml-2 text-green-600 text-[10px] font-semibold">
+                        COSTO VARIABLE DIRECTO
                       </span>
                     </label>
                     <select
@@ -477,8 +487,9 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
                         )
                       }
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+                      required
                     >
-                      <option value="">Global (sin asignar)</option>
+                      <option value="">Seleccionar especie...</option>
                       {ESPECIES_VALIDAS.map(esp => (
                         <option key={esp} value={esp}>
                           {esp.charAt(0) + esp.slice(1).toLowerCase()}
@@ -488,11 +499,11 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
                   </div>
                 )}
 
-                {/* ✅ BADGE para categorías variables */}
-                {esVariable && (
+                {/* ✅ INFO para costos fijos */}
+                {!esVariable && (
                   <div className="mb-3">
-                    <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded">
-                      💚 Costo Variable - Distribución automática según % UG
+                    <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded">
+                      💼 Costo Fijo - Se distribuye automáticamente según % UG
                     </span>
                   </div>
                 )}
