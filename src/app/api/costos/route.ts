@@ -99,7 +99,34 @@ export async function GET(request: Request) {
       },
       orderBy: { fecha: 'asc' },
     })
-
+    // Si no hay gastos en el período, devolver todo en cero
+    if (gastos.length === 0) {
+      return NextResponse.json({
+        distribucion: {
+          ug: { vacunos: 0, ovinos: 0, equinos: 0, total: 0 },
+          porcentajes: { vacunos: 0, ovinos: 0, equinos: 0 },
+          hectareas: { vacunos: 0, ovinos: 0, equinos: 0, total: 0 },
+        },
+        costosVariables: {
+          totalUSD: 0,
+          porEspecie: { vacunos: 0, ovinos: 0, equinos: 0, sinAsignar: 0 },
+          detalle: [],
+        },
+        costosFijos: {
+          totalUSD: 0,
+          porEspecie: { vacunos: 0, ovinos: 0, equinos: 0 },
+          detalle: [],
+        },
+        totales: { vacunos: 0, ovinos: 0, equinos: 0, general: 0 },
+        usdPorHectarea: { vacunos: 0, ovinos: 0, equinos: 0, general: 0 },
+        periodo: {
+          desde: fechaDesde.toISOString().split('T')[0],
+          hasta: fechaHasta.toISOString().split('T')[0],
+        },
+        advertencia: "No hay gastos registrados en este período.",
+      })
+    }
+    
     // ---------------------------------------------------------
     // 4️⃣ Separar gastos en Variables y Fijos
     // ---------------------------------------------------------
