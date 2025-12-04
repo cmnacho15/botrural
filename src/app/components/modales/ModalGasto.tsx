@@ -25,7 +25,7 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
   const [proveedor, setProveedor] = useState('')
   const [proveedoresPrevios, setProveedoresPrevios] = useState<string[]>([])
   const [mostrarSugerencias, setMostrarSugerencias] = useState(false)
-  const [moneda, setMoneda] = useState('UYU')
+  const [moneda, setMoneda] = useState('USD')
   const [metodoPago, setMetodoPago] = useState(METODOS_PAGO[0])
   const [notas, setNotas] = useState('')
   const [loading, setLoading] = useState(false)
