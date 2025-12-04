@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card'
 import { Badge } from '@/app/components/ui/badge'
 import { Alert, AlertDescription } from '@/app/components/ui/alert'
-import { Loader2, AlertCircle, DollarSign, TrendingUp } from 'lucide-react'
+import { Loader2, AlertCircle, DollarSign, TrendingUp, Calendar } from 'lucide-react'
 
 interface CostosData {
   distribucion: {
@@ -77,23 +77,72 @@ interface CostosData {
   advertencia?: string
 }
 
+// ✅ Función para calcular el ejercicio fiscal actual
+function calcularEjercicioActual(): { inicio: number; fin: number } {
+  const hoy = new Date()
+  const mes = hoy.getMonth() // 0-11 (0 = enero, 6 = julio)
+  const anio = hoy.getFullYear()
+
+  // Si estamos entre enero y junio, el ejercicio empezó el año anterior
+  // Si estamos entre julio y diciembre, el ejercicio empezó este año
+  if (mes < 6) {
+    // Enero a Junio → Ejercicio año anterior / año actual
+    return { inicio: anio - 1, fin: anio }
+  } else {
+    // Julio a Diciembre → Ejercicio año actual / año siguiente
+    return { inicio: anio, fin: anio + 1 }
+  }
+}
+
+// ✅ Generar lista de últimos N ejercicios
+function generarEjercicios(cantidad: number): Array<{ inicio: number; fin: number; label: string }> {
+  const ejercicioActual = calcularEjercicioActual()
+  const ejercicios = []
+
+  for (let i = 0; i < cantidad; i++) {
+    const inicio = ejercicioActual.inicio - i
+    const fin = ejercicioActual.fin - i
+    ejercicios.push({
+      inicio,
+      fin,
+      label: `${inicio}/${fin}`,
+    })
+  }
+
+  return ejercicios
+}
+
+// ✅ Convertir ejercicio a fechas
+function ejercicioAFechas(inicio: number, fin: number): { desde: string; hasta: string } {
+  return {
+    desde: `${inicio}-07-01`, // 1 de julio del año inicio
+    hasta: `${fin}-06-30`,    // 30 de junio del año fin
+  }
+}
+
 export default function CostosPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [data, setData] = useState<CostosData | null>(null)
 
-  // Fechas por defecto: año actual
-  const now = new Date()
-  const [fechaDesde, setFechaDesde] = useState(
-    new Date(now.getFullYear(), 0, 1).toISOString().split('T')[0]
-  )
-  const [fechaHasta, setFechaHasta] = useState(
-    new Date(now.getFullYear(), 11, 31).toISOString().split('T')[0]
-  )
+  // ✅ Ejercicios disponibles (últimos 5)
+  const ejercicios = useMemo(() => generarEjercicios(5), [])
+
+  // ✅ Ejercicio seleccionado (por defecto el actual)
+  const [ejercicioSeleccionado, setEjercicioSeleccionado] = useState(() => {
+    const actual = calcularEjercicioActual()
+    return `${actual.inicio}-${actual.fin}`
+  })
+
+  // ✅ Fechas derivadas del ejercicio seleccionado
+  const fechas = useMemo(() => {
+    const [inicio, fin] = ejercicioSeleccionado.split('-').map(Number)
+    return ejercicioAFechas(inicio, fin)
+  }, [ejercicioSeleccionado])
 
   useEffect(() => {
     fetchCostos()
-  }, [fechaDesde, fechaHasta])
+  }, [fechas])
 
   async function fetchCostos() {
     try {
@@ -101,12 +150,12 @@ export default function CostosPage() {
       setError(null)
 
       const params = new URLSearchParams({
-        fechaDesde,
-        fechaHasta,
+        fechaDesde: fechas.desde,
+        fechaHasta: fechas.hasta,
       })
 
       const res = await fetch(`/api/costos?${params}`)
-      
+
       if (!res.ok) {
         throw new Error('Error al cargar costos')
       }
@@ -142,7 +191,13 @@ export default function CostosPage() {
     return null
   }
 
-  const formatUSD = (value: number) => `$${value.toLocaleString('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  const formatUSD = (value: number) =>
+    `$${value.toLocaleString('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+
+  // ✅ Obtener label del ejercicio actual para mostrar
+  const ejercicioActual = calcularEjercicioActual()
+  const [inicioSel, finSel] = ejercicioSeleccionado.split('-').map(Number)
+  const esEjercicioActual = inicioSel === ejercicioActual.inicio
 
   return (
     <div className="space-y-6 p-6">
@@ -156,32 +211,41 @@ export default function CostosPage() {
         </div>
       </div>
 
-      {/* Selector de Fechas */}
+      {/* ✅ Selector de Ejercicio */}
       <Card>
         <CardContent className="pt-6">
           <div className="flex items-center gap-4">
-            <div className="flex-1">
-              <label className="text-sm font-medium text-gray-700 block mb-1">
-                Desde
+            <div className="flex items-center gap-2">
+              <Calendar className="h-5 w-5 text-gray-500" />
+              <label className="text-sm font-medium text-gray-700">
+                Ejercicio Fiscal
               </label>
-              <input
-                type="date"
-                value={fechaDesde}
-                onChange={(e) => setFechaDesde(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              />
             </div>
-            <div className="flex-1">
-              <label className="text-sm font-medium text-gray-700 block mb-1">
-                Hasta
-              </label>
-              <input
-                type="date"
-                value={fechaHasta}
-                onChange={(e) => setFechaHasta(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              />
+
+            <select
+              value={ejercicioSeleccionado}
+              onChange={(e) => setEjercicioSeleccionado(e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white font-medium"
+            >
+              {ejercicios.map((ej) => (
+                <option key={ej.label} value={`${ej.inicio}-${ej.fin}`}>
+                  {ej.label}
+                  {ej.inicio === ejercicioActual.inicio ? ' (actual)' : ''}
+                </option>
+              ))}
+            </select>
+
+            {/* Info del período */}
+            <div className="text-sm text-gray-500 ml-auto">
+              <span className="font-medium">Período:</span>{' '}
+              1 Jul {inicioSel} → 30 Jun {finSel}
             </div>
+
+            {esEjercicioActual && (
+              <Badge className="bg-green-100 text-green-800">
+                En curso
+              </Badge>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -207,7 +271,8 @@ export default function CostosPage() {
                 {data.distribucion.porcentajes.vacunos.toFixed(1)}%
               </div>
               <div className="text-xs text-gray-500 mt-1">
-                {data.distribucion.ug.vacunos.toFixed(1)} UG • {data.distribucion.hectareas.vacunos.toFixed(0)} ha
+                {data.distribucion.ug.vacunos.toFixed(1)} UG •{' '}
+                {data.distribucion.hectareas.vacunos.toFixed(0)} ha
               </div>
             </div>
 
@@ -217,7 +282,8 @@ export default function CostosPage() {
                 {data.distribucion.porcentajes.ovinos.toFixed(1)}%
               </div>
               <div className="text-xs text-gray-500 mt-1">
-                {data.distribucion.ug.ovinos.toFixed(1)} UG • {data.distribucion.hectareas.ovinos.toFixed(0)} ha
+                {data.distribucion.ug.ovinos.toFixed(1)} UG •{' '}
+                {data.distribucion.hectareas.ovinos.toFixed(0)} ha
               </div>
             </div>
 
@@ -227,7 +293,8 @@ export default function CostosPage() {
                 {data.distribucion.porcentajes.equinos.toFixed(1)}%
               </div>
               <div className="text-xs text-gray-500 mt-1">
-                {data.distribucion.ug.equinos.toFixed(1)} UG • {data.distribucion.hectareas.equinos.toFixed(0)} ha
+                {data.distribucion.ug.equinos.toFixed(1)} UG •{' '}
+                {data.distribucion.hectareas.equinos.toFixed(0)} ha
               </div>
             </div>
 
@@ -330,12 +397,13 @@ export default function CostosPage() {
             <Alert className="mb-4">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                Hay ${formatUSD(data.costosVariables.porEspecie.sinAsignar)} en costos variables sin especie asignada. 
-                Editá esos gastos para asignarles una especie.
+                Hay {formatUSD(data.costosVariables.porEspecie.sinAsignar)} en costos
+                variables sin especie asignada. Editá esos gastos para asignarles una
+                especie.
               </AlertDescription>
             </Alert>
           )}
-          
+
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50">
