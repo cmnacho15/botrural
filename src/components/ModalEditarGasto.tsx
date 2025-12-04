@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { METODOS_PAGO } from '@/lib/constants' // ✅ CAMBIO 1
+import { METODOS_PAGO } from '@/lib/constants'
+import { esCategoriaVariable, ESPECIES_VALIDAS } from '@/lib/costos/categoriasCostos'
 
 type ModalEditarGastoProps = {
   gasto: {
@@ -20,6 +21,7 @@ type ModalEditarGastoProps = {
     pagado?: boolean
     diasPlazo?: number
     proveedor?: string
+    especie?: string | null
   }
   onClose: () => void
   onSuccess: () => void
@@ -29,7 +31,7 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
   const [fecha, setFecha] = useState(new Date(gasto.fecha).toISOString().split('T')[0])
   const [proveedor, setProveedor] = useState(gasto.proveedor || '')
   const [proveedores, setProveedores] = useState<string[]>([])
-  const [categorias, setCategorias] = useState<string[]>([]) // ✅ CAMBIO 2
+  const [categorias, setCategorias] = useState<string[]>([])
   const [mostrarSugerencias, setMostrarSugerencias] = useState(false)
   const [categoria, setCategoria] = useState(gasto.categoria)
   const [metodoPago, setMetodoPago] = useState(gasto.metodoPago || 'Contado')
@@ -40,9 +42,12 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
   const [iva, setIva] = useState(gasto.iva ?? 22)
   const [item, setItem] = useState('')
 
+  // ✅ NUEVO: Campo especie
+  const [especie, setEspecie] = useState<string | null>(gasto.especie || null)
+
   // MONEDA Y CONVERSIÓN
-  const [moneda, setMoneda] = useState(gasto.moneda || 'UYU')
-  const [monedaOriginal] = useState(gasto.moneda || 'UYU')
+  const [moneda, setMoneda] = useState(gasto.moneda || 'USD')
+  const [monedaOriginal] = useState(gasto.moneda || 'USD')
   const [tasaCambio, setTasaCambio] = useState<number | null>(null)
 
   // CALCULAR PRECIO BASE INICIAL
@@ -82,7 +87,7 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
     fetchProveedores()
   }, [])
 
-  // 🆕 CARGAR CATEGORÍAS (CAMBIO 3)
+  // CARGAR CATEGORÍAS
   useEffect(() => {
     const cargarCategorias = async () => {
       try {
@@ -126,11 +131,21 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
     }
   }, [moneda, tasaCambio, monedaOriginal])
 
+  // ✅ NUEVO: Resetear especie si cambia a categoría NO variable
+  const handleCategoriaChange = (nuevaCategoria: string) => {
+    setCategoria(nuevaCategoria)
+    if (!esCategoriaVariable(nuevaCategoria)) {
+      setEspecie(null)
+    }
+  }
+
   const precioFinal = precioBase + (precioBase * iva) / 100
 
   const proveedoresFiltrados = proveedores.filter(p =>
     p.toLowerCase().includes(proveedor.toLowerCase())
   )
+
+  const esVariable = esCategoriaVariable(categoria)
 
   // MARCAR COMO PAGADO
   const handleMarcarPagado = async () => {
@@ -156,6 +171,7 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
           diasPlazo: gasto.diasPlazo,
           proveedor: gasto.proveedor,
           pagado: true,
+          especie: gasto.especie,
         }),
       })
 
@@ -178,6 +194,12 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
 
     if (!item.trim() || precioBase <= 0) {
       alert('❌ Completá el nombre del ítem y un precio válido')
+      return
+    }
+
+    // ✅ VALIDACIÓN: Variables requieren especie
+    if (esVariable && !especie) {
+      alert(`❌ Este gasto es un costo variable y requiere que asignes una especie (Vacunos/Ovinos/Equinos)`)
       return
     }
 
@@ -227,6 +249,7 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
           diasPlazo: metodoPago === 'Plazo' ? diasPlazo : null,
           pagado: metodoPago === 'Contado' ? true : pagado,
           proveedor: proveedor.trim() || null,
+          especie: especie,
         }),
       })
 
@@ -244,10 +267,6 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
   }
 
   const esPlazoYPendiente = metodoPago === 'Plazo' && !pagado
-
-  // ===========================
-  //          RENDER
-  // ===========================
 
   return (
     <form onSubmit={handleSubmit} className="p-6 max-h-[90vh] overflow-y-auto">
@@ -365,12 +384,12 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
             )}
           </div>
 
-          {/* CATEGORÍA — CAMBIO 4 */}
+          {/* CATEGORÍA */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
             <select
               value={categoria}
-              onChange={(e) => setCategoria(e.target.value)}
+              onChange={(e) => handleCategoriaChange(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
               disabled={categorias.length === 0}
             >
@@ -383,6 +402,40 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
               )}
             </select>
           </div>
+
+          {/* ✅ CAMPO ESPECIE (solo si es VARIABLE) */}
+          {esVariable && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Especie (requerido para variables)
+                <span className="ml-2 text-green-600 text-[10px] font-semibold">
+                  COSTO VARIABLE DIRECTO
+                </span>
+              </label>
+              <select
+                value={especie || ''}
+                onChange={(e) => setEspecie(e.target.value || null)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition bg-white"
+                required
+              >
+                <option value="">Seleccionar especie...</option>
+                {ESPECIES_VALIDAS.map(esp => (
+                  <option key={esp} value={esp}>
+                    {esp.charAt(0) + esp.slice(1).toLowerCase()}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* ✅ INFO para costos fijos */}
+          {!esVariable && (
+            <div>
+              <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded">
+                💼 Costo Fijo - Se distribuye automáticamente según % UG
+              </span>
+            </div>
+          )}
 
           {/* MONEDA */}
           <div>
@@ -399,8 +452,8 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
               onChange={(e) => setMoneda(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
             >
-              <option value="UYU">UYU (Pesos Uruguayos)</option>
               <option value="USD">USD (Dólares)</option>
+              <option value="UYU">UYU (Pesos Uruguayos)</option>
             </select>
             {monedaOriginal !== moneda && tasaCambio && (
               <p className="text-xs text-gray-600 mt-1">
