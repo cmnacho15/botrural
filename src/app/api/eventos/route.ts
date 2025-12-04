@@ -48,7 +48,8 @@ async function crearGastoFinanciero({
   campoId,
   loteId,
   diasPlazo,
-  pagado
+  pagado,
+  especie
 }: {
   tipo: "GASTO" | "INGRESO"
   monto: number
@@ -64,6 +65,7 @@ async function crearGastoFinanciero({
   loteId?: string | null
   diasPlazo?: number | null
   pagado?: boolean
+  especie?: string | null
 }) {
   const tasaCambio = await obtenerTasaCambio(moneda)
   const montoEnUYU = await convertirAUYU(monto, moneda)
@@ -82,7 +84,7 @@ async function crearGastoFinanciero({
       tasaCambio,
       montoEnUYU,
       montoEnUSD,  // ✅ NUEVO
-      especie: null,  // ✅ NUEVO (eventos del sistema no asignan especie)
+      especie: especie || null,  // ✅ ESTO  // ✅ NUEVO (eventos del sistema no asignan especie)
       fecha,
       descripcion,
       categoria: categoria || "Otros",
@@ -138,6 +140,7 @@ export async function POST(request: Request) {
       pagado,
       proveedor,
       categoriaNueva,
+      especie,
     } = body;
 
     const moneda = body.moneda || 'UYU';
@@ -202,6 +205,7 @@ export async function POST(request: Request) {
             loteId,
             diasPlazo: metodoPago === "Plazo" ? parseInt(diasPlazo || "0") : null,
             pagado: metodoPago === "Contado" ? true : pagado ?? false,
+            especie: especie || null, 
           });
         }
         break;
