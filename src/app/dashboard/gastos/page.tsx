@@ -750,8 +750,8 @@ const handleEditarGasto = (gasto: Gasto) => {
                     </span>
                   </div>
                   <span className="text-sm font-semibold text-gray-900">
-                    {totalGastos.toFixed(0)} {moneda}
-                  </span>
+  {totalGastosGrafico.toFixed(0)} {moneda}
+</span>
                 </button>
 
                 {categoriasVisibles.map((cat, idx) => (
@@ -908,14 +908,14 @@ const handleEditarGasto = (gasto: Gasto) => {
                     }`}
                   >
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-gray-900">Todos</span>
+                      <span className="text-sm font-medium text-gray-900">Todos los gastos</span>
                       <span className="px-2 py-0.5 bg-gray-200 text-gray-700 rounded-full text-xs font-medium">
                         {gastosData.length}
                       </span>
                     </div>
                     <span className="text-xs font-semibold text-gray-900">
-                      {totalGastos.toFixed(0)}
-                    </span>
+  {totalGastosGrafico.toFixed(0)}
+</span>
                   </button>
 
                   {categoriasVisibles.map((cat, idx) => (
