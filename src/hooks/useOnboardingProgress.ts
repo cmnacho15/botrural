@@ -20,17 +20,19 @@ export function useOnboardingProgress(): OnboardingProgress {
   useEffect(() => {
     async function checkProgress() {
       try {
-        // Verificar si tiene potreros (Paso 1)
+        // ✅ Verificar si tiene potreros (Paso 1)
         const lotesRes = await fetch('/api/lotes')
         const lotes = await lotesRes.json()
         const paso1 = Array.isArray(lotes) && lotes.length > 0
 
-        // Verificar si tiene eventos/datos (Paso 2)
-        const eventosRes = await fetch('/api/eventos')
-        const eventos = await eventosRes.json()
-        const paso2 = Array.isArray(eventos) && eventos.length > 0
+        // ✅ Verificar si tiene eventos/datos (Paso 2)
+        // Tu API /api/datos devuelve eventos unificados
+        const datosRes = await fetch('/api/datos')
+        const datos = await datosRes.json()
+        const paso2 = Array.isArray(datos) && datos.length > 0
 
-        // Verificar si tiene equipo (Paso 3) - más de 1 usuario
+        // ✅ Verificar si tiene equipo (Paso 3) - más de 1 usuario
+        // Tu API está en /api/usuarios (no /api/equipo)
         const usuariosRes = await fetch('/api/usuarios')
         const usuarios = await usuariosRes.json()
         const paso3 = Array.isArray(usuarios) && usuarios.length > 1
@@ -45,12 +47,24 @@ export function useOnboardingProgress(): OnboardingProgress {
           totalCompletados: total,
           porcentaje
         })
+
+        console.log('📊 Progreso Onboarding:', {
+          paso1: paso1 ? '✅' : '❌',
+          paso2: paso2 ? '✅' : '❌', 
+          paso3: paso3 ? '✅' : '❌',
+          total: `${total}/3`
+        })
       } catch (error) {
-        console.error('Error checking onboarding progress:', error)
+        console.error('❌ Error checking onboarding progress:', error)
       }
     }
 
     checkProgress()
+    
+    // ✅ Recargar cada vez que el usuario vuelva a la página
+    const interval = setInterval(checkProgress, 5000) // Cada 5 segundos
+    
+    return () => clearInterval(interval)
   }, [])
 
   return progress
