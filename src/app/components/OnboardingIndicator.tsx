@@ -22,12 +22,12 @@ function OnboardingIndicator({ variant = 'default' }: OnboardingIndicatorProps) 
   return (
     <Link
       href="/dashboard/como-empezar"
-      className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg text-sm bg-blue-50/60 hover:bg-blue-100 transition-colors group relative"
+      className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg text-sm bg-amber-50/60 hover:bg-amber-100 transition-colors group relative"
     >
       {/* Dot animado */}
       <span className="absolute left-1 top-1/2 -translate-y-1/2 flex h-2 w-2">
-        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-        <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+        <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
       </span>
 
       <Rocket className="w-4 h-4 text-blue-500 group-hover:text-blue-600 ml-2" />
