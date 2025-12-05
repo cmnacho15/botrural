@@ -1,5 +1,6 @@
 'use client'
 
+import { memo } from 'react'
 import { useOnboardingProgress } from '@/hooks/useOnboardingProgress'
 import Link from 'next/link'
 import { Rocket } from 'lucide-react'
@@ -8,7 +9,7 @@ interface OnboardingIndicatorProps {
   variant?: 'default' | 'compact'
 }
 
-export default function OnboardingIndicator({ variant = 'default' }: OnboardingIndicatorProps) {
+function OnboardingIndicator({ variant = 'default' }: OnboardingIndicatorProps) {
   const { totalCompletados, porcentaje, isLoading } = useOnboardingProgress()
 
   // No mostrar nada mientras carga o si ya completó los 3 pasos
@@ -16,7 +17,7 @@ export default function OnboardingIndicator({ variant = 'default' }: OnboardingI
     return null
   }
 
-  // Versión compacta para el sidebar (más pequeña y profesional)
+  // Versión compacta para el sidebar
   if (variant === 'compact') {
     return (
       <Link
@@ -32,7 +33,7 @@ export default function OnboardingIndicator({ variant = 'default' }: OnboardingI
     )
   }
 
-  // Versión por defecto (más grande, para otras ubicaciones)
+  // Versión por defecto
   return (
     <Link
       href="/dashboard/como-empezar"
@@ -64,3 +65,6 @@ export default function OnboardingIndicator({ variant = 'default' }: OnboardingI
     </Link>
   )
 }
+
+// 👇 Memoizar el componente para evitar re-renders innecesarios
+export default memo(OnboardingIndicator)
