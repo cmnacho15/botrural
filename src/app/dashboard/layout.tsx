@@ -44,13 +44,13 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
     };
   }, [sidebarOpen]);
 
-  if (status === "loading") {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-300 border-t-blue-600"></div>
-      </div>
-    );
-  }
+  if (status === "loading" || !session?.user?.role) {
+  return (
+    <div className="flex items-center justify-center min-h-screen bg-gray-50">
+      <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-300 border-t-blue-600"></div>
+    </div>
+  );
+}
 
   const campoNombre = session?.user?.campoNombre || "Mi Campo";
 
