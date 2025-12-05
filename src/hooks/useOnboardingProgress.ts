@@ -10,6 +10,7 @@ interface OnboardingProgress {
 // Nombre del evento personalizado
 const ONBOARDING_REVALIDATE_EVENT = 'onboarding-revalidate'
 export function useOnboardingProgress(): OnboardingProgress {
+  console.log('🚀 Hook useOnboardingProgress ejecutándose')
   const [progress, setProgress] = useState<OnboardingProgress>({
     paso1Completado: false,
     paso2Completado: false,
