@@ -28,6 +28,13 @@ export function useOnboardingProgress(): OnboardingProgress {
         fetch('/api/datos', { cache: 'no-store' }),
         fetch('/api/usuarios/count', { cache: 'no-store' })
       ])
+
+      // 👇 AGREGAR ESTAS 5 LÍNEAS NUEVAS:
+console.log('🔍 Status codes:', {
+  lotes: lotesRes.status,
+  datos: datosRes.status,
+  usuarios: usuariosRes.status
+})
       if (!lotesRes.ok || !datosRes.ok || !usuariosRes.ok) {
         setProgress(prev => ({ ...prev, isLoading: false }))
         return
