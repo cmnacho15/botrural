@@ -11,6 +11,7 @@ import { InsumosProvider } from "@/app/contexts/InsumosContext";
 import { GastosProvider } from "@/app/contexts/GastosContext";
 
 import ModalNuevoDato from "@/app/components/modales/ModalNuevoDato";
+import OnboardingIndicator from "@/app/components/OnboardingIndicator";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -32,7 +33,6 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [modalTipo, setModalTipo] = useState<string | null>(null);
 
-  // ✅ Cerrar sidebar al hacer clic fuera (en móvil)
   useEffect(() => {
     if (sidebarOpen) {
       document.body.style.overflow = 'hidden';
@@ -69,7 +69,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   {
     title: "Mi Campo",
     items: [
-      { href: "/dashboard/empezar", icon: "🚀", label: "Cómo Empezar", roles: ["ADMIN_GENERAL", "COLABORADOR"], requiresFinance: false },
+      { href: "/dashboard/como-empezar", icon: "🚀", label: "Cómo Empezar", roles: ["ADMIN_GENERAL", "COLABORADOR"], requiresFinance: false }, // 👈 NUEVO: Cambiado de /empezar a /como-empezar
       { href: "/dashboard", icon: "📊", label: "Resumen", roles: ["ADMIN_GENERAL", "COLABORADOR", "CONTADOR"], requiresFinance: false },
       { href: "/dashboard/datos", icon: "📝", label: "Datos", roles: ["ADMIN_GENERAL", "COLABORADOR"], requiresFinance: false },
       { href: "/dashboard/mapa", icon: "🗺️", label: "Mapa", roles: ["ADMIN_GENERAL", "COLABORADOR"], requiresFinance: false },
@@ -137,12 +137,12 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
           </button>
 
           <Image 
-  src="/BoTRURAL.svg"
-  alt="BotRural"
-  width={140}
-  height={140}
-  priority
-/>
+            src="/BoTRURAL.svg"
+            alt="BotRural"
+            width={140}
+            height={140}
+            priority
+          />
         </div>
 
         {!isContador && (
@@ -307,38 +307,43 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
       {/* SIDEBAR */}
       <div className="flex flex-1">
         <aside
-  className={`fixed lg:sticky lg:top-[65px] lg:h-[calc(100vh-65px)] inset-y-0 left-0 w-64 sm:w-72 lg:w-60 bg-white border-r transition-transform duration-300 z-30 ${
-    sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
-  } overflow-y-auto`}
->
-          <nav className="p-3 sm:p-4 space-y-2.5 pb-20 lg:pb-4">
-  {menuSections.map((section, i) => (
-    <div key={i}>
-      <h3 className="text-xs text-gray-500 px-3 sm:px-4 mb-1.5 font-medium">
-        {section.title === "Mi Campo" ? campoNombre : section.title}
-      </h3>
+          className={`fixed lg:sticky lg:top-[65px] lg:h-[calc(100vh-65px)] inset-y-0 left-0 w-64 sm:w-72 lg:w-60 bg-white border-r transition-transform duration-300 z-30 ${
+            sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+          } overflow-y-auto`}
+        >
+          {/* 👇 NUEVO: Indicador de onboarding al inicio del sidebar */}
+          <div className="p-3 sm:p-4 border-b border-gray-100">
+            <OnboardingIndicator />
+          </div>
 
-      {section.items.map((item: any) => {
-        const isActive = pathname.startsWith(item.href);
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={`flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-sm ${
-              isActive
-                ? "bg-blue-50 text-blue-600 font-medium"
-                : "text-gray-700 hover:bg-gray-100"
-            }`}
-            onClick={() => setSidebarOpen(false)}
-          >
-            <span className="text-base">{item.icon}</span> 
-            <span className="text-sm">{item.label}</span>
-          </Link>
-        );
-      })}
-    </div>
-  ))}
-</nav>
+          <nav className="p-3 sm:p-4 space-y-2.5 pb-20 lg:pb-4">
+            {menuSections.map((section, i) => (
+              <div key={i}>
+                <h3 className="text-xs text-gray-500 px-3 sm:px-4 mb-1.5 font-medium">
+                  {section.title === "Mi Campo" ? campoNombre : section.title}
+                </h3>
+
+                {section.items.map((item: any) => {
+                  const isActive = pathname.startsWith(item.href);
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={`flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-sm ${
+                        isActive
+                          ? "bg-blue-50 text-blue-600 font-medium"
+                          : "text-gray-700 hover:bg-gray-100"
+                      }`}
+                      onClick={() => setSidebarOpen(false)}
+                    >
+                      <span className="text-base">{item.icon}</span> 
+                      <span className="text-sm">{item.label}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            ))}
+          </nav>
         </aside>
 
         <main className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6">{children}</main>
