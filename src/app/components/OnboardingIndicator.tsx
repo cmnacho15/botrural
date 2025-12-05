@@ -22,17 +22,17 @@ function OnboardingIndicator({ variant = 'default' }: OnboardingIndicatorProps) 
   return (
     <Link
       href="/dashboard/como-empezar"
-      className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg text-sm bg-amber-50/60 hover:bg-amber-100 transition-colors group relative"
+      className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg text-sm bg-amber-50 hover:bg-amber-100 border border-amber-200 transition-colors group relative"
     >
       {/* Dot animado */}
-      <span className="absolute left-1 top-1/2 -translate-y-1/2 flex h-2 w-2">
+      <span className="absolute left-1.5 top-1/2 -translate-y-1/2 flex h-2 w-2">
         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
         <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
       </span>
 
-      <Rocket className="w-4 h-4 text-blue-500 group-hover:text-blue-600 ml-2" />
-      <span className="flex-1">Cómo Empezar</span>
-      <span className="bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded text-xs font-medium">
+      <Rocket className="w-4 h-4 text-amber-600 group-hover:text-amber-700 ml-2" />
+      <span className="flex-1 text-amber-900">Cómo Empezar</span>
+      <span className="bg-amber-200 text-amber-700 px-1.5 py-0.5 rounded text-xs font-semibold">
         {totalCompletados}/3
       </span>
     </Link>
