@@ -2,10 +2,10 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Rocket, ChevronDown, ChevronUp, Check, X } from 'lucide-react'
+import { Rocket, ChevronDown, ChevronUp, Check } from 'lucide-react'
 import { useOnboardingProgress } from '@/hooks/useOnboardingProgress'
-import ModalNuevoDato from '@/app/components/modales/ModalNuevoDato'
 import ModalInvitarUsuario from '@/app/components/modales/ModalInvitarUsuario'
+import ModalNuevoDato from '@/app/components/modales/ModalNuevoDato'
 
 // ==========================================
 // 📦 COMPONENTE CARD DE OPCIÓN
@@ -113,6 +113,159 @@ function Paso({ numero, titulo, completado, expandido, onToggle, children }: Pas
 }
 
 // ==========================================
+// 📦 MENÚ GIGANTE DE EVENTOS (igual al layout)
+// ==========================================
+interface MenuEventosProps {
+  isOpen: boolean
+  onClose: () => void
+  onSelectTipo: (tipo: string) => void
+}
+
+function MenuGiganteEventos({ isOpen, onClose, onSelectTipo }: MenuEventosProps) {
+  if (!isOpen) return null
+
+  return (
+    <div 
+      className="fixed inset-0 bg-black/30 backdrop-blur-sm z-[70] flex justify-center items-start pt-4 sm:pt-10 p-3 sm:p-4 overflow-y-auto"
+      onClick={onClose}
+    >
+      <div 
+        className="bg-white rounded-xl shadow-2xl p-4 sm:p-6 md:p-8 max-w-5xl w-full relative my-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          onClick={onClose}
+          className="absolute top-3 right-3 sm:top-4 sm:right-4 text-gray-400 hover:text-gray-600 text-2xl sm:text-3xl leading-none"
+        >
+          ×
+        </button>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 sm:gap-6 md:gap-8 mt-8 sm:mt-0">
+          
+          {/* ANIMALES */}
+          <div>
+            <h3 className="font-bold mb-3 sm:mb-4 text-gray-800 text-xs sm:text-sm uppercase tracking-wide">ANIMALES</h3>
+            <div className="space-y-1">
+              {[
+                ["cambio-potrero", "🔄", "Cambio De Potrero"],
+                ["tratamiento", "💉", "Tratamiento"],
+                ["venta", "💵", "Venta"],
+                ["compra", "🛒", "Compra"],
+                ["traslado", "🚚", "Traslado"],
+                ["nacimiento", "🐄", "Nacimiento"],
+                ["mortandad", "💀", "Mortandad"],
+                ["consumo", "🥩", "Consumo"],
+                ["aborto", "❌", "Aborto"],
+                ["destete", "🍼", "Destete"],
+                ["tacto", "✋", "Tacto"],
+                ["recategorizacion", "🏷️", "Recategorización"],
+              ].map(([tipo, emoji, label]) => (
+                <button
+                  key={tipo}
+                  onClick={() => onSelectTipo(tipo)}
+                  className="w-full text-left flex items-center gap-2 text-xs sm:text-sm py-2 px-2 sm:px-3 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                >
+                  <span className="text-sm sm:text-base">{emoji}</span>
+                  <span className="truncate">{label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* AGRICULTURA */}
+          <div>
+            <h3 className="font-bold mb-3 sm:mb-4 text-gray-800 text-xs sm:text-sm uppercase tracking-wide">AGRICULTURA</h3>
+            <div className="space-y-1">
+              {[
+                ["siembra", "🌱", "Siembra"],
+                ["pulverizacion", "💧", "Pulverización"],
+                ["refertilizacion", "🌿", "Refertilización"],
+                ["riego", "💦", "Riego"],
+                ["monitoreo", "🔍", "Monitoreo"],
+                ["cosecha", "🌾", "Cosecha"],
+                ["otros-labores", "🔧", "Otros Labores"],
+              ].map(([tipo, emoji, label]) => (
+                <button
+                  key={tipo}
+                  onClick={() => onSelectTipo(tipo)}
+                  className="w-full text-left flex items-center gap-2 text-xs sm:text-sm py-2 px-2 sm:px-3 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                >
+                  <span className="text-sm sm:text-base">{emoji}</span>
+                  <span className="truncate">{label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* CLIMA */}
+          <div>
+            <h3 className="font-bold mb-3 sm:mb-4 text-gray-800 text-xs sm:text-sm uppercase tracking-wide">CLIMA</h3>
+            <div className="space-y-1">
+              <button
+                onClick={() => onSelectTipo("lluvia")} 
+                className="w-full text-left flex items-center gap-2 text-xs sm:text-sm py-2 px-2 sm:px-3 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+              >
+                <span className="text-sm sm:text-base">🌧️</span>
+                <span>Lluvia</span>
+              </button>
+              <button
+                onClick={() => onSelectTipo("helada")} 
+                className="w-full text-left flex items-center gap-2 text-xs sm:text-sm py-2 px-2 sm:px-3 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+              >
+                <span className="text-sm sm:text-base">❄️</span>
+                <span>Helada</span>
+              </button>
+            </div>
+          </div>
+
+          {/* INSUMOS */}
+          <div>
+            <h3 className="font-bold mb-3 sm:mb-4 text-gray-800 text-xs sm:text-sm uppercase tracking-wide">INSUMOS</h3>
+            <div className="space-y-1">
+              <button
+                onClick={() => onSelectTipo("uso-insumos")} 
+                className="w-full text-left flex items-center gap-2 text-xs sm:text-sm py-2 px-2 sm:px-3 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+              >
+                <span className="text-sm sm:text-base">📤</span>
+                <span>Uso</span>
+              </button>
+              <button
+                onClick={() => onSelectTipo("ingreso-insumos")} 
+                className="w-full text-left flex items-center gap-2 text-xs sm:text-sm py-2 px-2 sm:px-3 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+              >
+                <span className="text-sm sm:text-base">📥</span>
+                <span>Ingreso</span>
+              </button>
+            </div>
+          </div>
+
+          {/* FINANZAS */}
+          <div>
+            <h3 className="font-bold mb-3 sm:mb-4 text-gray-800 text-xs sm:text-sm uppercase tracking-wide">FINANZAS</h3>
+            <div className="space-y-1">
+              <button
+                onClick={() => onSelectTipo("gasto")} 
+                className="w-full text-left flex items-center gap-2 text-xs sm:text-sm py-2 px-2 sm:px-3 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+              >
+                <span className="text-sm sm:text-base">💰</span>
+                <span>Gasto</span>
+              </button>
+              <button
+                onClick={() => onSelectTipo("ingreso")} 
+                className="w-full text-left flex items-center gap-2 text-xs sm:text-sm py-2 px-2 sm:px-3 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+              >
+                <span className="text-sm sm:text-base">✅</span>
+                <span>Ingreso</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ==========================================
 // 🚀 COMPONENTE PRINCIPAL
 // ==========================================
 export default function ComoEmpezar() {
@@ -124,16 +277,16 @@ export default function ComoEmpezar() {
     porcentaje
   } = useOnboardingProgress()
 
-  // Estado de pasos expandidos - por defecto expandir el primer paso incompleto
+  // Estado de pasos expandidos
   const [pasosExpandidos, setPasosExpandidos] = useState({
     paso1: !paso1Completado,
     paso2: paso1Completado && !paso2Completado,
     paso3: paso1Completado && paso2Completado && !paso3Completado
   })
 
-  // Modales
-  const [modalDatoOpen, setModalDatoOpen] = useState(false)
-  const [tipoDato, setTipoDato] = useState('')
+  // Estado para el menú de eventos y modal
+  const [menuEventosOpen, setMenuEventosOpen] = useState(false)
+  const [tipoDatoSeleccionado, setTipoDatoSeleccionado] = useState('')
   const [modalEquipoOpen, setModalEquipoOpen] = useState(false)
 
   const togglePaso = (paso: 'paso1' | 'paso2' | 'paso3') => {
@@ -143,16 +296,7 @@ export default function ComoEmpezar() {
     }))
   }
 
-  const handleDatoSuccess = () => {
-    setModalDatoOpen(false)
-    setTipoDato('')
-  }
-
-  const handleEquipoSuccess = () => {
-    setModalEquipoOpen(false)
-  }
-
-  // URLs de iconos (usando Flaticon CDN)
+  // URLs de iconos
   const iconos = {
     formulario: 'https://cdn-icons-png.flaticon.com/512/3075/3075908.png',
     excel: 'https://cdn-icons-png.flaticon.com/512/732/732220.png',
@@ -160,8 +304,6 @@ export default function ComoEmpezar() {
     croquis: 'https://cdn-icons-png.flaticon.com/512/4727/4727496.png',
     whatsapp: 'https://cdn-icons-png.flaticon.com/512/733/733585.png',
     web: 'https://cdn-icons-png.flaticon.com/512/3067/3067260.png',
-    admin: 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png',
-    usuario: 'https://cdn-icons-png.flaticon.com/512/3135/3135789.png',
   }
 
   return (
@@ -267,7 +409,6 @@ export default function ComoEmpezar() {
                     subtitulo="Ideal cuando estás en el campo"
                     destacado
                     onClick={() => {
-                      // TODO: Conectar con el bot de WhatsApp
                       alert('Próximamente: conexión directa al bot de WhatsApp')
                     }}
                   />
@@ -275,7 +416,7 @@ export default function ComoEmpezar() {
                     icono={iconos.web}
                     titulo="Ingresar en la Web"
                     subtitulo="Ideal cuando estás en la oficina"
-                    onClick={() => setModalDatoOpen(true)}
+                    onClick={() => setMenuEventosOpen(true)}
                   />
                 </div>
                 
@@ -297,19 +438,16 @@ export default function ComoEmpezar() {
                 expandido={pasosExpandidos.paso3}
                 onToggle={() => togglePaso('paso3')}
               >
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-xl mx-auto">
-                  <OpcionCard
-                    icono={iconos.admin}
-                    titulo="Invitar Administradores"
-                    subtitulo="Tienen acceso a la plataforma web y el bot"
+                <div className="text-center">
+                  <p className="text-gray-600 mb-4">
+                    Invita a colaboradores, administradores o contadores para que puedan acceder a la plataforma.
+                  </p>
+                  <button
                     onClick={() => setModalEquipoOpen(true)}
-                  />
-                  <OpcionCard
-                    icono={iconos.usuario}
-                    titulo="Invitar Usuarios"
-                    subtitulo="Solo tienen acceso al bot de WhatsApp"
-                    onClick={() => setModalEquipoOpen(true)}
-                  />
+                    className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                  >
+                    Invitar Usuario
+                  </button>
                 </div>
               </Paso>
 
@@ -333,23 +471,26 @@ export default function ComoEmpezar() {
         </div>
       </div>
 
-      {/* Modal selector de tipo de dato */}
-      <ModalSelectorTipoDato 
-        isOpen={modalDatoOpen}
-        onClose={() => setModalDatoOpen(false)}
+      {/* Menú gigante de eventos */}
+      <MenuGiganteEventos
+        isOpen={menuEventosOpen}
+        onClose={() => setMenuEventosOpen(false)}
         onSelectTipo={(tipo) => {
-          setTipoDato(tipo)
-          setModalDatoOpen(false)
+          setTipoDatoSeleccionado(tipo)
+          setMenuEventosOpen(false)
         }}
       />
 
-      {/* Si ya seleccionó tipo, mostrar el modal correspondiente */}
-      {tipoDato && (
+      {/* Modal del evento seleccionado */}
+      {tipoDatoSeleccionado && (
         <ModalNuevoDato
-          isOpen={!!tipoDato}
-          onClose={() => setTipoDato('')}
-          tipo={tipoDato}
-          onSuccess={handleDatoSuccess}
+          isOpen={!!tipoDatoSeleccionado}
+          onClose={() => setTipoDatoSeleccionado('')}
+          tipo={tipoDatoSeleccionado}
+          onSuccess={() => {
+            setTipoDatoSeleccionado('')
+            window.location.reload()
+          }}
         />
       )}
 
@@ -357,105 +498,11 @@ export default function ComoEmpezar() {
       <ModalInvitarUsuario
         isOpen={modalEquipoOpen}
         onClose={() => setModalEquipoOpen(false)}
-        onSuccess={handleEquipoSuccess}
+        onSuccess={() => {
+          setModalEquipoOpen(false)
+          window.location.reload()
+        }}
       />
     </>
-  )
-}
-
-// ==========================================
-// 📦 MODAL SELECTOR DE TIPO DE DATO
-// ==========================================
-interface ModalSelectorTipoDatoProps {
-  isOpen: boolean
-  onClose: () => void
-  onSelectTipo: (tipo: string) => void
-}
-
-function ModalSelectorTipoDato({ isOpen, onClose, onSelectTipo }: ModalSelectorTipoDatoProps) {
-  if (!isOpen) return null
-
-  const categorias = [
-    {
-      titulo: '🌾 Agricultura',
-      opciones: [
-        { tipo: 'siembra', nombre: 'Siembra' },
-        { tipo: 'cosecha', nombre: 'Cosecha' },
-        { tipo: 'pulverizacion', nombre: 'Pulverización' },
-        { tipo: 'refertilizacion', nombre: 'Refertilización' },
-        { tipo: 'riego', nombre: 'Riego' },
-        { tipo: 'monitoreo', nombre: 'Monitoreo' },
-      ]
-    },
-    {
-      titulo: '🐄 Ganadería',
-      opciones: [
-        { tipo: 'cambio-potrero', nombre: 'Cambio de Potrero' },
-        { tipo: 'nacimiento', nombre: 'Nacimiento' },
-        { tipo: 'tratamiento', nombre: 'Tratamiento' },
-        { tipo: 'mortandad', nombre: 'Mortandad' },
-        { tipo: 'tacto', nombre: 'Tacto' },
-        { tipo: 'recategorizacion', nombre: 'Recategorización' },
-      ]
-    },
-    {
-      titulo: '💰 Finanzas',
-      opciones: [
-        { tipo: 'gasto', nombre: 'Gasto' },
-        { tipo: 'ingreso', nombre: 'Ingreso' },
-        { tipo: 'compra', nombre: 'Compra' },
-        { tipo: 'venta', nombre: 'Venta' },
-      ]
-    },
-    {
-      titulo: '🌤️ Clima y otros',
-      opciones: [
-        { tipo: 'lluvia', nombre: 'Lluvia' },
-        { tipo: 'helada', nombre: 'Helada' },
-        { tipo: 'uso-insumos', nombre: 'Uso de Insumos' },
-        { tipo: 'ingreso-insumos', nombre: 'Ingreso de Insumos' },
-        { tipo: 'consumo', nombre: 'Consumo' },
-        { tipo: 'otros-labores', nombre: 'Otros Labores' },
-      ]
-    },
-  ]
-
-  return (
-    <div className="fixed inset-0 backdrop-blur-md bg-black/30 flex items-center justify-center z-[60] p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-gray-200 sticky top-0 bg-white z-10">
-          <h2 className="text-xl font-bold text-gray-900">¿Qué tipo de dato quieres ingresar?</h2>
-          <button 
-            onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-lg transition"
-          >
-            <X className="w-5 h-5 text-gray-500" />
-          </button>
-        </div>
-
-        {/* Contenido */}
-        <div className="p-5 space-y-6">
-          {categorias.map((categoria, idx) => (
-            <div key={idx}>
-              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
-                {categoria.titulo}
-              </h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {categoria.opciones.map((opcion) => (
-                  <button
-                    key={opcion.tipo}
-                    onClick={() => onSelectTipo(opcion.tipo)}
-                    className="px-4 py-3 bg-gray-50 hover:bg-blue-50 hover:border-blue-300 border-2 border-gray-100 rounded-xl text-gray-700 hover:text-blue-700 font-medium transition-all text-sm text-left"
-                  >
-                    {opcion.nombre}
-                  </button>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
   )
 }
