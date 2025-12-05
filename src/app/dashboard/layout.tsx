@@ -310,12 +310,12 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
             sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
           } overflow-y-auto`}
         >
-          {/* 👇 NUEVO: Indicador de onboarding al inicio del sidebar */}
-          <div className="p-3 sm:p-4 border-b border-gray-100">
-            <OnboardingIndicator />
-          </div>
-
           <nav className="p-3 sm:p-4 space-y-2.5 pb-20 lg:pb-4">
+            {/* 👇 SOLUCIÓN: OnboardingIndicator integrado directamente en el nav, sin contenedor extra */}
+            <div className="mb-4">
+              <OnboardingIndicator />
+            </div>
+
             {menuSections.map((section, i) => (
               <div key={i}>
                 <h3 className="text-xs text-gray-500 px-3 sm:px-4 mb-1.5 font-medium">
