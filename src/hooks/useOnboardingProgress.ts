@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-
 interface OnboardingProgress {
   paso1Completado: boolean
   paso2Completado: boolean
@@ -8,7 +7,8 @@ interface OnboardingProgress {
   porcentaje: number
   isLoading: boolean
 }
-
+// Nombre del evento personalizado
+const ONBOARDING_REVALIDATE_EVENT = 'onboarding-revalidate'
 export function useOnboardingProgress(): OnboardingProgress {
   const [progress, setProgress] = useState<OnboardingProgress>({
     paso1Completado: false,
@@ -18,64 +18,40 @@ export function useOnboardingProgress(): OnboardingProgress {
     porcentaje: 0,
     isLoading: true
   })
-
-  // Ref para evitar múltiples llamadas simultáneas
   const isCheckingRef = useRef(false)
-
   const checkProgress = useCallback(async () => {
-    // Evitar llamadas duplicadas
-    if (isCheckingRef.current) {
-      console.log('⏭️ Ya hay una verificación en curso, omitiendo...')
-      return
-    }
-
+    if (isCheckingRef.current) return
     isCheckingRef.current = true
-
     try {
       const [lotesRes, datosRes, usuariosRes] = await Promise.all([
         fetch('/api/lotes', { cache: 'no-store' }),
         fetch('/api/datos', { cache: 'no-store' }),
         fetch('/api/usuarios', { cache: 'no-store' })
       ])
-
       if (!lotesRes.ok || !datosRes.ok || !usuariosRes.ok) {
-        console.warn('⚠️ Algunas APIs fallaron')
         setProgress(prev => ({ ...prev, isLoading: false }))
         return
       }
-
       const [lotes, datos, usuarios] = await Promise.all([
         lotesRes.json(),
         datosRes.json(),
         usuariosRes.json()
       ])
-
       const paso1 = Array.isArray(lotes) && lotes.length > 0
       const paso2 = Array.isArray(datos) && datos.length > 0
       const paso3 = Array.isArray(usuarios) && usuarios.length > 1
-
       const total = [paso1, paso2, paso3].filter(Boolean).length
       const porcentaje = Math.round((total / 3) * 100)
-
       setProgress(prev => {
-        // Solo actualizar si realmente cambió algo
+        // Solo actualizar si algo cambió
         if (
           prev.paso1Completado === paso1 &&
           prev.paso2Completado === paso2 &&
           prev.paso3Completado === paso3 &&
-          prev.isLoading === false
+          !prev.isLoading
         ) {
-          console.log('✓ Sin cambios en el progreso')
           return prev
         }
-
-        console.log('📊 Progreso Onboarding actualizado:', {
-          paso1: paso1 ? '✅' : '❌',
-          paso2: paso2 ? '✅' : '❌',
-          paso3: paso3 ? '✅' : '❌',
-          total: `${total}/3`
-        })
-
         return {
           paso1Completado: paso1,
           paso2Completado: paso2,
@@ -86,38 +62,39 @@ export function useOnboardingProgress(): OnboardingProgress {
         }
       })
     } catch (error) {
-      console.error('❌ Error checking onboarding progress:', error)
+      console.error('Error checking onboarding progress:', error)
       setProgress(prev => ({ ...prev, isLoading: false }))
     } finally {
       isCheckingRef.current = false
     }
   }, [])
-
   useEffect(() => {
-    console.log('🎯 OnboardingProgress hook montado')
-    
-    // Primera verificación al montar
+    // Check inicial
     checkProgress()
+    // Listener para evento de revalidación (desde cualquier componente)
+    const handleRevalidate = () => checkProgress()
 
-    // Escuchar evento de revalidación
-    const handleRevalidate = () => {
-      console.log('🔄 Evento de revalidación recibido')
-      checkProgress()
+    // Listener para cuando el usuario vuelve a la pestaña
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        checkProgress()
+      }
     }
-
-    window.addEventListener('onboarding-revalidate', handleRevalidate)
-
+    window.addEventListener(ONBOARDING_REVALIDATE_EVENT, handleRevalidate)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
     return () => {
-      console.log('🔚 OnboardingProgress hook desmontado')
-      window.removeEventListener('onboarding-revalidate', handleRevalidate)
+      window.removeEventListener(ONBOARDING_REVALIDATE_EVENT, handleRevalidate)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
   }, [checkProgress])
-
   return progress
 }
-
-// Función helper para disparar revalidación desde cualquier parte
-export function revalidateOnboardingProgress() {
-  console.log('🚀 Disparando evento de revalidación onboarding')
-  window.dispatchEvent(new Event('onboarding-revalidate'))
+/**
+ * Llamar esta función después de:
+ * - Crear un potrero (paso 1)
+ * - Ingresar un dato (paso 2)  
+ * - Invitar un usuario (paso 3)
+ */
+export function revalidateOnboarding() {
+  window.dispatchEvent(new Event(ONBOARDING_REVALIDATE_EVENT))
 }
