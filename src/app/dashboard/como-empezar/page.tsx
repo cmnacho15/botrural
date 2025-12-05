@@ -176,7 +176,7 @@ export default function ComoEmpezar() {
             <div className="p-6 sm:p-8 border-b border-gray-100">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
-                  3 pasos para empezar a usar FieldData
+                  3 pasos para empezar a usar BotRural
                 </h1>
                 <span className="text-2xl sm:text-3xl font-bold text-gray-400">
                   {porcentaje}%
@@ -320,7 +320,7 @@ export default function ComoEmpezar() {
           {totalCompletados === 3 && (
             <div className="mt-6 p-6 bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl text-white text-center">
               <h3 className="text-xl font-bold mb-2">🎉 ¡Felicitaciones!</h3>
-              <p>Ya completaste todos los pasos. Estás listo para aprovechar FieldData al máximo.</p>
+              <p>Ya completaste todos los pasos. Estás listo para aprovechar BotRural al máximo.</p>
               <Link 
                 href="/dashboard"
                 className="inline-block mt-4 px-6 py-2 bg-white text-green-600 font-semibold rounded-lg hover:bg-gray-100 transition"
