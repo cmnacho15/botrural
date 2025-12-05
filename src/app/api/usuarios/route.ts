@@ -19,8 +19,9 @@ export async function GET() {
       where: { id: session.user.id },
     })
 
-    if (!usuario?.campoId) {
-  return NextResponse.json({ error: "Usuario sin campo" }, { status: 400 })
+    
+if (!usuario?.campoId || usuario.role !== "ADMIN_GENERAL") {
+  return NextResponse.json({ error: "No autorizado" }, { status: 403 })
 }
 
     const usuarios = await prisma.user.findMany({

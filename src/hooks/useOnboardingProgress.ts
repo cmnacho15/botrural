@@ -26,23 +26,26 @@ export function useOnboardingProgress(): OnboardingProgress {
       const [lotesRes, datosRes, usuariosRes] = await Promise.all([
         fetch('/api/lotes', { cache: 'no-store' }),
         fetch('/api/datos', { cache: 'no-store' }),
-        fetch('/api/usuarios', { cache: 'no-store' })
+        fetch('/api/usuarios/count', { cache: 'no-store' })
       ])
       if (!lotesRes.ok || !datosRes.ok || !usuariosRes.ok) {
         setProgress(prev => ({ ...prev, isLoading: false }))
         return
       }
-      const [lotes, datos, usuarios] = await Promise.all([
-        lotesRes.json(),
-        datosRes.json(),
-        usuariosRes.json()
-      ])
-      const paso1 = Array.isArray(lotes) && lotes.length > 0
-      const paso2 = Array.isArray(datos) && datos.length > 0
-      const paso3 = Array.isArray(usuarios) && usuarios.length > 1
-      const total = [paso1, paso2, paso3].filter(Boolean).length
-      const porcentaje = Math.round((total / 3) * 100)
-      setProgress(prev => {
+      const [lotes, datos, usuariosCount] = await Promise.all([
+  lotesRes.json(),
+  datosRes.json(),
+  usuariosRes.json()
+])
+
+const paso1 = Array.isArray(lotes) && lotes.length > 0
+const paso2 = Array.isArray(datos) && datos.length > 0
+const paso3 = usuariosCount.count > 1  // 👈 CAMBIO: ahora es un objeto {count: number}
+
+const total = [paso1, paso2, paso3].filter(Boolean).length
+const porcentaje = Math.round((total / 3) * 100)
+
+setProgress(prev => {
         // Solo actualizar si algo cambió
         if (
           prev.paso1Completado === paso1 &&
