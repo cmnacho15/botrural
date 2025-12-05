@@ -3,7 +3,7 @@ export const CATEGORIAS_GASTOS = [
   'Alimentación',
   'Otros',
   'Administración',
-  'Alquiler',
+  'Renta',
   'Asesoramiento',
   'Combustible',
   'Compras de Hacienda',

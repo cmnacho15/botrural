@@ -24,7 +24,7 @@ export async function GET(request: Request) {
     const campoId = user!.campoId!
 
     // ---------------------------------------------------------
-    // 📅 CALCULAR EJERCICIO FISCAL (1 julio - 30 junio)
+    // CALCULAR EJERCICIO FISCAL (1 julio - 30 junio)
     // ---------------------------------------------------------
     const now = new Date()
     const mes = now.getMonth() // 0-11
@@ -49,7 +49,7 @@ export async function GET(request: Request) {
     const fechaInvFin = `${ejercicioFin}-06-30`
 
     // ---------------------------------------------------------
-    // 1️⃣ OBTENER LOTES Y CALCULAR UG/HECTÁREAS
+    // 1 OBTENER LOTES Y CALCULAR UG/HECTÁREAS
     // ---------------------------------------------------------
     const lotes = await prisma.lote.findMany({
       where: { campoId },
@@ -92,7 +92,7 @@ export async function GET(request: Request) {
     }
 
     // ---------------------------------------------------------
-    // 2️⃣ OBTENER VENTAS DEL EJERCICIO
+    // 2 OBTENER VENTAS DEL EJERCICIO
     // ---------------------------------------------------------
     const ventas = await prisma.venta.findMany({
       where: {
@@ -131,7 +131,7 @@ export async function GET(request: Request) {
     }
 
     // ---------------------------------------------------------
-    // 3️⃣ OBTENER COMPRAS DEL EJERCICIO
+    // 3 OBTENER COMPRAS DEL EJERCICIO
     // ---------------------------------------------------------
     const compras = await prisma.compra.findMany({
       where: {
@@ -167,7 +167,7 @@ export async function GET(request: Request) {
     }
 
     // ---------------------------------------------------------
-    // 4️⃣ OBTENER CONSUMOS DEL EJERCICIO
+    // 4 OBTENER CONSUMOS DEL EJERCICIO
     // ---------------------------------------------------------
     const consumos = await prisma.consumo.findMany({
       where: {
@@ -203,7 +203,7 @@ export async function GET(request: Request) {
     }
 
     // ---------------------------------------------------------
-    // 5️⃣ OBTENER DIFERENCIA DE INVENTARIO
+    // 5 OBTENER DIFERENCIA DE INVENTARIO
     // ---------------------------------------------------------
     const invInicio = await prisma.inventario.findMany({
       where: {
@@ -295,7 +295,43 @@ export async function GET(request: Request) {
     }
 
     // ---------------------------------------------------------
-    // 6️⃣ OBTENER COSTOS DEL EJERCICIO
+    // 5.5 CALCULAR STOCK EN KG PARA TASA DE EXTRACCIÓN
+    // ---------------------------------------------------------
+    const stockInicioPorTipo = { BOVINO: 0, OVINO: 0, EQUINO: 0 }
+    const stockFinPorTipo = { BOVINO: 0, OVINO: 0, EQUINO: 0 }
+
+    invInicio.forEach(item => {
+      const tipo = getTipoAnimal(item.categoria)
+      if (tipo !== 'OTRO') {
+        stockInicioPorTipo[tipo] += item.cantidad * (item.peso || 0)
+      }
+    })
+
+    invFin.forEach(item => {
+      const tipo = getTipoAnimal(item.categoria)
+      if (tipo !== 'OTRO') {
+        stockFinPorTipo[tipo] += item.cantidad * (item.peso || 0)
+      }
+    })
+
+    const stockInicioTotal = stockInicioPorTipo.BOVINO + stockInicioPorTipo.OVINO + stockInicioPorTipo.EQUINO
+    const stockFinTotal = stockFinPorTipo.BOVINO + stockFinPorTipo.OVINO + stockFinPorTipo.EQUINO
+
+    // Tasa extracción = Kg vendidos / ((Kg stock inicio + Kg stock fin) / 2) × 100
+    const calcTasaExtraccion = (kgVendidos: number, kgInicio: number, kgFin: number) => {
+      const stockPromedio = (kgInicio + kgFin) / 2
+      return stockPromedio > 0 ? (kgVendidos / stockPromedio) * 100 : 0
+    }
+
+    const tasaExtraccion = {
+      global: calcTasaExtraccion(ventasTotales.pesoTotalKg, stockInicioTotal, stockFinTotal),
+      vacunos: calcTasaExtraccion(ventasPorTipo.BOVINO.pesoTotalKg, stockInicioPorTipo.BOVINO, stockFinPorTipo.BOVINO),
+      ovinos: calcTasaExtraccion(ventasPorTipo.OVINO.pesoTotalKg, stockInicioPorTipo.OVINO, stockFinPorTipo.OVINO),
+      equinos: calcTasaExtraccion(ventasPorTipo.EQUINO.pesoTotalKg, stockInicioPorTipo.EQUINO, stockFinPorTipo.EQUINO),
+    }
+
+    // ---------------------------------------------------------
+    // 6 OBTENER COSTOS DEL EJERCICIO
     // ---------------------------------------------------------
     const gastos = await prisma.gasto.findMany({
       where: {
@@ -309,9 +345,10 @@ export async function GET(request: Request) {
       },
     })
 
-    // Separar en fijos y variables
+    // Separar en fijos, variables y RENTA
     const gastosVariables = gastos.filter(g => CATEGORIAS_VARIABLES.includes(g.categoria as any))
-    const gastosFijos = gastos.filter(g => !CATEGORIAS_VARIABLES.includes(g.categoria as any))
+    const gastosRenta = gastos.filter(g => g.categoria === 'Renta')
+    const gastosFijos = gastos.filter(g => !CATEGORIAS_VARIABLES.includes(g.categoria as any) && g.categoria !== 'Renta')
 
     // Costos variables por especie (asignación directa)
     const costosVariablesPorEspecie = {
@@ -344,17 +381,35 @@ export async function GET(request: Request) {
       equinos: (totalFijos * porcentajesUG.equinos) / 100,
     }
 
-    // Costos totales por especie
+    // Costos de Renta (distribución por % UG)
+    const totalRenta = gastosRenta.reduce((sum, g) => sum + g.montoEnUSD, 0)
+
+    const costosRentaPorEspecie = {
+      vacunos: (totalRenta * porcentajesUG.vacunos) / 100,
+      ovinos: (totalRenta * porcentajesUG.ovinos) / 100,
+      equinos: (totalRenta * porcentajesUG.equinos) / 100,
+    }
+
+    // Costos totales por especie (CON renta)
     const costosTotalesPorEspecie = {
+      vacunos: costosVariablesPorEspecie.vacunos + costosFijosPorEspecie.vacunos + costosRentaPorEspecie.vacunos,
+      ovinos: costosVariablesPorEspecie.ovinos + costosFijosPorEspecie.ovinos + costosRentaPorEspecie.ovinos,
+      equinos: costosVariablesPorEspecie.equinos + costosFijosPorEspecie.equinos + costosRentaPorEspecie.equinos,
+    }
+
+    const costosTotalesGeneral = totalVariables + totalFijos + totalRenta
+
+    // Costos SIN renta (para IK)
+    const costosSinRentaPorEspecie = {
       vacunos: costosVariablesPorEspecie.vacunos + costosFijosPorEspecie.vacunos,
       ovinos: costosVariablesPorEspecie.ovinos + costosFijosPorEspecie.ovinos,
       equinos: costosVariablesPorEspecie.equinos + costosFijosPorEspecie.equinos,
     }
 
-    const costosTotalesGeneral = totalVariables + totalFijos
+    const costosSinRentaGeneral = totalVariables + totalFijos
 
     // ---------------------------------------------------------
-    // 7️⃣ CALCULAR INDICADORES
+    // 7 CALCULAR INDICADORES
     // ---------------------------------------------------------
 
     // Producción de carne (kg) = Ventas + Consumo - Compras +/- Dif Inventario
@@ -381,16 +436,21 @@ export async function GET(request: Request) {
       equinos: ventasPorTipo.EQUINO.importeBrutoUSD,
     }
 
-    // IK = Producto Bruto - Costos (sin renta/pastoreo)
+    // IK = Producto Bruto - Costos (SIN renta)
     const ik = {
+      global: productoBruto.global - costosSinRentaGeneral,
+      vacunos: productoBruto.vacunos - costosSinRentaPorEspecie.vacunos,
+      ovinos: productoBruto.ovinos - costosSinRentaPorEspecie.ovinos,
+      equinos: productoBruto.equinos - costosSinRentaPorEspecie.equinos,
+    }
+
+    // IKP = Producto Bruto - Costos Totales (CON renta)
+    const ikp = {
       global: productoBruto.global - costosTotalesGeneral,
       vacunos: productoBruto.vacunos - costosTotalesPorEspecie.vacunos,
       ovinos: productoBruto.ovinos - costosTotalesPorEspecie.ovinos,
       equinos: productoBruto.equinos - costosTotalesPorEspecie.equinos,
     }
-
-    // IKP = Producto Bruto - Costos Totales (igual que IK por ahora, sin pastoreo)
-    const ikp = { ...ik }
 
     // Ingreso Efectivo = Ingreso Bruto - Costos Totales
     const ingresoEfectivo = {
@@ -441,12 +501,12 @@ export async function GET(request: Request) {
     }
 
     // ---------------------------------------------------------
-    // 8️⃣ CALCULAR "POR HA" PARA CADA INDICADOR
+    // 8 CALCULAR "POR HA" PARA CADA INDICADOR
     // ---------------------------------------------------------
     const porHa = (valor: number, ha: number) => ha > 0 ? valor / ha : 0
 
     // ---------------------------------------------------------
-    // 9️⃣ RESPUESTA FINAL
+    // 9 RESPUESTA FINAL
     // ---------------------------------------------------------
     return NextResponse.json({
       ejercicio: {
@@ -483,11 +543,10 @@ export async function GET(request: Request) {
           equinos: 0,
         },
         tasaExtraccion: {
-          // TODO: Requiere stock inicial para calcular correctamente
-          global: 0,
-          vacunos: 0,
-          ovinos: 0,
-          equinos: 0,
+          global: Math.round(tasaExtraccion.global * 10) / 10,
+          vacunos: Math.round(tasaExtraccion.vacunos * 10) / 10,
+          ovinos: Math.round(tasaExtraccion.ovinos * 10) / 10,
+          equinos: Math.round(tasaExtraccion.equinos * 10) / 10,
         },
         lana: {
           // TODO: Implementar cuando se complete ventas de lana
@@ -596,10 +655,19 @@ export async function GET(request: Request) {
             equinos: Math.round(porHa(costosVariablesPorEspecie.equinos, hectareasPorEspecie.equinos)),
           },
         },
-        costosPastoreo: {
-          // TODO: Implementar si se agrega categoría específica
-          total: { global: 0, vacunos: 0, ovinos: 0, equinos: 0 },
-          porHa: { global: 0, vacunos: 0, ovinos: 0, equinos: 0 },
+        costosRenta: {
+          total: {
+            global: Math.round(totalRenta),
+            vacunos: Math.round(costosRentaPorEspecie.vacunos),
+            ovinos: Math.round(costosRentaPorEspecie.ovinos),
+            equinos: Math.round(costosRentaPorEspecie.equinos),
+          },
+          porHa: {
+            global: Math.round(porHa(totalRenta, totalHectareas)),
+            vacunos: Math.round(porHa(costosRentaPorEspecie.vacunos, hectareasPorEspecie.vacunos)),
+            ovinos: Math.round(porHa(costosRentaPorEspecie.ovinos, hectareasPorEspecie.ovinos)),
+            equinos: Math.round(porHa(costosRentaPorEspecie.equinos, hectareasPorEspecie.equinos)),
+          },
         },
         ik: {
           total: {
@@ -671,6 +739,7 @@ export async function GET(request: Request) {
         difInventario: difInventarioTotales,
         costosVariables: totalVariables,
         costosFijos: totalFijos,
+        costosRenta: totalRenta,
       },
     })
 

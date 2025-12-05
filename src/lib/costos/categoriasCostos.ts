@@ -26,7 +26,7 @@ export const CATEGORIAS_FIJAS = [
   'Seguros',
   'Maquinaria',
   'Combustible',
-  'Alquiler',
+  'Renta',
   'Asesoramiento',
   'Estructuras',
   'Otros',
