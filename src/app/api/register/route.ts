@@ -2,6 +2,29 @@ import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import bcrypt from "bcryptjs"
 
+// 🎨 Categorías predeterminadas con colores
+const CATEGORIAS_GASTOS_DEFAULT = [
+  { nombre: 'Alimentación', color: '#ef4444' },
+  { nombre: 'Otros', color: '#6b7280' },
+  { nombre: 'Administración', color: '#3b82f6' },
+  { nombre: 'Renta', color: '#8b5cf6' },
+  { nombre: 'Asesoramiento', color: '#06b6d4' },
+  { nombre: 'Combustible', color: '#f97316' },
+  { nombre: 'Compras de Hacienda', color: '#84cc16' },
+  { nombre: 'Estructuras', color: '#64748b' },
+  { nombre: 'Fertilizantes', color: '#22c55e' },
+  { nombre: 'Fitosanitarios', color: '#14b8a6' },
+  { nombre: 'Gastos Comerciales', color: '#a855f7' },
+  { nombre: 'Impuestos', color: '#ec4899' },
+  { nombre: 'Insumos Agrícolas', color: '#eab308' },
+  { nombre: 'Labores', color: '#f59e0b' },
+  { nombre: 'Maquinaria', color: '#78716c' },
+  { nombre: 'Sanidad', color: '#dc2626' },
+  { nombre: 'Seguros', color: '#0ea5e9' },
+  { nombre: 'Semillas', color: '#65a30d' },
+  { nombre: 'Sueldos', color: '#7c3aed' },
+]
+
 export async function POST(request: Request) {
   try {
     const { name, email, password, campoNombre } = await request.json()
@@ -28,12 +51,14 @@ export async function POST(request: Request) {
     // Hash
     const hashedPassword = await bcrypt.hash(password, 10)
 
-    // Crear campo + usuario admin
+    // Crear campo + usuario admin + categorías predeterminadas
     const result = await prisma.$transaction(async (tx) => {
+      // 1. Crear campo
       const campo = await tx.campo.create({
         data: { nombre: campoNombre },
       })
 
+      // 2. Crear usuario admin
       const user = await tx.user.create({
         data: {
           name,
@@ -45,8 +70,21 @@ export async function POST(request: Request) {
         },
       })
 
+      // 3. Crear categorías de gastos predeterminadas
+      await tx.categoriaGasto.createMany({
+        data: CATEGORIAS_GASTOS_DEFAULT.map((cat, index) => ({
+          nombre: cat.nombre,
+          color: cat.color,
+          campoId: campo.id,
+          orden: index,
+          activo: true,
+        })),
+      })
+
       return { user, campo }
     })
+
+    console.log(`✅ Campo creado: ${result.campo.nombre} con ${CATEGORIAS_GASTOS_DEFAULT.length} categorías de gastos`)
 
     return NextResponse.json(
       {
