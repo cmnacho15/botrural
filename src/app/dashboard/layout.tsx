@@ -69,7 +69,6 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   {
     title: "Mi Campo",
     items: [
-      { href: "/dashboard/como-empezar", icon: "🚀", label: "Cómo Empezar", roles: ["ADMIN_GENERAL", "COLABORADOR"], requiresFinance: false }, // 👈 NUEVO: Cambiado de /empezar a /como-empezar
       { href: "/dashboard", icon: "📊", label: "Resumen", roles: ["ADMIN_GENERAL", "COLABORADOR", "CONTADOR"], requiresFinance: false },
       { href: "/dashboard/datos", icon: "📝", label: "Datos", roles: ["ADMIN_GENERAL", "COLABORADOR"], requiresFinance: false },
       { href: "/dashboard/mapa", icon: "🗺️", label: "Mapa", roles: ["ADMIN_GENERAL", "COLABORADOR"], requiresFinance: false },
