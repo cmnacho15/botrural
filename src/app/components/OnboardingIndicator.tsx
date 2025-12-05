@@ -11,26 +11,28 @@ interface OnboardingIndicatorProps {
 export default function OnboardingIndicator({ variant = 'default' }: OnboardingIndicatorProps) {
   const { totalCompletados, porcentaje } = useOnboardingProgress()
 
-  // Si ya completó los 3 pasos, no mostrar nada
+  // Si ya completó los 3 pasos, no mostrar nada (sin animación, desaparece instantáneamente)
   if (totalCompletados === 3) {
     return null
   }
 
+  // Versión compacta para el sidebar (más pequeña y profesional)
   if (variant === 'compact') {
     return (
       <Link
         href="/dashboard/como-empezar"
-        className="inline-flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all shadow-sm hover:shadow-md text-sm font-medium"
+        className="flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors group"
       >
-        <Rocket className="w-4 h-4" />
-        <span>Cómo Empezar</span>
-        <span className="bg-white/20 px-2 py-0.5 rounded-full text-xs font-bold">
+        <Rocket className="w-4 h-4 text-blue-500 group-hover:text-blue-600" />
+        <span className="flex-1">Cómo Empezar</span>
+        <span className="bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded text-xs font-medium">
           {totalCompletados}/3
         </span>
       </Link>
     )
   }
 
+  // Versión por defecto (más grande, para otras ubicaciones)
   return (
     <Link
       href="/dashboard/como-empezar"
@@ -51,7 +53,7 @@ export default function OnboardingIndicator({ variant = 'default' }: OnboardingI
       {/* Barra de progreso */}
       <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
         <div
-          className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full transition-all duration-700"
+          className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full transition-all duration-300"
           style={{ width: `${porcentaje}%` }}
         />
       </div>

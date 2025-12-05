@@ -311,10 +311,8 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
           } overflow-y-auto`}
         >
           <nav className="p-3 sm:p-4 space-y-2.5 pb-20 lg:pb-4">
-            {/* 👇 SOLUCIÓN: OnboardingIndicator integrado directamente en el nav, sin contenedor extra */}
-            <div className="mb-4">
-              <OnboardingIndicator />
-            </div>
+            {/* 👇 Indicador compacto que se integra con el resto del menú */}
+            <OnboardingIndicator variant="compact" />
 
             {menuSections.map((section, i) => (
               <div key={i}>
