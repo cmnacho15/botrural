@@ -6,6 +6,7 @@ interface OnboardingProgress {
   paso3Completado: boolean  // Tiene equipo (más de 1 usuario)
   totalCompletados: number
   porcentaje: number
+  isLoading: boolean        // 👈 NUEVO
 }
 
 export function useOnboardingProgress(): OnboardingProgress {
@@ -14,25 +15,26 @@ export function useOnboardingProgress(): OnboardingProgress {
     paso2Completado: false,
     paso3Completado: false,
     totalCompletados: 0,
-    porcentaje: 0
+    porcentaje: 0,
+    isLoading: true  // 👈 Empieza en true
   })
 
   useEffect(() => {
     async function checkProgress() {
       try {
+        setProgress(prev => ({ ...prev, isLoading: true })) // 👈 Activar loading
+
         // ✅ Verificar si tiene potreros (Paso 1)
         const lotesRes = await fetch('/api/lotes')
         const lotes = await lotesRes.json()
         const paso1 = Array.isArray(lotes) && lotes.length > 0
 
         // ✅ Verificar si tiene eventos/datos (Paso 2)
-        // Tu API /api/datos devuelve eventos unificados
         const datosRes = await fetch('/api/datos')
         const datos = await datosRes.json()
         const paso2 = Array.isArray(datos) && datos.length > 0
 
         // ✅ Verificar si tiene equipo (Paso 3) - más de 1 usuario
-        // Tu API está en /api/usuarios (no /api/equipo)
         const usuariosRes = await fetch('/api/usuarios')
         const usuarios = await usuariosRes.json()
         const paso3 = Array.isArray(usuarios) && usuarios.length > 1
@@ -45,7 +47,8 @@ export function useOnboardingProgress(): OnboardingProgress {
           paso2Completado: paso2,
           paso3Completado: paso3,
           totalCompletados: total,
-          porcentaje
+          porcentaje,
+          isLoading: false  // 👈 Desactivar loading
         })
 
         console.log('📊 Progreso Onboarding:', {
@@ -56,6 +59,7 @@ export function useOnboardingProgress(): OnboardingProgress {
         })
       } catch (error) {
         console.error('❌ Error checking onboarding progress:', error)
+        setProgress(prev => ({ ...prev, isLoading: false })) // 👈 Desactivar loading en error
       }
     }
 
