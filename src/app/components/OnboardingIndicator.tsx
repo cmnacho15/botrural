@@ -19,19 +19,25 @@ function OnboardingIndicator({ variant = 'default' }: OnboardingIndicatorProps) 
 
   // Versión compacta para el sidebar
   if (variant === 'compact') {
-    return (
-      <Link
-        href="/dashboard/como-empezar"
-        className="flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-lg text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors group"
-      >
-        <Rocket className="w-4 h-4 text-blue-500 group-hover:text-blue-600" />
-        <span className="flex-1">Cómo Empezar</span>
-        <span className="bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded text-xs font-medium">
-          {totalCompletados}/3
-        </span>
-      </Link>
-    )
-  }
+  return (
+    <Link
+      href="/dashboard/como-empezar"
+      className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg text-sm bg-blue-50/60 hover:bg-blue-100 transition-colors group relative"
+    >
+      {/* Dot animado */}
+      <span className="absolute left-1 top-1/2 -translate-y-1/2 flex h-2 w-2">
+        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+        <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+      </span>
+
+      <Rocket className="w-4 h-4 text-blue-500 group-hover:text-blue-600 ml-2" />
+      <span className="flex-1">Cómo Empezar</span>
+      <span className="bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded text-xs font-medium">
+        {totalCompletados}/3
+      </span>
+    </Link>
+  )
+}
 
   // Versión por defecto
   return (
