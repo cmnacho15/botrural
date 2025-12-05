@@ -321,7 +321,9 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                 </h3>
 
                 {section.items.map((item: any) => {
-                  const isActive = pathname.startsWith(item.href);
+                  const isActive = item.href === "/dashboard" 
+  ? pathname === "/dashboard"
+  : pathname.startsWith(item.href);
                   return (
                     <Link
                       key={item.href}
