@@ -9,10 +9,10 @@ interface OnboardingIndicatorProps {
 }
 
 export default function OnboardingIndicator({ variant = 'default' }: OnboardingIndicatorProps) {
-  const { totalCompletados, porcentaje } = useOnboardingProgress()
+  const { totalCompletados, porcentaje, isLoading } = useOnboardingProgress()
 
-  // Si ya completó los 3 pasos, no mostrar nada (sin animación, desaparece instantáneamente)
-  if (totalCompletados === 3) {
+  // No mostrar nada mientras carga o si ya completó los 3 pasos
+  if (isLoading || totalCompletados === 3) {
     return null
   }
 
