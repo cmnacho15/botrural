@@ -11,6 +11,9 @@ import crypto from "crypto"
 // CAMBIO 1: Import agregado
 import { buscarPotreroPorNombre, buscarAnimalesEnPotrero, obtenerNombresPotreros } from "@/lib/potrero-helpers"
 
+// NUEVO IMPORT PARA VENTAS
+import { detectarTipoFactura, processVentaImage, mapearCategoriaVenta, type ParsedVenta } from "@/lib/vision-venta-parser"
+
 const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || "mi_token_secreto"
 const WHATSAPP_TOKEN = process.env.WHATSAPP_TOKEN
 const WHATSAPP_PHONE_ID = process.env.WHATSAPP_PHONE_ID
@@ -61,7 +64,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ status: "image processed" })
     }
 
-    // ✨ Detectar tipo de mensaje (texto, audio, botones)
+    // Detectar tipo de mensaje (texto, audio, botones)
     let messageText = ""
 
     if (messageType === "text") {
@@ -77,6 +80,12 @@ export async function POST(request: Request) {
         if (messageText.startsWith("invoice_")) {
           await handleInvoiceButtonResponse(from, messageText)
           return NextResponse.json({ status: "invoice button processed" })
+        }
+
+        // NUEVO: Botones de VENTA
+        if (messageText.startsWith("venta_")) {
+          await handleVentaButtonResponse(from, messageText)
+          return NextResponse.json({ status: "venta button processed" })
         }
       }
     } else if (messageType === "audio") {
@@ -296,7 +305,7 @@ async function solicitarConfirmacionConFlow(phone: string, data: any) {
 }
 
 /* ===============================
-   FACTURAS POR IMAGEN
+   FACTURAS POR IMAGEN (GASTO O VENTA)
    =============================== */
 
 async function handleImageMessage(message: any, phoneNumber: string) {
@@ -310,74 +319,217 @@ async function handleImageMessage(message: any, phoneNumber: string) {
     })
 
     if (!user || !user.campoId) {
-      await sendWhatsAppMessage(
-        phoneNumber,
-        "No encontré tu cuenta asociada. Registrate primero."
-      )
+      await sendWhatsAppMessage(phoneNumber, "No encontré tu cuenta asociada. Registrate primero.")
       return
     }
 
-    await sendWhatsAppMessage(
-      phoneNumber,
-      "Procesando factura... un momento"
-    )
+    await sendWhatsAppMessage(phoneNumber, "Procesando imagen... un momento")
 
     const imageData = await downloadWhatsAppImage(mediaId)
     if (!imageData) {
-      await sendWhatsAppMessage(
-        phoneNumber,
-        "Error descargando la imagen. Intenta de nuevo."
-      )
+      await sendWhatsAppMessage(phoneNumber, "Error descargando la imagen. Intenta de nuevo.")
       return
     }
 
-    const uploadResult = await uploadInvoiceToSupabase(
-      imageData.buffer,
-      imageData.mimeType,
-      user.campoId
-    )
-
+    const uploadResult = await uploadInvoiceToSupabase(imageData.buffer, imageData.mimeType, user.campoId)
     if (!uploadResult) {
       await sendWhatsAppMessage(phoneNumber, "Error guardando la imagen.")
       return
     }
 
-    const invoiceData = await processInvoiceImage(uploadResult.url)
+    // DETECTAR TIPO: VENTA o GASTO
+    console.log("Detectando tipo de factura...")
+    const tipoFactura = await detectarTipoFactura(uploadResult.url)
+    console.log(`Tipo detectado: ${tipoFactura}`)
 
-    if (!invoiceData || !invoiceData.items || invoiceData.items.length === 0) {
-      await sendWhatsAppMessage(
-        phoneNumber,
-        "No pude leer la factura. ¿La imagen está clara?\n\nProbá con mejor iluminación o más cerca."
-      )
+    if (tipoFactura === "VENTA") {
+      await handleVentaImage(phoneNumber, uploadResult.url, uploadResult.fileName, user.campoId, caption)
+    } else {
+      // Comportamiento existente para GASTO
+      const invoiceData = await processInvoiceImage(uploadResult.url)
+      if (!invoiceData || !invoiceData.items || invoiceData.items.length === 0) {
+        await sendWhatsAppMessage(phoneNumber, "No pude leer la factura. ¿La imagen está clara?")
+        return
+      }
+
+      await prisma.pendingConfirmation.create({
+        data: {
+          telefono: phoneNumber,
+          data: JSON.stringify({
+            tipo: "INVOICE",
+            invoiceData,
+            imageUrl: uploadResult.url,
+            imageName: uploadResult.fileName,
+            campoId: user.campoId,
+            telefono: phoneNumber,
+            caption,
+          }),
+        },
+      })
+
+      await sendInvoiceFlowMessage(phoneNumber, invoiceData)
+    }
+  } catch (error) {
+    console.error("Error en handleImageMessage:", error)
+    await sendWhatsAppMessage(phoneNumber, "Ocurrió un error procesando tu imagen.")
+  }
+}
+
+/* ===============================
+   VENTAS POR IMAGEN - NUEVAS FUNCIONES
+   =============================== */
+
+async function handleVentaImage(
+  phoneNumber: string,
+  imageUrl: string,
+  imageName: string,
+  campoId: string,
+  caption: string
+) {
+  try {
+    const ventaData = await processVentaImage(imageUrl)
+    if (!ventaData || !ventaData.renglones?.length) {
+      await sendWhatsAppMessage(phoneNumber, "No pude leer la factura de venta. ¿La imagen está clara?")
       return
     }
 
-    const invoiceConfirmationData = {
-      tipo: "INVOICE",
-      invoiceData,
-      imageUrl: uploadResult.url,
-      imageName: uploadResult.fileName,
-      campoId: user.campoId,
-      telefono: phoneNumber,
-      caption,
-    }
+    await prisma.pendingConfirmation.upsert({
+      where: { telefono: phoneNumber },
+      create: { telefono: phoneNumber, data: JSON.stringify({ tipo: "VENTA", ventaData, imageUrl, imageName, campoId }) },
+      update: { data: JSON.stringify({ tipo: "VENTA", ventaData, imageUrl, imageName, campoId }) },
+    })
 
-    await prisma.pendingConfirmation.create({
+    await sendVentaConfirmation(phoneNumber, ventaData)
+  } catch (error) {
+    console.error("Error en handleVentaImage:", error)
+    await sendWhatsAppMessage(phoneNumber, "Error procesando la factura de venta.")
+  }
+}
+
+async function sendVentaConfirmation(phoneNumber: string, data: any) {
+  const renglonesText = data.renglones
+    .map((r: any, i: number) => `${i + 1}. ${r.cantidad} ${r.categoria} - ${r.pesoPromedio?.toFixed(1) || 0}kg @ $${r.precioKgUSD?.toFixed(2) || 0}/kg = $${r.importeBrutoUSD?.toFixed(2) || 0}`)
+    .join("\n")
+
+  const bodyText =
+    `*VENTA DE HACIENDA*\n\n` +
+    `${data.fecha}\n` +
+    `*${data.comprador}*\n` +
+    `${data.productor}\n` +
+    (data.nroFactura ? `Fact: ${data.nroFactura}\n` : "") +
+    (data.nroTropa ? `Tropa: ${data.nroTropa}\n` : "") +
+    `\n*Detalle:*\n${renglonesText}\n\n` +
+    `${data.cantidadTotal} animales, ${data.pesoTotalKg?.toFixed(1) || 0} kg\n` +
+    `Subtotal: $${data.subtotalUSD?.toFixed(2) || 0}\n` +
+    `Impuestos: -$${data.totalImpuestosUSD?.toFixed(2) || 0}\n` +
+    `*TOTAL: $${data.totalNetoUSD?.toFixed(2) || 0} USD*\n\n` +
+    `¿Guardar?`
+
+  await sendCustomButtons(phoneNumber, bodyText, [
+    { id: "venta_confirm", title: "Confirmar" },
+    { id: "venta_cancel", title: "Cancelar" },
+  ])
+}
+
+async function handleVentaButtonResponse(phoneNumber: string, buttonId: string) {
+  const pending = await prisma.pendingConfirmation.findUnique({ where: { telefono: phoneNumber } })
+  if (!pending) {
+    await sendWhatsAppMessage(phoneNumber, "No hay venta pendiente.")
+    return
+  }
+
+  const savedData = JSON.parse(pending.data)
+  if (savedData.tipo !== "VENTA") {
+    await sendWhatsAppMessage(phoneNumber, "Usá los botones de la factura.")
+    return
+  }
+
+  const action = buttonId.replace("venta_", "")
+
+  if (action === "confirm") {
+    await guardarVentaEnBD(savedData, phoneNumber)
+  } else {
+    await sendWhatsAppMessage(phoneNumber, "Venta cancelada.")
+    await prisma.pendingConfirmation.delete({ where: { telefono: phoneNumber } })
+  }
+}
+
+async function guardarVentaEnBD(savedData: any, phoneNumber: string) {
+  try {
+    const { ventaData, imageUrl, imageName, campoId } = savedData
+    const user = await prisma.user.findUnique({ where: { telefono: phoneNumber }, select: { id: true } })
+
+    const venta = await prisma.venta.create({
       data: {
-        telefono: phoneNumber,
-        data: JSON.stringify(invoiceConfirmationData),
+        campoId,
+        fecha: new Date(ventaData.fecha),
+        comprador: ventaData.comprador,
+        consignatario: ventaData.consignatario || null,
+        nroTropa: ventaData.nroTropa || null,
+        nroFactura: ventaData.nroFactura || null,
+        metodoPago: ventaData.metodoPago || "Contado",
+        diasPlazo: ventaData.diasPlazo || null,
+        pagado: ventaData.metodoPago === "Contado",
+        moneda: "USD",
+        tasaCambio: ventaData.tipoCambio || null,
+        subtotalUSD: ventaData.subtotalUSD,
+        totalImpuestosUSD: ventaData.totalImpuestosUSD || 0,
+        totalNetoUSD: ventaData.totalNetoUSD,
+        imageUrl,
+        imageName,
+        impuestos: ventaData.impuestos || null,
+        notas: "Venta desde WhatsApp",
       },
     })
 
-    await sendInvoiceFlowMessage(phoneNumber, invoiceData)
-  } catch (error) {
-    console.error("Error en handleImageMessage:", error)
-    await sendWhatsAppMessage(
-      phoneNumber,
-      "Ocurrió un error procesando tu factura. Intenta nuevamente."
+    for (const r of ventaData.renglones) {
+      const mapped = mapearCategoriaVenta(r.categoria)
+      await prisma.ventaRenglon.create({
+        data: {
+          ventaId: venta.id,
+          tipo: "GANADO",
+          tipoAnimal: r.tipoAnimal || mapped.tipoAnimal,
+          categoria: mapped.categoria,
+          raza: r.raza || null,
+          cantidad: r.cantidad,
+          pesoPromedio: r.pesoPromedio,
+          precioKgUSD: r.precioKgUSD,
+          precioAnimalUSD: r.pesoPromedio * r.precioKgUSD,
+          pesoTotalKg: r.pesoTotalKg,
+          importeBrutoUSD: r.importeBrutoUSD,
+          descontadoDeStock: false,
+        },
+      })
+    }
+
+    await prisma.evento.create({
+      data: {
+        tipo: "VENTA",
+        descripcion: `Venta a ${ventaData.comprador}: ${ventaData.cantidadTotal} animales`,
+        fecha: new Date(ventaData.fecha),
+        cantidad: ventaData.cantidadTotal,
+        monto: ventaData.totalNetoUSD,
+        comprador: ventaData.comprador,
+        campoId,
+        usuarioId: user?.id || null,
+        origenSnig: "BOT",
+      },
+    })
+
+    await prisma.pendingConfirmation.delete({ where: { telefono: phoneNumber } })
+
+    await sendWhatsAppMessage(phoneNumber,
+      `*Venta guardada!*\n\n${ventaData.cantidadTotal} animales\n$${ventaData.totalNetoUSD?.toFixed(2)} USD\n\nAnimales NO descontados del stock (hacelo desde la web)`
     )
+  } catch (error) {
+    console.error("Error guardando venta:", error)
+    await sendWhatsAppMessage(phoneNumber, "Error guardando la venta.")
   }
 }
+
+/* ===============================
+   FACTURAS GASTO (funciones originales)
+   =============================== */
 
 async function sendInvoiceFlowMessage(
   phoneNumber: string,
