@@ -338,9 +338,9 @@ async function handleImageMessage(message: any, phoneNumber: string) {
     }
 
     // DETECTAR TIPO: VENTA o GASTO
-    console.log("Detectando tipo de factura...")
-    const tipoFactura = await detectarTipoFactura(uploadResult.url)
-    console.log(`Tipo detectado: ${tipoFactura}`)
+    console.log("Detectando tipo de factura...", uploadResult.url)
+const tipoFactura = await detectarTipoFactura(uploadResult.url)
+console.log(`Tipo detectado: [${tipoFactura}] - tipo: ${typeof tipoFactura}`)
 
     if (tipoFactura === "VENTA") {
       await handleVentaImage(phoneNumber, uploadResult.url, uploadResult.fileName, user.campoId, caption)
@@ -459,7 +459,7 @@ async function guardarVentaEnBD(savedData: any, phoneNumber: string) {
     const { ventaData, imageUrl, imageName, campoId } = savedData
 
     console.log("ventaData recibida:", JSON.stringify(ventaData, null, 2))
-    
+
     const user = await prisma.user.findUnique({ where: { telefono: phoneNumber }, select: { id: true } })
 
     const venta = await prisma.venta.create({
