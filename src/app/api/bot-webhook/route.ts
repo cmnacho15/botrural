@@ -457,6 +457,9 @@ async function handleVentaButtonResponse(phoneNumber: string, buttonId: string) 
 async function guardarVentaEnBD(savedData: any, phoneNumber: string) {
   try {
     const { ventaData, imageUrl, imageName, campoId } = savedData
+
+    console.log("ventaData recibida:", JSON.stringify(ventaData, null, 2))
+    
     const user = await prisma.user.findUnique({ where: { telefono: phoneNumber }, select: { id: true } })
 
     const venta = await prisma.venta.create({
