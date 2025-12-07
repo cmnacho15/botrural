@@ -81,8 +81,8 @@ export interface ParsedVenta {
  * Detectar si una imagen es una factura de VENTA (no de gasto)
  */
 export async function detectarTipoFactura(imageUrl: string): Promise<"VENTA" | "GASTO" | null> {
-  console.error("ENTRANDO A detectarTipoFactura con URL:", imageUrl)
-  
+  console.log("🔍 Detectando tipo factura:", imageUrl)
+
   try {
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
@@ -120,7 +120,7 @@ Responde SOLO con: "VENTA", "GASTO" o "null" (sin comillas)`
 
     const result = response.choices[0].message.content?.trim().toUpperCase();
     
-    console.error("DEBUG - GPT respondió:", result)
+    console.log("🤖 GPT detectó:", result)
 
     if (result === "VENTA") return "VENTA";
     if (result === "GASTO") return "GASTO";

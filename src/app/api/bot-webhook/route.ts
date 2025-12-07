@@ -154,12 +154,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ status: "nombre processed" })
     }
 
-    // FASE 2: Verificar si hay una confirmación pendiente (TEXTO/AUDIO)
+   // FASE 2: Verificar si hay una confirmación pendiente (TEXTO/AUDIO)
     const confirmacionPendiente = await prisma.pendingConfirmation.findUnique({
       where: { telefono: from },
     })
 
     if (confirmacionPendiente) {
+      // Primero verificar si está esperando tipo de factura
+      const wasHandled = await handleAwaitingInvoiceType(from, messageText, confirmacionPendiente)
+      if (wasHandled) {
+        return NextResponse.json({ status: "invoice type selected" })
+      }
+      
       await handleConfirmacion(from, messageText, confirmacionPendiente)
       return NextResponse.json({ status: "confirmacion processed" })
     }
@@ -338,24 +344,49 @@ async function handleImageMessage(message: any, phoneNumber: string) {
     }
 
    // DETECTAR TIPO: VENTA o GASTO
-console.error("DEBUG - Detectando tipo de factura...", uploadResult.url)
-let tipoFactura = "VENTA" // FORZAR VENTA TEMPORALMENTE
-/*
-try {
-  tipoFactura = await detectarTipoFactura(uploadResult.url)
-  console.log("Tipo detectado:", tipoFactura)
-} catch (err) {
-  console.error("Error en detectarTipoFactura:", err)
-}
-*/
+    console.log("🔍 Detectando tipo de factura...", uploadResult.url)
 
+    let tipoFactura: "VENTA" | "GASTO" | null = null
+
+    try {
+      tipoFactura = await detectarTipoFactura(uploadResult.url)
+      console.log("✅ Tipo detectado:", tipoFactura)
+    } catch (err) {
+      console.error("❌ Error en detectarTipoFactura:", err)
+      await sendWhatsAppMessage(phoneNumber, "⚠️ Error detectando tipo. Procesando como gasto...")
+      tipoFactura = "GASTO"
+    }
+
+    // Si no se pudo detectar, preguntar al usuario
+    if (!tipoFactura) {
+      await sendWhatsAppMessage(
+        phoneNumber,
+        "No pude identificar el tipo de factura. ¿Es una:\n\n1️⃣ VENTA de animales\n2️⃣ GASTO (compra)\n\nRespondé: *venta* o *gasto*"
+      )
+      
+      await prisma.pendingConfirmation.create({
+        data: {
+          telefono: phoneNumber,
+          data: JSON.stringify({
+            tipo: "AWAITING_INVOICE_TYPE",
+            imageUrl: uploadResult.url,
+            imageName: uploadResult.fileName,
+            campoId: user.campoId,
+            caption,
+          }),
+        },
+      })
+      return
+    }
+
+    // Procesar según el tipo detectado
     if (tipoFactura === "VENTA") {
       await handleVentaImage(phoneNumber, uploadResult.url, uploadResult.fileName, user.campoId, caption)
     } else {
       // Comportamiento existente para GASTO
       const invoiceData = await processInvoiceImage(uploadResult.url)
       if (!invoiceData || !invoiceData.items || invoiceData.items.length === 0) {
-        await sendWhatsAppMessage(phoneNumber, "No pude leer la factura. ¿La imagen está clara?")
+        await sendWhatsAppMessage(phoneNumber, "No pude leer la factura de gasto. ¿La imagen está clara?")
         return
       }
 
@@ -536,6 +567,72 @@ async function guardarVentaEnBD(savedData: any, phoneNumber: string) {
     await sendWhatsAppMessage(phoneNumber, "Error guardando la venta.")
   }
 }
+
+
+/* ===============================
+   MANEJO DE RESPUESTA TIPO FACTURA
+   =============================== */
+
+async function handleAwaitingInvoiceType(
+  phoneNumber: string, 
+  messageText: string, 
+  pendingData: any
+): Promise<boolean> {
+  const savedData = JSON.parse(pendingData.data)
+  
+  if (savedData.tipo !== "AWAITING_INVOICE_TYPE") return false
+
+  const respuesta = messageText.toLowerCase().trim()
+  
+  if (respuesta.includes("venta") || respuesta === "1") {
+    await sendWhatsAppMessage(phoneNumber, "📊 Procesando como venta...")
+    await handleVentaImage(
+      phoneNumber, 
+      savedData.imageUrl, 
+      savedData.imageName, 
+      savedData.campoId, 
+      savedData.caption
+    )
+    await prisma.pendingConfirmation.delete({ where: { telefono: phoneNumber } })
+    return true
+  }
+  
+  if (respuesta.includes("gasto") || respuesta === "2") {
+    await sendWhatsAppMessage(phoneNumber, "💰 Procesando como gasto...")
+    const invoiceData = await processInvoiceImage(savedData.imageUrl)
+    
+    if (!invoiceData?.items?.length) {
+      await sendWhatsAppMessage(phoneNumber, "No pude leer la factura. Intenta de nuevo.")
+      await prisma.pendingConfirmation.delete({ where: { telefono: phoneNumber } })
+      return true
+    }
+
+    await prisma.pendingConfirmation.update({
+      where: { telefono: phoneNumber },
+      data: {
+        data: JSON.stringify({
+          tipo: "INVOICE",
+          invoiceData,
+          imageUrl: savedData.imageUrl,
+          imageName: savedData.imageName,
+          campoId: savedData.campoId,
+          telefono: phoneNumber,
+          caption: savedData.caption,
+        })
+      }
+    })
+    
+    await sendInvoiceFlowMessage(phoneNumber, invoiceData)
+    return true
+  }
+
+  await sendWhatsAppMessage(
+    phoneNumber, 
+    "No entendí. Respondé *venta* o *gasto*"
+  )
+  return true
+}
+
 
 /* ===============================
    FACTURAS GASTO (funciones originales)
