@@ -81,66 +81,73 @@ export interface ParsedVenta {
  * Detectar si una imagen es una factura de VENTA (no de gasto)
  */
 export async function detectarTipoFactura(imageUrl: string): Promise<"VENTA" | "GASTO" | null> {
-  console.log("🔍 Detectando tipo factura:", imageUrl)
-
+  console.log("🔍 Detectando tipo factura con OCR directo:", imageUrl)
+  
   try {
+    // PASO 1: Extraer TODO el texto
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
         {
           role: "system",
-          content: `Eres un experto en facturas ganaderas de Uruguay.
-
-ANALIZA ESTA IMAGEN Y CLASIFICA:
-
-🟢 VENTA = Liquidación de venta de animales
-   ✅ PALABRAS CLAVE: "Fact. Haciendas", "Liquidación", "Remito de Hacienda", "TROPA"
-   ✅ ENCABEZADO: Logo de FRIGORÍFICO (Frigo Salto, Marfrig, etc.)
-   ✅ SECCIÓN: "PRODUCTOR:" o "REMITENTE:" (el que VENDE)
-   ✅ TABLA: Columnas como "CATEGORÍA", "Kg", "Rendimiento %", "Precio/Kg"
-   ✅ ANIMALES: OVEJAS, CORDEROS, NOVILLOS, VACAS, CAPONES
-   ✅ TOTALES: "Subtotal", "MEVIR", "INIA", "IMEBA", "Total Neto"
-   ✅ FLUJO DE DINERO: El frigorífico PAGA al productor
-
-🔴 GASTO = Factura de compra de insumos/servicios
-   ✅ PALABRAS: "Factura", "Ticket", "Remito" (pero NO de hacienda)
-   ✅ PRODUCTOS: Semillas, Fertilizantes, Combustible, Alimento, Herramientas
-   ✅ PROVEEDOR: Barraca, Agroveterinaria, Estación de servicio
-   ✅ FLUJO DE DINERO: El productor PAGA al proveedor
-
-⚫ null = No es factura o ilegible
-
-REGLA DE ORO:
-- Si dice "TROPA" o "Fact. Haciendas" → SIEMPRE es VENTA
-- Si lista OVEJAS/NOVILLOS con kg y rendimiento → SIEMPRE es VENTA
-- Si tiene logo de frigorífico arriba → SIEMPRE es VENTA
-
-RESPONDE SOLO UNA PALABRA: VENTA, GASTO o null`
+          content: "Extrae TODO el texto visible de esta imagen. Responde SOLO el texto sin formato ni explicaciones."
         },
         {
           role: "user",
           content: [
-            {
-              type: "image_url",
-              image_url: { url: imageUrl, detail: "low" }
-            }
+            { type: "image_url", image_url: { url: imageUrl, detail: "low" } }
           ]
         }
       ],
-      max_tokens: 10,
+      max_tokens: 800,
       temperature: 0
     });
 
-    const result = response.choices[0].message.content?.trim().toUpperCase();
+    const textoCompleto = response.choices[0].message.content?.toUpperCase() || "";
     
-    console.log("🤖 GPT detectó:", result)
+    console.log("📝 Texto extraído (primeros 300 chars):", textoCompleto.substring(0, 300))
 
-    if (result === "VENTA") return "VENTA";
-    if (result === "GASTO") return "GASTO";
-    return null;
+    // PASO 2: Buscar palabras clave de VENTA
+    const palabrasVenta = [
+      "TROPA",
+      "FACT. HACIENDAS",
+      "FACT.HACIENDAS",
+      "LIQUIDACION",
+      "LIQUIDACIÓN",
+      "FRIGORIFICO",
+      "FRIGORÍFICO",
+      "SEGUNDA BALANZA",
+      "RENDIMIENTO",
+      "MEVIR",
+      "INIA",
+      "IMEBA",
+      "PRODUCTOR:",
+      "DICOSE"
+    ];
+
+    for (const palabra of palabrasVenta) {
+      if (textoCompleto.includes(palabra)) {
+        console.log(`✅ VENTA detectada por palabra: "${palabra}"`)
+        return "VENTA";
+      }
+    }
+
+    // PASO 3: Buscar animales con peso
+    const tieneAnimales = /OVEJAS|CORDEROS|NOVILLOS|VACAS|CAPONES|CARNEROS/.test(textoCompleto);
+    const tienePeso = /\d+\s*(KG|KILOS)/.test(textoCompleto);
+    const tienePrecioKg = /\$\s*\d+[.,]\d+\s*\/\s*KG/.test(textoCompleto);
+
+    if (tieneAnimales && (tienePeso || tienePrecioKg)) {
+      console.log("✅ VENTA detectada por: animales + peso/precio")
+      return "VENTA";
+    }
+
+    // PASO 4: Si no es venta, es gasto
+    console.log("❌ No detectadas señales de venta → GASTO")
+    return "GASTO";
     
   } catch (error) {
-    console.error("Error detectando tipo de factura:", error);
+    console.error("Error en detectarTipoFactura:", error);
     return null;
   }
 }
