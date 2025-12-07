@@ -60,6 +60,7 @@ export async function POST(request: Request) {
 
     // NUEVO: Procesar IMÁGENES (facturas)
     if (messageType === "image") {
+      console.log("🖼️ DETECTADO messageType === image")  // ← AGREGÁ ESTO
       await handleImageMessage(message, from)
       return NextResponse.json({ status: "image processed" })
     }
@@ -315,6 +316,7 @@ async function solicitarConfirmacionConFlow(phone: string, data: any) {
    =============================== */
 
 async function handleImageMessage(message: any, phoneNumber: string) {
+  console.log("🎯 INICIO handleImageMessage - phoneNumber:", phoneNumber)  // ← AGREGÁ ESTO
   try {
     const mediaId = message.image.id
     const caption = message.image.caption || ""
