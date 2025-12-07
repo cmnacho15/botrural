@@ -348,17 +348,20 @@ async function handleImageMessage(message: any, phoneNumber: string) {
 
     let tipoFactura: "VENTA" | "GASTO" | null = null
 
+    console.log("🚨 ANTES de detectarTipoFactura")
     try {
       tipoFactura = await detectarTipoFactura(uploadResult.url)
-      console.log("✅ Tipo detectado:", tipoFactura)
+      console.log("🚨 DESPUÉS de detectarTipoFactura - resultado:", tipoFactura)
       console.log("🔍 DEBUG - tipoFactura es:", typeof tipoFactura, JSON.stringify(tipoFactura))
-    } catch (err) {
-      console.error("❌ Error en detectarTipoFactura:", err)
-      await sendWhatsAppMessage(phoneNumber, "⚠️ Error detectando tipo. Procesando como gasto...")
-      tipoFactura = "GASTO"
+    } catch (err: any) {
+      console.error("❌ Error COMPLETO en detectarTipoFactura:")
+      console.error("Mensaje:", err?.message)
+      console.error("Stack:", err?.stack)
+      tipoFactura = null  // ← CAMBIADO: no asumir GASTO
     }
-    
-    console.log("🔍 DEBUG - tipoFactura es:", typeof tipoFactura, JSON.stringify(tipoFactura))
+
+    console.log("🚨 DECISIÓN CRÍTICA - tipoFactura vale:", tipoFactura)
+
 
     // Si no se pudo detectar, preguntar al usuario
     if (!tipoFactura) {
