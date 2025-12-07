@@ -1,9 +1,12 @@
-import NextAuth from "next-auth";
+import NextAuth, { type NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 
-export const authOptions = {
+// ===============================================================
+//  A U T H   O P T I O N S   C O N   T I P A D O   C O R R E C T O
+// ===============================================================
+export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
       name: "Credentials",
@@ -13,11 +16,8 @@ export const authOptions = {
       },
 
       async authorize(credentials): Promise<any> {
-        if (!credentials?.email || !credentials.password) {
-          return null;
-        }
+        if (!credentials?.email || !credentials.password) return null;
 
-        // Buscar usuario
         const user = await prisma.user.findFirst({
           where: { email: credentials.email.toLowerCase().trim() },
           select: {
@@ -40,7 +40,7 @@ export const authOptions = {
 
         if (!isValid) return null;
 
-        // Datos que irán al JWT
+        // Datos que se guardan dentro del JWT
         return {
           id: user.id,
           email: user.email,
@@ -54,7 +54,7 @@ export const authOptions = {
     }),
   ],
 
-  session: { strategy: "jwt" as const },
+  session: { strategy: "jwt" },
 
   secret: process.env.NEXTAUTH_SECRET,
 
@@ -62,9 +62,11 @@ export const authOptions = {
     signIn: "/login",
   },
 
+  // ===============================================================
+  //  C A L L B A C K S   –   J W T   Y   S E S S I O N
+  // ===============================================================
   callbacks: {
-    // Guardar info del user en el JWT
-    async jwt({ token, user }: any) {
+    async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
         token.role = user.role;
@@ -75,10 +77,8 @@ export const authOptions = {
       return token;
     },
 
-    // Exponer datos en session.user
-    async session({ session, token }: any) {
+    async session({ session, token }) {
       if (session.user) {
-        // Cargar datos completos del usuario desde la BD
         const dbUser = await prisma.user.findUnique({
           where: { id: token.id as string },
           select: {
@@ -89,7 +89,7 @@ export const authOptions = {
             role: true,
             accesoFinanzas: true,
             campoId: true,
-            campo: { select: { nombre: true } }, // ✅ Incluir nombre del campo
+            campo: { select: { nombre: true } },
           },
         });
 
@@ -98,7 +98,7 @@ export const authOptions = {
             ...session.user,
             ...dbUser,
             roleCode: dbUser.role,
-            campoNombre: dbUser.campo?.nombre || null, // ✅ Agregar nombre del campo
+            campoNombre: dbUser.campo?.nombre || null,
           };
         } else {
           session.user.id = token.id;
@@ -106,7 +106,7 @@ export const authOptions = {
           session.user.roleCode = token.roleCode;
           session.user.accesoFinanzas = token.accesoFinanzas;
           session.user.campoId = token.campoId;
-          session.user.campoNombre = token.campoNombre || null; // ✅ Fallback del token
+          session.user.campoNombre = token.campoNombre || null;
         }
       }
 
@@ -115,5 +115,6 @@ export const authOptions = {
   },
 };
 
+// Export final compatible con App Router
 const handler = NextAuth(authOptions);
 export { handler as GET, handler as POST };
