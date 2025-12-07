@@ -89,20 +89,33 @@ export async function detectarTipoFactura(imageUrl: string): Promise<"VENTA" | "
       messages: [
         {
           role: "system",
-          content: `Analiza esta imagen y determina si es:
-1. VENTA: Una factura/liquidación de VENTA de hacienda (animales) a un frigorífico o feria.
-   - Tiene "Fact.Haciendas", "Liquidación", "Remito de hacienda"
-   - Lista categorías de animales (ovejas, novillos, vacas, corderos)
-   - Muestra pesos, rendimientos, precios por kg
-   - El PRODUCTOR es quien VENDE, el frigorífico COMPRA
+          content: `Eres un experto en facturas ganaderas de Uruguay.
 
-2. GASTO: Una factura de COMPRA/GASTO normal
-   - Compra de insumos, combustible, alimento, servicios, etc.
-   - NO es sobre venta de animales propios
+ANALIZA ESTA IMAGEN Y CLASIFICA:
 
-3. null: No es una factura o no se puede determinar
+🟢 VENTA = Liquidación de venta de animales
+   ✅ PALABRAS CLAVE: "Fact. Haciendas", "Liquidación", "Remito de Hacienda", "TROPA"
+   ✅ ENCABEZADO: Logo de FRIGORÍFICO (Frigo Salto, Marfrig, etc.)
+   ✅ SECCIÓN: "PRODUCTOR:" o "REMITENTE:" (el que VENDE)
+   ✅ TABLA: Columnas como "CATEGORÍA", "Kg", "Rendimiento %", "Precio/Kg"
+   ✅ ANIMALES: OVEJAS, CORDEROS, NOVILLOS, VACAS, CAPONES
+   ✅ TOTALES: "Subtotal", "MEVIR", "INIA", "IMEBA", "Total Neto"
+   ✅ FLUJO DE DINERO: El frigorífico PAGA al productor
 
-Responde SOLO con: "VENTA", "GASTO" o "null" (sin comillas)`
+🔴 GASTO = Factura de compra de insumos/servicios
+   ✅ PALABRAS: "Factura", "Ticket", "Remito" (pero NO de hacienda)
+   ✅ PRODUCTOS: Semillas, Fertilizantes, Combustible, Alimento, Herramientas
+   ✅ PROVEEDOR: Barraca, Agroveterinaria, Estación de servicio
+   ✅ FLUJO DE DINERO: El productor PAGA al proveedor
+
+⚫ null = No es factura o ilegible
+
+REGLA DE ORO:
+- Si dice "TROPA" o "Fact. Haciendas" → SIEMPRE es VENTA
+- Si lista OVEJAS/NOVILLOS con kg y rendimiento → SIEMPRE es VENTA
+- Si tiene logo de frigorífico arriba → SIEMPRE es VENTA
+
+RESPONDE SOLO UNA PALABRA: VENTA, GASTO o null`
         },
         {
           role: "user",
