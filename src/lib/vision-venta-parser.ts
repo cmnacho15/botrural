@@ -118,6 +118,8 @@ Responde SOLO con: "VENTA", "GASTO" o "null" (sin comillas)`
 
     const result = response.choices[0].message.content?.trim().toUpperCase();
     
+    console.log("GPT respondió:", result)  // ← AGREGÁ ESTA LÍNEA
+    
     if (result === "VENTA") return "VENTA";
     if (result === "GASTO") return "GASTO";
     return null;
