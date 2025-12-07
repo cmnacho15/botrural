@@ -81,6 +81,8 @@ export interface ParsedVenta {
  * Detectar si una imagen es una factura de VENTA (no de gasto)
  */
 export async function detectarTipoFactura(imageUrl: string): Promise<"VENTA" | "GASTO" | null> {
+  console.error("ENTRANDO A detectarTipoFactura con URL:", imageUrl)
+  
   try {
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
