@@ -142,9 +142,19 @@ export async function detectarTipoFactura(imageUrl: string): Promise<"VENTA" | "
       return "VENTA";
     }
 
-    // PASO 4: Si no es venta, es gasto
-    console.log("❌ No detectadas señales de venta → GASTO")
-    return "GASTO";
+    
+// PASO 4: Verificar señales adicionales de venta
+const tieneRendimiento = /RENDIMIENTO|%/i.test(textoCompleto);
+const tieneBalanza = /BALANZA|SEGUNDA\s*BAL/i.test(textoCompleto);
+
+if (tieneAnimales && (tienePeso || tienePrecioKg || tieneRendimiento || tieneBalanza)) {
+  console.log("✅ VENTA detectada por: animales + señales de frigorífico")
+  return "VENTA";
+}
+
+// PASO 5: Si no hay señales claras, retornar null para preguntar
+console.log("⚠️ No hay señales claras → null (preguntar al usuario)")
+return null;
     
   } catch (error) {
     console.error("Error en detectarTipoFactura:", error);

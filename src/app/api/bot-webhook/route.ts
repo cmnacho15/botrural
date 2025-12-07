@@ -357,7 +357,9 @@ async function handleImageMessage(message: any, phoneNumber: string) {
       await sendWhatsAppMessage(phoneNumber, "⚠️ Error detectando tipo. Procesando como gasto...")
       tipoFactura = "GASTO"
     }
-
+    
+    console.log("🔍 DEBUG - tipoFactura es:", typeof tipoFactura, JSON.stringify(tipoFactura))
+    
     // Si no se pudo detectar, preguntar al usuario
     if (!tipoFactura) {
       await sendWhatsAppMessage(
