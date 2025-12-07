@@ -359,7 +359,7 @@ async function handleImageMessage(message: any, phoneNumber: string) {
     }
     
     console.log("🔍 DEBUG - tipoFactura es:", typeof tipoFactura, JSON.stringify(tipoFactura))
-    
+
     // Si no se pudo detectar, preguntar al usuario
     if (!tipoFactura) {
       await sendWhatsAppMessage(
@@ -382,34 +382,47 @@ async function handleImageMessage(message: any, phoneNumber: string) {
       return
     }
 
-    // Procesar según el tipo detectado
-    if (tipoFactura === "VENTA") {
-      await handleVentaImage(phoneNumber, uploadResult.url, uploadResult.fileName, user.campoId, caption)
-    } else {
-      // Comportamiento existente para GASTO
-      const invoiceData = await processInvoiceImage(uploadResult.url)
-      if (!invoiceData || !invoiceData.items || invoiceData.items.length === 0) {
-        await sendWhatsAppMessage(phoneNumber, "No pude leer la factura de gasto. ¿La imagen está clara?")
-        return
-      }
+    // DEBUG CRÍTICO
+console.log("🚨 DECISIÓN CRÍTICA - tipoFactura vale:", tipoFactura)
+console.log("🚨 Comparación estricta:", tipoFactura === "VENTA", tipoFactura === "GASTO", tipoFactura === null)
 
-      await prisma.pendingConfirmation.create({
-        data: {
-          telefono: phoneNumber,
-          data: JSON.stringify({
-            tipo: "INVOICE",
-            invoiceData,
-            imageUrl: uploadResult.url,
-            imageName: uploadResult.fileName,
-            campoId: user.campoId,
-            telefono: phoneNumber,
-            caption,
-          }),
-        },
-      })
+// Procesar según el tipo detectado
+if (tipoFactura === "VENTA") {
+  console.log("📊 BRANCH: Procesando como VENTA")
+  await handleVentaImage(phoneNumber, uploadResult.url, uploadResult.fileName, user.campoId, caption)
+  return  // ✅ IMPORTANTE: Salir después de procesar venta
+}
 
-      await sendInvoiceFlowMessage(phoneNumber, invoiceData)
-    }
+if (tipoFactura === "GASTO") {
+  console.log("💰 BRANCH: Procesando como GASTO")
+  // Comportamiento existente para GASTO
+  const invoiceData = await processInvoiceImage(uploadResult.url)
+  if (!invoiceData || !invoiceData.items || invoiceData.items.length === 0) {
+    await sendWhatsAppMessage(phoneNumber, "No pude leer la factura de gasto. ¿La imagen está clara?")
+    return
+  }
+
+  await prisma.pendingConfirmation.create({
+    data: {
+      telefono: phoneNumber,
+      data: JSON.stringify({
+        tipo: "INVOICE",
+        invoiceData,
+        imageUrl: uploadResult.url,
+        imageName: uploadResult.fileName,
+        campoId: user.campoId,
+        telefono: phoneNumber,
+        caption,
+      }),
+    },
+  })
+
+  await sendInvoiceFlowMessage(phoneNumber, invoiceData)
+  return  // ✅ Salir después de procesar gasto
+}
+
+// Si es null, ya se preguntó al usuario arriba
+console.log("❓ BRANCH: tipoFactura es null, ya se preguntó")
   } catch (error) {
     console.error("Error en handleImageMessage:", error)
     await sendWhatsAppMessage(phoneNumber, "Ocurrió un error procesando tu imagen.")
