@@ -337,10 +337,10 @@ async function handleImageMessage(message: any, phoneNumber: string) {
       return
     }
 
-    // DETECTAR TIPO: VENTA o GASTO
+   // DETECTAR TIPO: VENTA o GASTO
     console.log("Detectando tipo de factura...", uploadResult.url)
 const tipoFactura = await detectarTipoFactura(uploadResult.url)
-console.log(`Tipo detectado: [${tipoFactura}] - tipo: ${typeof tipoFactura}`)
+console.log("Tipo detectado:", tipoFactura)
 
     if (tipoFactura === "VENTA") {
       await handleVentaImage(phoneNumber, uploadResult.url, uploadResult.fileName, user.campoId, caption)
