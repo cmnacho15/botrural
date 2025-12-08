@@ -8,8 +8,8 @@ import {
   uploadInvoiceToSupabase,
 } from "@/lib/supabase-storage"
 import crypto from "crypto"
-// CAMBIO 1: Import agregado
-import { buscarPotreroPorNombre, buscarAnimalesEnPotrero, obtenerNombresPotreros } from "@/lib/potrero-helpers"
+// CAMBIO 1: Import actualizado con buscarPotrerosConCategoria
+import { buscarPotreroPorNombre, buscarAnimalesEnPotrero, obtenerNombresPotreros, buscarPotrerosConCategoria } from "@/lib/potrero-helpers"
 
 // NUEVO IMPORT PARA VENTAS
 import { detectarTipoFactura, processVentaImage, mapearCategoriaVenta, type ParsedVenta } from "@/lib/vision-venta-parser"
@@ -61,7 +61,7 @@ export async function POST(request: Request) {
 
     // NUEVO: Procesar IMÁGENES (facturas)
     if (messageType === "image") {
-      console.log("🖼️ DETECTADO messageType === image")  // ← AGREGÁ ESTO
+      console.log("DETECTADO messageType === image")
       await handleImageMessage(message, from)
       return NextResponse.json({ status: "image processed" })
     }
@@ -88,6 +88,12 @@ export async function POST(request: Request) {
         if (messageText.startsWith("venta_")) {
           await handleVentaButtonResponse(from, messageText)
           return NextResponse.json({ status: "venta button processed" })
+        }
+
+        // NUEVO: Botones de DESCUENTO DE STOCK
+        if (messageText.startsWith("stock_")) {
+          await handleStockButtonResponse(from, messageText)
+          return NextResponse.json({ status: "stock button processed" })
         }
       }
     } else if (messageType === "audio") {
@@ -156,7 +162,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ status: "nombre processed" })
     }
 
-   // FASE 2: Verificar si hay una confirmación pendiente (TEXTO/AUDIO)
+    // FASE 2: Verificar si hay una confirmación pendiente (TEXTO/AUDIO)
     const confirmacionPendiente = await prisma.pendingConfirmation.findUnique({
       where: { telefono: from },
     })
@@ -316,10 +322,8 @@ async function solicitarConfirmacionConFlow(phone: string, data: any) {
    FACTURAS POR IMAGEN (GASTO O VENTA)
    =============================== */
 
-// REEMPLAZAR la función handleImageMessage completa en route.ts
-
 async function handleImageMessage(message: any, phoneNumber: string) {
-  console.log("🎯 INICIO handleImageMessage - phoneNumber:", phoneNumber)
+  console.log("INICIO handleImageMessage - phoneNumber:", phoneNumber)
   try {
     const mediaId = message.image.id
     const caption = message.image.caption || ""
@@ -349,20 +353,20 @@ async function handleImageMessage(message: any, phoneNumber: string) {
     }
 
     // DETECTAR TIPO: VENTA o GASTO
-    console.log("🔍 Detectando tipo de factura...", uploadResult.url)
+    console.log("Detectando tipo de factura...", uploadResult.url)
 
     let tipoFactura: "VENTA" | "GASTO" | null = null
 
-    console.log("🚨 ANTES de detectarTipoFactura")
+    console.log("ANTES de detectarTipoFactura")
     try {
       tipoFactura = await detectarTipoFactura(uploadResult.url)
-      console.log("🚨 DESPUÉS de detectarTipoFactura - resultado:", tipoFactura)
+      console.log("DESPUÉS de detectarTipoFactura - resultado:", tipoFactura)
     } catch (err: any) {
-      console.error("❌ Error en detectarTipoFactura:", err?.message)
+      console.error("Error en detectarTipoFactura:", err?.message)
       tipoFactura = null
     }
     
-    console.log("🚨 DECISIÓN - tipoFactura vale:", tipoFactura)
+    console.log("DECISIÓN - tipoFactura vale:", tipoFactura)
 
     // Si no se pudo detectar, preguntar al usuario
     if (!tipoFactura) {
@@ -393,18 +397,18 @@ async function handleImageMessage(message: any, phoneNumber: string) {
           }),
         }
       })
-      return // ← CRÍTICO: salir aquí
+      return
     }
 
-    // ✅ FIX: Procesar según el tipo detectado y SALIR
+    // Procesar según el tipo detectado y SALIR
     if (tipoFactura === "VENTA") {
-      console.log("📊 BRANCH: Procesando como VENTA")
+      console.log("BRANCH: Procesando como VENTA")
       await handleVentaImage(phoneNumber, uploadResult.url, uploadResult.fileName, user.campoId, caption)
-      return // ← AGREGADO: evita que siga al código de GASTO
+      return
     }
 
     if (tipoFactura === "GASTO") {
-      console.log("💰 BRANCH: Procesando como GASTO")
+      console.log("BRANCH: Procesando como GASTO")
       const invoiceData = await processInvoiceImage(uploadResult.url)
       
       if (!invoiceData || !invoiceData.items || invoiceData.items.length === 0) {
@@ -440,11 +444,10 @@ async function handleImageMessage(message: any, phoneNumber: string) {
       })
 
       await sendInvoiceFlowMessage(phoneNumber, invoiceData)
-      return // ← AGREGADO: salir después de procesar GASTO
+      return
     }
 
-    // Si llegamos acá es porque tipoFactura tiene un valor inesperado
-    console.error("⚠️ tipoFactura inesperado:", tipoFactura)
+    console.error("tipoFactura inesperado:", tipoFactura)
     await sendWhatsAppMessage(phoneNumber, "Ocurrió un error procesando la imagen. Intenta de nuevo.")
 
   } catch (error) {
@@ -532,6 +535,7 @@ async function handleVentaButtonResponse(phoneNumber: string, buttonId: string) 
   }
 }
 
+// CAMBIO 3: guardarVentaEnBD actualizada
 async function guardarVentaEnBD(savedData: any, phoneNumber: string) {
   try {
     const { ventaData, imageUrl, imageName, campoId } = savedData
@@ -563,9 +567,12 @@ async function guardarVentaEnBD(savedData: any, phoneNumber: string) {
       },
     })
 
+    // Crear renglones
+    const renglonesCreados: Array<{ id: string; categoria: string; cantidad: number }> = []
+    
     for (const r of ventaData.renglones) {
       const mapped = mapearCategoriaVenta(r.categoria)
-      await prisma.ventaRenglon.create({
+      const renglon = await prisma.ventaRenglon.create({
         data: {
           ventaId: venta.id,
           tipo: "GANADO",
@@ -581,6 +588,7 @@ async function guardarVentaEnBD(savedData: any, phoneNumber: string) {
           descontadoDeStock: false,
         },
       })
+      renglonesCreados.push({ id: renglon.id, categoria: mapped.categoria, cantidad: r.cantidad })
     }
 
     await prisma.evento.create({
@@ -600,14 +608,184 @@ async function guardarVentaEnBD(savedData: any, phoneNumber: string) {
     await prisma.pendingConfirmation.delete({ where: { telefono: phoneNumber } })
 
     await sendWhatsAppMessage(phoneNumber,
-      `*Venta guardada!*\n\n${ventaData.cantidadTotal} animales\n$${ventaData.totalNetoUSD?.toFixed(2)} USD\n\nAnimales NO descontados del stock (hacelo desde la web)`
+      `Venta guardada!*\n\n${ventaData.cantidadTotal} animales\n$${ventaData.totalNetoUSD?.toFixed(2)} USD`
     )
+
+    // Preguntar por descuento de stock para cada categoría
+    await preguntarDescuentoStock(phoneNumber, campoId, renglonesCreados, venta.id)
+
   } catch (error) {
     console.error("Error guardando venta:", error)
     await sendWhatsAppMessage(phoneNumber, "Error guardando la venta.")
   }
 }
 
+// CAMBIO 4: Nuevas funciones para descuento de stock
+async function preguntarDescuentoStock(
+  phoneNumber: string,
+  campoId: string,
+  renglones: Array<{ id: string; categoria: string; cantidad: number }>,
+  ventaId: string
+) {
+  // Tomar el primer renglón pendiente
+  const renglon = renglones[0]
+  if (!renglon) return
+
+  const potreros = await buscarPotrerosConCategoria(renglon.categoria, campoId)
+
+  if (potreros.length === 0) {
+    await sendWhatsAppMessage(
+      phoneNumber,
+      `No encontré ${renglon.categoria} en ningún potrero. Descontá manualmente desde la web.`
+    )
+    if (renglones.length > 1) {
+      await preguntarDescuentoStock(phoneNumber, campoId, renglones.slice(1), ventaId)
+    }
+    return
+  }
+
+  const totalDisponible = potreros.reduce((sum, p) => sum + p.cantidad, 0)
+
+  if (totalDisponible < renglon.cantidad) {
+    await sendWhatsAppMessage(
+      phoneNumber,
+      `Solo hay ${totalDisponible} ${renglon.categoria} en total, pero vendiste ${renglon.cantidad}. Revisá el stock en la web.`
+    )
+    if (renglones.length > 1) {
+      await preguntarDescuentoStock(phoneNumber, campoId, renglones.slice(1), ventaId)
+    }
+    return
+  }
+
+  // Guardar estado pendiente
+  await prisma.pendingConfirmation.upsert({
+    where: { telefono: phoneNumber },
+    create: {
+      telefono: phoneNumber,
+      data: JSON.stringify({
+        tipo: "DESCUENTO_STOCK",
+        ventaId,
+        renglonId: renglon.id,
+        categoria: renglon.categoria,
+        cantidadVendida: renglon.cantidad,
+        potreros,
+        campoId,
+        renglonesPendientes: renglones.slice(1),
+      }),
+    },
+    update: {
+      data: JSON.stringify({
+        tipo: "DESCUENTO_STOCK",
+        ventaId,
+        renglonId: renglon.id,
+        categoria: renglon.categoria,
+        cantidadVendida: renglon.cantidad,
+        potreros,
+        campoId,
+        renglonesPendientes: renglones.slice(1),
+      }),
+    },
+  })
+
+  if (potreros.length === 1) {
+    const p = potreros[0]
+    await sendCustomButtons(
+      phoneNumber,
+      `Descontar ${renglon.cantidad} ${renglon.categoria}*\n\nDel potrero *${p.loteNombre}* (tiene ${p.cantidad})\n\n¿Confirmar?`,
+      [
+        { id: `stock_confirm_${p.loteId}`, title: "Confirmar" },
+        { id: "stock_skip", title: "Omitir" },
+      ]
+    )
+  } else {
+    const botones = potreros.slice(0, 3).map(p => ({
+      id: `stock_confirm_${p.loteId}`,
+      title: `${p.loteNombre} (${p.cantidad})`.slice(0, 20),
+    }))
+
+    const mensaje =
+      `Descontar ${renglon.cantidad} ${renglon.categoria}*\n\n` +
+      `¿De qué potrero?\n` +
+      potreros.map(p => `• ${p.loteNombre}: ${p.cantidad}`).join('\n') +
+      `\n\nElegí uno:`
+
+    await sendCustomButtons(phoneNumber, mensaje, botones)
+  }
+}
+
+async function handleStockButtonResponse(phoneNumber: string, buttonId: string) {
+  const pending = await prisma.pendingConfirmation.findUnique({ where: { telefono: phoneNumber } })
+  if (!pending) {
+    await sendWhatsAppMessage(phoneNumber, "No hay operación pendiente.")
+    return
+  }
+
+  const data = JSON.parse(pending.data)
+  if (data.tipo !== "DESCUENTO_STOCK") {
+    await sendWhatsAppMessage(phoneNumber, "Usá los botones correspondientes.")
+    return
+  }
+
+  if (buttonId === "stock_skip") {
+    await sendWhatsAppMessage(phoneNumber, `Omitido. Descontá ${data.categoria} desde la web.`)
+    await prisma.pendingConfirmation.delete({ where: { telefono: phoneNumber } })
+    
+    if (data.renglonesPendientes?.length > 0) {
+      await preguntarDescuentoStock(phoneNumber, data.campoId, data.renglonesPendientes, data.ventaId)
+    }
+    return
+  }
+
+  const loteId = buttonId.replace("stock_confirm_", "")
+  const potrero = data.potreros.find((p: any) => p.loteId === loteId)
+
+  if (!potrero) {
+    await sendWhatsAppMessage(phoneNumber, "Potrero no encontrado.")
+    return
+  }
+
+  try {
+    const animalLote = await prisma.animalLote.findFirst({
+  where: { loteId, categoria: potrero.categoria },
+})
+
+    if (!animalLote || animalLote.cantidad < data.cantidadVendida) {
+      await sendWhatsAppMessage(phoneNumber, `No hay suficientes ${data.categoria} en ${potrero.loteNombre}.`)
+      return
+    }
+
+    const nuevaCantidad = animalLote.cantidad - data.cantidadVendida
+
+    if (nuevaCantidad === 0) {
+      await prisma.animalLote.delete({ where: { id: animalLote.id } })
+    } else {
+      await prisma.animalLote.update({
+        where: { id: animalLote.id },
+        data: { cantidad: nuevaCantidad },
+      })
+    }
+
+    await prisma.ventaRenglon.update({
+      where: { id: data.renglonId },
+      data: { descontadoDeStock: true, animalLoteId: animalLote.id },
+    })
+
+    await sendWhatsAppMessage(
+      phoneNumber,
+      `Descontado: ${data.cantidadVendida} ${data.categoria} de *${potrero.loteNombre}*\n(Quedan ${nuevaCantidad})`
+    )
+
+    await prisma.pendingConfirmation.delete({ where: { telefono: phoneNumber } })
+
+    if (data.renglonesPendientes?.length > 0) {
+      await preguntarDescuentoStock(phoneNumber, data.campoId, data.renglonesPendientes, data.ventaId)
+    }
+
+  } catch (error) {
+    console.error("Error descontando stock:", error)
+    await sendWhatsAppMessage(phoneNumber, "Error descontando del stock.")
+  }
+}
 
 /* ===============================
    MANEJO DE RESPUESTA TIPO FACTURA
@@ -625,7 +803,7 @@ async function handleAwaitingInvoiceType(
   const respuesta = messageText.toLowerCase().trim()
   
   if (respuesta.includes("venta") || respuesta === "1") {
-    await sendWhatsAppMessage(phoneNumber, "📊 Procesando como venta...")
+    await sendWhatsAppMessage(phoneNumber, "Procesando como venta...")
     await handleVentaImage(
       phoneNumber, 
       savedData.imageUrl, 
@@ -638,7 +816,7 @@ async function handleAwaitingInvoiceType(
   }
   
   if (respuesta.includes("gasto") || respuesta === "2") {
-    await sendWhatsAppMessage(phoneNumber, "💰 Procesando como gasto...")
+    await sendWhatsAppMessage(phoneNumber, "Procesando como gasto...")
     const invoiceData = await processInvoiceImage(savedData.imageUrl)
     
     if (!invoiceData?.items?.length) {
@@ -672,7 +850,6 @@ async function handleAwaitingInvoiceType(
   )
   return true
 }
-
 
 /* ===============================
    FACTURAS GASTO (funciones originales)
@@ -1208,7 +1385,6 @@ async function handleConfirmacion(
     return
   }
 
-  // CAMBIO 3: Soporte para CAMBIO_POTRERO en confirmación
   if (
     respuestaLower === "confirmar" ||
     respuestaLower === "si" ||
@@ -1556,9 +1732,6 @@ async function sendCustomButtons(
    CAMBIO DE POTRERO - NUEVAS FUNCIONES
    =============================== */
 
-/**
- * Manejar cambio de potrero desde WhatsApp
- */
 async function handleCambioPotrero(phoneNumber: string, data: any) {
   try {
     const user = await prisma.user.findUnique({
@@ -1713,9 +1886,6 @@ async function handleCambioPotrero(phoneNumber: string, data: any) {
   }
 }
 
-/**
- * Ejecutar el cambio de potrero (después de confirmación)
- */
 async function ejecutarCambioPotrero(data: any) {
   const user = await prisma.user.findUnique({
     where: { telefono: data.telefono },
@@ -1801,6 +1971,3 @@ async function ejecutarCambioPotrero(data: any) {
 
   console.log(`Cambio de potrero ejecutado: ${descripcion}`)
 }
-
-
-//hola

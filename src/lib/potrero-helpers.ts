@@ -1,3 +1,4 @@
+  //src/lib/potrero-helpers.ts
 import { prisma } from "@/lib/prisma"
 
 /**
@@ -352,4 +353,44 @@ export async function obtenerCategoriasEnPotrero(
   })
 
   return animales
+}
+
+/**
+ * 🔍 Buscar potreros que tengan una categoría de animal específica
+ */
+export async function buscarPotrerosConCategoria(
+  categoriaBuscada: string,
+  campoId: string
+): Promise<Array<{ loteId: string; loteNombre: string; cantidad: number; categoria: string }>> {
+  const animales = await prisma.animalLote.findMany({
+    where: {
+      lote: { campoId },
+    },
+    include: {
+      lote: { select: { id: true, nombre: true } },
+    },
+  })
+
+  const buscadaNorm = categoriaBuscada.toLowerCase().trim()
+  const resultados: Array<{ loteId: string; loteNombre: string; cantidad: number; categoria: string }> = []
+
+  for (const animal of animales) {
+    const categoriaNorm = animal.categoria.toLowerCase().trim()
+    
+    // Match flexible: oveja/ovejas, cordero/corderos, etc.
+    if (
+      categoriaNorm.includes(buscadaNorm) ||
+      buscadaNorm.includes(categoriaNorm) ||
+      categoriaNorm.replace(/s$/, '') === buscadaNorm.replace(/s$/, '')
+    ) {
+      resultados.push({
+        loteId: animal.lote.id,
+        loteNombre: animal.lote.nombre,
+        cantidad: animal.cantidad,
+        categoria: animal.categoria,
+      })
+    }
+  }
+
+  return resultados
 }
