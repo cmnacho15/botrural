@@ -1,4 +1,4 @@
-// Vision API para procesar facturas
+// Vision API para procesar facturas src/lib/vision-parser.ts
 import OpenAI from "openai";
 
 const openai = new OpenAI({
@@ -42,8 +42,6 @@ export interface ParsedInvoice {
   diasPlazo?: number;
   pagado: boolean;
   notas?: string;
-
-  // NUEVO
   moneda: "USD" | "UYU";
 }
 
@@ -59,24 +57,47 @@ export async function processInvoiceImage(
           content: `
 Eres un asistente experto en procesar facturas agrícolas de Uruguay y Argentina.
 
-OBJETIVO NUEVO ➜ Detectar si la factura está en USD o UYU.
-
-REGLAS PARA DETECTAR MONEDA:
-- Si aparece texto como: "USD", "US$", "U$S", "Dólares", "USD$", "USD =", "U.S.D" → moneda = "USD"
+====== MONEDA ======
+REGLAS PARA DETECTAR:
+- Si aparece: "USD", "US$", "U$S", "Dólares", "USD$", "U.S.D" → moneda = "USD"
 - Si aparece: "$U", "UYU", "$ Uruguayo", "Pesos" → moneda = "UYU"
 - Si aparecen ambos → usar "USD"
-- Si no hay señal → usar "UYU" por defecto.
+- Si no hay señal → usar "UYU" por defecto
 
-====== INSTRUCCIONES PARA ÍTEMS ======
+====== CATEGORIZACIÓN DE ÍTEMS ======
+Para cada ítem de la factura, DEBES asignar UNA categoría de esta lista:
 
-EXTRAER TODOS LOS ÍTEMS. Para cada ítem:
-- descripcion: incluir cantidad si existe (“Fertilizante x6”)
+${CATEGORIAS_GASTOS.map((cat, i) => `${i + 1}. ${cat}`).join('\n')}
+
+REGLAS DE CATEGORIZACIÓN:
+- Semillas: maíz, soja, trigo, pasturas, semillas forrajeras
+- Fertilizantes: urea, fosfatos, NPK, cal, compost, fertilizantes líquidos
+- Agroquímicos: herbicidas, insecticidas, fungicidas, productos fitosanitarios
+- Combustible: gasoil, nafta, diesel, GNC
+- Maquinaria: tractores, cosechadoras, implementos agrícolas, equipos
+- Reparaciones: repuestos, mantenimiento, service, arreglos
+- Mano de Obra: jornales, salarios, contratistas
+- Transporte: fletes, logística, camiones
+- Veterinaria: medicamentos, vacunas, suplementos para animales
+- Alimentos Animales: balanceados, concentrados, forrajes, sales minerales
+- Servicios: electricidad, agua, internet, telefonía
+- Asesoramiento: consultoría, estudios, análisis de suelo
+- Estructuras: alambrados, galpones, silos, construcciones
+- Insumos Agrícolas: herramientas, bolsas, envases, materiales varios
+- Otros: lo que no encaje en ninguna categoría anterior
+
+SI NO ESTÁS SEGURO: usa "Insumos Agrícolas" para materiales generales u "Otros" como último recurso.
+
+====== EXTRACCIÓN DE ÍTEMS ======
+Para cada ítem extraer:
+- descripcion: incluir cantidad si existe ("Fertilizante x6")
+- categoria: UNA de las ${CATEGORIAS_GASTOS.length} categorías listadas arriba
 - precio: SIEMPRE el TOTAL sin IVA
 - iva: 0, 10 o 22
 - precioFinal: TOTAL con IVA
 
 REGLA DE ORO:
-Si existe “Total ítem”, “Importe”, “Monto”, “Subtotal” o “Total” → ese es el precio total.
+Si existe "Total ítem", "Importe", "Monto", "Subtotal" o "Total" → ese es el precio total.
 Ignorar precio unitario siempre que exista total por ítem.
 
 ====== FECHA ======
@@ -86,15 +107,34 @@ Detectar DD/MM/YYYY o DD-MM-YYYY → devolver como YYYY-MM-DD.
 "CONTADO", "EFECTIVO" → Contado
 "CTA CTE", "CUENTA CORRIENTE", "PLAZO", "30 días" → Plazo
 
+====== EJEMPLOS DE CATEGORIZACIÓN ======
+- "Pintura Celocheck" → "Estructuras"
+- "Alambre CAUDILLO" → "Estructuras"
+- "Alambrado" → "Estructuras"
+- "Soja RR" → "Semillas"
+- "Urea granulada" → "Fertilizantes"
+- "Glifosato" → "Agroquímicos"
+- "Gasoil" → "Combustible"
+- "Ivermectina" → "Veterinaria"
+- "Balanceado vacuno" → "Alimentos Animales"
+
 ====== SALIDA OBLIGATORIA (SIN MARKDOWN) ======
 {
   "tipo": "GASTO",
   "moneda": "USD" | "UYU",
-  "items": [...],
+  "items": [
+    {
+      "descripcion": "...",
+      "categoria": "una de las ${CATEGORIAS_GASTOS.length} categorías",
+      "precio": 0,
+      "iva": 0,
+      "precioFinal": 0
+    }
+  ],
   "proveedor": "...",
   "fecha": "YYYY-MM-DD",
   "montoTotal": 0,
-  "metodoPago": "...",
+  "metodoPago": "Contado" | "Plazo",
   "diasPlazo": 0 | null,
   "pagado": true
 }
@@ -105,7 +145,7 @@ Detectar DD/MM/YYYY o DD-MM-YYYY → devolver como YYYY-MM-DD.
           content: [
             {
               type: "text",
-              text: "Extrae todos los datos de esta factura en formato JSON:",
+              text: "Extrae todos los datos de esta factura en formato JSON, asignando la categoría correcta a cada ítem:",
             },
             {
               type: "image_url",
@@ -139,6 +179,14 @@ Detectar DD/MM/YYYY o DD-MM-YYYY → devolver como YYYY-MM-DD.
     if (!data.proveedor?.trim()) {
       data.proveedor = "Proveedor no identificado";
     }
+
+    // ✅ NUEVA VALIDACIÓN: Asegurar que todos los ítems tengan categoría válida
+    data.items = data.items.map(item => ({
+      ...item,
+      categoria: CATEGORIAS_GASTOS.includes(item.categoria) 
+        ? item.categoria 
+        : "Otros" // Fallback si GPT devuelve categoría inválida
+    }));
 
     if (!data.montoTotal) {
       data.montoTotal = data.items.reduce(
