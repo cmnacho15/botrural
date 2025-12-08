@@ -86,7 +86,7 @@ const generarColorUnico = (coloresUsados: string[]): string => {
 export default function GastosPage() {
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string | null>(null)
   const [mostrarTodasCategorias, setMostrarTodasCategorias] = useState(false)
-  const [moneda, setMoneda] = useState<'UYU' | 'USD'>('UYU')
+  const [moneda, setMoneda] = useState<'UYU' | 'USD'>('USD')
   const [iva, setIva] = useState<'con' | 'sin'>('con')
   const [modalCategoriaOpen, setModalCategoriaOpen] = useState(false)
   const [nuevaCategoriaNombre, setNuevaCategoriaNombre] = useState('')
@@ -534,16 +534,16 @@ const handleEditarGasto = (gasto: Gasto) => {
           <div className="flex flex-wrap justify-center sm:justify-end gap-2 sm:gap-3">
             {/* Selector de moneda */}
             <div className="inline-flex rounded-lg border border-gray-300 bg-white overflow-hidden">
-              {['UYU', 'USD'].map((m) => (
-                <button
-                  key={m}
-                  onClick={() => setMoneda(m as 'UYU' | 'USD')}
-                  className={`px-4 py-2 text-sm font-medium ${
-                    moneda === m ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                >
-                  {m}
-                </button>
+              {['USD', 'UYU'].map((m) => (
+  <button
+    key={m}
+    onClick={() => setMoneda(m as 'UYU' | 'USD')}
+    className={`px-4 py-2 text-sm font-medium ${
+      moneda === m ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:text-gray-900'
+    }`}
+  >
+    {m}
+  </button>
               ))}
             </div>
 
