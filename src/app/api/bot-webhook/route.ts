@@ -41,6 +41,7 @@ export async function GET(request: Request) {
  * POST - Recibir mensajes de WhatsApp
  */
 export async function POST(request: Request) {
+  console.error("=== VERSIÓN: v2.0 - 2025-12-08 ===")
   try {
     const body = await request.json()
 
