@@ -386,7 +386,7 @@ export default function PreferenciasPage() {
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-6xl mx-auto">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900 mb-1">Preferencias</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-1">⚙️ Preferencias</h1>
           <p className="text-gray-600 text-sm">Configurá las opciones de tu campo</p>
         </div>
 
@@ -402,7 +402,7 @@ export default function PreferenciasPage() {
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
-                Campo
+                🏡 Campo
               </button>
               
               <button
@@ -413,7 +413,7 @@ export default function PreferenciasPage() {
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
-                Animales
+                🐄 Animales
               </button>
               
               <button
@@ -424,7 +424,7 @@ export default function PreferenciasPage() {
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
-                Rodeos
+                🐮 Rodeos
               </button>
 
               <button
@@ -435,7 +435,7 @@ export default function PreferenciasPage() {
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
-                Cultivos
+                🌾 Cultivos
               </button>
               
               <button
@@ -446,7 +446,7 @@ export default function PreferenciasPage() {
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
-                Gastos
+                💰 Gastos
               </button>
             </nav>
           </div>
@@ -579,7 +579,7 @@ export default function PreferenciasPage() {
                               <button
                                 onClick={() => handleEliminarCultivo(cultivo.id)}
                                 className="text-red-600 hover:text-red-900"
-                              >
+                              >🗑️
                                 
                               </button>
                             )}
@@ -644,7 +644,7 @@ export default function PreferenciasPage() {
                             <button
                               onClick={() => handleEliminarAnimal(cat.id)}
                               className="text-red-600 hover:text-red-900 text-xs"
-                            >
+                            >🗑️
                               
                             </button>
                           )}
@@ -812,7 +812,7 @@ export default function PreferenciasPage() {
                         : 'border-gray-200 hover:border-gray-300'
                     }`}
                   >
-                    <div className="text-3xl mb-3">Checkmark</div>
+                    <div className="text-3xl mb-3">✓</div>
                     <h3 className="font-semibold text-blue-600 mb-2">Obligatorio</h3>
                     <p className="text-sm text-gray-600">Usuarios tienen que ingresar el rodeo</p>
                   </button>
@@ -904,16 +904,14 @@ export default function PreferenciasPage() {
                                   setNuevoRodeo(rodeo.nombre)
                                   setShowModalRodeo(true)
                                 }}
-                                className="text-blue-600 hover:text-blue-900"
-                              >
-                                Edit
-                              </button>
-                              <button
-                                onClick={() => handleEliminarRodeo(rodeo.id)}
-                                className="text-red-600 hover:text-red-900"
-                              >
-                                Delete
-                              </button>
+                                className="text-blue-600 hover:text-blue-900">
+✏️
+</button>
+<button
+onClick={() => handleEliminarRodeo(rodeo.id)}
+className="text-red-600 hover:text-red-900">
+🗑️
+</button>
                             </td>
                           </tr>
                         ))}
@@ -933,8 +931,8 @@ export default function PreferenciasPage() {
               <div className="p-6 border-b border-gray-200 flex justify-between items-center">
                 <h2 className="text-lg font-semibold text-gray-900">Nuevo Cultivo</h2>
                 <button onClick={() => setShowModalCultivo(false)} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">
-                  X
-                </button>
+✕
+</button>
               </div>
 
               <div className="p-6">
@@ -977,7 +975,7 @@ export default function PreferenciasPage() {
               <div className="p-6 border-b border-gray-200 flex justify-between items-center">
                 <h2 className="text-lg font-semibold text-gray-900">Nueva Categoría</h2>
                 <button onClick={() => setShowModalAnimal(false)} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">
-                  X
+                  ✕
                 </button>
               </div>
 
@@ -1061,7 +1059,7 @@ export default function PreferenciasPage() {
                   }}
                   className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
                 >
-                  X
+                  ✕
                 </button>
               </div>
 
