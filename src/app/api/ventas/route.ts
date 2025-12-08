@@ -330,6 +330,22 @@ export async function POST(request: Request) {
         }
       }
 
+      // 4. Crear evento para /datos
+      const cantidadTotal = renglones.reduce((sum: number, r: any) => sum + Number(r.cantidad), 0)
+      
+      await tx.evento.create({
+        data: {
+          tipo: "VENTA",
+          descripcion: `Venta a ${comprador.trim()}: ${cantidadTotal} animales`,
+          fecha: new Date(fechaISO),
+          cantidad: cantidadTotal,
+          monto: Number(totalNetoUSD),
+          comprador: comprador.trim(),
+          campoId: user!.campoId!,
+          usuarioId: user!.id,
+        },
+      })
+
       return nuevaVenta
     })
 
