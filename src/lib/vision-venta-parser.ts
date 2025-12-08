@@ -81,16 +81,67 @@ export interface ParsedVenta {
  * Detectar si una imagen es una factura de VENTA (no de gasto)
  */
 export async function detectarTipoFactura(imageUrl: string): Promise<"VENTA" | "GASTO" | null> {
-  console.log("🔍 Detectando tipo factura con OCR directo:", imageUrl)
+  console.log("🔍 Detectando tipo factura:", imageUrl)
   
   try {
-    // PASO 1: Extraer TODO el texto
-    const response = await openai.chat.completions.create({
+    // Estrategia: Hacer 2 preguntas directas a GPT
+    
+    // PREGUNTA 1: ¿Es una venta de animales?
+    const response1 = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
         {
           role: "system",
-          content: "Extrae TODO el texto visible de esta imagen. Responde SOLO el texto sin formato ni explicaciones."
+          content: `Eres un detector de facturas de venta de hacienda (animales) en Uruguay.
+
+PREGUNTA: ¿Esta imagen es una factura de VENTA de animales a un frigorífico o comprador de hacienda?
+
+SEÑALES DE VENTA:
+- Menciona animales: OVEJAS, CORDEROS, NOVILLOS, VACAS, CAPONES, TERNEROS
+- Menciona un frigorífico: Frigo Salto, Marfrig, PUL, etc.
+- Tiene columnas: Cantidad, Kilos, Precio/kg, Rendimiento
+- Dice "TROPA", "DICOSE", "Fact.Haciendas", "Segunda Balanza"
+- El productor/vendedor está identificado
+- Hay descuentos de impuestos: MEVIR, INIA, IMEBA
+
+RESPONDE SOLO:
+- "SI" si es claramente una venta de animales
+- "NO" si es una compra/gasto (factura común)
+- "INCIERTO" si no estás seguro`
+        },
+        {
+          role: "user",
+          content: [
+            { type: "image_url", image_url: { url: imageUrl, detail: "low" } }
+          ]
+        }
+      ],
+      max_tokens: 10,
+      temperature: 0
+    });
+
+    const respuesta1 = response1.choices[0].message.content?.toUpperCase().trim() || "";
+    console.log("📊 Respuesta GPT sobre VENTA:", respuesta1)
+
+    if (respuesta1.includes("SI")) {
+      console.log("✅ DETECTADO: VENTA (GPT confirmó)")
+      return "VENTA";
+    }
+
+    if (respuesta1.includes("NO")) {
+      console.log("✅ DETECTADO: GASTO (GPT descartó venta)")
+      return "GASTO";
+    }
+
+    // Si GPT no está seguro, hacer extracción de texto como fallback
+    console.log("⚠️ GPT incierto, extrayendo texto...")
+    
+    const response2 = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "system",
+          content: "Extrae TODO el texto visible. Responde SOLO el texto plano."
         },
         {
           role: "user",
@@ -103,61 +154,55 @@ export async function detectarTipoFactura(imageUrl: string): Promise<"VENTA" | "
       temperature: 0
     });
 
-    const textoCompleto = response.choices[0].message.content?.toUpperCase() || "";
-    
-    console.log("📝 Texto extraído (primeros 300 chars):", textoCompleto.substring(0, 300))
+    const texto = response2.choices[0].message.content?.toUpperCase() || "";
+    console.log("📝 Texto extraído (primeros 200):", texto.substring(0, 200))
 
-    // PASO 2: Buscar palabras clave de VENTA
-    const palabrasVenta = [
+    // Buscar palabras clave VENTA (más específicas)
+    const palabrasVentaFuertes = [
       "TROPA",
+      "DICOSE",
       "FACT. HACIENDAS",
       "FACT.HACIENDAS",
-      "LIQUIDACION",
-      "LIQUIDACIÓN",
       "FRIGORIFICO",
       "FRIGORÍFICO",
+      "FRIGO ",
       "SEGUNDA BALANZA",
       "RENDIMIENTO",
       "MEVIR",
       "INIA",
       "IMEBA",
       "PRODUCTOR:",
-      "DICOSE"
+      "LIQUIDACION",
+      "LIQUIDACIÓN"
     ];
 
-    for (const palabra of palabrasVenta) {
-      if (textoCompleto.includes(palabra)) {
-        console.log(`✅ VENTA detectada por palabra: "${palabra}"`)
+    for (const palabra of palabrasVentaFuertes) {
+      if (texto.includes(palabra)) {
+        console.log(`✅ VENTA detectada por palabra clave: "${palabra}"`)
         return "VENTA";
       }
     }
 
-    // PASO 3: Buscar animales con peso
-    const tieneAnimales = /OVEJAS|CORDEROS|NOVILLOS|VACAS|CAPONES|CARNEROS/.test(textoCompleto);
-    const tienePeso = /\d+\s*(KG|KILOS)/.test(textoCompleto);
-    const tienePrecioKg = /\$\s*\d+[.,]\d+\s*\/\s*KG/.test(textoCompleto);
+    // Buscar animales + peso + precio
+    const animalesRegex = /OVEJAS|CORDEROS|NOVILLOS|VACAS|CAPONES|CARNEROS|TERNEROS|VAQUILLONAS/;
+    const pesoRegex = /\d+[.,]\d+\s*(KG|KILOS)/;
+    const precioKgRegex = /\$\s*\d+[.,]\d+\s*\/\s*KG/;
+    
+    const tieneAnimales = animalesRegex.test(texto);
+    const tienePeso = pesoRegex.test(texto);
+    const tienePrecioKg = precioKgRegex.test(texto);
 
     if (tieneAnimales && (tienePeso || tienePrecioKg)) {
-      console.log("✅ VENTA detectada por: animales + peso/precio")
+      console.log("✅ VENTA por: animales + peso/precio por kg")
       return "VENTA";
     }
 
-    
-// PASO 4: Verificar señales adicionales de venta
-const tieneRendimiento = /RENDIMIENTO|%/i.test(textoCompleto);
-const tieneBalanza = /BALANZA|SEGUNDA\s*BAL/i.test(textoCompleto);
-
-if (tieneAnimales && (tienePeso || tienePrecioKg || tieneRendimiento || tieneBalanza)) {
-  console.log("✅ VENTA detectada por: animales + señales de frigorífico")
-  return "VENTA";
-}
-
-// PASO 5: Si no hay señales claras, retornar null para preguntar
-console.log("⚠️ No hay señales claras → null (preguntar al usuario)")
-return null;
+    // Si no hay señales claras, retornar null
+    console.log("⚠️ No hay señales claras → null (preguntar)")
+    return null;
     
   } catch (error) {
-    console.error("Error en detectarTipoFactura:", error);
+    console.error("❌ Error en detectarTipoFactura:", error);
     return null;
   }
 }
