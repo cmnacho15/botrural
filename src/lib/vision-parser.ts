@@ -104,8 +104,29 @@ Ignorar precio unitario siempre que exista total por ítem.
 Detectar DD/MM/YYYY o DD-MM-YYYY → devolver como YYYY-MM-DD.
 
 ====== FORMA DE PAGO ======
-"CONTADO", "EFECTIVO" → Contado
-"CTA CTE", "CUENTA CORRIENTE", "PLAZO", "30 días" → Plazo
+CRÍTICO: Buscar indicadores de pago a PLAZO en TODA la factura:
+
+PAGO A PLAZO si encuentra:
+- Texto: "Crédito", "Credito", "CTA CTE", "Cuenta Corriente", "PLAZO"
+- Días comerciales: "30 días", "60 días", "90 días", "30 dias Comerciales"
+- Plazos: "A 30 días", "A plazo", "Financiado"
+
+PAGO CONTADO si encuentra:
+- Texto: "CONTADO", "EFECTIVO", "AL CONTADO", "Cash"
+
+REGLAS:
+1. Si aparece "Crédito" o "CTA CTE" → metodoPago = "Plazo"
+2. Si aparece un número seguido de "días" (30 días, 60 días) → metodoPago = "Plazo" y diasPlazo = ese número
+3. Si dice "30 dias Comerciales" → metodoPago = "Plazo" y diasPlazo = 30
+4. Si NO aparece ningún indicador → metodoPago = "Contado"
+5. Si es a plazo → pagado = false (porque aún no se pagó)
+6. Si es contado → pagado = true (porque se paga al momento)
+
+EJEMPLOS:
+- "30 días Comerciales - ARS" → metodoPago: "Plazo", diasPlazo: 30, pagado: false
+- "Crédito" → metodoPago: "Plazo", diasPlazo: 30, pagado: false
+- "CTA CTE" → metodoPago: "Plazo", diasPlazo: null, pagado: false
+- "CONTADO" → metodoPago: "Contado", diasPlazo: null, pagado: true
 
 ====== EJEMPLOS DE CATEGORIZACIÓN ======
 - "Pintura Celocheck" → "Estructuras"
@@ -135,8 +156,8 @@ Detectar DD/MM/YYYY o DD-MM-YYYY → devolver como YYYY-MM-DD.
   "fecha": "YYYY-MM-DD",
   "montoTotal": 0,
   "metodoPago": "Contado" | "Plazo",
-  "diasPlazo": 0 | null,
-  "pagado": true
+  "diasPlazo": número | null,
+  "pagado": true | false
 }
           `,
         },
@@ -145,7 +166,7 @@ Detectar DD/MM/YYYY o DD-MM-YYYY → devolver como YYYY-MM-DD.
           content: [
             {
               type: "text",
-              text: "Extrae todos los datos de esta factura en formato JSON, asignando la categoría correcta a cada ítem:",
+              text: "Extrae todos los datos de esta factura en formato JSON. IMPORTANTE: Detecta correctamente si es pago a plazo (crédito, CTA CTE, días comerciales) o contado.",
             },
             {
               type: "image_url",
@@ -180,13 +201,24 @@ Detectar DD/MM/YYYY o DD-MM-YYYY → devolver como YYYY-MM-DD.
       data.proveedor = "Proveedor no identificado";
     }
 
-    // ✅ NUEVA VALIDACIÓN: Asegurar que todos los ítems tengan categoría válida
+    // ✅ VALIDACIÓN: Asegurar que todos los ítems tengan categoría válida
     data.items = data.items.map(item => ({
       ...item,
       categoria: CATEGORIAS_GASTOS.includes(item.categoria) 
         ? item.categoria 
-        : "Otros" // Fallback si GPT devuelve categoría inválida
+        : "Otros"
     }));
+
+    // ✅ NUEVA VALIDACIÓN: Consistencia de pago
+    // Si es a plazo pero no hay diasPlazo, usar 30 días por defecto
+    if (data.metodoPago === "Plazo" && !data.diasPlazo) {
+      data.diasPlazo = 30;
+    }
+
+    // Si es a plazo, debe estar como no pagado
+    if (data.metodoPago === "Plazo") {
+      data.pagado = false;
+    }
 
     if (!data.montoTotal) {
       data.montoTotal = data.items.reduce(
