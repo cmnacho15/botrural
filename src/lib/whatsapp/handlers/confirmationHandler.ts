@@ -2,8 +2,9 @@
 
 import { prisma } from "@/lib/prisma"
 import { getUSDToUYU } from "@/lib/currency"
-import { sendWhatsAppMessage, sendWhatsAppMessageWithButtons, sendCustomButtons } from "../services/messageService"
+import { sendWhatsAppMessage, sendWhatsAppMessageWithButtons } from "../services/messageService"
 import { ejecutarCambioPotrero } from "./potreroHandler"
+import { handleAwaitingInvoiceType } from "./imageHandler"
 
 /**
  * Solicita confirmación para datos de texto/audio (excepto CAMBIO_POTRERO que tiene su propio flujo)
@@ -68,9 +69,15 @@ export async function handleConfirmacion(
   confirmacion: any
 ) {
   const respuestaLower = respuesta.toLowerCase().trim()
-
   const data = JSON.parse(confirmacion.data)
 
+  // ✅ CRÍTICO: Manejar primero las respuestas de tipo de factura
+  if (data.tipo === "AWAITING_INVOICE_TYPE") {
+    const wasHandled = await handleAwaitingInvoiceType(phone, respuesta, confirmacion)
+    if (wasHandled) return // ⚠️ IMPORTANTE: salir aquí para evitar doble procesamiento
+  }
+
+  // Validación: no usar texto para confirmar facturas con botones
   if (data.tipo === "INVOICE") {
     await sendWhatsAppMessage(
       phone,
@@ -94,13 +101,13 @@ export async function handleConfirmacion(
       }
       await sendWhatsAppMessage(
         phone,
-        "*Dato guardado correctamente* en el sistema."
+        "✅ *Dato guardado correctamente* en el sistema."
       )
     } catch (error) {
       console.error("Error guardando dato:", error)
       await sendWhatsAppMessage(
         phone,
-        "Error al guardar el dato. Intenta de nuevo."
+        "❌ Error al guardar el dato. Intenta de nuevo."
       )
     }
 
@@ -139,7 +146,7 @@ export async function handleConfirmacion(
   ) {
     await sendWhatsAppMessage(
       phone,
-      "Dato cancelado. Podés enviar uno nuevo cuando quieras."
+      "❌ Dato cancelado. Podés enviar uno nuevo cuando quieras."
     )
 
     await prisma.pendingConfirmation

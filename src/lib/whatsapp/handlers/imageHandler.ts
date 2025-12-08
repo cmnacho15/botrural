@@ -1,16 +1,19 @@
 // src/lib/whatsapp/handlers/imageHandler.ts
 
 import { prisma } from "@/lib/prisma"
-import { processInvoiceImage } from "@/lib/vision-parser"
-import { detectarTipoFactura, processVentaImage } from "@/lib/vision-venta-parser"
+import { detectarTipoFactura } from "@/lib/vision-venta-parser"
 import {
   downloadWhatsAppImage,
   uploadInvoiceToSupabase,
 } from "@/lib/supabase-storage"
 import { sendWhatsAppMessage } from "../services/messageService"
-import { sendInvoiceFlowMessage } from "./gastoHandler"
+import { handleGastoImage } from "./gastoHandler"
 import { handleVentaImage } from "./ventaHandler"
 
+/**
+ * Punto de entrada principal para procesar imágenes (facturas)
+ * NO envía mensajes duplicados - delega a handlers específicos
+ */
 export async function handleImageMessage(message: any, phoneNumber: string) {
   console.log("INICIO handleImageMessage - phoneNumber:", phoneNumber)
   try {
@@ -27,7 +30,8 @@ export async function handleImageMessage(message: any, phoneNumber: string) {
       return
     }
 
-    await sendWhatsAppMessage(phoneNumber, "Procesando imagen... un momento")
+    // ✅ ÚNICO mensaje de "Procesando..."
+    await sendWhatsAppMessage(phoneNumber, "Procesando imagen... un momento ⏳")
 
     const imageData = await downloadWhatsAppImage(mediaId)
     if (!imageData) {
@@ -45,17 +49,15 @@ export async function handleImageMessage(message: any, phoneNumber: string) {
 
     let tipoFactura: "VENTA" | "GASTO" | null = null
 
-    console.log("ANTES de detectarTipoFactura")
     try {
       tipoFactura = await detectarTipoFactura(uploadResult.url)
-      console.log("DESPUÉS de detectarTipoFactura - resultado:", tipoFactura)
+      console.log("Tipo detectado:", tipoFactura)
     } catch (err: any) {
       console.error("Error en detectarTipoFactura:", err?.message)
       tipoFactura = null
     }
-    
-    console.log("DECISIÓN - tipoFactura vale:", tipoFactura)
 
+    // Si no se detectó el tipo, preguntar al usuario
     if (!tipoFactura) {
       await sendWhatsAppMessage(
         phoneNumber,
@@ -87,49 +89,16 @@ export async function handleImageMessage(message: any, phoneNumber: string) {
       return
     }
 
+    // ✅ Delegar a handler específico (NO enviar más mensajes aquí)
     if (tipoFactura === "VENTA") {
-      console.log("BRANCH: Procesando como VENTA")
+      console.log("DELEGANDO a handleVentaImage")
       await handleVentaImage(phoneNumber, uploadResult.url, uploadResult.fileName, user.campoId, caption)
       return
     }
 
     if (tipoFactura === "GASTO") {
-      console.log("BRANCH: Procesando como GASTO")
-      const invoiceData = await processInvoiceImage(uploadResult.url)
-      
-      if (!invoiceData || !invoiceData.items || invoiceData.items.length === 0) {
-        await sendWhatsAppMessage(phoneNumber, "No pude leer la factura de gasto. ¿La imagen está clara?")
-        return
-      }
-
-      await prisma.pendingConfirmation.upsert({
-        where: { telefono: phoneNumber },
-        create: {
-          telefono: phoneNumber,
-          data: JSON.stringify({
-            tipo: "INVOICE",
-            invoiceData,
-            imageUrl: uploadResult.url,
-            imageName: uploadResult.fileName,
-            campoId: user.campoId,
-            telefono: phoneNumber,
-            caption,
-          }),
-        },
-        update: {
-          data: JSON.stringify({
-            tipo: "INVOICE",
-            invoiceData,
-            imageUrl: uploadResult.url,
-            imageName: uploadResult.fileName,
-            campoId: user.campoId,
-            telefono: phoneNumber,
-            caption,
-          }),
-        }
-      })
-
-      await sendInvoiceFlowMessage(phoneNumber, invoiceData)
+      console.log("DELEGANDO a handleGastoImage")
+      await handleGastoImage(phoneNumber, uploadResult.url, uploadResult.fileName, user.campoId, caption)
       return
     }
 
@@ -142,6 +111,9 @@ export async function handleImageMessage(message: any, phoneNumber: string) {
   }
 }
 
+/**
+ * Maneja la respuesta cuando el usuario especifica manualmente el tipo de factura
+ */
 export async function handleAwaitingInvoiceType(
   phoneNumber: string, 
   messageText: string, 
@@ -154,7 +126,7 @@ export async function handleAwaitingInvoiceType(
   const respuesta = messageText.toLowerCase().trim()
   
   if (respuesta.includes("venta") || respuesta === "1") {
-    await sendWhatsAppMessage(phoneNumber, "Procesando como venta...")
+    await sendWhatsAppMessage(phoneNumber, "Procesando como venta... 📊")
     await handleVentaImage(
       phoneNumber, 
       savedData.imageUrl, 
@@ -167,31 +139,15 @@ export async function handleAwaitingInvoiceType(
   }
   
   if (respuesta.includes("gasto") || respuesta === "2") {
-    await sendWhatsAppMessage(phoneNumber, "Procesando como gasto...")
-    const invoiceData = await processInvoiceImage(savedData.imageUrl)
-    
-    if (!invoiceData?.items?.length) {
-      await sendWhatsAppMessage(phoneNumber, "No pude leer la factura. Intenta de nuevo.")
-      await prisma.pendingConfirmation.delete({ where: { telefono: phoneNumber } })
-      return true
-    }
-
-    await prisma.pendingConfirmation.update({
-      where: { telefono: phoneNumber },
-      data: {
-        data: JSON.stringify({
-          tipo: "INVOICE",
-          invoiceData,
-          imageUrl: savedData.imageUrl,
-          imageName: savedData.imageName,
-          campoId: savedData.campoId,
-          telefono: phoneNumber,
-          caption: savedData.caption,
-        })
-      }
-    })
-    
-    await sendInvoiceFlowMessage(phoneNumber, invoiceData)
+    await sendWhatsAppMessage(phoneNumber, "Procesando como gasto... 💰")
+    await handleGastoImage(
+      phoneNumber,
+      savedData.imageUrl,
+      savedData.imageName,
+      savedData.campoId,
+      savedData.caption
+    )
+    await prisma.pendingConfirmation.delete({ where: { telefono: phoneNumber } })
     return true
   }
 
