@@ -1129,10 +1129,11 @@ function TarjetaDato({ dato }: { dato: any }) {
               <div className="flex flex-wrap gap-2 mb-3">{renderDetalles()}</div>
 
               <div className="flex flex-wrap gap-2 text-xs">
-                {dato.usuario && <span className="bg-gray-50 text-gray-700 px-3 py-1.5 rounded-md border border-gray-200 font-medium">👤 {dato.usuario}</span>}
-                {dato.lote && <span className="bg-blue-50 text-blue-700 px-3 py-1.5 rounded-md border border-blue-200 font-medium">📍 {dato.lote}</span>}
-                <span className="bg-purple-50 text-purple-700 px-3 py-1.5 rounded-md border border-purple-200 font-medium capitalize">{dato.categoria}</span>
-              </div>
+  {dato.usuario && <span className="bg-gray-50 text-gray-700 px-3 py-1.5 rounded-md border border-gray-200 font-medium">👤 {dato.usuario}</span>}
+  {dato.lote && <span className="bg-blue-50 text-blue-700 px-3 py-1.5 rounded-md border border-blue-200 font-medium">📍 {dato.lote}</span>}
+  {dato.rodeo && <span className="bg-green-50 text-green-700 px-3 py-1.5 rounded-md border border-green-200 font-medium">🐮 {dato.rodeo}</span>}
+  <span className="bg-purple-50 text-purple-700 px-3 py-1.5 rounded-md border border-purple-200 font-medium capitalize">{dato.categoria}</span>
+</div>
 
               {dato.notas && <p className="text-sm text-gray-600 mt-3 pl-4 border-l-2 border-gray-300 italic">{dato.notas}</p>}
             </div>
