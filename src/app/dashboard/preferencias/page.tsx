@@ -20,7 +20,7 @@ type CategoriaAnimal = {
 
 export default function PreferenciasPage() {
   const router = useRouter()
-  const [activeTab, setActiveTab] = useState<'campo' | 'cultivos' | 'animales' | 'gastos'>('campo')
+  const [activeTab, setActiveTab] = useState<'campo' | 'cultivos' | 'animales' | 'gastos' | 'rodeos'>('campo')
   // Estados de campo
 const [nombreCampo, setNombreCampo] = useState('')
 const [guardandoCampo, setGuardandoCampo] = useState(false)
@@ -44,6 +44,10 @@ const [guardandoCampo, setGuardandoCampo] = useState(false)
   const [savingAnimal, setSavingAnimal] = useState(false)
   const [categoriasEnUso, setCategoriasEnUso] = useState<Set<string>>(new Set())
   
+  // Estados de rodeos
+const [modoRodeo, setModoRodeo] = useState<'NO_INCLUIR' | 'OPCIONAL' | 'OBLIGATORIO'>('OPCIONAL')
+const [guardandoRodeo, setGuardandoRodeo] = useState(false)
+
   // Cargar nombre del campo
 useEffect(() => {
   fetch('/api/campos')
@@ -54,6 +58,17 @@ useEffect(() => {
       }
     })
     .catch(err => console.error('Error cargando campo:', err))
+}, [])
+ // Cargar configuración de rodeos
+useEffect(() => {
+  fetch('/api/configuracion-rodeos')
+    .then(r => r.json())
+    .then(data => {
+      if (data.modoRodeo) {
+        setModoRodeo(data.modoRodeo)
+      }
+    })
+    .catch(err => console.error('Error cargando configuración:', err))
 }, [])
 
   // Cargar cultivos al montar
@@ -297,6 +312,17 @@ useEffect(() => {
   </button>
   
   <button
+  onClick={() => setActiveTab('rodeos')}
+  className={`py-4 px-1 border-b-2 font-medium text-sm transition ${
+    activeTab === 'rodeos'
+      ? 'border-blue-500 text-blue-600'
+      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+  }`}
+>
+  🐮 Rodeos
+</button>
+
+  <button
     onClick={() => setActiveTab('cultivos')}
     className={`py-4 px-1 border-b-2 font-medium text-sm transition ${
       activeTab === 'cultivos'
@@ -304,8 +330,10 @@ useEffect(() => {
         : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
     }`}
   >
+    
     🌾 Cultivos
   </button>
+  
   
   <button
     onClick={() => setActiveTab('gastos')}
@@ -632,8 +660,93 @@ useEffect(() => {
     <GastosPreferencias />
   </div>
 )}
-        </div>
+ </div>
       </div>
+      
+{/* CONTENIDO TAB RODEOS */}
+{activeTab === 'rodeos' && (
+  <div className="p-6">
+    <div className="flex justify-between items-center mb-6">
+      <div>
+        <h2 className="text-lg font-semibold text-gray-900">Configuración de Rodeos</h2>
+        <p className="text-sm text-gray-500">Define cómo se manejan los rodeos en tu campo</p>
+      </div>
+    </div>
+
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      {/* NO INCLUIR */}
+      <button
+        onClick={() => setModoRodeo('NO_INCLUIR')}
+        className={`p-6 rounded-lg border-2 transition ${
+          modoRodeo === 'NO_INCLUIR'
+            ? 'border-blue-500 bg-blue-50'
+            : 'border-gray-200 hover:border-gray-300'
+        }`}
+      >
+        <div className="text-3xl mb-3">⊗</div>
+        <h3 className="font-semibold text-gray-900 mb-2">No Incluir</h3>
+        <p className="text-sm text-gray-600">No quiero incluir datos de rodeos</p>
+      </button>
+
+      {/* OPCIONAL */}
+      <button
+        onClick={() => setModoRodeo('OPCIONAL')}
+        className={`p-6 rounded-lg border-2 transition ${
+          modoRodeo === 'OPCIONAL'
+            ? 'border-blue-500 bg-blue-50'
+            : 'border-gray-200 hover:border-gray-300'
+        }`}
+      >
+        <div className="text-3xl mb-3">?</div>
+        <h3 className="font-semibold text-gray-900 mb-2">Opcional</h3>
+        <p className="text-sm text-gray-600">Usuarios pueden ingresar el rodeo como dato opcional</p>
+      </button>
+
+      {/* OBLIGATORIO */}
+      <button
+        onClick={() => setModoRodeo('OBLIGATORIO')}
+        className={`p-6 rounded-lg border-2 transition ${
+          modoRodeo === 'OBLIGATORIO'
+            ? 'border-blue-500 bg-blue-50'
+            : 'border-gray-200 hover:border-gray-300'
+        }`}
+      >
+        <div className="text-3xl mb-3">✓</div>
+        <h3 className="font-semibold text-blue-600 mb-2">Obligatorio</h3>
+        <p className="text-sm text-gray-600">Usuarios tienen que ingresar el rodeo</p>
+      </button>
+    </div>
+
+    <button
+      onClick={async () => {
+        setGuardandoRodeo(true)
+        try {
+          const response = await fetch('/api/configuracion-rodeos', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ modoRodeo })
+          })
+
+          if (response.ok) {
+            alert('¡Configuración actualizada!')
+          } else {
+            alert('Error al actualizar')
+          }
+        } catch (error) {
+          alert('Error al actualizar')
+        } finally {
+          setGuardandoRodeo(false)
+        }
+      }}
+      disabled={guardandoRodeo}
+      className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium transition shadow-sm"
+    >
+      {guardandoRodeo ? 'Guardando...' : 'Guardar configuración'}
+    </button>
+  </div>
+)}
+        
+      
 
       {/* MODAL NUEVO CULTIVO */}
       {showModalCultivo && (

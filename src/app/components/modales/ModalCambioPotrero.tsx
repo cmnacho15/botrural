@@ -32,12 +32,24 @@ export default function ModalCambioPotrero({ onClose, onSuccess }: ModalCambioPo
   const [loading, setLoading] = useState(false)
   const [loadingAnimales, setLoadingAnimales] = useState(false)
 
-  // Cargar potreros al montar
+  // ✅ NUEVOS ESTADOS PARA RODEOS
+  const [rodeos, setRodeos] = useState<{ id: string; nombre: string }[]>([])
+  const [rodeoSeleccionado, setRodeoSeleccionado] = useState('')
+  const [modoRodeo, setModoRodeo] = useState<'NO_INCLUIR' | 'OPCIONAL' | 'OBLIGATORIO'>('OPCIONAL')
+
+  // ✅ CARGAR CONFIGURACIÓN DE RODEOS, POTREROS Y RODEOS AL MONTAR
   useEffect(() => {
-    fetch('/api/lotes')
-      .then((res) => res.json())
-      .then((data) => setPotreros(data))
-      .catch(() => alert('Error al cargar potreros'))
+    Promise.all([
+      fetch('/api/configuracion-rodeos').then(r => r.json()),
+      fetch('/api/lotes').then(r => r.json()),
+      fetch('/api/rodeos').then(r => r.json())
+    ])
+      .then(([config, lotes, rodeosData]) => {
+        setModoRodeo(config.modoRodeo || 'OPCIONAL')
+        setPotreros(lotes)
+        setRodeos(rodeosData)
+      })
+      .catch(() => alert('Error al cargar datos'))
   }, [])
 
   // Cargar animales cuando se selecciona potrero origen
@@ -97,13 +109,14 @@ export default function ModalCambioPotrero({ onClose, onSuccess }: ModalCambioPo
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           tipo: 'CAMBIO_POTRERO',
-          fecha: fecha,  // ✅ Enviar el string directamente
+          fecha: fecha,
           descripcion: `Cambio de ${cantidad} ${categoriaSeleccionada} al ${potreros.find(p => p.id === potreroDestino)?.nombre}`,
           loteId: potreroOrigen,
           loteDestinoId: potreroDestino,
           categoria: categoriaSeleccionada,
           cantidad,
           notas: notas || null,
+          rodeoId: rodeoSeleccionado || null, // ✅ AGREGAR RODEO
         }),
       })
 
@@ -112,8 +125,6 @@ export default function ModalCambioPotrero({ onClose, onSuccess }: ModalCambioPo
         throw new Error(error.error || 'Error al guardar')
       }
 
-      
-      
       onSuccess()
       onClose()
     } catch (error) {
@@ -257,6 +268,28 @@ export default function ModalCambioPotrero({ onClose, onSuccess }: ModalCambioPo
           </div>
         )}
 
+        {/* ✅ SELECTOR DE RODEO */}
+        {modoRodeo !== 'NO_INCLUIR' && rodeos.length > 0 && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Rodeo {modoRodeo === 'OBLIGATORIO' && <span className="text-red-500">*</span>}
+            </label>
+            <select
+              value={rodeoSeleccionado}
+              onChange={(e) => setRodeoSeleccionado(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+              required={modoRodeo === 'OBLIGATORIO'}
+            >
+              <option value="">Seleccionar rodeo...</option>
+              {rodeos.map((rodeo) => (
+                <option key={rodeo.id} value={rodeo.id}>
+                  {rodeo.nombre}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
         {/* NOTAS */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Notas (Opcional)</label>
@@ -281,7 +314,7 @@ export default function ModalCambioPotrero({ onClose, onSuccess }: ModalCambioPo
         </button>
         <button
           type="submit"
-          disabled={loading || !potreroOrigen || !potreroDestino || !categoriaSeleccionada}
+          disabled={loading || !potreroOrigen || !potreroDestino || !categoriaSeleccionada || (modoRodeo === 'OBLIGATORIO' && !rodeoSeleccionado)}
           className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
         >
           {loading ? 'Guardando...' : 'Continuar'}
@@ -291,7 +324,4 @@ export default function ModalCambioPotrero({ onClose, onSuccess }: ModalCambioPo
   )
 }
 
-
-
-
-// Modal para cambio de potrero - 2025-11-14
+// Modal para cambio de potrero - 2025-12-08

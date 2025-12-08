@@ -108,6 +108,7 @@ export async function GET(request: Request) {
       include: {
         usuario: { select: { name: true } },
         lote: { select: { nombre: true } },
+        rodeo: { select: { nombre: true } }, 
       },
       orderBy: [
   { fecha: 'desc' },
@@ -160,6 +161,7 @@ eventos
       icono: iconoPorTipo[evento.tipo] || '📌',
       usuario: evento.usuario?.name || null,
       lote: evento.lote?.nombre || null,
+      rodeo: evento.rodeo?.nombre || null,
       // ✅ Campos directos (no en detalles)
       cantidad: evento.cantidad,
       monto: evento.monto,

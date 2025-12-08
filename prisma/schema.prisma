@@ -71,6 +71,7 @@ model VerificationToken {
 model Campo {
   id          String       @id @default(cuid())
   nombre      String
+  modoRodeo   String       @default("OPCIONAL") // ← AGREGAR ESTA LÍNEA
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
   eventos     Evento[]
@@ -81,8 +82,10 @@ model Campo {
   usuarios    User[]
   manoObra    ManoObra[]
   tiposCultivo TipoCultivo[]
-  categoriasAnimal CategoriaAnimal[] // ← AGREGAR ESTA LÍNEA
+  categoriasAnimal CategoriaAnimal[]
   categoriasGasto CategoriaGasto[]
+
+  rodeos      Rodeo[]
 
   consumos Consumo[]
 
@@ -97,7 +100,6 @@ model Campo {
   ventas Venta[]
 
   compras Compra[]
-
 }
 
 model CategoriaGasto {
@@ -150,6 +152,20 @@ enum TipoAnimal {
   OVINO
   EQUINO
   OTRO
+}
+
+model Rodeo {
+  id        String   @id @default(cuid())
+  nombre    String
+  campoId   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  campo     Campo    @relation(fields: [campoId], references: [id], onDelete: Cascade)
+  eventos   Evento[]
+  
+  @@unique([nombre, campoId])
+  @@index([campoId])
 }
 
 model Lote {
@@ -211,7 +227,7 @@ model Evento {
   categoria       String?
   categoriaNueva  String?
   loteId          String?
-  usuarioId       String?     // ✅ AGREGAR "?" ACÁ
+  usuarioId       String?
   campoId         String
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
@@ -228,13 +244,16 @@ model Evento {
   notas           String?
   intensidad      String?
   
+  rodeoId         String?
+  
   animalLote      AnimalLote? @relation(fields: [animalLoteId], references: [id])
   campo           Campo       @relation(fields: [campoId], references: [id], onDelete: Cascade)
   lote            Lote?       @relation(fields: [loteId], references: [id])
-  usuario         User?       @relation(fields: [usuarioId], references: [id])  // ✅ AGREGAR "?" ACÁ TAMBIÉN
+  usuario         User?       @relation(fields: [usuarioId], references: [id])
+  rodeo           Rodeo?      @relation(fields: [rodeoId], references: [id]) // ← AGREGAR ESTA LÍNEA
 
-    caravanas   Json?        // ← lista de caravanas involucradas (venta, compra, mortandad)
-  origenSnig  String?      // "BOT" | "WEB" | null
+  caravanas   Json?
+  origenSnig  String?
 }
 
 model Insumo {
@@ -714,3 +733,11 @@ model CompraRenglon {
   @@index([compraId])
   @@index([animalLoteId])
 }
+
+
+
+
+
+
+
+

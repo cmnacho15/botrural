@@ -141,6 +141,7 @@ export async function POST(request: Request) {
       proveedor,
       categoriaNueva,
       especie,
+      rodeoId,
     } = body;
 
     const moneda = body.moneda || 'UYU';
@@ -160,6 +161,7 @@ export async function POST(request: Request) {
         usuarioId: session.user.id,
         campoId: usuario.campoId,
         notas: notas || null,
+        rodeoId: rodeoId || null,
       },
     });
 
