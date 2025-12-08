@@ -315,8 +315,10 @@ async function solicitarConfirmacionConFlow(phone: string, data: any) {
    FACTURAS POR IMAGEN (GASTO O VENTA)
    =============================== */
 
+// REEMPLAZAR la función handleImageMessage completa en route.ts
+
 async function handleImageMessage(message: any, phoneNumber: string) {
-  console.log("🎯 INICIO handleImageMessage - phoneNumber:", phoneNumber)  // ← AGREGÁ ESTO
+  console.log("🎯 INICIO handleImageMessage - phoneNumber:", phoneNumber)
   try {
     const mediaId = message.image.id
     const caption = message.image.caption || ""
@@ -345,7 +347,7 @@ async function handleImageMessage(message: any, phoneNumber: string) {
       return
     }
 
-   // DETECTAR TIPO: VENTA o GASTO
+    // DETECTAR TIPO: VENTA o GASTO
     console.log("🔍 Detectando tipo de factura...", uploadResult.url)
 
     let tipoFactura: "VENTA" | "GASTO" | null = null
@@ -354,16 +356,12 @@ async function handleImageMessage(message: any, phoneNumber: string) {
     try {
       tipoFactura = await detectarTipoFactura(uploadResult.url)
       console.log("🚨 DESPUÉS de detectarTipoFactura - resultado:", tipoFactura)
-      console.log("🔍 DEBUG - tipoFactura es:", typeof tipoFactura, JSON.stringify(tipoFactura))
     } catch (err: any) {
-      console.error("❌ Error COMPLETO en detectarTipoFactura:")
-      console.error("Mensaje:", err?.message)
-      console.error("Stack:", err?.stack)
-      tipoFactura = null  // ← CAMBIADO: no asumir GASTO
+      console.error("❌ Error en detectarTipoFactura:", err?.message)
+      tipoFactura = null
     }
     
-    console.log("🚨 DECISIÓN CRÍTICA - tipoFactura vale:", tipoFactura)
-    console.log("🚨 Comparación estricta:", tipoFactura === "VENTA", tipoFactura === "GASTO", tipoFactura === null)
+    console.log("🚨 DECISIÓN - tipoFactura vale:", tipoFactura)
 
     // Si no se pudo detectar, preguntar al usuario
     if (!tipoFactura) {
@@ -372,8 +370,9 @@ async function handleImageMessage(message: any, phoneNumber: string) {
         "No pude identificar el tipo de factura. ¿Es una:\n\n1️⃣ VENTA de animales\n2️⃣ GASTO (compra)\n\nRespondé: *venta* o *gasto*"
       )
       
-      await prisma.pendingConfirmation.create({
-        data: {
+      await prisma.pendingConfirmation.upsert({
+        where: { telefono: phoneNumber },
+        create: {
           telefono: phoneNumber,
           data: JSON.stringify({
             tipo: "AWAITING_INVOICE_TYPE",
@@ -383,27 +382,38 @@ async function handleImageMessage(message: any, phoneNumber: string) {
             caption,
           }),
         },
+        update: {
+          data: JSON.stringify({
+            tipo: "AWAITING_INVOICE_TYPE",
+            imageUrl: uploadResult.url,
+            imageName: uploadResult.fileName,
+            campoId: user.campoId,
+            caption,
+          }),
+        }
       })
-      return
+      return // ← CRÍTICO: salir aquí
     }
 
-    // Procesar según el tipo detectado
+    // ✅ FIX: Procesar según el tipo detectado y SALIR
     if (tipoFactura === "VENTA") {
       console.log("📊 BRANCH: Procesando como VENTA")
       await handleVentaImage(phoneNumber, uploadResult.url, uploadResult.fileName, user.campoId, caption)
-      return
+      return // ← AGREGADO: evita que siga al código de GASTO
     }
 
     if (tipoFactura === "GASTO") {
       console.log("💰 BRANCH: Procesando como GASTO")
       const invoiceData = await processInvoiceImage(uploadResult.url)
+      
       if (!invoiceData || !invoiceData.items || invoiceData.items.length === 0) {
         await sendWhatsAppMessage(phoneNumber, "No pude leer la factura de gasto. ¿La imagen está clara?")
         return
       }
 
-      await prisma.pendingConfirmation.create({
-        data: {
+      await prisma.pendingConfirmation.upsert({
+        where: { telefono: phoneNumber },
+        create: {
           telefono: phoneNumber,
           data: JSON.stringify({
             tipo: "INVOICE",
@@ -415,11 +425,26 @@ async function handleImageMessage(message: any, phoneNumber: string) {
             caption,
           }),
         },
+        update: {
+          data: JSON.stringify({
+            tipo: "INVOICE",
+            invoiceData,
+            imageUrl: uploadResult.url,
+            imageName: uploadResult.fileName,
+            campoId: user.campoId,
+            telefono: phoneNumber,
+            caption,
+          }),
+        }
       })
 
       await sendInvoiceFlowMessage(phoneNumber, invoiceData)
-      return
+      return // ← AGREGADO: salir después de procesar GASTO
     }
+
+    // Si llegamos acá es porque tipoFactura tiene un valor inesperado
+    console.error("⚠️ tipoFactura inesperado:", tipoFactura)
+    await sendWhatsAppMessage(phoneNumber, "Ocurrió un error procesando la imagen. Intenta de nuevo.")
 
   } catch (error) {
     console.error("Error en handleImageMessage:", error)
