@@ -38,15 +38,7 @@ interface DashboardData {
     mes: string
     mm: number
   }>
-  ultimosDatos: Array<{
-    id: string
-    fecha: string
-    tipo: string
-    icono: string
-    descripcion: string
-    usuario: string | null
-    lote: string | null
-  }>
+  ultimosDatos: Array<any>
 }
 
 export default function DashboardMejorado({ session }: { session: any }) {
@@ -71,6 +63,213 @@ export default function DashboardMejorado({ session }: { session: any }) {
     }
   }
 
+  // Funciones auxiliares copiadas de página de datos
+  const obtenerIcono = (tipo: string): string => {
+    const iconos: Record<string, string> = {
+      MOVIMIENTO: '🔄',
+      CAMBIO_POTRERO: '⊞',
+      TRATAMIENTO: '💉',
+      VENTA: '🐄',
+      COMPRA: '🛒',
+      TRASLADO: '🚛',
+      NACIMIENTO: '➕',
+      MORTANDAD: '➖',
+      CONSUMO: '🍖',
+      ABORTO: '❌',
+      DESTETE: '🔀',
+      TACTO: '✋',
+      RECATEGORIZACION: '🏷️',
+      SIEMBRA: '🌱',
+      PULVERIZACION: '💦',
+      REFERTILIZACION: '🌿',
+      RIEGO: '💧',
+      MONITOREO: '🔍',
+      COSECHA: '🌾',
+      OTROS_LABORES: '🔧',
+      LLUVIA: '🌧️',
+      HELADA: '❄️',
+      GASTO: '💸',
+      INGRESO: '💰',
+      USO_INSUMO: '📤',
+      INGRESO_INSUMO: '📦',
+    }
+    return iconos[tipo] || '📊'
+  }
+
+  const obtenerColor = (tipo: string): string => {
+    const colores: Record<string, string> = {
+      LLUVIA: 'blue',
+      HELADA: 'cyan',
+      GASTO: 'red',
+      INGRESO: 'green',
+      VENTA: 'green',
+      COMPRA: 'orange',
+      TRASLADO: 'indigo',
+      CAMBIO_POTRERO: 'amber',
+      NACIMIENTO: 'pink',
+      MORTANDAD: 'gray',
+      CONSUMO: 'brown',
+      USO_INSUMO: 'orange',
+      INGRESO_INSUMO: 'purple',
+      SIEMBRA: 'lime',
+      COSECHA: 'yellow',
+      TRATAMIENTO: 'pink',
+      MOVIMIENTO: 'blue',
+    }
+    return colores[tipo] || 'gray'
+  }
+
+  const obtenerNombreTipo = (tipo: string) => {
+    const nombres: Record<string, string> = {
+      INGRESO: 'Ingreso de Dinero',
+      INGRESO_INSUMO: 'Ingreso de Insumo',
+      USO_INSUMO: 'Uso de Insumo',
+      GASTO: 'Gasto',
+      VENTA: 'Venta',
+      COMPRA: 'Compra',
+      CAMBIO_POTRERO: 'Cambio De Potrero',
+      TRASLADO: 'Traslado',
+      NACIMIENTO: 'Nacimiento',
+      MORTANDAD: 'Mortandad',
+      CONSUMO: 'Consumo',
+      ABORTO: 'Aborto',
+      DESTETE: 'Destete',
+      TACTO: 'Tacto',
+      RECATEGORIZACION: 'Recategorización',
+      TRATAMIENTO: 'Tratamiento',
+      MOVIMIENTO: 'Movimiento',
+      SIEMBRA: 'Siembra',
+      PULVERIZACION: 'Pulverización',
+      REFERTILIZACION: 'Refertilización',
+      RIEGO: 'Riego',
+      MONITOREO: 'Monitoreo',
+      COSECHA: 'Cosecha',
+      OTROS_LABORES: 'Otras Labores',
+      LLUVIA: 'Lluvia',
+      HELADA: 'Helada',
+    }
+    return nombres[tipo] || tipo.replace(/_/g, ' ')
+  }
+
+  const formatFecha = (fecha: string) => {
+    const date = new Date(fecha)
+    const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+    const dia = date.getUTCDate()
+    const mes = meses[date.getUTCMonth()]
+    const anio = date.getUTCFullYear()
+    
+    return {
+      completo: `${dia} ${mes} ${anio}`,
+      dia: dia.toString(),
+      mes: mes,
+      anio: anio.toString()
+    }
+  }
+
+  const colorClasses: Record<string, string> = {
+    green: 'bg-green-500',
+    red: 'bg-red-500',
+    blue: 'bg-blue-500',
+    yellow: 'bg-yellow-500',
+    purple: 'bg-purple-500',
+    orange: 'bg-orange-500',
+    gray: 'bg-gray-500',
+    cyan: 'bg-cyan-500',
+    pink: 'bg-pink-500',
+    indigo: 'bg-indigo-500',
+    amber: 'bg-amber-500',
+    lime: 'bg-lime-500',
+    brown: 'bg-orange-800',
+  }
+
+  const renderDetalles = (dato: any) => {
+    const detalles = []
+
+    if (dato.monto !== undefined && dato.monto !== null && dato.monto !== 0) {
+      const esIngreso = dato.tipo === 'INGRESO' || dato.tipo === 'VENTA'
+      const moneda = dato.moneda || 'UYU'
+
+      detalles.push(
+        <div key="monto" className="flex items-center gap-2">
+          <span
+            className={`${esIngreso ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200'} px-3 py-1.5 rounded-md border text-sm font-semibold`}
+          >
+            💵 {esIngreso ? '+' : '-'}${Math.abs(Number(dato.monto)).toLocaleString('es-UY')}
+          </span>
+          <span className={`px-2 py-1 rounded-md text-xs font-medium border ${
+            moneda === 'USD' 
+              ? 'bg-blue-50 text-blue-700 border-blue-200' 
+              : 'bg-gray-50 text-gray-700 border-gray-200'
+          }`}>
+            {moneda}
+          </span>
+        </div>
+      )
+    }
+
+    if (dato.cantidad && !['INGRESO', 'GASTO'].includes(dato.tipo)) {
+      const texto = dato.tipo === 'VENTA' ? `${dato.cantidad} vendidos` : dato.tipo === 'COMPRA' ? `${dato.cantidad} comprados` : `${dato.cantidad} ${dato.unidad || ''}`
+
+      detalles.push(
+        <span key="cantidad" className="bg-blue-50 text-blue-700 px-3 py-1.5 rounded-md border border-blue-200 text-sm font-medium">
+          📊 {texto}
+        </span>
+      )
+    }
+
+    if (dato.proveedor) {
+      detalles.push(
+        <span key="proveedor" className="bg-orange-50 text-orange-700 px-3 py-1.5 rounded-md border border-orange-200 text-sm font-medium">
+          🏪 {dato.proveedor}
+        </span>
+      )
+    }
+
+    if (dato.comprador) {
+      detalles.push(
+        <span key="comprador" className="bg-green-50 text-green-700 px-3 py-1.5 rounded-md border border-green-200 text-sm font-medium">
+          🤝 {dato.comprador}
+        </span>
+      )
+    }
+
+    if (dato.metodoPago) {
+      const esIngreso = dato.tipo === 'INGRESO' || dato.tipo === 'VENTA'
+      detalles.push(
+        <span key="metodo" className={`${esIngreso ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200'} px-3 py-1.5 rounded-md border text-sm font-medium`}>
+          💳 {dato.metodoPago}
+          {dato.diasPlazo && dato.diasPlazo > 0 && ` (${dato.diasPlazo} días)`}
+        </span>
+      )
+    }
+
+    if (dato.metodoPago && dato.pagado !== undefined) {
+      detalles.push(
+        <span key="pagado" className={`${dato.pagado ? 'bg-green-50 text-green-700 border-green-200' : 'bg-yellow-50 text-yellow-700 border-yellow-200'} px-3 py-1.5 rounded-md border text-sm font-medium`}>
+          {dato.pagado ? '✅ Pagado' : '⏳ Pendiente'}
+        </span>
+      )
+    }
+
+    if (dato.insumo) {
+      detalles.push(
+        <span key="insumo" className="bg-purple-50 text-purple-700 px-3 py-1.5 rounded-md border border-purple-200 text-sm font-medium">
+          📦 {dato.insumo}
+        </span>
+      )
+    }
+
+    if (dato.iva && dato.iva !== 0) {
+      detalles.push(
+        <span key="iva" className="bg-gray-50 text-gray-700 px-3 py-1.5 rounded-md border border-gray-200 text-sm font-medium">
+          💹 IVA: ${Number(dato.iva).toLocaleString('es-UY')}
+        </span>
+      )
+    }
+
+    return detalles
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -89,24 +288,6 @@ export default function DashboardMejorado({ session }: { session: any }) {
 
   const totalLluviaAnual = data.lluvia12Meses.reduce((sum, m) => sum + m.mm, 0)
 
-  const formatearFecha = (fecha: string) => {
-    const date = new Date(fecha)
-    const hoy = new Date()
-    const ayer = new Date(hoy)
-    ayer.setDate(ayer.getDate() - 1)
-
-    // Verificar si es hoy
-    if (date.toDateString() === hoy.toDateString()) {
-      return 'Hoy'
-    }
-    // Verificar si es ayer
-    if (date.toDateString() === ayer.toDateString()) {
-      return 'Ayer'
-    }
-    // Formato normal
-    return date.toLocaleDateString('es-UY', { day: '2-digit', month: '2-digit', year: 'numeric' })
-  }
-
   return (
     <div className="space-y-4 sm:space-y-6">
       {/* BIENVENIDA */}
@@ -121,7 +302,7 @@ export default function DashboardMejorado({ session }: { session: any }) {
 
       {/* ÚLTIMOS DATOS Y MAPA - LADO A LADO EN DESKTOP */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-        {/* ÚLTIMOS DATOS INGRESADOS */}
+        {/* ÚLTIMOS DATOS INGRESADOS - CON DISEÑO DE PÁGINA DE DATOS */}
         <div className="bg-white rounded-lg sm:rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg sm:text-xl font-bold text-gray-900">
@@ -131,59 +312,57 @@ export default function DashboardMejorado({ session }: { session: any }) {
               href="/dashboard/datos"
               className="text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors"
             >
-              Ver Más
+              Ver Más →
             </a>
           </div>
 
-          <div className="space-y-3 h-[400px] lg:h-[500px] overflow-y-auto">
+          <div className="space-y-3 max-h-[600px] overflow-y-auto">
             {data.ultimosDatos.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
                 <p className="text-lg mb-2">📝</p>
                 <p className="text-sm">No hay datos registrados aún</p>
               </div>
             ) : (
-              data.ultimosDatos.map((dato) => (
-                <div
-                  key={dato.id}
-                  className="flex items-start gap-3 sm:gap-4 p-3 sm:p-4 rounded-lg border border-gray-100 hover:bg-gray-50 transition-colors"
-                >
-                  {/* Fecha */}
-                  <div className="flex-shrink-0 text-center min-w-[70px] sm:min-w-[80px]">
-                    <p className="text-xs sm:text-sm font-medium text-gray-500">
-                      {formatearFecha(dato.fecha)}
-                    </p>
-                  </div>
+              data.ultimosDatos.map((dato) => {
+                const fecha = formatFecha(dato.fecha)
+                
+                return (
+                  <div key={dato.id} className="bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-200 border border-gray-200 overflow-hidden">
+                    <div className="flex items-start">
+                      {/* Fecha Lateral */}
+                      <div className="bg-gray-50 border-r border-gray-200 px-3 py-3 flex flex-col items-center justify-center min-w-[70px]">
+                        <div className="text-xl font-bold text-gray-900">{fecha.dia}</div>
+                        <div className="text-xs font-medium text-gray-600 uppercase">{fecha.mes}</div>
+                        <div className="text-xs text-gray-500">{fecha.anio}</div>
+                      </div>
 
-                  {/* Ícono */}
-                  <div className="flex-shrink-0">
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-yellow-50 to-yellow-100 flex items-center justify-center text-xl sm:text-2xl border border-yellow-200">
-                      {dato.icono}
+                      {/* Contenido Principal */}
+                      <div className="flex items-start gap-3 flex-1 p-3">
+                        <div className={`${colorClasses[obtenerColor(dato.tipo)] || 'bg-gray-500'} w-10 h-10 rounded-lg flex items-center justify-center text-xl flex-shrink-0 shadow-sm`}>
+                          {obtenerIcono(dato.tipo)}
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-gray-900 text-base">{obtenerNombreTipo(dato.tipo)}</h3>
+
+                          {dato.descripcion && <p className="text-gray-700 text-sm mb-2 leading-relaxed">{dato.descripcion}</p>}
+
+                          <div className="flex flex-wrap gap-2 mb-2">{renderDetalles(dato)}</div>
+
+                          <div className="flex flex-wrap gap-2 text-xs">
+                            {dato.usuario && <span className="bg-gray-50 text-gray-700 px-2 py-1 rounded-md border border-gray-200 font-medium">👤 {dato.usuario}</span>}
+                            {dato.lote && <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded-md border border-blue-200 font-medium">📍 {dato.lote}</span>}
+                            {dato.rodeo && <span className="bg-green-50 text-green-700 px-2 py-1 rounded-md border border-green-200 font-medium">🐮 {dato.rodeo}</span>}
+                            {dato.categoria && <span className="bg-purple-50 text-purple-700 px-2 py-1 rounded-md border border-purple-200 font-medium capitalize">{dato.categoria}</span>}
+                          </div>
+
+                          {dato.notas && <p className="text-xs text-gray-600 mt-2 pl-3 border-l-2 border-gray-300 italic">{dato.notas}</p>}
+                        </div>
+                      </div>
                     </div>
                   </div>
-
-                  {/* Descripción */}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm sm:text-base text-gray-900 font-medium line-clamp-2">
-                      {dato.descripcion}
-                    </p>
-                    <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
-                      {dato.usuario && (
-                        <span className="flex items-center gap-1">
-                          <span className="text-gray-400">👤</span>
-                          {dato.usuario}
-                        </span>
-                      )}
-                      {dato.lote && (
-                        <span className="flex items-center gap-1">
-                          {dato.usuario && <span className="text-gray-300">•</span>}
-                          <span className="text-gray-400">🏞️</span>
-                          {dato.lote}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))
+                )
+              })
             )}
           </div>
         </div>
