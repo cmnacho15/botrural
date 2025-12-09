@@ -38,6 +38,11 @@ export default function ModalTratamiento({ onClose, onSuccess }: ModalTratamient
   const [loadingAnimales, setLoadingAnimales] = useState(false)
   const [errorPotrero, setErrorPotrero] = useState(false)
   
+  // Estados para rodeos
+  const [rodeoId, setRodeoId] = useState<string>('')
+  const [rodeos, setRodeos] = useState<any[]>([])
+  const [modoRodeo, setModoRodeo] = useState<'NO_INCLUIR' | 'OPCIONAL' | 'OBLIGATORIO'>('OPCIONAL')
+  
   const [animalesTratados, setAnimalesTratados] = useState<AnimalTratado[]>([
     { id: '1', cantidad: '', tipo: '', peso: '' }
   ])
@@ -48,6 +53,21 @@ export default function ModalTratamiento({ onClose, onSuccess }: ModalTratamient
       .then((res) => res.json())
       .then((data) => setPotreros(data))
       .catch(() => alert('Error al cargar potreros'))
+  }, [])
+
+  // Cargar rodeos y configuración
+  useEffect(() => {
+    // Cargar configuración de rodeos
+    fetch('/api/configuracion-rodeos')
+      .then(r => r.json())
+      .then(data => setModoRodeo(data.modoRodeo || 'OPCIONAL'))
+      .catch(err => console.error('Error cargando configuración rodeos:', err))
+    
+    // Cargar lista de rodeos
+    fetch('/api/rodeos')
+      .then(r => r.json())
+      .then(data => setRodeos(data))
+      .catch(err => console.error('Error cargando rodeos:', err))
   }, [])
 
   // Cargar animales cuando se selecciona potrero
@@ -102,6 +122,12 @@ export default function ModalTratamiento({ onClose, onSuccess }: ModalTratamient
       return
     }
 
+    // VALIDAR RODEO OBLIGATORIO
+    if (modoRodeo === 'OBLIGATORIO' && !rodeoId) {
+      alert('Seleccioná un rodeo')
+      return
+    }
+
     // Validar animales tratados
     const animalesValidos = animalesTratados.filter(a => 
       a.cantidad && a.tipo && parseInt(a.cantidad) > 0
@@ -146,6 +172,7 @@ export default function ModalTratamiento({ onClose, onSuccess }: ModalTratamient
           descripcion: descripcionFinal,
           loteId: potreroSeleccionado,
           notas: notas || null,
+          rodeoId: rodeoId || null,  // AGREGAR ESTA LÍNEA
         }),
       })
 
@@ -325,6 +352,31 @@ export default function ModalTratamiento({ onClose, onSuccess }: ModalTratamient
                   <span className="text-xl">➕</span> Agregar Más Animales
                 </button>
               </div>
+            )}
+          </div>
+        )}
+
+        {/* RODEO */}
+        {modoRodeo !== 'NO_INCLUIR' && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Rodeo {modoRodeo === 'OBLIGATORIO' && <span className="text-red-500">*</span>}
+            </label>
+            <select
+              value={rodeoId}
+              onChange={(e) => setRodeoId(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              required={modoRodeo === 'OBLIGATORIO'}
+            >
+              <option value="">Seleccionar rodeo...</option>
+              {rodeos.map(r => (
+                <option key={r.id} value={r.id}>{r.nombre}</option>
+              ))}
+            </select>
+            {rodeos.length === 0 && (
+              <p className="text-xs text-yellow-600 mt-2">
+                ⚠️ No hay rodeos creados. Podés crear uno en Preferencias → Rodeos
+              </p>
             )}
           </div>
         )}
