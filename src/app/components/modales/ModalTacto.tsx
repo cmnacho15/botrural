@@ -102,7 +102,7 @@ export default function ModalTacto({ onClose, onSuccess }: ModalTactoProps) {
         body: JSON.stringify({
           tipo: 'TACTO',
           fecha: fecha,
-          descripcion: `Tacto en potrero ${potreroNombre}: ${tactados} animales tactados, ${preñados} preñados (${porcentajePreñez}% de preñez)`,
+          descripcion: `Tacto en potrero ${potreroNombre}${rodeoId && rodeos.find(r => r.id === rodeoId) ? ` - Rodeo ${rodeos.find(r => r.id === rodeoId)?.nombre}` : ''}: ${tactados} animales tactados, ${preñados} preñados (${porcentajePreñez}% de preñez)`,
           loteId: potreroSeleccionado,
           cantidad: tactados,
           notas: notas || null,
