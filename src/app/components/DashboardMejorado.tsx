@@ -237,8 +237,7 @@ export default function DashboardMejorado({ session }: { session: any }) {
         {/* MAPA DEL CAMPO */}
         <div className="bg-white rounded-lg sm:rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
           <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">
-            Mapa de Rodazo
-            <span className="text-gray-400 text-sm ml-2">❓</span>
+            Mapa de {data.nombreCampo}
           </h2>
           <div className="w-full h-[400px] lg:h-[500px] rounded-lg overflow-hidden border border-gray-200">
             <MapaPoligono
