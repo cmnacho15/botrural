@@ -148,25 +148,7 @@ export async function GET() {
       mm: lluviaPorMes[mes]
     }))
 
-    // 7. OBTENER ÚLTIMOS 8 DATOS
-    const ultimosEventos = await prisma.evento.findMany({
-      where: {
-        campoId: usuario.campoId,
-        tipo: {
-          not: 'GASTO' // Excluir solo GASTO (INGRESO no existe en Evento)
-        }
-      },
-      include: {
-        usuario: { select: { name: true } },
-        lote: { select: { nombre: true } }
-      },
-      orderBy: [
-        { fecha: 'desc' },
-        { createdAt: 'desc' }
-      ],
-      take: 8
-    })
-
+    // 7. OBTENER ÚLTIMOS 8 DATOS (EVENTOS + GASTOS/INGRESOS)
     const iconoPorTipo: Record<string, string> = {
       MOVIMIENTO: '🔄',
       CAMBIO_POTRERO: '⊞',
@@ -190,16 +172,94 @@ export async function GET() {
       OTROS_LABORES: '🔧',
       LLUVIA: '🌧️',
       HELADA: '❄️',
+      GASTO: '💸',
+      INGRESO: '💰',
     }
 
-    const ultimosDatos = ultimosEventos.map(evento => ({
-      id: evento.id,
-      fecha: evento.fecha.toISOString(),
-      tipo: evento.tipo,
-      icono: iconoPorTipo[evento.tipo as keyof typeof iconoPorTipo] || '📌',
-      descripcion: evento.descripcion,
-      usuario: evento.usuario?.name || null,
-      lote: evento.lote?.nombre || null
+    // Obtener eventos (sin GASTO porque viene de tabla Gasto)
+    const ultimosEventos = await prisma.evento.findMany({
+      where: {
+        campoId: usuario.campoId,
+        tipo: {
+          not: 'GASTO'
+        }
+      },
+      include: {
+        usuario: { select: { name: true } },
+        lote: { select: { nombre: true } }
+      },
+      orderBy: [
+        { fecha: 'desc' },
+        { createdAt: 'desc' }
+      ],
+      take: 20 // Traer más para luego filtrar los 8 más recientes
+    })
+
+    // Obtener gastos e ingresos de la tabla Gasto
+    const gastosIngresos = await prisma.gasto.findMany({
+      where: {
+        campoId: usuario.campoId
+      },
+      include: {
+        lote: { select: { nombre: true } }
+      },
+      orderBy: [
+        { fecha: 'desc' },
+        { createdAt: 'desc' }
+      ],
+      take: 20
+    })
+
+    // Unificar todos los datos
+    const datosUnificados: any[] = []
+
+    // Agregar eventos
+    ultimosEventos.forEach(evento => {
+      datosUnificados.push({
+        id: evento.id,
+        fecha: evento.fecha,
+        createdAt: evento.createdAt,
+        tipo: evento.tipo,
+        icono: iconoPorTipo[evento.tipo as keyof typeof iconoPorTipo] || '📌',
+        descripcion: evento.descripcion,
+        usuario: evento.usuario?.name || null,
+        lote: evento.lote?.nombre || null
+      })
+    })
+
+    // Agregar gastos e ingresos
+    gastosIngresos.forEach(gasto => {
+      const esIngreso = gasto.tipo === 'INGRESO'
+      datosUnificados.push({
+        id: gasto.id,
+        fecha: gasto.fecha,
+        createdAt: gasto.createdAt,
+        tipo: gasto.tipo,
+        icono: esIngreso ? '💰' : '💸',
+        descripcion: gasto.descripcion,
+        usuario: null,
+        lote: gasto.lote?.nombre || null
+      })
+    })
+
+    // Ordenar por fecha y createdAt, luego tomar los 8 más recientes
+    datosUnificados.sort((a, b) => {
+      const fechaA = new Date(a.fecha).getTime()
+      const fechaB = new Date(b.fecha).getTime()
+      if (fechaB !== fechaA) return fechaB - fechaA
+      const creadoA = a.createdAt ? new Date(a.createdAt).getTime() : 0
+      const creadoB = b.createdAt ? new Date(b.createdAt).getTime() : 0
+      return creadoB - creadoA
+    })
+
+    const ultimosDatos = datosUnificados.slice(0, 8).map(dato => ({
+      id: dato.id,
+      fecha: dato.fecha.toISOString(),
+      tipo: dato.tipo,
+      icono: dato.icono,
+      descripcion: dato.descripcion,
+      usuario: dato.usuario,
+      lote: dato.lote
     }))
 
     // 8. CONSTRUIR RESPUESTA
