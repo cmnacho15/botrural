@@ -161,7 +161,7 @@ export default function ModalTratamiento({ onClose, onSuccess }: ModalTratamient
         `${a.cantidad} ${a.tipo}${a.peso ? ` (${a.peso} kg)` : ''}`
       ).join(', ')
 
-      const descripcionFinal = `Tratamiento: ${tratamiento}${marca ? ` - ${marca}` : ''} aplicado a ${descripcionAnimales} en potrero ${potreroNombre}${rodeoId && rodeos.find(r => r.id === rodeoId) ? ` - Rodeo ${rodeos.find(r => r.id === rodeoId)?.nombre}` : ''}`
+      const descripcionFinal = `Tratamiento${rodeoId && rodeos.find(r => r.id === rodeoId) ? ` - Rodeo ${rodeos.find(r => r.id === rodeoId)?.nombre}` : ''}: ${tratamiento}${marca ? ` - ${marca}` : ''} aplicado a ${descripcionAnimales} en potrero ${potreroNombre}`
 
       const response = await fetch('/api/eventos', {
         method: 'POST',

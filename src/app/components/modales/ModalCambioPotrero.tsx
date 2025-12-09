@@ -110,7 +110,7 @@ export default function ModalCambioPotrero({ onClose, onSuccess }: ModalCambioPo
         body: JSON.stringify({
           tipo: 'CAMBIO_POTRERO',
           fecha: fecha,
-          descripcion: `Cambio de ${cantidad} ${categoriaSeleccionada} al ${potreros.find(p => p.id === potreroDestino)?.nombre}`,
+          descripcion: `Cambio de ${cantidad} ${categoriaSeleccionada} al ${potreros.find(p => p.id === potreroDestino)?.nombre}${rodeoSeleccionado && rodeos.find(r => r.id === rodeoSeleccionado) ? ` - Rodeo ${rodeos.find(r => r.id === rodeoSeleccionado)?.nombre}` : ''}`,
           loteId: potreroOrigen,
           loteDestinoId: potreroDestino,
           categoria: categoriaSeleccionada,
