@@ -230,13 +230,37 @@ export async function GET() {
     // Agregar gastos e ingresos
     gastosIngresos.forEach(gasto => {
       const esIngreso = gasto.tipo === 'INGRESO'
+      
+      // Armar descripción igual que en la página de datos
+      let descripcionCompleta = gasto.descripcion
+      
+      // Agregar información adicional relevante
+      const partes = [gasto.descripcion]
+      
+      if (gasto.monto) {
+        const montoFormateado = `${Math.abs(Number(gasto.monto)).toLocaleString('es-UY')}`
+        const signo = esIngreso ? '+' : '-'
+        const moneda = gasto.moneda || 'UYU'
+        partes.push(`${signo}${montoFormateado} ${moneda}`)
+      }
+      
+      if (gasto.proveedor) {
+        partes.push(`🏪 ${gasto.proveedor}`)
+      }
+      
+      if (gasto.comprador) {
+        partes.push(`🤝 ${gasto.comprador}`)
+      }
+      
+      descripcionCompleta = partes.filter(Boolean).join(' • ')
+      
       datosUnificados.push({
         id: gasto.id,
         fecha: gasto.fecha,
         createdAt: gasto.createdAt,
         tipo: gasto.tipo,
         icono: esIngreso ? '💰' : '💸',
-        descripcion: gasto.descripcion,
+        descripcion: descripcionCompleta,
         usuario: null,
         lote: gasto.lote?.nombre || null
       })
