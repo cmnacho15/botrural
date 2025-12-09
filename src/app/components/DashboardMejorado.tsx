@@ -124,9 +124,9 @@ export default function DashboardMejorado({ session }: { session: any }) {
         {/* ÚLTIMOS DATOS INGRESADOS */}
         <div className="bg-white rounded-lg sm:rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg sm:text-xl font-bold text-gray-900 flex items-center gap-2">
+            <h2 className="text-lg sm:text-xl font-bold text-gray-900">
               Últimos Datos
-              <span className="text-gray-400 text-sm">❓</span>
+              
             </h2>
             <a
               href="/dashboard/datos"
