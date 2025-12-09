@@ -1,11 +1,9 @@
 'use client'
-export const dynamic = 'force-dynamic' // ✅ AGREGAR ESTA LÍNEA
-
+export const dynamic = 'force-dynamic'
 
 import { useState, useEffect, Suspense } from 'react'
 import { useDatos } from '@/app/contexts/DatosContext'
 import { useSearchParams } from 'next/navigation'
-
 
 // ==================== FUNCIONES AUXILIARES ====================
 function obtenerIcono(tipo: string): string {
@@ -17,7 +15,7 @@ function obtenerIcono(tipo: string): string {
     VENTA: '🐄',
     COMPRA: '🛒',
     TRASLADO: '🚛',
-    CAMBIO_POTRERO: '⊞', //
+    CAMBIO_POTRERO: '⊞',
     NACIMIENTO: '➕',
     MORTANDAD: '➖',
     CONSUMO: '🍖',
@@ -589,40 +587,51 @@ function FiltrosActivos() {
   }
 
   if (filtros.potreros.length > 0) {
-  const nombres = filtros.potreros.join(', ')
-  const label = filtros.potreros.length === 1 
-    ? `📍 ${nombres}`
-    : `📍 ${filtros.potreros.length} potreros: ${nombres}`
-  filtrosActivos.push({
-    key: 'potreros',
-    label,
-    onRemove: () => setFiltros({ ...filtros, potreros: [] }),
-  })
-}
+    const nombres = filtros.potreros.join(', ')
+    const label = filtros.potreros.length === 1 
+      ? `📍 ${nombres}`
+      : `📍 ${filtros.potreros.length} potreros: ${nombres}`
+    filtrosActivos.push({
+      key: 'potreros',
+      label,
+      onRemove: () => setFiltros({ ...filtros, potreros: [] }),
+    })
+  }
 
-if (filtros.animales.length > 0) {
-  const nombres = filtros.animales.join(', ')
-  const label = filtros.animales.length === 1
-    ? `🐄 ${nombres}`
-    : `🐄 ${filtros.animales.length} tipos: ${nombres}`
-  filtrosActivos.push({
-    key: 'animales',
-    label,
-    onRemove: () => setFiltros({ ...filtros, animales: [] }),
-  })
-}
+  if (filtros.animales.length > 0) {
+    const nombres = filtros.animales.join(', ')
+    const label = filtros.animales.length === 1
+      ? `🐄 ${nombres}`
+      : `🐄 ${filtros.animales.length} tipos: ${nombres}`
+    filtrosActivos.push({
+      key: 'animales',
+      label,
+      onRemove: () => setFiltros({ ...filtros, animales: [] }),
+    })
+  }
 
-if (filtros.cultivos.length > 0) {
-  const nombres = filtros.cultivos.join(', ')
-  const label = filtros.cultivos.length === 1
-    ? `🌾 ${nombres}`
-    : `🌾 ${filtros.cultivos.length} cultivos: ${nombres}`
-  filtrosActivos.push({
-    key: 'cultivos',
-    label,
-    onRemove: () => setFiltros({ ...filtros, cultivos: [] }),
-  })
-}
+  if (filtros.cultivos.length > 0) {
+    const nombres = filtros.cultivos.join(', ')
+    const label = filtros.cultivos.length === 1
+      ? `🌾 ${nombres}`
+      : `🌾 ${filtros.cultivos.length} cultivos: ${nombres}`
+    filtrosActivos.push({
+      key: 'cultivos',
+      label,
+      onRemove: () => setFiltros({ ...filtros, cultivos: [] }),
+    })
+  }
+
+  if (filtros.rodeos && filtros.rodeos.length > 0) {
+    const label = filtros.rodeos.length === 1
+      ? `🐮 ${filtros.rodeos[0]}`
+      : `🐮 ${filtros.rodeos.length} rodeos`
+    filtrosActivos.push({
+      key: 'rodeos',
+      label,
+      onRemove: () => setFiltros({ ...filtros, rodeos: [] }),
+    })
+  }
 
 if (filtrosActivos.length === 0) return null
 
@@ -650,6 +659,7 @@ if (filtrosActivos.length === 0) return null
             potreros: [],
             animales: [],
             cultivos: [],
+            rodeos: [],
           })
         }
         className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 font-medium"
@@ -668,13 +678,23 @@ function FiltrosDatos() {
   const [showModalFecha, setShowModalFecha] = useState(false)
   const [showModalUsuarios, setShowModalUsuarios] = useState(false)
   const [showModalPotreros, setShowModalPotreros] = useState(false)
-  const [showModalAnimales, setShowModalAnimales] = useState(false)  
-  const [showModalCultivos, setShowModalCultivos] = useState(false)  
+  const [showModalAnimales, setShowModalAnimales] = useState(false)
+  const [showModalCultivos, setShowModalCultivos] = useState(false)
   const [showBusqueda, setShowBusqueda] = useState(false)
   const [todosLosPotreros, setTodosLosPotreros] = useState<string[]>([])
- 
   const [animalesDisponibles, setAnimalesDisponibles] = useState<string[]>([])
   const [cultivosDisponibles, setCultivosDisponibles] = useState<string[]>([])
+  const [rodeosDisponibles, setRodeosDisponibles] = useState<{id: string, nombre: string}[]>([])
+  const [modoRodeo, setModoRodeo] = useState<'NO_INCLUIR' | 'OPCIONAL' | 'OBLIGATORIO'>('OPCIONAL')
+  const [showModalRodeos, setShowModalRodeos] = useState(false)
+
+  // Cargar configuración de rodeos
+  useEffect(() => {
+    fetch('/api/configuracion-rodeos')
+      .then(r => r.json())
+      .then(data => setModoRodeo(data.modoRodeo || 'OPCIONAL'))
+      .catch(err => console.error('Error cargando configuración:', err))
+  }, [])
 
   // Cargar potreros desde la API
   useEffect(() => {
@@ -708,12 +728,21 @@ useEffect(() => {
     .catch(err => console.error('Error cargando cultivos:', err))
 }, [])
 
+// Cargar rodeos si la configuración lo permite
+useEffect(() => {
+  if (modoRodeo !== 'NO_INCLUIR') {
+    fetch('/api/rodeos')
+      .then(r => r.json())
+      .then(rodeos => setRodeosDisponibles(rodeos))
+      .catch(err => console.error('Error cargando rodeos:', err))
+  }
+}, [modoRodeo])
+
   // Obtener datos únicos
   const usuariosDisponibles = Array.from(new Set(datos.map((d) => d.usuario).filter(Boolean))) as string[]
   const potrerosDisponibles = todosLosPotreros.length > 0 
     ? todosLosPotreros 
     : Array.from(new Set(datos.map((d) => d.lote).filter(Boolean))) as string[]
-  // ✅ AGREGA ESTO:
 
   return (
     <>
@@ -800,34 +829,49 @@ useEffect(() => {
                         />
                       </svg>
                       <span className="font-medium">Potreros</span>
-</button>
+                    </button>
 
-<button
-  onClick={() => {
-    setShowMenuFiltros(false)
-    setShowModalAnimales(true)
-  }}
-  className="w-full flex items-center gap-3 px-4 py-3 text-left text-gray-700 hover:bg-gray-50 rounded-lg transition"
->
-  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-  </svg>
-  <span className="font-medium">Animales</span>
-</button>
+                    <button
+                      onClick={() => {
+                        setShowMenuFiltros(false)
+                        setShowModalAnimales(true)
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-left text-gray-700 hover:bg-gray-50 rounded-lg transition"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                      </svg>
+                      <span className="font-medium">Animales</span>
+                    </button>
 
-<button
-  onClick={() => {
-    setShowMenuFiltros(false)
-    setShowModalCultivos(true)
-  }}
-  className="w-full flex items-center gap-3 px-4 py-3 text-left text-gray-700 hover:bg-gray-50 rounded-lg transition"
->
-  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-  </svg>
-  <span className="font-medium">Cultivos</span>
-</button>
-</div>
+                    <button
+                      onClick={() => {
+                        setShowMenuFiltros(false)
+                        setShowModalCultivos(true)
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-left text-gray-700 hover:bg-gray-50 rounded-lg transition"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                      </svg>
+                      <span className="font-medium">Cultivos</span>
+                    </button>
+
+                    {modoRodeo !== 'NO_INCLUIR' && (
+                      <button
+                        onClick={() => {
+                          setShowMenuFiltros(false)
+                          setShowModalRodeos(true)
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-3 text-left text-gray-700 hover:bg-gray-50 rounded-lg transition"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                        <span className="font-medium">Rodeos</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
               </>
             )}
@@ -885,37 +929,48 @@ useEffect(() => {
       />
 
       <ModalFiltroMultiple
-  isOpen={showModalPotreros}
-  onClose={() => setShowModalPotreros(false)}
-  title="Potreros"
-  icon="📍"
-  items={potrerosDisponibles}
-  selectedItems={filtros.potreros}
-  onApply={(potreros) => setFiltros({ ...filtros, potreros })}
-/>
+        isOpen={showModalPotreros}
+        onClose={() => setShowModalPotreros(false)}
+        title="Potreros"
+        icon="📍"
+        items={potrerosDisponibles}
+        selectedItems={filtros.potreros}
+        onApply={(potreros) => setFiltros({ ...filtros, potreros })}
+      />
 
-<ModalFiltroMultiple
-  isOpen={showModalAnimales}
-  onClose={() => setShowModalAnimales(false)}
-  title="Animales"
-  icon="🐄"
-  items={animalesDisponibles}
-  selectedItems={filtros.animales}
-  onApply={(animales) => setFiltros({ ...filtros, animales })}
-/>
+      <ModalFiltroMultiple
+        isOpen={showModalAnimales}
+        onClose={() => setShowModalAnimales(false)}
+        title="Animales"
+        icon="🐄"
+        items={animalesDisponibles}
+        selectedItems={filtros.animales}
+        onApply={(animales) => setFiltros({ ...filtros, animales })}
+      />
 
-<ModalFiltroMultiple
-  isOpen={showModalCultivos}
-  onClose={() => setShowModalCultivos(false)}
-  title="Cultivos"
-  icon="🌾"
-  items={cultivosDisponibles}
-  selectedItems={filtros.cultivos}
-  onApply={(cultivos) => setFiltros({ ...filtros, cultivos })}
-/>
-</>
+      <ModalFiltroMultiple
+        isOpen={showModalCultivos}
+        onClose={() => setShowModalCultivos(false)}
+        title="Cultivos"
+        icon="🌾"
+        items={cultivosDisponibles}
+        selectedItems={filtros.cultivos}
+        onApply={(cultivos) => setFiltros({ ...filtros, cultivos })}
+      />
+
+      <ModalFiltroMultiple
+        isOpen={showModalRodeos}
+        onClose={() => setShowModalRodeos(false)}
+        title="Rodeos"
+        icon="🐮"
+        items={rodeosDisponibles.map(r => r.nombre)}
+        selectedItems={filtros.rodeos || []}
+        onApply={(rodeos) => setFiltros({ ...filtros, rodeos })}
+      />
+    </>
   )
 }
+
 
 // ==================== TARJETA ====================
 function TarjetaDato({ dato }: { dato: any }) {
@@ -1129,11 +1184,11 @@ function TarjetaDato({ dato }: { dato: any }) {
               <div className="flex flex-wrap gap-2 mb-3">{renderDetalles()}</div>
 
               <div className="flex flex-wrap gap-2 text-xs">
-  {dato.usuario && <span className="bg-gray-50 text-gray-700 px-3 py-1.5 rounded-md border border-gray-200 font-medium">👤 {dato.usuario}</span>}
-  {dato.lote && <span className="bg-blue-50 text-blue-700 px-3 py-1.5 rounded-md border border-blue-200 font-medium">📍 {dato.lote}</span>}
-  {dato.rodeo && <span className="bg-green-50 text-green-700 px-3 py-1.5 rounded-md border border-green-200 font-medium">🐮 {dato.rodeo}</span>}
-  <span className="bg-purple-50 text-purple-700 px-3 py-1.5 rounded-md border border-purple-200 font-medium capitalize">{dato.categoria}</span>
-</div>
+                {dato.usuario && <span className="bg-gray-50 text-gray-700 px-3 py-1.5 rounded-md border border-gray-200 font-medium">👤 {dato.usuario}</span>}
+                {dato.lote && <span className="bg-blue-50 text-blue-700 px-3 py-1.5 rounded-md border border-blue-200 font-medium">📍 {dato.lote}</span>}
+                {dato.rodeo && <span className="bg-green-50 text-green-700 px-3 py-1.5 rounded-md border border-green-200 font-medium">🐮 {dato.rodeo}</span>}
+                <span className="bg-purple-50 text-purple-700 px-3 py-1.5 rounded-md border border-purple-200 font-medium capitalize">{dato.categoria}</span>
+              </div>
 
               {dato.notas && <p className="text-sm text-gray-600 mt-3 pl-4 border-l-2 border-gray-300 italic">{dato.notas}</p>}
             </div>
@@ -1270,6 +1325,7 @@ function DatosContent() {
         potreros: potreroUrl ? [potreroUrl] : [],
         animales: animalUrl ? [animalUrl] : [],
         cultivos: cultivoUrl ? [cultivoUrl] : [],
+        rodeos: [],
       })
       setFiltrosAplicados(true)
     }
