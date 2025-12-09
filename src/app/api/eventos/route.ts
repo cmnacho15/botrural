@@ -790,13 +790,7 @@ export async function POST(request: Request) {
           data: { ultimoCambio: new Date() }
         });
 
-        const categoriaLabel =
-          cantidadMover === 1
-            ? categoria.replace(/s$/, "")
-            : categoria;
-
-        const descripcionFinal =
-          `Cambio de ${cantidadMover} ${categoriaLabel} del potrero "${potreroOrigen.nombre}" al potrero "${potreroDestino.nombre}".`;
+        
 
         await prisma.evento.update({
           where: { id: evento.id },
@@ -804,8 +798,7 @@ export async function POST(request: Request) {
             loteDestinoId,
             cantidad: cantidadMover,
             categoria,
-            notas: notas || null,
-            descripcion: descripcionFinal,
+            notas: notas || null,            
           },
         });
 
