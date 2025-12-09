@@ -148,7 +148,61 @@ export async function GET() {
       mm: lluviaPorMes[mes]
     }))
 
-    // 7. CONSTRUIR RESPUESTA
+    // 7. OBTENER ÚLTIMOS 8 DATOS
+    const ultimosEventos = await prisma.evento.findMany({
+      where: {
+        campoId: usuario.campoId,
+        tipo: {
+          not: 'GASTO' // Excluir solo GASTO (INGRESO no existe en Evento)
+        }
+      },
+      include: {
+        usuario: { select: { name: true } },
+        lote: { select: { nombre: true } }
+      },
+      orderBy: [
+        { fecha: 'desc' },
+        { createdAt: 'desc' }
+      ],
+      take: 8
+    })
+
+    const iconoPorTipo: Record<string, string> = {
+      MOVIMIENTO: '🔄',
+      CAMBIO_POTRERO: '⊞',
+      TRATAMIENTO: '💉',
+      VENTA: '🐄',
+      COMPRA: '🛒',
+      TRASLADO: '🚛',
+      NACIMIENTO: '➕',
+      MORTANDAD: '➖',
+      CONSUMO: '🍖',
+      ABORTO: '❌',
+      DESTETE: '🔀',
+      TACTO: '✋',
+      RECATEGORIZACION: '🏷️',
+      SIEMBRA: '🌱',
+      PULVERIZACION: '💦',
+      REFERTILIZACION: '🌿',
+      RIEGO: '💧',
+      MONITOREO: '🔍',
+      COSECHA: '🌾',
+      OTROS_LABORES: '🔧',
+      LLUVIA: '🌧️',
+      HELADA: '❄️',
+    }
+
+    const ultimosDatos = ultimosEventos.map(evento => ({
+      id: evento.id,
+      fecha: evento.fecha.toISOString(),
+      tipo: evento.tipo,
+      icono: iconoPorTipo[evento.tipo as keyof typeof iconoPorTipo] || '📌',
+      descripcion: evento.descripcion,
+      usuario: evento.usuario?.name || null,
+      lote: evento.lote?.nombre || null
+    }))
+
+    // 8. CONSTRUIR RESPUESTA
     const dashboardData = {
       nombreCampo: campo?.nombre || "Campo Sin Nombre",
       potreros: potrerosParaMapa,
@@ -158,7 +212,8 @@ export async function GET() {
         totalInsumos: totalInsumos,
         totalDatos: datosRegistrados
       },
-      lluvia12Meses: lluvia12Meses
+      lluvia12Meses: lluvia12Meses,
+      ultimosDatos: ultimosDatos
     }
 
     return NextResponse.json(dashboardData)

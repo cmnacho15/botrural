@@ -36,6 +36,15 @@ interface DashboardData {
     mes: string
     mm: number
   }>
+  ultimosDatos: Array<{
+    id: string
+    fecha: string
+    tipo: string
+    icono: string
+    descripcion: string
+    usuario: string | null
+    lote: string | null
+  }>
 }
 
 export default function DashboardMejorado({ session }: { session: any }) {
@@ -77,6 +86,24 @@ export default function DashboardMejorado({ session }: { session: any }) {
   }
 
   const totalLluviaAnual = data.lluvia12Meses.reduce((sum, m) => sum + m.mm, 0)
+
+  const formatearFecha = (fecha: string) => {
+    const date = new Date(fecha)
+    const hoy = new Date()
+    const ayer = new Date(hoy)
+    ayer.setDate(ayer.getDate() - 1)
+
+    // Verificar si es hoy
+    if (date.toDateString() === hoy.toDateString()) {
+      return 'Hoy'
+    }
+    // Verificar si es ayer
+    if (date.toDateString() === ayer.toDateString()) {
+      return 'Ayer'
+    }
+    // Formato normal
+    return date.toLocaleDateString('es-UY', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  }
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -133,6 +160,74 @@ export default function DashboardMejorado({ session }: { session: any }) {
             <p className="text-xs sm:text-sm text-gray-600">{item.label}</p>
           </div>
         ))}
+      </div>
+
+      {/* ÚLTIMOS DATOS INGRESADOS */}
+      <div className="bg-white rounded-lg sm:rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg sm:text-xl font-bold text-gray-900 flex items-center gap-2">
+            Últimos Datos
+            <span className="text-gray-400 text-sm">❓</span>
+          </h2>
+          <a
+            href="/dashboard/datos"
+            className="text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors"
+          >
+            Ver Más
+          </a>
+        </div>
+
+        <div className="space-y-3">
+          {data.ultimosDatos.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <p className="text-lg mb-2">📝</p>
+              <p className="text-sm">No hay datos registrados aún</p>
+            </div>
+          ) : (
+            data.ultimosDatos.map((dato) => (
+              <div
+                key={dato.id}
+                className="flex items-start gap-3 sm:gap-4 p-3 sm:p-4 rounded-lg border border-gray-100 hover:bg-gray-50 transition-colors"
+              >
+                {/* Fecha */}
+                <div className="flex-shrink-0 text-center min-w-[70px] sm:min-w-[80px]">
+                  <p className="text-xs sm:text-sm font-medium text-gray-500">
+                    {formatearFecha(dato.fecha)}
+                  </p>
+                </div>
+
+                {/* Ícono */}
+                <div className="flex-shrink-0">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-yellow-50 to-yellow-100 flex items-center justify-center text-xl sm:text-2xl border border-yellow-200">
+                    {dato.icono}
+                  </div>
+                </div>
+
+                {/* Descripción */}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm sm:text-base text-gray-900 font-medium line-clamp-2">
+                    {dato.descripcion}
+                  </p>
+                  <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
+                    {dato.usuario && (
+                      <span className="flex items-center gap-1">
+                        <span className="text-gray-400">👤</span>
+                        {dato.usuario}
+                      </span>
+                    )}
+                    {dato.lote && (
+                      <span className="flex items-center gap-1">
+                        {dato.usuario && <span className="text-gray-300">•</span>}
+                        <span className="text-gray-400">🏞️</span>
+                        {dato.lote}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
       </div>
 
       {/* MAPA DEL CAMPO */}
