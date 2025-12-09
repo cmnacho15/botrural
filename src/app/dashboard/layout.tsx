@@ -167,6 +167,16 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
         </div>
 
         <div className="flex items-center gap-2 sm:gap-3">
+          {/* Botón Nuevo Dato */}
+          {!isContador && (
+            <button
+              onClick={() => setMenuOpen((prev) => !prev)}
+              className="px-3 py-2 sm:px-4 text-sm sm:text-base bg-blue-500 text-white rounded-lg hover:bg-blue-600 whitespace-nowrap"
+            >
+              ＋ Nuevo Dato
+            </button>
+          )}
+
           {/* Botón de Campo/Usuario */}
           <div className="relative" ref={userMenuRef}>
             <button
@@ -245,23 +255,13 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                     href="/api/auth/signout"
                     className="flex items-center gap-3 px-6 py-3 hover:bg-red-50 transition-colors border-t border-gray-100 mt-2"
                   >
-                    <span className="text-xl">🚪</span>
+                    <span className="text-xl">⏻</span>
                     <span className="text-red-600 font-medium">Cerrar Sesión</span>
                   </a>
                 </div>
               </div>
             )}
           </div>
-
-          {/* Botón Nuevo Dato */}
-          {!isContador && (
-            <button
-              onClick={() => setMenuOpen((prev) => !prev)}
-              className="px-3 py-2 sm:px-4 text-sm sm:text-base bg-blue-500 text-white rounded-lg hover:bg-blue-600 whitespace-nowrap"
-            >
-              ＋ Nuevo Dato
-            </button>
-          )}
         </div>
       </header>
 
