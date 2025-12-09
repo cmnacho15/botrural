@@ -481,21 +481,7 @@ export default function DashboardMejorado({ session }: { session: any }) {
         </div>
       </div>
 
-      {/* CERRAR SESIÓN */}
-      <div className="bg-white rounded-lg sm:rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
-          <div>
-            <h3 className="font-semibold text-gray-900 text-sm sm:text-base">Sesión activa</h3>
-            <p className="text-xs sm:text-sm text-gray-600">{session.user?.email}</p>
-          </div>
-          <a
-            href="/api/auth/signout"
-            className="w-full sm:w-auto text-center px-4 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors text-sm sm:text-base"
-          >
-            Cerrar Sesión
-          </a>
-        </div>
-      </div>
+      
     </div>
   )
 }
