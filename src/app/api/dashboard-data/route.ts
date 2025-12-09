@@ -3,6 +3,33 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "../auth/[...nextauth]/route"
 import { prisma } from "@/lib/prisma"
 
+const categoriaPorTipo: Record<string, string> = {
+  MOVIMIENTO: 'animales',
+  CAMBIO_POTRERO: 'animales',
+  TRATAMIENTO: 'animales',
+  VENTA: 'animales',
+  COMPRA: 'animales',
+  TRASLADO: 'animales',
+  NACIMIENTO: 'animales',
+  MORTANDAD: 'animales',
+  CONSUMO: 'animales',
+  ABORTO: 'animales',
+  DESTETE: 'animales',
+  TACTO: 'animales',
+  RECATEGORIZACION: 'animales',
+  SIEMBRA: 'agricultura',
+  PULVERIZACION: 'agricultura',
+  REFERTILIZACION: 'agricultura',
+  RIEGO: 'agricultura',
+  MONITOREO: 'agricultura',
+  COSECHA: 'agricultura',
+  OTROS_LABORES: 'agricultura',
+  LLUVIA: 'clima',
+  HELADA: 'clima',
+  GASTO: 'finanzas',
+  INGRESO: 'finanzas',
+}
+
 export async function GET() {
   try {
     const session = await getServerSession(authOptions)
@@ -186,7 +213,8 @@ export async function GET() {
       },
       include: {
         usuario: { select: { name: true } },
-        lote: { select: { nombre: true } }
+        lote: { select: { nombre: true } },
+        rodeo: { select: { nombre: true } }
       },
       orderBy: [
         { fecha: 'desc' },
@@ -220,10 +248,16 @@ export async function GET() {
         fecha: evento.fecha,
         createdAt: evento.createdAt,
         tipo: evento.tipo,
+        categoria: categoriaPorTipo[evento.tipo as keyof typeof categoriaPorTipo] || 'otros',
         icono: iconoPorTipo[evento.tipo as keyof typeof iconoPorTipo] || '📌',
         descripcion: evento.descripcion,
         usuario: evento.usuario?.name || null,
-        lote: evento.lote?.nombre || null
+        lote: evento.lote?.nombre || null,
+        rodeo: evento.rodeo?.nombre || null,
+        // ✅ Campos directos:
+        cantidad: evento.cantidad,
+        monto: evento.monto,
+        notas: evento.notas && typeof evento.notas === 'string' && evento.notas.trim() !== '' ? evento.notas : null,
       })
     })
 
@@ -231,38 +265,26 @@ export async function GET() {
     gastosIngresos.forEach(gasto => {
       const esIngreso = gasto.tipo === 'INGRESO'
       
-      // Armar descripción igual que en la página de datos
-      let descripcionCompleta = gasto.descripcion
-      
-      // Agregar información adicional relevante
-      const partes = [gasto.descripcion]
-      
-      if (gasto.monto) {
-        const montoFormateado = `${Math.abs(Number(gasto.monto)).toLocaleString('es-UY')}`
-        const signo = esIngreso ? '+' : '-'
-        const moneda = gasto.moneda || 'UYU'
-        partes.push(`${signo}${montoFormateado} ${moneda}`)
-      }
-      
-      if (gasto.proveedor) {
-        partes.push(`🏪 ${gasto.proveedor}`)
-      }
-      
-      if (gasto.comprador) {
-        partes.push(`🤝 ${gasto.comprador}`)
-      }
-      
-      descripcionCompleta = partes.filter(Boolean).join(' • ')
-      
       datosUnificados.push({
         id: gasto.id,
         fecha: gasto.fecha,
         createdAt: gasto.createdAt,
         tipo: gasto.tipo,
+        categoria: 'finanzas',
+        descripcion: gasto.descripcion,
         icono: esIngreso ? '💰' : '💸',
-        descripcion: descripcionCompleta,
         usuario: null,
-        lote: gasto.lote?.nombre || null
+        lote: gasto.lote?.nombre || null,
+        // ✅ Campos directos:
+        monto: gasto.monto ? parseFloat(gasto.monto.toString()) : null,
+        moneda: gasto.moneda || 'UYU',
+        cantidad: gasto.cantidadVendida,
+        proveedor: gasto.proveedor,
+        comprador: gasto.comprador,
+        metodoPago: gasto.metodoPago,
+        iva: gasto.iva ? parseFloat(gasto.iva.toString()) : null,
+        diasPlazo: gasto.diasPlazo,
+        pagado: gasto.pagado,
       })
     })
 
@@ -280,10 +302,23 @@ export async function GET() {
       id: dato.id,
       fecha: dato.fecha.toISOString(),
       tipo: dato.tipo,
+      categoria: dato.categoria,
       icono: dato.icono,
       descripcion: dato.descripcion,
       usuario: dato.usuario,
-      lote: dato.lote
+      lote: dato.lote,
+      rodeo: dato.rodeo || null,
+      // ✅ Incluir todos los campos:
+      cantidad: dato.cantidad || null,
+      monto: dato.monto || null,
+      moneda: dato.moneda || null,
+      notas: dato.notas || null,
+      proveedor: dato.proveedor || null,
+      comprador: dato.comprador || null,
+      metodoPago: dato.metodoPago || null,
+      iva: dato.iva || null,
+      diasPlazo: dato.diasPlazo || null,
+      pagado: dato.pagado || null,
     }))
 
     // 8. CONSTRUIR RESPUESTA
