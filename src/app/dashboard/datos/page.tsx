@@ -868,7 +868,7 @@ useEffect(() => {
                       className="w-full flex items-center gap-3 px-4 py-3 text-left text-gray-700 hover:bg-gray-50 rounded-lg transition"
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 2v20m-8-8c0-4.418 3.582-8 8-8s8 3.582 8 8m-8 0c-4.418 0-8-3.582-8-8" />
                       </svg>
                       <span className="font-medium">Cultivos</span>
                     </button>
