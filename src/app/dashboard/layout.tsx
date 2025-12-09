@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
 
@@ -31,7 +31,10 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [modalTipo, setModalTipo] = useState<string | null>(null);
+  
+  const userMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (sidebarOpen) {
@@ -44,15 +47,34 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
     };
   }, [sidebarOpen]);
 
+  // Cerrar menú de usuario al hacer clic fuera
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setUserMenuOpen(false);
+      }
+    }
+
+    if (userMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [userMenuOpen]);
+
   if (status === "loading" || !session?.user?.role) {
-  return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-50">
-      <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-300 border-t-blue-600"></div>
-    </div>
-  );
-}
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-300 border-t-blue-600"></div>
+      </div>
+    );
+  }
 
   const campoNombre = session?.user?.campoNombre || "Mi Campo";
+  const userName = session?.user?.name || "Usuario";
+  const userEmail = session?.user?.email || "";
+
+  // Obtener inicial del campo para el avatar
+  const campoInicial = campoNombre.charAt(0).toUpperCase();
 
   const openModal = (tipo: string) => {
     setModalTipo(tipo);
@@ -66,42 +88,42 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   const isContador = userRole === "CONTADOR";
 
   const allMenuSections = [
-  {
-    title: "Mi Campo",
-    items: [
-      { href: "/dashboard", icon: "📊", label: "Resumen", roles: ["ADMIN_GENERAL", "COLABORADOR", "CONTADOR"], requiresFinance: false },
-      { href: "/dashboard/datos", icon: "📝", label: "Datos", roles: ["ADMIN_GENERAL", "COLABORADOR"], requiresFinance: false },
-      { href: "/dashboard/mapa", icon: "🗺️", label: "Mapa", roles: ["ADMIN_GENERAL", "COLABORADOR"], requiresFinance: false },
-      { href: "/dashboard/lotes", icon: "🏞️", label: "Potreros", roles: ["ADMIN_GENERAL", "COLABORADOR"], requiresFinance: false },
-      { href: "/dashboard/indicadores", icon: "📈", label: "Indicadores", roles: ["ADMIN_GENERAL", "COLABORADOR", "CONTADOR"], requiresFinance: true },
-    ],
-  },
-  {
-    title: "Gestión",
-    items: [
-      { href: "/dashboard/costos", icon: "💵", label: "Costos", roles: ["ADMIN_GENERAL", "COLABORADOR", "CONTADOR"], requiresFinance: true },
-      { href: "/dashboard/ventas", icon: "💰", label: "Ventas", roles: ["ADMIN_GENERAL", "COLABORADOR", "CONTADOR"], requiresFinance: true },
-      { href: "/dashboard/compras", icon: "🛒", label: "Compras", roles: ["ADMIN_GENERAL", "COLABORADOR", "CONTADOR"], requiresFinance: true },
-      { href: "/dashboard/consumo", icon: "🥩", label: "Consumo", roles: ["ADMIN_GENERAL", "COLABORADOR", "CONTADOR"], requiresFinance: true },
-      { href: "/dashboard/inventario", icon: "📊", label: "Diferencia Inventario", roles: ["ADMIN_GENERAL", "COLABORADOR", "CONTADOR"], requiresFinance: true },
-    ],
-  },
-  {
-    title: "Otros",
-    items: [
-      { href: "/dashboard/gastos", icon: "💸", label: "Gastos", roles: ["ADMIN_GENERAL", "COLABORADOR", "CONTADOR"], requiresFinance: true },
-      { href: "/dashboard/insumos", icon: "📦", label: "Insumos", roles: ["ADMIN_GENERAL", "COLABORADOR"], requiresFinance: false },
-      { href: "/dashboard/mano-de-obra", icon: "👷", label: "Mano de Obra", roles: ["ADMIN_GENERAL", "COLABORADOR", "CONTADOR"], requiresFinance: false },
-    ],
-  },
-  {
-    title: "Configuración",
-    items: [
-      { href: "/dashboard/equipo", icon: "👥", label: "Equipo", roles: ["ADMIN_GENERAL"], requiresFinance: false },
-      { href: "/dashboard/preferencias", icon: "⚙️", label: "Preferencias", roles: ["ADMIN_GENERAL", "COLABORADOR"], requiresFinance: false },
-    ],
-  },
-];
+    {
+      title: "Mi Campo",
+      items: [
+        { href: "/dashboard", icon: "📊", label: "Resumen", roles: ["ADMIN_GENERAL", "COLABORADOR", "CONTADOR"], requiresFinance: false },
+        { href: "/dashboard/datos", icon: "📝", label: "Datos", roles: ["ADMIN_GENERAL", "COLABORADOR"], requiresFinance: false },
+        { href: "/dashboard/mapa", icon: "🗺️", label: "Mapa", roles: ["ADMIN_GENERAL", "COLABORADOR"], requiresFinance: false },
+        { href: "/dashboard/lotes", icon: "🏞️", label: "Potreros", roles: ["ADMIN_GENERAL", "COLABORADOR"], requiresFinance: false },
+        { href: "/dashboard/indicadores", icon: "📈", label: "Indicadores", roles: ["ADMIN_GENERAL", "COLABORADOR", "CONTADOR"], requiresFinance: true },
+      ],
+    },
+    {
+      title: "Gestión",
+      items: [
+        { href: "/dashboard/costos", icon: "💵", label: "Costos", roles: ["ADMIN_GENERAL", "COLABORADOR", "CONTADOR"], requiresFinance: true },
+        { href: "/dashboard/ventas", icon: "💰", label: "Ventas", roles: ["ADMIN_GENERAL", "COLABORADOR", "CONTADOR"], requiresFinance: true },
+        { href: "/dashboard/compras", icon: "🛒", label: "Compras", roles: ["ADMIN_GENERAL", "COLABORADOR", "CONTADOR"], requiresFinance: true },
+        { href: "/dashboard/consumo", icon: "🥩", label: "Consumo", roles: ["ADMIN_GENERAL", "COLABORADOR", "CONTADOR"], requiresFinance: true },
+        { href: "/dashboard/inventario", icon: "📊", label: "Diferencia Inventario", roles: ["ADMIN_GENERAL", "COLABORADOR", "CONTADOR"], requiresFinance: true },
+      ],
+    },
+    {
+      title: "Otros",
+      items: [
+        { href: "/dashboard/gastos", icon: "💸", label: "Gastos", roles: ["ADMIN_GENERAL", "COLABORADOR", "CONTADOR"], requiresFinance: true },
+        { href: "/dashboard/insumos", icon: "📦", label: "Insumos", roles: ["ADMIN_GENERAL", "COLABORADOR"], requiresFinance: false },
+        { href: "/dashboard/mano-de-obra", icon: "👷", label: "Mano de Obra", roles: ["ADMIN_GENERAL", "COLABORADOR", "CONTADOR"], requiresFinance: false },
+      ],
+    },
+    {
+      title: "Configuración",
+      items: [
+        { href: "/dashboard/equipo", icon: "👥", label: "Equipo", roles: ["ADMIN_GENERAL"], requiresFinance: false },
+        { href: "/dashboard/preferencias", icon: "⚙️", label: "Preferencias", roles: ["ADMIN_GENERAL", "COLABORADOR"], requiresFinance: false },
+      ],
+    },
+  ];
 
   const menuSections = allMenuSections
     .map(section => ({
@@ -144,14 +166,103 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
           />
         </div>
 
-        {!isContador && (
-          <button
-            onClick={() => setMenuOpen((prev) => !prev)}
-            className="px-3 py-2 sm:px-4 text-sm sm:text-base bg-blue-500 text-white rounded-lg hover:bg-blue-600 whitespace-nowrap"
-          >
-            ＋ Nuevo Dato
-          </button>
-        )}
+        <div className="flex items-center gap-2 sm:gap-3">
+          {/* Botón de Campo/Usuario */}
+          <div className="relative" ref={userMenuRef}>
+            <button
+              onClick={() => setUserMenuOpen(!userMenuOpen)}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
+            >
+              <span className="text-lg">⚙️</span>
+              <span className="hidden sm:inline text-sm font-medium text-gray-700">
+                {campoNombre}
+              </span>
+            </button>
+
+            {/* Menú desplegable */}
+            {userMenuOpen && (
+              <div className="absolute right-0 mt-2 w-72 bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden z-50">
+                {/* Header del menú con nombre de usuario */}
+                <div className="bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-4">
+                  <h3 className="text-white font-bold text-lg">{userName}</h3>
+                  <p className="text-blue-100 text-sm">{userEmail}</p>
+                </div>
+
+                {/* Campo actual */}
+                <div className="p-3 bg-blue-50 border-b border-blue-100">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center text-white font-bold text-lg shadow-md">
+                      {campoInicial}
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs text-gray-600 font-medium">Campo actual</p>
+                      <p className="font-semibold text-gray-900">{campoNombre}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Opciones del menú */}
+                <div className="py-2">
+                  {/* Cómo Empezar */}
+                  <Link
+                    href="/dashboard/como-empezar"
+                    className="flex items-center gap-3 px-6 py-3 hover:bg-gray-50 transition-colors"
+                    onClick={() => setUserMenuOpen(false)}
+                  >
+                    <span className="text-xl">🚀</span>
+                    <span className="text-gray-700 font-medium">Cómo Empezar</span>
+                  </Link>
+
+                  {/* Suscribir - Deshabilitado por ahora */}
+                  <div className="flex items-center gap-3 px-6 py-3 opacity-50 cursor-not-allowed">
+                    <span className="text-xl">💳</span>
+                    <div className="flex-1">
+                      <span className="text-gray-700 font-medium">Suscribir</span>
+                      <p className="text-xs text-gray-500">Próximamente</p>
+                    </div>
+                  </div>
+
+                  {/* Agregar Campo - Deshabilitado por ahora */}
+                  <div className="flex items-center gap-3 px-6 py-3 opacity-50 cursor-not-allowed border-t border-gray-100">
+                    <span className="text-xl">➕</span>
+                    <div className="flex-1">
+                      <span className="text-gray-700 font-medium">Agregar Campo</span>
+                      <p className="text-xs text-gray-500">Próximamente</p>
+                    </div>
+                  </div>
+
+                  {/* Mis Pagos - Deshabilitado por ahora */}
+                  <div className="flex items-center gap-3 px-6 py-3 opacity-50 cursor-not-allowed">
+                    <span className="text-xl">⚙️</span>
+                    <div className="flex-1">
+                      <span className="text-gray-700 font-medium">Mis Pagos</span>
+                      <p className="text-xs text-gray-500">Próximamente</p>
+                    </div>
+                  </div>
+
+                  {/* Cerrar Sesión */}
+                  <a
+                    href="/api/auth/signout"
+                    className="flex items-center gap-3 px-6 py-3 hover:bg-red-50 transition-colors border-t border-gray-100 mt-2"
+                  >
+                    <span className="text-xl">🚪</span>
+                    <span className="text-red-600 font-medium">Cerrar Sesión</span>
+                  </a>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Botón Nuevo Dato */}
+          {!isContador && (
+            <button
+              onClick={() => setMenuOpen((prev) => !prev)}
+              className="px-3 py-2 sm:px-4 text-sm sm:text-base bg-blue-500 text-white rounded-lg hover:bg-blue-600 whitespace-nowrap"
+            >
+              ＋ Nuevo Dato
+            </button>
+          )}
+        </div>
       </header>
 
       {/* MENÚ GIGANTE DE EVENTOS */}
@@ -311,7 +422,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
           } overflow-y-auto`}
         >
           <nav className="p-3 sm:p-4 space-y-2.5 pb-20 lg:pb-4">
-            {/* 👇 Indicador compacto que se integra con el resto del menú */}
+            {/* Indicador compacto que se integra con el resto del menú */}
             <OnboardingIndicator variant="compact" />
 
             {menuSections.map((section, i) => (
@@ -322,8 +433,8 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
 
                 {section.items.map((item: any) => {
                   const isActive = item.href === "/dashboard" 
-  ? pathname === "/dashboard"
-  : pathname.startsWith(item.href);
+                    ? pathname === "/dashboard"
+                    : pathname.startsWith(item.href);
                   return (
                     <Link
                       key={item.href}
