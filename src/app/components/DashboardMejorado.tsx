@@ -427,13 +427,7 @@ export default function DashboardMejorado({ session }: { session: any }) {
           ))}
         </div>
 
-        {totalLluviaAnual < 500 && (
-          <div className="mt-4 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-            <p className="text-sm text-yellow-800">
-              ⚠️ Precipitaciones por debajo del promedio histórico (500-600mm)
-            </p>
-          </div>
-        )}
+        
       </div>
 
       {/* GRÁFICO DE EVOLUCIÓN UG */}
