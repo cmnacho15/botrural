@@ -194,20 +194,20 @@ export default function DashboardMejorado({ session }: { session: any }) {
             Mapa de {data.nombreCampo}
           </h2>
           {data.potreros.length === 0 ? (
-            <div className="w-full h-[400px] lg:h-[500px] rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center bg-gray-50">
-              <div className="text-center px-4">
-                <p className="text-6xl mb-4">🏞️</p>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                  Aún no hay potreros definidos
+            <div className="w-full h-[400px] lg:h-[500px] rounded-lg border border-gray-200 flex items-center justify-center bg-gray-100">
+              <div className="text-center p-6 sm:p-8">
+                <div className="text-5xl sm:text-6xl mb-4">🗺️</div>
+                <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">
+                  No hay potreros registrados
                 </h3>
-                <p className="text-gray-600 mb-6">
-                  Comenzá creando los potreros de tu campo para visualizarlos en el mapa
+                <p className="text-gray-600 mb-4 text-sm sm:text-base">
+                  Creá tu primer potrero para ver el mapa del campo
                 </p>
                 <a
-                  href="/dashboard/lotes"
-                  className="inline-block px-6 py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors"
+                  href="/dashboard/lotes/nuevo"
+                  className="inline-block px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium text-sm sm:text-base"
                 >
-                  Crear Potreros
+                  + Crear Potrero
                 </a>
               </div>
             </div>
