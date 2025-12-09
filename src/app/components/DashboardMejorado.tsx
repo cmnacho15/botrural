@@ -119,51 +119,6 @@ export default function DashboardMejorado({ session }: { session: any }) {
         </p>
       </div>
 
-      {/* TARJETAS DE RESUMEN */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
-        {[
-          { 
-            icon: "🏞️", 
-            label: "Potreros", 
-            value: data.resumen.totalPotreros, 
-            color: "bg-green-100" 
-          },
-          { 
-            icon: "💰", 
-            label: "Gastos del mes", 
-            value: `$${data.resumen.totalGastosMes.toLocaleString()}`, 
-            color: "bg-blue-100" 
-          },
-          { 
-            icon: "📦", 
-            label: "Insumos", 
-            value: data.resumen.totalInsumos, 
-            color: "bg-purple-100" 
-          },
-          { 
-            icon: "📝", 
-            label: "Datos registrados", 
-            value: data.resumen.totalDatos, 
-            color: "bg-yellow-100" 
-          },
-        ].map((item, i) => (
-          <div
-            key={i}
-            className="bg-white rounded-lg sm:rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6"
-          >
-            <div className="flex items-center justify-between mb-3 sm:mb-4">
-              <div
-                className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg ${item.color} flex items-center justify-center text-xl sm:text-2xl`}
-              >
-                {item.icon}
-              </div>
-            </div>
-            <h3 className="text-xl sm:text-2xl font-bold text-gray-900">{item.value}</h3>
-            <p className="text-xs sm:text-sm text-gray-600">{item.label}</p>
-          </div>
-        ))}
-      </div>
-
       {/* ÚLTIMOS DATOS Y MAPA - LADO A LADO EN DESKTOP */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* ÚLTIMOS DATOS INGRESADOS */}
