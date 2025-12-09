@@ -23,12 +23,32 @@ export default function ModalTacto({ onClose, onSuccess }: ModalTactoProps) {
   const [notas, setNotas] = useState('')
   const [loading, setLoading] = useState(false)
 
+  // Estados para rodeos
+  const [rodeoId, setRodeoId] = useState<string>('')
+  const [rodeos, setRodeos] = useState<any[]>([])
+  const [modoRodeo, setModoRodeo] = useState<'NO_INCLUIR' | 'OPCIONAL' | 'OBLIGATORIO'>('OPCIONAL')
+
   // Cargar potreros al montar
   useEffect(() => {
     fetch('/api/lotes')
       .then((res) => res.json())
       .then((data) => setPotreros(data))
       .catch(() => alert('Error al cargar potreros'))
+  }, [])
+
+  // Cargar rodeos y configuración
+  useEffect(() => {
+    // Cargar configuración de rodeos
+    fetch('/api/configuracion-rodeos')
+      .then(r => r.json())
+      .then(data => setModoRodeo(data.modoRodeo || 'OPCIONAL'))
+      .catch(err => console.error('Error cargando configuración rodeos:', err))
+    
+    // Cargar lista de rodeos
+    fetch('/api/rodeos')
+      .then(r => r.json())
+      .then(data => setRodeos(data))
+      .catch(err => console.error('Error cargando rodeos:', err))
   }, [])
 
   // Calcular porcentaje automáticamente
@@ -65,6 +85,12 @@ export default function ModalTacto({ onClose, onSuccess }: ModalTactoProps) {
       return
     }
 
+    // VALIDAR RODEO OBLIGATORIO
+    if (modoRodeo === 'OBLIGATORIO' && !rodeoId) {
+      alert('Seleccioná un rodeo')
+      return
+    }
+
     setLoading(true)
 
     try {
@@ -80,6 +106,7 @@ export default function ModalTacto({ onClose, onSuccess }: ModalTactoProps) {
           loteId: potreroSeleccionado,
           cantidad: tactados,
           notas: notas || null,
+          rodeoId: rodeoId || null,  // AGREGAR ESTA LÍNEA
         }),
       })
 
@@ -203,6 +230,31 @@ export default function ModalTacto({ onClose, onSuccess }: ModalTactoProps) {
             </div>
           </div>
         </div>
+
+        {/* RODEO */}
+        {modoRodeo !== 'NO_INCLUIR' && (
+          <div>
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">
+              Rodeo {modoRodeo === 'OBLIGATORIO' && <span className="text-red-500">*</span>}
+            </h3>
+            <select
+              value={rodeoId}
+              onChange={(e) => setRodeoId(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              required={modoRodeo === 'OBLIGATORIO'}
+            >
+              <option value="">Seleccionar rodeo...</option>
+              {rodeos.map(r => (
+                <option key={r.id} value={r.id}>{r.nombre}</option>
+              ))}
+            </select>
+            {rodeos.length === 0 && (
+              <p className="text-xs text-yellow-600 mt-2">
+                No hay rodeos creados. Podés crear uno en Preferencias → Rodeos
+              </p>
+            )}
+          </div>
+        )}
 
         {/* NOTAS */}
         <div>
