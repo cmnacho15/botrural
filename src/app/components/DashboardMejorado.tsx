@@ -126,7 +126,6 @@ export default function DashboardMejorado({ session }: { session: any }) {
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg sm:text-xl font-bold text-gray-900">
               Últimos Datos
-              
             </h2>
             <a
               href="/dashboard/datos"
@@ -194,13 +193,33 @@ export default function DashboardMejorado({ session }: { session: any }) {
           <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">
             Mapa de {data.nombreCampo}
           </h2>
-          <div className="w-full h-[400px] lg:h-[500px] rounded-lg overflow-hidden border border-gray-200">
-            <MapaPoligono
-              readOnly={true}
-              existingPolygons={data.potreros}
-              initialZoom={14}
-            />
-          </div>
+          {data.potreros.length === 0 ? (
+            <div className="w-full h-[400px] lg:h-[500px] rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center bg-gray-50">
+              <div className="text-center px-4">
+                <p className="text-6xl mb-4">🏞️</p>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                  Aún no hay potreros definidos
+                </h3>
+                <p className="text-gray-600 mb-6">
+                  Comenzá creando los potreros de tu campo para visualizarlos en el mapa
+                </p>
+                <a
+                  href="/dashboard/lotes"
+                  className="inline-block px-6 py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors"
+                >
+                  Crear Potreros
+                </a>
+              </div>
+            </div>
+          ) : (
+            <div className="w-full h-[400px] lg:h-[500px] rounded-lg overflow-hidden border border-gray-200">
+              <MapaPoligono
+                readOnly={true}
+                existingPolygons={data.potreros}
+                initialZoom={14}
+              />
+            </div>
+          )}
         </div>
       </div>
 
