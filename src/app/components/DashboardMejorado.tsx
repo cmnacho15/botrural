@@ -351,4 +351,4 @@ export default function DashboardMejorado({ session }: { session: any }) {
       </div>
     </div>
   )
-}
+} //hola 
