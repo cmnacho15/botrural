@@ -165,9 +165,9 @@ export default function DashboardMejorado({ session }: { session: any }) {
       </div>
 
       {/* ÚLTIMOS DATOS Y MAPA - LADO A LADO EN DESKTOP */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:items-stretch">
         {/* ÚLTIMOS DATOS INGRESADOS */}
-        <div className="bg-white rounded-lg sm:rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
+        <div className="bg-white rounded-lg sm:rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 flex flex-col">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg sm:text-xl font-bold text-gray-900 flex items-center gap-2">
               Últimos Datos
@@ -181,7 +181,7 @@ export default function DashboardMejorado({ session }: { session: any }) {
             </a>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-3 flex-1">
             {data.ultimosDatos.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
                 <p className="text-lg mb-2">📝</p>
@@ -235,11 +235,11 @@ export default function DashboardMejorado({ session }: { session: any }) {
         </div>
 
         {/* MAPA DEL CAMPO */}
-        <div className="bg-white rounded-lg sm:rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
+        <div className="bg-white rounded-lg sm:rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 flex flex-col">
           <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">
             Mapa de {data.nombreCampo}
           </h2>
-          <div className="w-full h-[400px] lg:h-[500px] rounded-lg overflow-hidden border border-gray-200">
+          <div className="w-full flex-1 rounded-lg overflow-hidden border border-gray-200 min-h-[400px]">
             <MapaPoligono
               readOnly={true}
               existingPolygons={data.potreros}
