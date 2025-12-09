@@ -235,11 +235,11 @@ export default function DashboardMejorado({ session }: { session: any }) {
         </div>
 
         {/* MAPA DEL CAMPO */}
-        <div className="bg-white rounded-lg sm:rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 flex flex-col">
+        <div className="bg-white rounded-lg sm:rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
           <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">
             Mapa de {data.nombreCampo}
           </h2>
-          <div className="w-full flex-1 rounded-lg overflow-hidden border border-gray-200 min-h-[400px]">
+          <div className="w-full h-[400px] lg:h-[500px] rounded-lg overflow-hidden border border-gray-200">
             <MapaPoligono
               readOnly={true}
               existingPolygons={data.potreros}
