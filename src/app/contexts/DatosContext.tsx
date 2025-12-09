@@ -27,7 +27,6 @@ type FiltrosType = {
   potreros: string[];
   animales: string[];
   cultivos: string[];
-  rodeos: string[];
 };
 
 type DatosContextType = {
@@ -130,7 +129,6 @@ export function DatosProvider({ children }: { children: ReactNode }) {
     potreros: [],
     animales: [],
     cultivos: [],
-    rodeos: [],
   });
 
   // ✅ Cargar categorías y cultivos activos al montar
@@ -241,19 +239,6 @@ export function DatosProvider({ children }: { children: ReactNode }) {
           return filtros.cultivos.some(cultivo => desc.includes(cultivo.toLowerCase()));
         });
       }
-      
-      // 🐮 RODEOS
-      if (filtros.rodeos.length > 0) {
-        filtrados = filtrados.filter((d) => {
-          // Primero verificar si el dato tiene la propiedad 'rodeo'
-          const rodeoDelDato = (d as any).rodeo;
-          if (!rodeoDelDato) return false;
-          
-          // Verificar si el rodeo del dato está en los rodeos filtrados
-          return filtros.rodeos.includes(rodeoDelDato);
-        });
-      }
-
 
       filtrados.sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
 

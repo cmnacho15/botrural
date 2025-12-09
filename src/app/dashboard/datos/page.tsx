@@ -1,41 +1,43 @@
 'use client'
-export const dynamic = 'force-dynamic' // AGREGAR ESTA LÍNEA
+export const dynamic = 'force-dynamic' // ✅ AGREGAR ESTA LÍNEA
+
 
 import { useState, useEffect, Suspense } from 'react'
 import { useDatos } from '@/app/contexts/DatosContext'
 import { useSearchParams } from 'next/navigation'
 
+
 // ==================== FUNCIONES AUXILIARES ====================
 function obtenerIcono(tipo: string): string {
   const iconos: Record<string, string> = {
-    LLUVIA: 'Rain',
-    HELADA: 'Snowflake',
-    GASTO: 'Money Bag',
-    INGRESO: 'Money Bag',
-    VENTA: 'Cow',
-    COMPRA: 'Shopping Cart',
-    TRASLADO: 'Truck',
-    CAMBIO_POTRERO: 'Grid', //
-    NACIMIENTO: 'Plus',
-    MORTANDAD: 'Minus',
-    CONSUMO: 'Wheat',
-    ABORTO: 'Cross',
-    DESTETE: 'Shuffle',
-    TACTO: 'Hand',
-    RECATEGORIZACION: 'Label',
-    TRATAMIENTO: 'Syringe',
-    MOVIMIENTO: 'Cycle',
-    USO_INSUMO: 'Outbox',
-    INGRESO_INSUMO: 'Package',
-    SIEMBRA: 'Seedling',
-    PULVERIZACION: 'Droplet',
-    REFERTILIZACION: 'Herb',
-    RIEGO: 'Droplet',
-    MONITOREO: 'Magnifying Glass',
-    COSECHA: 'Wheat',
-    OTROS_LABORES: 'Wrench',
+    LLUVIA: '🌧️',
+    HELADA: '❄️',
+    GASTO: '💸',
+    INGRESO: '💰',
+    VENTA: '🐄',
+    COMPRA: '🛒',
+    TRASLADO: '🚛',
+    CAMBIO_POTRERO: '⊞', //
+    NACIMIENTO: '➕',
+    MORTANDAD: '➖',
+    CONSUMO: '🍖',
+    ABORTO: '❌',
+    DESTETE: '🔀',
+    TACTO: '✋',
+    RECATEGORIZACION: '🏷️',
+    TRATAMIENTO: '💉',
+    MOVIMIENTO: '🔄',
+    USO_INSUMO: '📤',
+    INGRESO_INSUMO: '📦',
+    SIEMBRA: '🌱',
+    PULVERIZACION: '💦',
+    REFERTILIZACION: '🌿',
+    RIEGO: '💧',
+    MONITOREO: '🔍',
+    COSECHA: '🌾',
+    OTROS_LABORES: '🔧',
   }
-  return iconos[tipo] || 'Chart'
+  return iconos[tipo] || '📊'
 }
 
 function obtenerColor(tipo: string): string {
@@ -83,51 +85,51 @@ function ModalFiltroTipoDato({
     {
       category: 'Animales',
       items: [
-        { value: 'CAMBIO_POTRERO', label: 'Cambio De Potrero', icon: 'Grid' },
-        { value: 'TRATAMIENTO', label: 'Tratamiento', icon: 'Syringe' },
-        { value: 'VENTA', label: 'Venta', icon: 'Money with Wings' },
-        { value: 'COMPRA', label: 'Compra', icon: 'Shopping Cart' },
-        { value: 'TRASLADO', label: 'Traslado', icon: 'Truck' },
-        { value: 'NACIMIENTO', label: 'Nacimiento', icon: 'Plus' },
-        { value: 'MORTANDAD', label: 'Mortandad', icon: 'Minus' },
-        { value: 'CONSUMO', label: 'Consumo', icon: 'Wheat' },
-        { value: 'ABORTO', label: 'Aborto', icon: 'Cross' },
-        { value: 'DESTETE', label: 'Destete', icon: 'Baby Bottle' },
-        { value: 'TACTO', label: 'Tacto', icon: 'Hand' },
-        { value: 'RECATEGORIZACION', label: 'Recategorización', icon: 'Label' },
+        { value: 'CAMBIO_POTRERO', label: 'Cambio De Potrero', icon: '⊞' },
+        { value: 'TRATAMIENTO', label: 'Tratamiento', icon: '💉' },
+        { value: 'VENTA', label: 'Venta', icon: '💵' },
+        { value: 'COMPRA', label: 'Compra', icon: '🛒' },
+        { value: 'TRASLADO', label: 'Traslado', icon: '🚚' },
+        { value: 'NACIMIENTO', label: 'Nacimiento', icon: '➕' },
+        { value: 'MORTANDAD', label: 'Mortandad', icon: '➖' },
+        { value: 'CONSUMO', label: 'Consumo', icon: '🌾' },
+        { value: 'ABORTO', label: 'Aborto', icon: '⊗' },
+        { value: 'DESTETE', label: 'Destete', icon: '🥛' },
+        { value: 'TACTO', label: 'Tacto', icon: '✋' },
+        { value: 'RECATEGORIZACION', label: 'Recategorización', icon: '🏷️' },
       ],
     },
     {
       category: 'Agricultura',
       items: [
-        { value: 'SIEMBRA', label: 'Siembra', icon: 'Tractor' },
-        { value: 'PULVERIZACION', label: 'Pulverización', icon: 'Droplet' },
-        { value: 'REFERTILIZACION', label: 'Refertilización', icon: 'Herb' },
-        { value: 'RIEGO', label: 'Riego', icon: 'Droplet' },
-        { value: 'MONITOREO', label: 'Monitoreo', icon: 'Magnifying Glass' },
-        { value: 'COSECHA', label: 'Cosecha', icon: 'Wheat' },
-        { value: 'OTROS_LABORES', label: 'Otros Labores', icon: 'Wrench' },
+        { value: 'SIEMBRA', label: 'Siembra', icon: '🚜' },
+        { value: 'PULVERIZACION', label: 'Pulverización', icon: '🧴' },
+        { value: 'REFERTILIZACION', label: 'Refertilización', icon: '🌱' },
+        { value: 'RIEGO', label: 'Riego', icon: '💧' },
+        { value: 'MONITOREO', label: 'Monitoreo', icon: '🔍' },
+        { value: 'COSECHA', label: 'Cosecha', icon: '🌾' },
+        { value: 'OTROS_LABORES', label: 'Otros Labores', icon: '🔧' },
       ],
     },
     {
       category: 'Clima',
       items: [
-        { value: 'LLUVIA', label: 'Lluvia', icon: 'Rain' },
-        { value: 'HELADA', label: 'Helada', icon: 'Snowflake' },
+        { value: 'LLUVIA', label: 'Lluvia', icon: '🌧️' },
+        { value: 'HELADA', label: 'Helada', icon: '❄️' },
       ],
     },
     {
       category: 'Insumos',
       items: [
-        { value: 'USO_INSUMO', label: 'Uso de Insumos', icon: 'Outbox' },
-        { value: 'INGRESO_INSUMO', label: 'Ingreso de Insumos', icon: 'Package' },
+        { value: 'USO_INSUMO', label: 'Uso de Insumos', icon: '📤' },
+        { value: 'INGRESO_INSUMO', label: 'Ingreso de Insumos', icon: '📦' },
       ],
     },
     {
       category: 'Finanzas',
       items: [
-        { value: 'GASTO', label: 'Gasto', icon: 'Money Bag' },
-        { value: 'INGRESO', label: 'Ingreso', icon: 'Money Bag' },
+        { value: 'GASTO', label: 'Gasto', icon: '💸' },
+        { value: 'INGRESO', label: 'Ingreso', icon: '💰' },
       ],
     },
   ]
@@ -143,7 +145,7 @@ function ModalFiltroTipoDato({
         <div className="p-4 border-b border-gray-200 flex justify-between items-center">
           <h2 className="text-lg font-semibold text-gray-900">Filtrar por Tipo de Dato</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">
-            X
+            ✕
           </button>
         </div>
 
@@ -157,7 +159,7 @@ function ModalFiltroTipoDato({
             <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
               selectedTipo === 'todos' ? 'border-blue-500 bg-blue-500' : 'border-gray-300'
             }`}>
-              {selectedTipo === 'todos' && <span className="text-white text-xs">Check</span>}
+              {selectedTipo === 'todos' && <span className="text-white text-xs">✓</span>}
             </div>
             <span className="font-medium text-gray-900">Seleccionar Todo</span>
           </button>
@@ -193,7 +195,7 @@ function ModalFiltroTipoDato({
                         <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
                           selectedTipo === item.value ? 'border-blue-500 bg-blue-500' : 'border-gray-300'
                         }`}>
-                          {selectedTipo === item.value && <span className="text-white text-xs">Check</span>}
+                          {selectedTipo === item.value && <span className="text-white text-xs">✓</span>}
                         </div>
                         <span className="text-lg">{item.icon}</span>
                         <span className="text-sm">{item.label}</span>
@@ -318,7 +320,7 @@ function ModalFiltroFecha({
         <div className="p-4 border-b border-gray-200 flex justify-between items-center">
           <h2 className="text-lg font-semibold text-gray-900">Filtrar por Fecha</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">
-            X
+            ✕
           </button>
         </div>
 
@@ -346,32 +348,53 @@ function ModalFiltroFecha({
           <div className="pt-4 border-t border-gray-200">
             <p className="text-sm font-medium text-gray-700 mb-3">Rangos rápidos</p>
             <div className="grid grid-cols-3 gap-2">
-              <button onClick={setHoy} className="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-700 transition">
+              <button
+                onClick={setHoy}
+                className="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-700 transition"
+              >
                 Hoy
               </button>
-              <button onClick={setEstaSemana} className="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-700 transition">
+              <button
+                onClick={setEstaSemana}
+                className="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-700 transition"
+              >
                 Esta Semana
               </button>
-              <button onClick={setEsteMes} className="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-700 transition">
+              <button
+                onClick={setEsteMes}
+                className="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-700 transition"
+              >
                 Este Mes
               </button>
-              <button onClick={() => setRangoRapido(7)} className="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-700 transition">
+              <button
+                onClick={() => setRangoRapido(7)}
+                className="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-700 transition"
+              >
                 Últimos 7 Días
               </button>
-              <button onClick={() => setRangoRapido(30)} className="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-700 transition">
+              <button
+                onClick={() => setRangoRapido(30)}
+                className="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-700 transition"
+              >
                 Últimos 30 Días
               </button>
-              <button onClick={() => setRangoRapido(90)} className="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-700 transition">
+              <button
+                onClick={() => setRangoRapido(90)}
+                className="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-700 transition"
+              >
                 Últimos 90 Días
               </button>
-              <button onClick={setEsteAno} className="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-700 transition">
+              <button
+                onClick={setEsteAno}
+                className="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-700 transition"
+              >
                 Este Año
               </button>
               <button
                 onClick={setEjercicioActual}
                 className="px-3 py-2 text-sm bg-blue-100 hover:bg-blue-200 rounded-lg text-blue-700 font-medium transition col-span-2"
               >
-                Chart Ejercicio Actual
+                📊 Ejercicio Actual
               </button>
             </div>
           </div>
@@ -441,7 +464,7 @@ function ModalFiltroMultiple({
             <span>{icon}</span> {title}
           </h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">
-            X
+            ✕
           </button>
         </div>
 
@@ -455,7 +478,7 @@ function ModalFiltroMultiple({
                 selected.length === items.length ? 'border-blue-500 bg-blue-500' : 'border-gray-300'
               }`}
             >
-              {selected.length === items.length && <span className="text-white text-xs">Check</span>}
+              {selected.length === items.length && <span className="text-white text-xs">✓</span>}
             </div>
             <span className="font-medium text-gray-900">Seleccionar Todo</span>
           </button>
@@ -474,7 +497,7 @@ function ModalFiltroMultiple({
                     selected.includes(item) ? 'border-blue-500 bg-blue-500' : 'border-gray-300'
                   }`}
                 >
-                  {selected.includes(item) && <span className="text-white text-xs">Check</span>}
+                  {selected.includes(item) && <span className="text-white text-xs">✓</span>}
                 </div>
                 <span>{item}</span>
               </button>
@@ -552,7 +575,7 @@ function FiltrosActivos() {
     const hasta = filtros.fechaHasta ? new Date(filtros.fechaHasta).toLocaleDateString('es-UY') : '...'
     filtrosActivos.push({
       key: 'fecha',
-      label: `Calendar ${desde} - ${hasta}`,
+      label: `📅 ${desde} - ${hasta}`,
       onRemove: () => setFiltros({ ...filtros, fechaDesde: null, fechaHasta: null }),
     })
   }
@@ -560,60 +583,48 @@ function FiltrosActivos() {
   if (filtros.usuarios.length > 0) {
     filtrosActivos.push({
       key: 'usuarios',
-      label: `Person ${filtros.usuarios.length} usuario${filtros.usuarios.length > 1 ? 's' : ''}`,
+      label: `👤 ${filtros.usuarios.length} usuario${filtros.usuarios.length > 1 ? 's' : ''}`,
       onRemove: () => setFiltros({ ...filtros, usuarios: [] }),
     })
   }
 
   if (filtros.potreros.length > 0) {
-    const nombres = filtros.potreros.join(', ')
-    const label = filtros.potreros.length === 1 
-      ? `Pin ${nombres}`
-      : `Pin ${filtros.potreros.length} potreros: ${nombres}`
-    filtrosActivos.push({
-      key: 'potreros',
-      label,
-      onRemove: () => setFiltros({ ...filtros, potreros: [] }),
-    })
-  }
+  const nombres = filtros.potreros.join(', ')
+  const label = filtros.potreros.length === 1 
+    ? `📍 ${nombres}`
+    : `📍 ${filtros.potreros.length} potreros: ${nombres}`
+  filtrosActivos.push({
+    key: 'potreros',
+    label,
+    onRemove: () => setFiltros({ ...filtros, potreros: [] }),
+  })
+}
 
-  if (filtros.animales.length > 0) {
-    const nombres = filtros.animales.join(', ')
-    const label = filtros.animales.length === 1
-      ? `Cow ${nombres}`
-      : `Cow ${filtros.animales.length} tipos: ${nombres}`
-    filtrosActivos.push({
-      key: 'animales',
-      label,
-      onRemove: () => setFiltros({ ...filtros, animales: [] }),
-    })
-  }
+if (filtros.animales.length > 0) {
+  const nombres = filtros.animales.join(', ')
+  const label = filtros.animales.length === 1
+    ? `🐄 ${nombres}`
+    : `🐄 ${filtros.animales.length} tipos: ${nombres}`
+  filtrosActivos.push({
+    key: 'animales',
+    label,
+    onRemove: () => setFiltros({ ...filtros, animales: [] }),
+  })
+}
 
-  if (filtros.cultivos.length > 0) {
-    const nombres = filtros.cultivos.join(', ')
-    const label = filtros.cultivos.length === 1
-      ? `Wheat ${nombres}`
-      : `Wheat ${filtros.cultivos.length} cultivos: ${nombres}`
-    filtrosActivos.push({
-      key: 'cultivos',
-      label,
-      onRemove: () => setFiltros({ ...filtros, cultivos: [] }),
-    })
-  }
+if (filtros.cultivos.length > 0) {
+  const nombres = filtros.cultivos.join(', ')
+  const label = filtros.cultivos.length === 1
+    ? `🌾 ${nombres}`
+    : `🌾 ${filtros.cultivos.length} cultivos: ${nombres}`
+  filtrosActivos.push({
+    key: 'cultivos',
+    label,
+    onRemove: () => setFiltros({ ...filtros, cultivos: [] }),
+  })
+}
 
-  // NUEVO: Chip de rodeos
-  if (filtros.rodeos && filtros.rodeos.length > 0) {
-    const label = filtros.rodeos.length === 1
-      ? `Cow Face ${filtros.rodeos[0]}`
-      : `Cow Face ${filtros.rodeos.length} rodeos`
-    filtrosActivos.push({
-      key: 'rodeos',
-      label,
-      onRemove: () => setFiltros({ ...filtros, rodeos: [] }),
-    })
-  }
-
-  if (filtrosActivos.length === 0) return null
+if (filtrosActivos.length === 0) return null
 
   return (
     <div className="flex flex-wrap gap-2 mb-4">
@@ -639,7 +650,6 @@ function FiltrosActivos() {
             potreros: [],
             animales: [],
             cultivos: [],
-            rodeos: [], // <-- NUEVO
           })
         }
         className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 font-medium"
@@ -659,23 +669,12 @@ function FiltrosDatos() {
   const [showModalUsuarios, setShowModalUsuarios] = useState(false)
   const [showModalPotreros, setShowModalPotreros] = useState(false)
   const [showModalAnimales, setShowModalAnimales] = useState(false)  
-  const [showModalCultivos, setShowModalCultivos] = useState(false)
-  const [showModalRodeos, setShowModalRodeos] = useState(false) // NUEVO
+  const [showModalCultivos, setShowModalCultivos] = useState(false)  
   const [showBusqueda, setShowBusqueda] = useState(false)
   const [todosLosPotreros, setTodosLosPotreros] = useState<string[]>([])
  
   const [animalesDisponibles, setAnimalesDisponibles] = useState<string[]>([])
   const [cultivosDisponibles, setCultivosDisponibles] = useState<string[]>([])
-  const [rodeosDisponibles, setRodeosDisponibles] = useState<{id: string, nombre: string}[]>([])
-  const [modoRodeo, setModoRodeo] = useState<'NO_INCLUIR' | 'OPCIONAL' | 'OBLIGATORIO'>('OPCIONAL')
-
-  // Cargar configuración de rodeos
-  useEffect(() => {
-    fetch('/api/configuracion-rodeos')
-      .then(r => r.json())
-      .then(data => setModoRodeo(data.modoRodeo || 'OPCIONAL'))
-      .catch(err => console.error('Error cargando configuración:', err))
-  }, [])
 
   // Cargar potreros desde la API
   useEffect(() => {
@@ -686,44 +685,35 @@ function FiltrosDatos() {
   }, [])
 
   // Cargar animales activos desde la API
-  useEffect(() => {
-    fetch('/api/categorias-animal')
-      .then(r => r.json())
-      .then(categorias => {
-        const activos = categorias
-          .filter((c: any) => c.activo)
-          .map((c: any) => c.nombreSingular)
-        setAnimalesDisponibles(activos)
-      })
-      .catch(err => console.error('Error cargando animales:', err))
-  }, [])
+useEffect(() => {
+  fetch('/api/categorias-animal')
+    .then(r => r.json())
+    .then(categorias => {
+      const activos = categorias
+        .filter((c: any) => c.activo)
+        .map((c: any) => c.nombreSingular)
+      setAnimalesDisponibles(activos)
+    })
+    .catch(err => console.error('Error cargando animales:', err))
+}, [])
 
-  // Cargar cultivos desde la API
-  useEffect(() => {
-    fetch('/api/tipos-cultivo')
-      .then(r => r.json())
-      .then(cultivos => {
-        const nombres = cultivos.map((c: any) => c.nombre)
-        setCultivosDisponibles(nombres)
-      })
-      .catch(err => console.error('Error cargando cultivos:', err))
-  }, [])
-
-  // Cargar rodeos si la configuración lo permite
-  useEffect(() => {
-    if (modoRodeo !== 'NO_INCLUIR') {
-      fetch('/api/rodeos')
-        .then(r => r.json())
-        .then(rodeos => setRodeosDisponibles(rodeos))
-        .catch(err => console.error('Error cargando rodeos:', err))
-    }
-  }, [modoRodeo])
+// Cargar cultivos desde la API
+useEffect(() => {
+  fetch('/api/tipos-cultivo')
+    .then(r => r.json())
+    .then(cultivos => {
+      const nombres = cultivos.map((c: any) => c.nombre)
+      setCultivosDisponibles(nombres)
+    })
+    .catch(err => console.error('Error cargando cultivos:', err))
+}, [])
 
   // Obtener datos únicos
   const usuariosDisponibles = Array.from(new Set(datos.map((d) => d.usuario).filter(Boolean))) as string[]
   const potrerosDisponibles = todosLosPotreros.length > 0 
     ? todosLosPotreros 
     : Array.from(new Set(datos.map((d) => d.lote).filter(Boolean))) as string[]
+  // ✅ AGREGA ESTO:
 
   return (
     <>
@@ -810,50 +800,34 @@ function FiltrosDatos() {
                         />
                       </svg>
                       <span className="font-medium">Potreros</span>
-                    </button>
+</button>
 
-                    <button
-                      onClick={() => {
-                        setShowMenuFiltros(false)
-                        setShowModalAnimales(true)
-                      }}
-                      className="w-full flex items-center gap-3 px-4 py-3 text-left text-gray-700 hover:bg-gray-50 rounded-lg transition"
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                      </svg>
-                      <span className="font-medium">Animales</span>
-                    </button>
+<button
+  onClick={() => {
+    setShowMenuFiltros(false)
+    setShowModalAnimales(true)
+  }}
+  className="w-full flex items-center gap-3 px-4 py-3 text-left text-gray-700 hover:bg-gray-50 rounded-lg transition"
+>
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+  </svg>
+  <span className="font-medium">Animales</span>
+</button>
 
-                    <button
-                      onClick={() => {
-                        setShowMenuFiltros(false)
-                        setShowModalCultivos(true)
-                      }}
-                      className="w-full flex items-center gap-3 px-4 py-3 text-left text-gray-700 hover:bg-gray-50 rounded-lg transition"
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-                      </svg>
-                      <span className="font-medium">Cultivos</span>
-                    </button>
-
-                    {/* BOTÓN RODEOS - SOLO SI ESTÁ HABILITADO */}
-                    {modoRodeo !== 'NO_INCLUIR' && (
-                      <button
-                        onClick={() => {
-                          setShowMenuFiltros(false)
-                          setShowModalRodeos(true)
-                        }}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-left text-gray-700 hover:bg-gray-50 rounded-lg transition"
-                      >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                        </svg>
-                        <span className="font-medium">Rodeos</span>
-                      </button>
-                    )}
-                  </div>
+<button
+  onClick={() => {
+    setShowMenuFiltros(false)
+    setShowModalCultivos(true)
+  }}
+  className="w-full flex items-center gap-3 px-4 py-3 text-left text-gray-700 hover:bg-gray-50 rounded-lg transition"
+>
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+  </svg>
+  <span className="font-medium">Cultivos</span>
+</button>
+</div>
                 </div>
               </>
             )}
@@ -873,7 +847,7 @@ function FiltrosDatos() {
             <div className="flex-1 min-w-[200px]">
               <input
                 type="text"
-                placeholder="Search Buscar en descripción, proveedor, comprador..."
+                placeholder="🔍 Buscar en descripción, proveedor, comprador..."
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 value={filtros.busqueda}
                 onChange={(e) => setFiltros({ ...filtros, busqueda: e.target.value })}
@@ -904,53 +878,42 @@ function FiltrosDatos() {
         isOpen={showModalUsuarios}
         onClose={() => setShowModalUsuarios(false)}
         title="Usuarios"
-        icon="Person"
+        icon="👤"
         items={usuariosDisponibles}
         selectedItems={filtros.usuarios}
         onApply={(usuarios) => setFiltros({ ...filtros, usuarios })}
       />
 
       <ModalFiltroMultiple
-        isOpen={showModalPotreros}
-        onClose={() => setShowModalPotreros(false)}
-        title="Potreros"
-        icon="Pin"
-        items={potrerosDisponibles}
-        selectedItems={filtros.potreros}
-        onApply={(potreros) => setFiltros({ ...filtros, potreros })}
-      />
+  isOpen={showModalPotreros}
+  onClose={() => setShowModalPotreros(false)}
+  title="Potreros"
+  icon="📍"
+  items={potrerosDisponibles}
+  selectedItems={filtros.potreros}
+  onApply={(potreros) => setFiltros({ ...filtros, potreros })}
+/>
 
-      <ModalFiltroMultiple
-        isOpen={showModalAnimales}
-        onClose={() => setShowModalAnimales(false)}
-        title="Animales"
-        icon="Cow"
-        items={animalesDisponibles}
-        selectedItems={filtros.animales}
-        onApply={(animales) => setFiltros({ ...filtros, animales })}
-      />
+<ModalFiltroMultiple
+  isOpen={showModalAnimales}
+  onClose={() => setShowModalAnimales(false)}
+  title="Animales"
+  icon="🐄"
+  items={animalesDisponibles}
+  selectedItems={filtros.animales}
+  onApply={(animales) => setFiltros({ ...filtros, animales })}
+/>
 
-      <ModalFiltroMultiple
-        isOpen={showModalCultivos}
-        onClose={() => setShowModalCultivos(false)}
-        title="Cultivos"
-        icon="Wheat"
-        items={cultivosDisponibles}
-        selectedItems={filtros.cultivos}
-        onApply={(cultivos) => setFiltros({ ...filtros, cultivos })}
-      />
-
-      {/* NUEVO MODAL DE RODEOS */}
-      <ModalFiltroMultiple
-        isOpen={showModalRodeos}
-        onClose={() => setShowModalRodeos(false)}
-        title="Rodeos"
-        icon="Cow Face"
-        items={rodeosDisponibles.map(r => r.nombre)}
-        selectedItems={filtros.rodeos || []}
-        onApply={(rodeos) => setFiltros({ ...filtros, rodeos })}
-      />
-    </>
+<ModalFiltroMultiple
+  isOpen={showModalCultivos}
+  onClose={() => setShowModalCultivos(false)}
+  title="Cultivos"
+  icon="🌾"
+  items={cultivosDisponibles}
+  selectedItems={filtros.cultivos}
+  onApply={(cultivos) => setFiltros({ ...filtros, cultivos })}
+/>
+</>
   )
 }
 
@@ -1027,7 +990,7 @@ function TarjetaDato({ dato }: { dato: any }) {
           <span
             className={`${esIngreso ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200'} px-3 py-1.5 rounded-md border text-sm font-semibold`}
           >
-            Money Bag {esIngreso ? '+' : '-'}${Math.abs(Number(dato.monto)).toLocaleString('es-UY')}
+            💵 {esIngreso ? '+' : '-'}${Math.abs(Number(dato.monto)).toLocaleString('es-UY')}
           </span>
           <span className={`px-2 py-1 rounded-md text-xs font-medium border ${
             moneda === 'USD' 
@@ -1045,7 +1008,7 @@ function TarjetaDato({ dato }: { dato: any }) {
 
       detalles.push(
         <span key="cantidad" className="bg-blue-50 text-blue-700 px-3 py-1.5 rounded-md border border-blue-200 text-sm font-medium">
-          Chart {texto}
+          📊 {texto}
         </span>
       )
     }
@@ -1053,7 +1016,7 @@ function TarjetaDato({ dato }: { dato: any }) {
     if (dato.proveedor) {
       detalles.push(
         <span key="proveedor" className="bg-orange-50 text-orange-700 px-3 py-1.5 rounded-md border border-orange-200 text-sm font-medium">
-          Shop {dato.proveedor}
+          🏪 {dato.proveedor}
         </span>
       )
     }
@@ -1061,7 +1024,7 @@ function TarjetaDato({ dato }: { dato: any }) {
     if (dato.comprador) {
       detalles.push(
         <span key="comprador" className="bg-green-50 text-green-700 px-3 py-1.5 rounded-md border border-green-200 text-sm font-medium">
-          Handshake {dato.comprador}
+          🤝 {dato.comprador}
         </span>
       )
     }
@@ -1070,7 +1033,7 @@ function TarjetaDato({ dato }: { dato: any }) {
       const esIngreso = dato.tipo === 'INGRESO' || dato.tipo === 'VENTA'
       detalles.push(
         <span key="metodo" className={`${esIngreso ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200'} px-3 py-1.5 rounded-md border text-sm font-medium`}>
-          Credit Card {dato.metodoPago}
+          💳 {dato.metodoPago}
           {dato.diasPlazo && dato.diasPlazo > 0 && ` (${dato.diasPlazo} días)`}
         </span>
       )
@@ -1079,7 +1042,7 @@ function TarjetaDato({ dato }: { dato: any }) {
     if (dato.metodoPago && dato.pagado !== undefined) {
       detalles.push(
         <span key="pagado" className={`${dato.pagado ? 'bg-green-50 text-green-700 border-green-200' : 'bg-yellow-50 text-yellow-700 border-yellow-200'} px-3 py-1.5 rounded-md border text-sm font-medium`}>
-          {dato.pagado ? 'Check Mark' : 'Hourglass'} {dato.pagado ? 'Pagado' : 'Pendiente'}
+          {dato.pagado ? '✅ Pagado' : '⏳ Pendiente'}
         </span>
       )
     }
@@ -1087,7 +1050,7 @@ function TarjetaDato({ dato }: { dato: any }) {
     if (dato.insumo) {
       detalles.push(
         <span key="insumo" className="bg-purple-50 text-purple-700 px-3 py-1.5 rounded-md border border-purple-200 text-sm font-medium">
-          Package {dato.insumo}
+          📦 {dato.insumo}
         </span>
       )
     }
@@ -1095,7 +1058,7 @@ function TarjetaDato({ dato }: { dato: any }) {
     if (dato.iva && dato.iva !== 0) {
       detalles.push(
         <span key="iva" className="bg-gray-50 text-gray-700 px-3 py-1.5 rounded-md border border-gray-200 text-sm font-medium">
-          Chart Pie IVA: ${Number(dato.iva).toLocaleString('es-UY')}
+          💹 IVA: ${Number(dato.iva).toLocaleString('es-UY')}
         </span>
       )
     }
@@ -1166,9 +1129,9 @@ function TarjetaDato({ dato }: { dato: any }) {
               <div className="flex flex-wrap gap-2 mb-3">{renderDetalles()}</div>
 
               <div className="flex flex-wrap gap-2 text-xs">
-  {dato.usuario && <span className="bg-gray-50 text-gray-700 px-3 py-1.5 rounded-md border border-gray-200 font-medium">Person {dato.usuario}</span>}
-  {dato.lote && <span className="bg-blue-50 text-blue-700 px-3 py-1.5 rounded-md border border-blue-200 font-medium">Pin {dato.lote}</span>}
-  {dato.rodeo && <span className="bg-green-50 text-green-700 px-3 py-1.5 rounded-md border border-green-200 font-medium">Cow {dato.rodeo}</span>}
+  {dato.usuario && <span className="bg-gray-50 text-gray-700 px-3 py-1.5 rounded-md border border-gray-200 font-medium">👤 {dato.usuario}</span>}
+  {dato.lote && <span className="bg-blue-50 text-blue-700 px-3 py-1.5 rounded-md border border-blue-200 font-medium">📍 {dato.lote}</span>}
+  {dato.rodeo && <span className="bg-green-50 text-green-700 px-3 py-1.5 rounded-md border border-green-200 font-medium">🐮 {dato.rodeo}</span>}
   <span className="bg-purple-50 text-purple-700 px-3 py-1.5 rounded-md border border-purple-200 font-medium capitalize">{dato.categoria}</span>
 </div>
 
@@ -1211,7 +1174,7 @@ function TarjetaDato({ dato }: { dato: any }) {
 
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-6">
               <p className="text-sm text-yellow-800">
-                Warning Esta acción revertirá todos los cambios asociados (stocks, conteos de animales, etc.)
+                ⚠️ Esta acción revertirá todos los cambios asociados (stocks, conteos de animales, etc.)
               </p>
             </div>
 
@@ -1263,7 +1226,7 @@ function ListaDatos() {
   if (datos.length === 0)
     return (
       <div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-12 text-center">
-        <div className="text-6xl mb-4">Clipboard</div>
+        <div className="text-6xl mb-4">📋</div>
         <h3 className="text-xl font-semibold text-gray-700 mb-2">No hay datos que coincidan con los filtros</h3>
         <p className="text-gray-500">Intenta ajustar los filtros para ver más resultados</p>
       </div>
@@ -1307,7 +1270,6 @@ function DatosContent() {
         potreros: potreroUrl ? [potreroUrl] : [],
         animales: animalUrl ? [animalUrl] : [],
         cultivos: cultivoUrl ? [cultivoUrl] : [],
-        rodeos: [], // opcional, por si viene en URL después
       })
       setFiltrosAplicados(true)
     }
@@ -1326,7 +1288,7 @@ export default function PaginaDatos() {
   return (
     <div className="container mx-auto px-4 py-6 max-w-6xl">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Chart Datos del Campo</h1>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">📊 Datos del Campo</h1>
         <p className="text-gray-600">Visualiza todos los eventos, movimientos y registros de tu campo</p>
       </div>
 
