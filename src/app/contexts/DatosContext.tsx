@@ -27,6 +27,7 @@ type FiltrosType = {
   potreros: string[];
   animales: string[];
   cultivos: string[];
+  rodeos: string[];
 };
 
 type DatosContextType = {
@@ -129,6 +130,7 @@ export function DatosProvider({ children }: { children: ReactNode }) {
     potreros: [],
     animales: [],
     cultivos: [],
+    rodeos: [],
   });
 
   // ✅ Cargar categorías y cultivos activos al montar
