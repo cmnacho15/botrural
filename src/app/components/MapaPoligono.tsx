@@ -72,6 +72,8 @@ interface ModuloLeyenda {
   color: string
   cantidadPotreros: number
   hectareas: number
+  totalAnimales?: number
+  animalesPorCategoria?: Record<string, number>
 }
 
 interface MapaPoligonoProps {
@@ -814,36 +816,63 @@ if (!mapRef.current._tooltipZoomHandler) {
 
       {/* 📦 LEYENDA DE MÓDULOS - Solo visible en PANTALLA COMPLETA */}
 {isFullscreen && mostrarLeyendaModulos && modulosLeyenda.length > 0 && (
-  <div className="absolute top-[120px] right-3 z-[1000] bg-white/95 backdrop-blur-sm rounded-xl shadow-2xl border border-gray-200 p-4 max-w-[280px]">
-          <h3 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
-            <span>📦</span> Módulos de Pastoreo
-          </h3>
-          <div className="space-y-2">
-            {modulosLeyenda.map((modulo) => (
-              <div
-                key={modulo.id}
-                className="flex items-center gap-3 p-2 rounded-lg transition-colors hover:bg-gray-50"
-                style={{
-                  backgroundColor: `${modulo.color}15`,
-                }}
-              >
-                <div
-                  className="w-4 h-4 rounded flex-shrink-0"
-                  style={{ backgroundColor: modulo.color }}
-                />
-                <div className="flex-1 min-w-0">
-                  <span className="font-medium text-gray-900 text-sm block truncate">
-                    {modulo.nombre}
-                  </span>
-                  <span className="text-xs text-gray-500">
-                    {modulo.cantidadPotreros} potrero{modulo.cantidadPotreros !== 1 ? 's' : ''} · {modulo.hectareas.toFixed(0)} ha
-                  </span>
-                </div>
-              </div>
-            ))}
+  <div className="absolute top-[120px] right-3 z-[1000] bg-white/95 backdrop-blur-sm rounded-xl shadow-2xl border border-gray-200 p-4 max-w-[320px]">
+    <h3 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
+      <span>📦</span> Módulos de Pastoreo
+    </h3>
+    <div className="space-y-3">
+      {modulosLeyenda.map((modulo) => (
+        <div
+          key={modulo.id}
+          className="p-3 rounded-lg transition-colors"
+          style={{
+            backgroundColor: `${modulo.color}15`,
+          }}
+        >
+          {/* Header del módulo */}
+          <div className="flex items-center gap-3 mb-2">
+            <div
+              className="w-4 h-4 rounded flex-shrink-0"
+              style={{ backgroundColor: modulo.color }}
+            />
+            <span className="font-semibold text-gray-900 text-sm">
+              {modulo.nombre}
+            </span>
           </div>
+          
+          {/* Stats en pills */}
+          <div className="flex flex-wrap gap-1.5">
+            <span className="px-2 py-0.5 bg-white/80 rounded-full text-xs text-gray-600">
+              {modulo.cantidadPotreros} potrero{modulo.cantidadPotreros !== 1 ? 's' : ''}
+            </span>
+            <span className="px-2 py-0.5 bg-white/80 rounded-full text-xs text-gray-600">
+              {modulo.hectareas.toFixed(0)} ha
+            </span>
+            {modulo.totalAnimales && modulo.totalAnimales > 0 && (
+              <span className="px-2 py-0.5 bg-white/80 rounded-full text-xs text-gray-600">
+                {modulo.totalAnimales} animales
+              </span>
+            )}
+          </div>
+          
+          {/* Desglose de animales */}
+          {modulo.animalesPorCategoria && Object.keys(modulo.animalesPorCategoria).length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mt-2">
+              {Object.entries(modulo.animalesPorCategoria).map(([categoria, cantidad]) => (
+                <span 
+                  key={categoria}
+                  className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-medium"
+                >
+                  {cantidad} {categoria}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
-      )}
+      ))}
+    </div>
+  </div>
+)}
 
       {!readOnly && (
         <div className="absolute top-4 left-4 right-4 z-[10] md:left-16 md:w-96">

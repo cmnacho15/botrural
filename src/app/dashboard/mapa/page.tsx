@@ -222,23 +222,53 @@ export default function MapaPage() {
     ? [
         ...modulos.map((modulo, index) => {
           const lotesDelModulo = lotes.filter(l => l.moduloPastoreoId === modulo.id)
+          
+          // Calcular animales por categoría
+          const animalesPorCategoria: Record<string, number> = {}
+          lotesDelModulo.forEach(lote => {
+            lote.animalesLote?.forEach(animal => {
+              if (!animalesPorCategoria[animal.categoria]) {
+                animalesPorCategoria[animal.categoria] = 0
+              }
+              animalesPorCategoria[animal.categoria] += animal.cantidad
+            })
+          })
+          const totalAnimales = Object.values(animalesPorCategoria).reduce((sum, c) => sum + c, 0)
+          
           return {
             id: modulo.id,
             nombre: modulo.nombre,
             color: getColorModulo(index),
             cantidadPotreros: lotesDelModulo.length,
-            hectareas: lotesDelModulo.reduce((sum, l) => sum + l.hectareas, 0)
+            hectareas: lotesDelModulo.reduce((sum, l) => sum + l.hectareas, 0),
+            totalAnimales,
+            animalesPorCategoria
           }
         }),
         ...(() => {
           const lotesSinModulo = lotes.filter(l => !l.moduloPastoreoId)
           if (lotesSinModulo.length === 0) return []
+          
+          // Calcular animales por categoría para sin módulo
+          const animalesPorCategoria: Record<string, number> = {}
+          lotesSinModulo.forEach(lote => {
+            lote.animalesLote?.forEach(animal => {
+              if (!animalesPorCategoria[animal.categoria]) {
+                animalesPorCategoria[animal.categoria] = 0
+              }
+              animalesPorCategoria[animal.categoria] += animal.cantidad
+            })
+          })
+          const totalAnimales = Object.values(animalesPorCategoria).reduce((sum, c) => sum + c, 0)
+          
           return [{
             id: 'sin-modulo',
             nombre: 'Sin módulo',
             color: '#1212dd',
             cantidadPotreros: lotesSinModulo.length,
-            hectareas: lotesSinModulo.reduce((sum, l) => sum + l.hectareas, 0)
+            hectareas: lotesSinModulo.reduce((sum, l) => sum + l.hectareas, 0),
+            totalAnimales,
+            animalesPorCategoria
           }]
         })()
       ]
