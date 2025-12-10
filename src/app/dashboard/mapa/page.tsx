@@ -30,6 +30,7 @@ interface Lote {
   nombre: string
   hectareas: number
   poligono: number[][]
+  moduloPastoreoId: string | null  // 🔥 AGREGADO
   cultivos: Cultivo[]
   animalesLote: Animal[]
 }
@@ -48,6 +49,24 @@ const COLORES_CULTIVOS: Record<string, string> = {
   Pradera: '#228B22',
 }
 
+// 🎨 Colores por módulo de pastoreo
+const COLORES_MODULOS: string[] = [
+  '#8B5CF6', // Violeta
+  '#EC4899', // Rosa
+  '#F59E0B', // Ámbar
+  '#10B981', // Esmeralda
+  '#3B82F6', // Azul
+  '#EF4444', // Rojo
+  '#14B8A6', // Teal
+  '#F97316', // Naranja
+  '#6366F1', // Índigo
+  '#84CC16', // Lima
+]
+
+function getColorModulo(moduloIndex: number): string {
+  return COLORES_MODULOS[moduloIndex % COLORES_MODULOS.length]
+}
+
 export default function MapaPage() {
   const [lotes, setLotes] = useState<Lote[]>([])
   const [loading, setLoading] = useState(true)
@@ -60,10 +79,12 @@ export default function MapaPage() {
   const [hayDatosCultivos, setHayDatosCultivos] = useState(false)
   const [loadingNDVI, setLoadingNDVI] = useState(false)
   const [ndviData, setNdviData] = useState<Record<string, any>>({})
+  const [modulos, setModulos] = useState<Array<{id: string, nombre: string}>>([])
 
-  // Cargar lotes
+  // Cargar lotes y módulos
   useEffect(() => {
     cargarLotes()
+    cargarModulos()
   }, [])
 
   async function cargarLotes() {
@@ -98,6 +119,18 @@ export default function MapaPage() {
       console.error('Error cargando lotes:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function cargarModulos() {
+    try {
+      const response = await fetch('/api/modulos-pastoreo')
+      if (response.ok) {
+        const data = await response.json()
+        setModulos(data)
+      }
+    } catch (error) {
+      console.error('Error cargando módulos:', error)
     }
   }
 
@@ -188,9 +221,19 @@ export default function MapaPage() {
   const poligonosParaMapa = lotes
     .filter((l) => l.poligono && l.poligono.length > 0)
     .map((lote) => {
-      let color = '#1212dd' // Azul Vista General
+      let color = '#1212dd' // Azul Vista General (default si no tiene módulo)
 
-      if (vistaActual === 'cultivo') {
+      // 🔥 VISTA GENERAL: Color por módulo
+      if (vistaActual === 'indice') {
+        if (lote.moduloPastoreoId) {
+          const moduloIndex = modulos.findIndex(m => m.id === lote.moduloPastoreoId)
+          if (moduloIndex !== -1) {
+            color = getColorModulo(moduloIndex)
+          }
+        }
+      }
+      // Vista cultivos
+      else if (vistaActual === 'cultivo') {
         if (lote.cultivos && lote.cultivos.length > 0) {
           const cultivoPrincipal = lote.cultivos[0].tipoCultivo
           color = COLORES_CULTIVOS[cultivoPrincipal] || '#10b981'
@@ -356,6 +399,74 @@ export default function MapaPage() {
                 - En móvil: ocupa su altura natural -> la página entera hace scroll
                 - En desktop: scroll interno del panel (max alto) */}
             <div className="flex-1 bg-gray-50 px-4 sm:px-5 py-3 sm:py-4 lg:overflow-y-auto">
+              
+              {/* VISTA GENERAL (ÍNDICE) - Leyenda de módulos */}
+              {vistaActual === 'indice' && modulos.length > 0 && (
+                <div className="mb-5">
+                  <h3 className="text-xs sm:text-sm font-semibold text-gray-700 mb-2 sm:mb-3">
+                    📦 Módulos de Pastoreo
+                  </h3>
+                  <div className="space-y-2">
+                    {modulos.map((modulo, index) => {
+                      const lotesDelModulo = lotes.filter(l => l.moduloPastoreoId === modulo.id)
+                      const totalHa = lotesDelModulo.reduce((sum, l) => sum + l.hectareas, 0)
+                      
+                      return (
+                        <div
+                          key={modulo.id}
+                          className="flex items-center justify-between p-2.5 sm:p-3 rounded-lg border border-gray-200 hover:bg-gray-100 transition"
+                          style={{
+                            backgroundColor: `${getColorModulo(index)}20`,
+                          }}
+                        >
+                          <div className="flex items-center gap-2.5 sm:gap-3">
+                            <div
+                              className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded"
+                              style={{
+                                backgroundColor: getColorModulo(index),
+                              }}
+                            />
+                            <span className="font-medium text-gray-900 text-xs sm:text-sm">
+                              {modulo.nombre}
+                            </span>
+                            <span className="text-[11px] sm:text-xs text-gray-500">
+                              ({lotesDelModulo.length} potrero{lotesDelModulo.length !== 1 ? 's' : ''}, {totalHa.toFixed(1)} ha)
+                            </span>
+                          </div>
+                        </div>
+                      )
+                    })}
+                    
+                    {/* Potreros sin módulo */}
+                    {(() => {
+                      const lotesSinModulo = lotes.filter(l => !l.moduloPastoreoId)
+                      if (lotesSinModulo.length === 0) return null
+                      
+                      const totalHa = lotesSinModulo.reduce((sum, l) => sum + l.hectareas, 0)
+                      
+                      return (
+                        <div
+                          className="flex items-center justify-between p-2.5 sm:p-3 rounded-lg border border-gray-200 hover:bg-gray-100 transition bg-gray-50"
+                        >
+                          <div className="flex items-center gap-2.5 sm:gap-3">
+                            <div
+                              className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded"
+                              style={{ backgroundColor: '#1212dd' }}
+                            />
+                            <span className="font-medium text-gray-900 text-xs sm:text-sm">
+                              Sin módulo
+                            </span>
+                            <span className="text-[11px] sm:text-xs text-gray-500">
+                              ({lotesSinModulo.length} potrero{lotesSinModulo.length !== 1 ? 's' : ''}, {totalHa.toFixed(1)} ha)
+                            </span>
+                          </div>
+                        </div>
+                      )
+                    })()}
+                  </div>
+                </div>
+              )}
+
               {/* VISTA NDVI */}
               {vistaActual === 'ndvi' && (
                 <>
@@ -638,7 +749,12 @@ export default function MapaPage() {
                                   ? getColorNDVI(ndvi.promedio)
                                   : vistaActual === 'ndvi'
                                   ? '#CCCCCC'
-                                  : '#10b981',
+                                  : vistaActual === 'indice' && lote.moduloPastoreoId
+                                  ? (() => {
+                                      const moduloIndex = modulos.findIndex(m => m.id === lote.moduloPastoreoId)
+                                      return moduloIndex !== -1 ? getColorModulo(moduloIndex) : '#1212dd'
+                                    })()
+                                  : '#1212dd',
                             }}
                           />
                         </div>
@@ -682,6 +798,20 @@ export default function MapaPage() {
                             ) : (
                               <div className="text-[11px] sm:text-xs text-gray-400 italic">
                                 Sin cultivos
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {vistaActual === 'indice' && (
+                          <div className="mb-1.5">
+                            {lote.moduloPastoreoId ? (
+                              <div className="text-[11px] sm:text-xs text-gray-600">
+                                📦 {modulos.find(m => m.id === lote.moduloPastoreoId)?.nombre || 'Módulo'}
+                              </div>
+                            ) : (
+                              <div className="text-[11px] sm:text-xs text-gray-400 italic">
+                                Sin módulo asignado
                               </div>
                             )}
                           </div>
