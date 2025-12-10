@@ -675,58 +675,62 @@ export default function LotesPage() {
                   <div key={modulo.id} className="border border-gray-200 rounded-lg overflow-hidden">
                     {/* HEADER DEL MÓDULO */}
                     <button
-                      onClick={() => toggleAcordeon(modulo.id)}
-                      className="w-full px-6 py-4 bg-purple-50 hover:bg-purple-100 transition flex items-center justify-between"
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="text-lg">{estaAbierto ? '📂' : '📁'}</span>
-                        <div className="text-left">
-                          <h3 className="font-semibold text-gray-900">{modulo.nombre}</h3>
-                          {modulo.descripcion && (
-                            <p className="text-sm text-gray-600">{modulo.descripcion}</p>
-                          )}
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center gap-3">
-  <span className="text-sm text-gray-600">
-    {modulo.lotes.length} potrero{modulo.lotes.length !== 1 ? 's' : ''}
-  </span>
-  <span className="text-sm text-gray-600">
-    {totalHectareas.toFixed(1)} ha
-  </span>
-  <span className="text-sm text-gray-600">
-    {totalAnimales} animales
-  </span>
+  onClick={() => toggleAcordeon(modulo.id)}
+  className="w-full px-6 py-4 bg-purple-50 hover:bg-purple-100 transition flex items-center justify-between group"
+>
+  <div className="flex items-center gap-3">
+    {/* Icono con animación */}
+    <span className="text-2xl transition-transform duration-200" style={{ transform: estaAbierto ? 'rotate(90deg)' : 'rotate(0deg)' }}>
+      ▶
+    </span>
+    <div className="text-left">
+      <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+        {modulo.nombre}
+        <span className="text-xs text-gray-500 font-normal group-hover:text-gray-700">
+          (click para {estaAbierto ? 'contraer' : 'expandir'})
+        </span>
+      </h3>
+      {modulo.descripcion && (
+        <p className="text-sm text-gray-600">{modulo.descripcion}</p>
+      )}
+    </div>
+  </div>
   
-  {/* 🐄 MOSTRAR CATEGORÍAS PRESENTES */}
-  {(() => {
-    const categoriasPorTipo = modulo.lotes
-      .flatMap(l => l.animalesLote || [])
-      .reduce((acc, animal) => {
-        if (!acc[animal.categoria]) {
-          acc[animal.categoria] = 0
-        }
-        acc[animal.categoria] += animal.cantidad
-        return acc
-      }, {} as Record<string, number>)
+  <div className="flex items-center gap-3 flex-wrap justify-end">
+    <span className="text-sm text-gray-600 bg-white px-3 py-1 rounded-full">
+      {modulo.lotes.length} potrero{modulo.lotes.length !== 1 ? 's' : ''}
+    </span>
+    <span className="text-sm text-gray-600 bg-white px-3 py-1 rounded-full">
+      {totalHectareas.toFixed(1)} ha
+    </span>
+    <span className="text-sm text-gray-600 bg-white px-3 py-1 rounded-full">
+      {totalAnimales} animales
+    </span>
     
-    const categoriasArray = Object.entries(categoriasPorTipo)
-    
-    if (categoriasArray.length === 0) return null
-    
-    return (
-      <div className="flex items-center gap-2 flex-wrap">
-        {categoriasArray.map(([categoria, cantidad]) => (
-          <span key={categoria} className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
-            {cantidad} {categoria}
-          </span>
-        ))}
-      </div>
-    )
-  })()}
-</div>
-                    </button>
+    {/* 🐄 CATEGORÍAS PRESENTES */}
+    {(() => {
+      const categoriasPorTipo = modulo.lotes
+        .flatMap(l => l.animalesLote || [])
+        .reduce((acc, animal) => {
+          if (!acc[animal.categoria]) {
+            acc[animal.categoria] = 0
+          }
+          acc[animal.categoria] += animal.cantidad
+          return acc
+        }, {} as Record<string, number>)
+      
+      const categoriasArray = Object.entries(categoriasPorTipo)
+      
+      if (categoriasArray.length === 0) return null
+      
+      return categoriasArray.map(([categoria, cantidad]) => (
+        <span key={categoria} className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-medium">
+          {cantidad} {categoria}
+        </span>
+      ))
+    })()}
+  </div>
+</button>
                     
                     {/* CONTENIDO DEL MÓDULO */}
                     {estaAbierto && modulo.lotes.length > 0 && (
@@ -770,21 +774,29 @@ export default function LotesPage() {
               {lotesAgrupados.sinModulo.length > 0 && (
                 <div className="border border-gray-200 rounded-lg overflow-hidden">
                   <button
-                    onClick={() => toggleAcordeon('sin-modulo')}
-                    className="w-full px-6 py-4 bg-gray-50 hover:bg-gray-100 transition flex items-center justify-between"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="text-lg">{acordeonesAbiertos['sin-modulo'] ?? true ? '📂' : '📁'}</span>
-                      <div className="text-left">
-                        <h3 className="font-semibold text-gray-900">Resto del campo</h3>
-                        <p className="text-sm text-gray-600">Potreros sin módulo asignado</p>
-                      </div>
-                    </div>
-                    
-                    <span className="text-sm text-gray-600">
-                      {lotesAgrupados.sinModulo.length} potrero{lotesAgrupados.sinModulo.length !== 1 ? 's' : ''}
-                    </span>
-                  </button>
+  onClick={() => toggleAcordeon('sin-modulo')}
+  className="w-full px-6 py-4 bg-gray-50 hover:bg-gray-100 transition flex items-center justify-between group"
+>
+  <div className="flex items-center gap-3">
+    {/* Icono con animación */}
+    <span className="text-2xl transition-transform duration-200" style={{ transform: (acordeonesAbiertos['sin-modulo'] ?? true) ? 'rotate(90deg)' : 'rotate(0deg)' }}>
+      ▶
+    </span>
+    <div className="text-left">
+      <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+        Resto del campo
+        <span className="text-xs text-gray-500 font-normal group-hover:text-gray-700">
+          (click para {(acordeonesAbiertos['sin-modulo'] ?? true) ? 'contraer' : 'expandir'})
+        </span>
+      </h3>
+      <p className="text-sm text-gray-600">Potreros sin módulo asignado</p>
+    </div>
+  </div>
+  
+  <span className="text-sm text-gray-600 bg-white px-3 py-1 rounded-full">
+    {lotesAgrupados.sinModulo.length} potrero{lotesAgrupados.sinModulo.length !== 1 ? 's' : ''}
+  </span>
+</button>
                   
                   {(acordeonesAbiertos['sin-modulo'] ?? true) && (
                     <div className="overflow-x-auto">
