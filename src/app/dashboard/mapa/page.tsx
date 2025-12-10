@@ -216,6 +216,34 @@ export default function MapaPage() {
     if (ndvi < 0.8) return '#228B22'
     return '#006400'
   }
+  
+  // 📦 Preparar datos de leyenda para el mapa (solo vista General)
+  const modulosLeyendaParaMapa = vistaActual === 'indice' 
+    ? [
+        ...modulos.map((modulo, index) => {
+          const lotesDelModulo = lotes.filter(l => l.moduloPastoreoId === modulo.id)
+          return {
+            id: modulo.id,
+            nombre: modulo.nombre,
+            color: getColorModulo(index),
+            cantidadPotreros: lotesDelModulo.length,
+            hectareas: lotesDelModulo.reduce((sum, l) => sum + l.hectareas, 0)
+          }
+        }),
+        ...(() => {
+          const lotesSinModulo = lotes.filter(l => !l.moduloPastoreoId)
+          if (lotesSinModulo.length === 0) return []
+          return [{
+            id: 'sin-modulo',
+            nombre: 'Sin módulo',
+            color: '#1212dd',
+            cantidadPotreros: lotesSinModulo.length,
+            hectareas: lotesSinModulo.reduce((sum, l) => sum + l.hectareas, 0)
+          }]
+        })()
+      ]
+    : []
+
 
   // Polígonos para el mapa
   const poligonosParaMapa = lotes
@@ -379,6 +407,8 @@ export default function MapaPage() {
   initialZoom={14}
   existingPolygons={poligonosParaMapa}
   readOnly={true}
+  modulosLeyenda={modulosLeyendaParaMapa}
+  mostrarLeyendaModulos={vistaActual === 'indice'}
 />
               )}
             </div>

@@ -52,6 +52,28 @@ if (typeof window !== 'undefined') {
   }
 }
 
+// 🎨 Colores por módulo de pastoreo (mismos que en page.tsx)
+const COLORES_MODULOS: string[] = [
+  '#8B5CF6', // Violeta
+  '#EC4899', // Rosa
+  '#F59E0B', // Ámbar
+  '#10B981', // Esmeralda
+  '#3B82F6', // Azul
+  '#EF4444', // Rojo
+  '#14B8A6', // Teal
+  '#F97316', // Naranja
+  '#6366F1', // Índigo
+  '#84CC16', // Lima
+]
+
+interface ModuloLeyenda {
+  id: string
+  nombre: string
+  color: string
+  cantidadPotreros: number
+  hectareas: number
+}
+
 interface MapaPoligonoProps {
   onPolygonComplete?: (coordinates: number[][], areaHectareas: number) => void
   initialCenter?: [number, number]
@@ -61,6 +83,7 @@ interface MapaPoligonoProps {
     nombre: string
     coordinates: number[][]
     color?: string
+    moduloPastoreoId?: string | null
     info?: {
       hectareas?: number
       cultivos?: any[]
@@ -69,6 +92,9 @@ interface MapaPoligonoProps {
     }
   }>
   readOnly?: boolean
+  // 🆕 Props para la leyenda de módulos
+  modulosLeyenda?: ModuloLeyenda[]
+  mostrarLeyendaModulos?: boolean
 }
 
 function calcularAreaPoligono(latlngs: any[]): number {
@@ -207,6 +233,8 @@ export default function MapaPoligono({
   initialZoom = 8,
   existingPolygons = [],
   readOnly = false,
+  modulosLeyenda = [],
+  mostrarLeyendaModulos = false,
 }: MapaPoligonoProps) {
   const mapRef = useRef<any>(null)
   const drawnItemsRef = useRef<any>(null)
@@ -783,6 +811,39 @@ if (!mapRef.current._tooltipZoomHandler) {
           </svg>
         )}
       </button>
+
+      {/* 📦 LEYENDA DE MÓDULOS - Solo visible en PANTALLA COMPLETA */}
+      {isFullscreen && mostrarLeyendaModulos && modulosLeyenda.length > 0 && (
+        <div className="absolute bottom-4 left-4 z-[1000] bg-white/95 backdrop-blur-sm rounded-xl shadow-2xl border border-gray-200 p-4 max-w-[280px]">
+          <h3 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
+            <span>📦</span> Módulos de Pastoreo
+          </h3>
+          <div className="space-y-2">
+            {modulosLeyenda.map((modulo) => (
+              <div
+                key={modulo.id}
+                className="flex items-center gap-3 p-2 rounded-lg transition-colors hover:bg-gray-50"
+                style={{
+                  backgroundColor: `${modulo.color}15`,
+                }}
+              >
+                <div
+                  className="w-4 h-4 rounded flex-shrink-0"
+                  style={{ backgroundColor: modulo.color }}
+                />
+                <div className="flex-1 min-w-0">
+                  <span className="font-medium text-gray-900 text-sm block truncate">
+                    {modulo.nombre}
+                  </span>
+                  <span className="text-xs text-gray-500">
+                    {modulo.cantidadPotreros} potrero{modulo.cantidadPotreros !== 1 ? 's' : ''} · {modulo.hectareas.toFixed(0)} ha
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {!readOnly && (
         <div className="absolute top-4 left-4 right-4 z-[10] md:left-16 md:w-96">
