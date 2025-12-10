@@ -689,18 +689,43 @@ export default function LotesPage() {
                       </div>
                       
                       <div className="flex items-center gap-3">
-                        <span className="text-sm text-gray-600">
-                          {modulo.lotes.length} potrero{modulo.lotes.length !== 1 ? 's' : ''}
-                        </span>
-                        <span className="text-sm text-gray-600">
-                          {totalHectareas.toFixed(1)} ha
-                        </span>
-                        {totalAnimales > 0 && (
-                          <span className="text-sm text-gray-600">
-                            {totalAnimales} animales
-                          </span>
-                        )}
-                      </div>
+  <span className="text-sm text-gray-600">
+    {modulo.lotes.length} potrero{modulo.lotes.length !== 1 ? 's' : ''}
+  </span>
+  <span className="text-sm text-gray-600">
+    {totalHectareas.toFixed(1)} ha
+  </span>
+  <span className="text-sm text-gray-600">
+    {totalAnimales} animales
+  </span>
+  
+  {/* 🐄 MOSTRAR CATEGORÍAS PRESENTES */}
+  {(() => {
+    const categoriasPorTipo = modulo.lotes
+      .flatMap(l => l.animalesLote || [])
+      .reduce((acc, animal) => {
+        if (!acc[animal.categoria]) {
+          acc[animal.categoria] = 0
+        }
+        acc[animal.categoria] += animal.cantidad
+        return acc
+      }, {} as Record<string, number>)
+    
+    const categoriasArray = Object.entries(categoriasPorTipo)
+    
+    if (categoriasArray.length === 0) return null
+    
+    return (
+      <div className="flex items-center gap-2 flex-wrap">
+        {categoriasArray.map(([categoria, cantidad]) => (
+          <span key={categoria} className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+            {cantidad} {categoria}
+          </span>
+        ))}
+      </div>
+    )
+  })()}
+</div>
                     </button>
                     
                     {/* CONTENIDO DEL MÓDULO */}
