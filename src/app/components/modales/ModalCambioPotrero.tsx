@@ -110,7 +110,7 @@ export default function ModalCambioPotrero({ onClose, onSuccess }: ModalCambioPo
         body: JSON.stringify({
           tipo: 'CAMBIO_POTRERO',
           fecha: fecha,
-          descripcion: `Cambio de ${cantidad} ${categoriaSeleccionada} al ${potreros.find(p => p.id === potreroDestino)?.nombre}${rodeoSeleccionado && rodeos.find(r => r.id === rodeoSeleccionado) ? ` - Rodeo ${rodeos.find(r => r.id === rodeoSeleccionado)?.nombre}` : ''}`,
+          descripcion: `Cambio de ${cantidad} ${categoriaSeleccionada} al ${potreros.find(p => p.id === potreroDestino)?.nombre}${rodeoSeleccionado && rodeos.find(r => r.id === rodeoSeleccionado) ? ` - Lote ${rodeos.find(r => r.id === rodeoSeleccionado)?.nombre}` : ''}`,
           loteId: potreroOrigen,
           loteDestinoId: potreroDestino,
           categoria: categoriaSeleccionada,
@@ -272,7 +272,7 @@ export default function ModalCambioPotrero({ onClose, onSuccess }: ModalCambioPo
         {modoRodeo !== 'NO_INCLUIR' && rodeos.length > 0 && (
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Rodeo {modoRodeo === 'OBLIGATORIO' && <span className="text-red-500">*</span>}
+              Lotes {modoRodeo === 'OBLIGATORIO' && <span className="text-red-500">*</span>}
             </label>
             <select
               value={rodeoSeleccionado}
@@ -280,7 +280,7 @@ export default function ModalCambioPotrero({ onClose, onSuccess }: ModalCambioPo
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
               required={modoRodeo === 'OBLIGATORIO'}
             >
-              <option value="">Seleccionar rodeo...</option>
+              <option value="">Seleccionar lote...</option>
               {rodeos.map((rodeo) => (
                 <option key={rodeo.id} value={rodeo.id}>
                   {rodeo.nombre}

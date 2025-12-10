@@ -161,7 +161,7 @@ export default function ModalTratamiento({ onClose, onSuccess }: ModalTratamient
         `${a.cantidad} ${a.tipo}${a.peso ? ` (${a.peso} kg)` : ''}`
       ).join(', ')
 
-      const descripcionFinal = `Tratamiento${rodeoId && rodeos.find(r => r.id === rodeoId) ? ` - Rodeo ${rodeos.find(r => r.id === rodeoId)?.nombre}` : ''}: ${tratamiento}${marca ? ` - ${marca}` : ''} aplicado a ${descripcionAnimales} en potrero ${potreroNombre}`
+      const descripcionFinal = `Tratamiento${rodeoId && rodeos.find(r => r.id === rodeoId) ? ` - Lote ${rodeos.find(r => r.id === rodeoId)?.nombre}` : ''}: ${tratamiento}${marca ? ` - ${marca}` : ''} aplicado a ${descripcionAnimales} en potrero ${potreroNombre}`
 
       const response = await fetch('/api/eventos', {
         method: 'POST',
@@ -360,7 +360,7 @@ export default function ModalTratamiento({ onClose, onSuccess }: ModalTratamient
         {modoRodeo !== 'NO_INCLUIR' && (
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Rodeo {modoRodeo === 'OBLIGATORIO' && <span className="text-red-500">*</span>}
+              Lote {modoRodeo === 'OBLIGATORIO' && <span className="text-red-500">*</span>}
             </label>
             <select
               value={rodeoId}
@@ -368,14 +368,14 @@ export default function ModalTratamiento({ onClose, onSuccess }: ModalTratamient
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               required={modoRodeo === 'OBLIGATORIO'}
             >
-              <option value="">Seleccionar rodeo...</option>
+              <option value="">Seleccionar lote...</option>
               {rodeos.map(r => (
                 <option key={r.id} value={r.id}>{r.nombre}</option>
               ))}
             </select>
             {rodeos.length === 0 && (
               <p className="text-xs text-yellow-600 mt-2">
-                ⚠️ No hay rodeos creados. Podés crear uno en Preferencias → Rodeos
+                ⚠️ No hay lotes creados. Podés crear uno en Preferencias → Lotes
               </p>
             )}
           </div>

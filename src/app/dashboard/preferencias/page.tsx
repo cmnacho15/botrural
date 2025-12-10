@@ -313,7 +313,7 @@ export default function PreferenciasPage() {
         setShowModalRodeo(false)
         setEditandoRodeo(null)
         cargarRodeos()
-        alert('¡Rodeo creado!')
+        alert('¡Lote creado!')
       } else {
         const error = await response.json()
         alert(error.error || 'Error al crear rodeo')
@@ -342,7 +342,7 @@ export default function PreferenciasPage() {
         setShowModalRodeo(false)
         setEditandoRodeo(null)
         cargarRodeos()
-        alert('¡Rodeo actualizado!')
+        alert('¡Lote actualizado!')
       } else {
         const error = await response.json()
         alert(error.error || 'Error al actualizar rodeo')
@@ -355,7 +355,7 @@ export default function PreferenciasPage() {
   }
 
   async function handleEliminarRodeo(id: string) {
-    if (!confirm('¿Estás seguro de eliminar este rodeo?')) return
+    if (!confirm('¿Estás seguro de eliminar este lote?')) return
 
     try {
       const response = await fetch(`/api/rodeos/${id}`, {
@@ -364,13 +364,13 @@ export default function PreferenciasPage() {
 
       if (response.ok) {
         cargarRodeos()
-        alert('Rodeo eliminado')
+        alert('Lote eliminado')
       } else {
         const error = await response.json()
-        alert(error.error || 'Error al eliminar rodeo')
+        alert(error.error || 'Error al eliminar lote')
       }
     } catch (error) {
-      alert('Error al eliminar rodeo')
+      alert('Error al eliminar lote')
     }
   }
 
@@ -424,7 +424,7 @@ export default function PreferenciasPage() {
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
-                🐮 Rodeos
+                🐮 Lotes
               </button>
 
               <button
@@ -772,8 +772,8 @@ export default function PreferenciasPage() {
               <div className="mb-8">
                 <div className="flex justify-between items-center mb-6">
                   <div>
-                    <h2 className="text-lg font-semibold text-gray-900">Configuración de Rodeos</h2>
-                    <p className="text-sm text-gray-500">Define cómo se manejan los rodeos en tu campo</p>
+                    <h2 className="text-lg font-semibold text-gray-900">Configuración de Lotes</h2>
+                    <p className="text-sm text-gray-500">Define cómo se manejan los lotes en tu campo</p>
                   </div>
                 </div>
 
@@ -788,7 +788,7 @@ export default function PreferenciasPage() {
                   >
                     <div className="text-3xl mb-3">⊗</div>
                     <h3 className="font-semibold text-gray-900 mb-2">No Incluir</h3>
-                    <p className="text-sm text-gray-600">No quiero incluir datos de rodeos</p>
+                    <p className="text-sm text-gray-600">No quiero incluir datos de lotes</p>
                   </button>
 
                   <button
@@ -801,7 +801,7 @@ export default function PreferenciasPage() {
                   >
                     <div className="text-3xl mb-3">?</div>
                     <h3 className="font-semibold text-gray-900 mb-2">Opcional</h3>
-                    <p className="text-sm text-gray-600">Usuarios pueden ingresar el rodeo como dato opcional</p>
+                    <p className="text-sm text-gray-600">Usuarios pueden ingresar el lote como dato opcional</p>
                   </button>
 
                   <button
@@ -814,7 +814,7 @@ export default function PreferenciasPage() {
                   >
                     <div className="text-3xl mb-3">✓</div>
                     <h3 className="font-semibold text-blue-600 mb-2">Obligatorio</h3>
-                    <p className="text-sm text-gray-600">Usuarios tienen que ingresar el rodeo</p>
+                    <p className="text-sm text-gray-600">Usuarios tienen que ingresar el lote</p>
                   </button>
                 </div>
 
@@ -850,8 +850,8 @@ export default function PreferenciasPage() {
               <div className="border-t pt-8">
                 <div className="flex justify-between items-center mb-6">
                   <div>
-                    <h2 className="text-lg font-semibold text-gray-900">Mis Rodeos</h2>
-                    <p className="text-sm text-gray-500">Gestiona los rodeos de tu campo</p>
+                    <h2 className="text-lg font-semibold text-gray-900">Mis Lotes</h2>
+                    <p className="text-sm text-gray-500">Gestiona los lotes de tu campo</p>
                   </div>
                   <button
                     onClick={() => {
@@ -864,7 +864,7 @@ export default function PreferenciasPage() {
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                     </svg>
-                    Nuevo Rodeo
+                    Nuevo Lote
                   </button>
                 </div>
 
@@ -875,8 +875,8 @@ export default function PreferenciasPage() {
                   </div>
                 ) : rodeos.length === 0 ? (
                   <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-                    <p className="text-gray-500 mb-2">No hay rodeos creados</p>
-                    <p className="text-sm text-gray-400">Crea tu primer rodeo para comenzar</p>
+                    <p className="text-gray-500 mb-2">No hay lotes creados</p>
+                    <p className="text-sm text-gray-400">Crea tu primer lote para comenzar</p>
                   </div>
                 ) : (
                   <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
@@ -884,7 +884,7 @@ export default function PreferenciasPage() {
                       <thead className="bg-gray-50">
                         <tr>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Nombre del Rodeo
+                            Nombre del Lote
                           </th>
                           <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                             Acciones
@@ -1049,7 +1049,7 @@ className="text-red-600 hover:text-red-900">
             <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
               <div className="p-6 border-b border-gray-200 flex justify-between items-center">
                 <h2 className="text-lg font-semibold text-gray-900">
-                  {editandoRodeo ? 'Editar Rodeo' : 'Nuevo Rodeo'}
+                  {editandoRodeo ? 'Editar Lote' : 'Nuevo Lote'}
                 </h2>
                 <button
                   onClick={() => {
@@ -1065,13 +1065,13 @@ className="text-red-600 hover:text-red-900">
 
               <div className="p-6">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Nombre del rodeo <span className="text-red-500">*</span>
+                  Nombre del lote <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   value={nuevoRodeo}
                   onChange={(e) => setNuevoRodeo(e.target.value)}
-                  placeholder="Ej: Rodeo Norte, Vacunados 2025"
+                  placeholder="Ej: Lote Norte, Vacunados 2025"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   autoFocus
                 />

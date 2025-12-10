@@ -102,7 +102,7 @@ export default function ModalTacto({ onClose, onSuccess }: ModalTactoProps) {
         body: JSON.stringify({
           tipo: 'TACTO',
           fecha: fecha,
-          descripcion: `Tacto en potrero ${potreroNombre}${rodeoId && rodeos.find(r => r.id === rodeoId) ? ` - Rodeo ${rodeos.find(r => r.id === rodeoId)?.nombre}` : ''}: ${tactados} animales tactados, ${preñados} preñados (${porcentajePreñez}% de preñez)`,
+          descripcion: `Tacto en potrero ${potreroNombre}${rodeoId && rodeos.find(r => r.id === rodeoId) ? ` - Lote ${rodeos.find(r => r.id === rodeoId)?.nombre}` : ''}: ${tactados} animales tactados, ${preñados} preñados (${porcentajePreñez}% de preñez)`,
           loteId: potreroSeleccionado,
           cantidad: tactados,
           notas: notas || null,
@@ -235,7 +235,7 @@ export default function ModalTacto({ onClose, onSuccess }: ModalTactoProps) {
         {modoRodeo !== 'NO_INCLUIR' && (
           <div>
             <h3 className="text-lg font-semibold text-gray-800 mb-4">
-              Rodeo {modoRodeo === 'OBLIGATORIO' && <span className="text-red-500">*</span>}
+              Lotes {modoRodeo === 'OBLIGATORIO' && <span className="text-red-500">*</span>}
             </h3>
             <select
               value={rodeoId}
@@ -243,14 +243,14 @@ export default function ModalTacto({ onClose, onSuccess }: ModalTactoProps) {
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               required={modoRodeo === 'OBLIGATORIO'}
             >
-              <option value="">Seleccionar rodeo...</option>
+              <option value="">Seleccionar lote...</option>
               {rodeos.map(r => (
                 <option key={r.id} value={r.id}>{r.nombre}</option>
               ))}
             </select>
             {rodeos.length === 0 && (
               <p className="text-xs text-yellow-600 mt-2">
-                No hay rodeos creados. Podés crear uno en Preferencias → Rodeos
+                No hay lotes creados. Podés crear uno en Preferencias → Lotes
               </p>
             )}
           </div>
