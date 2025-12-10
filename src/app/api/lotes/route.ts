@@ -70,7 +70,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { nombre, hectareas, poligono, cultivos = [], animales = [] } = body;
+    const { nombre, hectareas, poligono, cultivos = [], animales = [], moduloPastoreoId } = body;
 
     if (!nombre || !hectareas) {
       return NextResponse.json(
@@ -95,6 +95,7 @@ export async function POST(request: Request) {
         poligono,
         campoId: usuario.campoId,
         ultimoCambio: new Date(), // 🔥 AGREGADO: registrar fecha de creación
+        moduloPastoreoId: moduloPastoreoId || null,
 
         cultivos: {
           create: cultivos.map((c: any) => ({
