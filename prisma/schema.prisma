@@ -80,6 +80,7 @@ model Campo {
   invitations Invitation[]
   lotes       Lote[]
   usuarios    User[]
+  modulosPastoreo ModuloPastoreo[]
   manoObra    ManoObra[]
   tiposCultivo TipoCultivo[]
   categoriasAnimal CategoriaAnimal[]
@@ -175,6 +176,8 @@ model Lote {
   poligono          Json?
   ultimoCambio      DateTime           @default(now())
   campoId           String
+  moduloPastoreoId  String? 
+
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
   animalesLote      AnimalLote[]
@@ -184,6 +187,11 @@ model Lote {
   campo             Campo              @relation(fields: [campoId], references: [id], onDelete: Cascade)
   movimientosInsumo MovimientoInsumo[]
   cargaHistorica    CargaHistorica[]
+
+  // 🆕 AGREGAR ESTA RELACIÓN
+  moduloPastoreo    ModuloPastoreo?    @relation(fields: [moduloPastoreoId], references: [id], onDelete: SetNull)
+  
+  @@index([moduloPastoreoId])  // ← índice para búsquedas rápidas
 }
 
 model Cultivo {
@@ -741,3 +749,18 @@ model CompraRenglon {
 
 
 
+
+model ModuloPastoreo {
+  id          String   @id @default(cuid())
+  nombre      String
+  descripcion String?
+  campoId     String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  campo       Campo    @relation(fields: [campoId], references: [id], onDelete: Cascade)
+  lotes       Lote[]
+  
+  @@unique([nombre, campoId])
+  @@index([campoId])
+}

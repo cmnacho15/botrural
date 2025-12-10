@@ -1,5 +1,5 @@
 'use client'
-//hola
+
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
@@ -35,8 +35,6 @@ interface Animal {
   peso?: string
 }
 
-
-
 export default function EditarLotePage() {
   const router = useRouter()
   const params = useParams()
@@ -56,6 +54,13 @@ export default function EditarLotePage() {
   const [cultivosDisponibles, setCultivosDisponibles] = useState<string[]>([])
   const [categoriasDisponibles, setCategoriasDisponibles] = useState<Array<{nombre: string, tipo: string}>>([])
 
+  // 📦 Estados para módulos
+  const [modulos, setModulos] = useState<Array<{id: string, nombre: string}>>([])
+  const [moduloSeleccionado, setModuloSeleccionado] = useState<string>('')
+  const [crearNuevoModulo, setCrearNuevoModulo] = useState(false)
+  const [nuevoModuloNombre, setNuevoModuloNombre] = useState('')
+  const [nuevoModuloDescripcion, setNuevoModuloDescripcion] = useState('')
+
   // CARGAR DATOS DEL LOTE
   useEffect(() => {
     cargarLote()
@@ -63,34 +68,47 @@ export default function EditarLotePage() {
   }, [loteId])
   
   // Cargar cultivos disponibles
-useEffect(() => {
-  fetch('/api/tipos-cultivo')
-    .then((res) => res.json())
-    .then((data) => {
-      const nombres = data.map((c: any) => c.nombre)
-      setCultivosDisponibles(nombres)
-    })
-    .catch(() => {
-      console.error('Error cargando cultivos')
-    })
-}, [])
+  useEffect(() => {
+    fetch('/api/tipos-cultivo')
+      .then((res) => res.json())
+      .then((data) => {
+        const nombres = data.map((c: any) => c.nombre)
+        setCultivosDisponibles(nombres)
+      })
+      .catch(() => {
+        console.error('Error cargando cultivos')
+      })
+  }, [])
+
   // Cargar categorías de animales disponibles
-useEffect(() => {
-  fetch('/api/categorias-animal')
-    .then((res) => res.json())
-    .then((data) => {
-      const activas = data
-        .filter((c: any) => c.activo)
-        .map((c: any) => ({
-          nombre: c.nombreSingular,
-          tipo: c.tipoAnimal
-        }))
-      setCategoriasDisponibles(activas)
-    })
-    .catch(() => {
-      console.error('Error cargando categorías')
-    })
-}, [])
+  useEffect(() => {
+    fetch('/api/categorias-animal')
+      .then((res) => res.json())
+      .then((data) => {
+        const activas = data
+          .filter((c: any) => c.activo)
+          .map((c: any) => ({
+            nombre: c.nombreSingular,
+            tipo: c.tipoAnimal
+          }))
+        setCategoriasDisponibles(activas)
+      })
+      .catch(() => {
+        console.error('Error cargando categorías')
+      })
+  }, [])
+
+  // Cargar módulos disponibles
+  useEffect(() => {
+    fetch('/api/modulos-pastoreo')
+      .then((res) => res.json())
+      .then((data) => {
+        setModulos(data)
+      })
+      .catch(() => {
+        console.error('Error cargando módulos')
+      })
+  }, [])
 
   useEffect(() => {
     if (lotesExistentes.length > 0) {
@@ -132,6 +150,9 @@ useEffect(() => {
           setNombre(lote.nombre);
           setHectareasManual(parseFloat(lote.hectareas).toFixed(2));
           setPoligono(lote.poligono || null);
+          
+          // 🔥 CARGAR MÓDULO ACTUAL
+          setModuloSeleccionado(lote.moduloPastoreoId || '')
 
           // Cultivos
           console.log("Cultivos del lote:", lote.cultivos);
@@ -209,16 +230,40 @@ useEffect(() => {
   const actualizarAnimal = (id: string, campo: string, valor: string) =>
     setAnimales(animales.map(a => (a.id === id ? { ...a, [campo]: valor } : a)))
 
+  // 📦 Crear nuevo módulo si es necesario
+  async function crearModuloSiEsNecesario(): Promise<string | null> {
+    if (!crearNuevoModulo || !nuevoModuloNombre.trim()) return null
+
+    try {
+      const response = await fetch('/api/modulos-pastoreo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nombre: nuevoModuloNombre.trim(),
+          descripcion: nuevoModuloDescripcion.trim() || null,
+        }),
+      })
+
+      if (response.ok) {
+        const moduloCreado = await response.json()
+        console.log('✅ Módulo creado:', moduloCreado.nombre)
+        return moduloCreado.id
+      } else {
+        const error = await response.json()
+        alert(error.error || 'Error al crear el módulo')
+        return null
+      }
+    } catch (error) {
+      console.error('Error creando módulo:', error)
+      alert('Error al crear el módulo')
+      return null
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
     console.log("handleSubmit iniciado");
-    console.log("Nombre:", nombre);
-    console.log("Hectáreas manual:", hectareasManual);
-    console.log("Hectáreas calculadas:", hectareasCalculadas);
-    console.log("Polígono:", poligono);
-    console.log("Cultivos (crudos):", cultivos);
-    console.log("Animales (crudos):", animales);
 
     if (!poligono) {
       alert('Dibujá la ubicación del potrero en el mapa');
@@ -229,6 +274,19 @@ useEffect(() => {
     setLoading(true);
 
     try {
+      // 🔥 CREAR MÓDULO NUEVO SI ES NECESARIO
+      let moduloIdFinal = moduloSeleccionado || null
+      
+      if (crearNuevoModulo) {
+        const moduloNuevoId = await crearModuloSiEsNecesario()
+        if (moduloNuevoId) {
+          moduloIdFinal = moduloNuevoId
+        } else {
+          setLoading(false)
+          return // Falló la creación del módulo
+        }
+      }
+
       const hectareasFinales = hectareasCalculadas || parseFloat(hectareasManual);
       const cultivosValidos = cultivos
         .filter(c => c.tipoCultivo)
@@ -238,11 +296,10 @@ useEffect(() => {
         }))
       const animalesValidos = animales.filter(a => a.categoria && a.cantidad);
 
-      console.log("hectareasFinales:", hectareasFinales);
-
       console.log('📤 ENVIANDO AL BACKEND:');
       console.log('Cultivos válidos:', cultivosValidos);
       console.log('Animales válidos:', animalesValidos);
+      console.log('👉 Módulo ID:', moduloIdFinal);
 
       const payload = {
         nombre,
@@ -250,6 +307,7 @@ useEffect(() => {
         poligono,
         cultivos: cultivosValidos,
         animales: animalesValidos,
+        moduloPastoreoId: moduloIdFinal, // 🔥 AGREGAR MÓDULO AL PAYLOAD
       };
 
       console.log('📦 PAYLOAD COMPLETO:', JSON.stringify(payload, null, 2));
@@ -347,6 +405,64 @@ useEffect(() => {
             />
           </div>
 
+          {/* 📦 SELECTOR DE MÓDULO */}
+          <div className="bg-purple-50 rounded-lg p-4">
+            <h3 className="font-medium text-gray-900 mb-3">📦 Módulo de Pastoreo</h3>
+            
+            {!crearNuevoModulo ? (
+              <div className="space-y-3">
+                <select
+                  value={moduloSeleccionado}
+                  onChange={(e) => setModuloSeleccionado(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5"
+                >
+                  <option value="">Sin módulo asignado</option>
+                  {modulos.map((mod) => (
+                    <option key={mod.id} value={mod.id}>
+                      {mod.nombre}
+                    </option>
+                  ))}
+                </select>
+                
+                <button
+                  type="button"
+                  onClick={() => setCrearNuevoModulo(true)}
+                  className="text-purple-600 text-sm hover:underline"
+                >
+                  + Crear nuevo módulo
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <input
+                  type="text"
+                  value={nuevoModuloNombre}
+                  onChange={(e) => setNuevoModuloNombre(e.target.value)}
+                  placeholder="Nombre del módulo"
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5"
+                />
+                <input
+                  type="text"
+                  value={nuevoModuloDescripcion}
+                  onChange={(e) => setNuevoModuloDescripcion(e.target.value)}
+                  placeholder="Descripción (opcional)"
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCrearNuevoModulo(false)
+                    setNuevoModuloNombre('')
+                    setNuevoModuloDescripcion('')
+                  }}
+                  className="text-gray-600 text-sm hover:underline"
+                >
+                  ← Seleccionar módulo existente
+                </button>
+              </div>
+            )}
+          </div>
+
           {/* CULTIVOS */}
           <div className="bg-blue-50 rounded-lg p-4">
             <h3 className="font-medium text-gray-900 mb-3">🌾 Cultivos</h3>
@@ -357,15 +473,15 @@ useEffect(() => {
               {cultivos.map(c => (
                 <div key={c.id} className="flex gap-2 bg-white p-3 rounded-lg items-center">
                   <select
-  value={c.tipoCultivo}
-  onChange={e => actualizarCultivo(c.id, 'tipoCultivo', e.target.value)}
-  className="flex-1 border border-gray-300 rounded px-3 py-2"
->
-  <option value="">Tipo de cultivo</option>
-  {cultivosDisponibles.map((cultivo) => (
-    <option key={cultivo} value={cultivo}>{cultivo}</option>
-  ))}
-</select>
+                    value={c.tipoCultivo}
+                    onChange={e => actualizarCultivo(c.id, 'tipoCultivo', e.target.value)}
+                    className="flex-1 border border-gray-300 rounded px-3 py-2"
+                  >
+                    <option value="">Tipo de cultivo</option>
+                    {cultivosDisponibles.map((cultivo) => (
+                      <option key={cultivo} value={cultivo}>{cultivo}</option>
+                    ))}
+                  </select>
                   <input
                     type="date"
                     value={c.fechaSiembra}
@@ -389,76 +505,76 @@ useEffect(() => {
           </div>
 
           {/* ANIMALES */}
-<div className="bg-blue-50 rounded-lg p-4">
-  <h3 className="font-medium text-gray-900 mb-3">🐄 Animales</h3>
-  {animales.length === 0 && (
-    <p className="text-sm text-gray-600 italic mb-3">No hay animales aún</p>
-  )}
-  <div className="space-y-3">
-    {animales.map(a => (
-      <div key={a.id} className="grid grid-cols-[100px_1fr_120px_40px] gap-2 bg-white p-3 rounded-lg items-center">
-        {/* Cantidad */}
-        <input
-          type="number"
-          value={a.cantidad}
-          onChange={e => actualizarAnimal(a.id, 'cantidad', e.target.value)}
-          placeholder="Cant."
-          className="border border-gray-300 rounded px-3 py-2"
-        />
-        
-        {/* Tipo de animal */}
-        <select
-          value={a.categoria}
-          onChange={e => actualizarAnimal(a.id, 'categoria', e.target.value)}
-          className="border border-gray-300 rounded px-3 py-2"
-        >
-          <option value="">Seleccionar categoría</option>
-          
-          {['BOVINO', 'OVINO', 'EQUINO', 'OTRO'].map(tipo => {
-            const categoriasTipo = categoriasDisponibles.filter(c => c.tipo === tipo)
-            if (categoriasTipo.length === 0) return null
-            
-            const labels = {
-              BOVINO: '🐄 BOVINOS',
-              OVINO: '🐑 OVINOS',
-              EQUINO: '🐴 EQUINOS',
-              OTRO: '📦 OTROS'
-            }
-            
-            return (
-              <optgroup key={tipo} label={labels[tipo as keyof typeof labels]}>
-                {categoriasTipo.map((cat) => (
-                  <option key={cat.nombre} value={cat.nombre}>{cat.nombre}</option>
-                ))}
-              </optgroup>
-            )
-          })}
-        </select>
+          <div className="bg-blue-50 rounded-lg p-4">
+            <h3 className="font-medium text-gray-900 mb-3">🐄 Animales</h3>
+            {animales.length === 0 && (
+              <p className="text-sm text-gray-600 italic mb-3">No hay animales aún</p>
+            )}
+            <div className="space-y-3">
+              {animales.map(a => (
+                <div key={a.id} className="grid grid-cols-[100px_1fr_120px_40px] gap-2 bg-white p-3 rounded-lg items-center">
+                  {/* Cantidad */}
+                  <input
+                    type="number"
+                    value={a.cantidad}
+                    onChange={e => actualizarAnimal(a.id, 'cantidad', e.target.value)}
+                    placeholder="Cant."
+                    className="border border-gray-300 rounded px-3 py-2"
+                  />
+                  
+                  {/* Tipo de animal */}
+                  <select
+                    value={a.categoria}
+                    onChange={e => actualizarAnimal(a.id, 'categoria', e.target.value)}
+                    className="border border-gray-300 rounded px-3 py-2"
+                  >
+                    <option value="">Seleccionar categoría</option>
+                    
+                    {['BOVINO', 'OVINO', 'EQUINO', 'OTRO'].map(tipo => {
+                      const categoriasTipo = categoriasDisponibles.filter(c => c.tipo === tipo)
+                      if (categoriasTipo.length === 0) return null
+                      
+                      const labels = {
+                        BOVINO: '🐄 BOVINOS',
+                        OVINO: '🐑 OVINOS',
+                        EQUINO: '🐴 EQUINOS',
+                        OTRO: '📦 OTROS'
+                      }
+                      
+                      return (
+                        <optgroup key={tipo} label={labels[tipo as keyof typeof labels]}>
+                          {categoriasTipo.map((cat) => (
+                            <option key={cat.nombre} value={cat.nombre}>{cat.nombre}</option>
+                          ))}
+                        </optgroup>
+                      )
+                    })}
+                  </select>
 
-        {/* Peso (Opcional) */}
-        <input
-          type="number"
-          value={a.peso || ''}
-          onChange={e => actualizarAnimal(a.id, 'peso', e.target.value)}
-          placeholder="Peso (kg)"
-          className="border border-gray-300 rounded px-3 py-2 text-sm"
-        />
+                  {/* Peso (Opcional) */}
+                  <input
+                    type="number"
+                    value={a.peso || ''}
+                    onChange={e => actualizarAnimal(a.id, 'peso', e.target.value)}
+                    placeholder="Peso (kg)"
+                    className="border border-gray-300 rounded px-3 py-2 text-sm"
+                  />
 
-        {/* Botón eliminar */}
-        <button 
-          onClick={() => eliminarAnimal(a.id)} 
-          type="button" 
-          className="text-red-600 hover:bg-red-50 p-2 rounded transition"
-        >
-          🗑️
-        </button>
-      </div>
-    ))}
-  </div>
-  <button type="button" onClick={agregarAnimal} className="text-blue-600 text-sm mt-2 hover:underline">
-    + Agregar animales
-  </button>
-</div>
+                  {/* Botón eliminar */}
+                  <button 
+                    onClick={() => eliminarAnimal(a.id)} 
+                    type="button" 
+                    className="text-red-600 hover:bg-red-50 p-2 rounded transition"
+                  >
+                    🗑️
+                  </button>
+                </div>
+              ))}
+            </div>
+            <button type="button" onClick={agregarAnimal} className="text-blue-600 text-sm mt-2 hover:underline">
+              + Agregar animales
+            </button>
+          </div>
 
           {/* MAPA */}
           {poligono && (
