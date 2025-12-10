@@ -330,8 +330,8 @@ export default function LotesPage() {
 
   const [loadingBorrado, setLoadingBorrado] = useState(false)
 
-  // Estados para controlar qué acordeones están abiertos
-  const [acordeonesAbiertos, setAcordeonesAbiertos] = useState<{[key: string]: boolean}>({})
+  // Estados para controlar qué acordeones están abiertos (CERRADOS por defecto)
+const [acordeonesAbiertos, setAcordeonesAbiertos] = useState<{[key: string]: boolean}>({})
 
   // Función para toggle de acordeones
   const toggleAcordeon = (id: string) => {
@@ -668,7 +668,7 @@ export default function LotesPage() {
               
               {/* 📦 MÓDULOS DE PASTOREO */}
               {lotesAgrupados.modulos.map((modulo) => {
-                const estaAbierto = acordeonesAbiertos[modulo.id] ?? true
+                const estaAbierto = acordeonesAbiertos[modulo.id] ?? false
                 const { totalHectareas, totalAnimales } = calcularTotalesModulo(modulo.lotes)
                 
                 return (
@@ -779,14 +779,14 @@ export default function LotesPage() {
 >
   <div className="flex items-center gap-3">
     {/* Icono con animación */}
-    <span className="text-2xl transition-transform duration-200" style={{ transform: (acordeonesAbiertos['sin-modulo'] ?? true) ? 'rotate(90deg)' : 'rotate(0deg)' }}>
+    <span className="text-2xl transition-transform duration-200" style={{ transform: (acordeonesAbiertos['sin-modulo'] ?? false) ? 'rotate(90deg)' : 'rotate(0deg)' }}>
       ▶
     </span>
     <div className="text-left">
       <h3 className="font-semibold text-gray-900 flex items-center gap-2">
         Resto del campo
         <span className="text-xs text-gray-500 font-normal group-hover:text-gray-700">
-          (click para {(acordeonesAbiertos['sin-modulo'] ?? true) ? 'contraer' : 'expandir'})
+          (click para {(acordeonesAbiertos['sin-modulo'] ?? false) ? 'contraer' : 'expandir'})
         </span>
       </h3>
       <p className="text-sm text-gray-600">Potreros sin módulo asignado</p>
@@ -798,7 +798,7 @@ export default function LotesPage() {
   </span>
 </button>
                   
-                  {(acordeonesAbiertos['sin-modulo'] ?? true) && (
+                  {(acordeonesAbiertos['sin-modulo'] ?? false) && (
                     <div className="overflow-x-auto">
                       <table className="w-full">
                         <thead className="bg-gray-50 border-b border-gray-200">
