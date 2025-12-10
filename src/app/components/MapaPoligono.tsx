@@ -813,8 +813,8 @@ if (!mapRef.current._tooltipZoomHandler) {
       </button>
 
       {/* 📦 LEYENDA DE MÓDULOS - Solo visible en PANTALLA COMPLETA */}
-      {isFullscreen && mostrarLeyendaModulos && modulosLeyenda.length > 0 && (
-        <div className="absolute bottom-4 left-4 z-[1000] bg-white/95 backdrop-blur-sm rounded-xl shadow-2xl border border-gray-200 p-4 max-w-[280px]">
+{isFullscreen && mostrarLeyendaModulos && modulosLeyenda.length > 0 && (
+  <div className="absolute top-[120px] right-3 z-[1000] bg-white/95 backdrop-blur-sm rounded-xl shadow-2xl border border-gray-200 p-4 max-w-[280px]">
           <h3 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
             <span>📦</span> Módulos de Pastoreo
           </h3>
