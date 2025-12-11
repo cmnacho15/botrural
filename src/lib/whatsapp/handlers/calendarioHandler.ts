@@ -16,7 +16,6 @@ export async function handleCalendarioCrear(
   }
 ) {
   try {
-    // Buscar usuario
     const user = await prisma.user.findUnique({
       where: { telefono },
       select: { id: true, campoId: true, name: true }
@@ -30,25 +29,11 @@ export async function handleCalendarioCrear(
       return
     }
 
-    // Calcular fecha programada (zona horaria Uruguay)
     const ahora = new Date()
     const fechaProgramada = new Date(ahora)
     fechaProgramada.setDate(fechaProgramada.getDate() + parsedData.diasDesdeHoy)
-    
-    // Resetear a medianoche Uruguay (UTC-3)
     fechaProgramada.setHours(0, 0, 0, 0)
 
-    // Validar que no sea más de 60 días
-    const diasMaximos = 90
-    if (parsedData.diasDesdeHoy > diasMaximos) {
-      await sendWhatsAppMessage(
-        telefono,
-        `⚠️ Solo podés agendar actividades hasta 90 días en el futuro.\n\n"${parsedData.titulo}" está programada para ${parsedData.diasDesdeHoy} días.`
-      )
-      return
-    }
-
-    // Validar que no sea en el pasado
     if (parsedData.diasDesdeHoy < 0) {
       await sendWhatsAppMessage(
         telefono,
@@ -57,7 +42,6 @@ export async function handleCalendarioCrear(
       return
     }
 
-    // Crear la actividad
     const actividad = await prisma.actividadCalendario.create({
       data: {
         campoId: user.campoId,
@@ -69,7 +53,6 @@ export async function handleCalendarioCrear(
       }
     })
 
-    // Formatear fecha para mostrar
     const fechaFormateada = fechaProgramada.toLocaleDateString('es-UY', {
       weekday: 'long',
       day: 'numeric',
@@ -102,7 +85,6 @@ export async function handleCalendarioCrear(
  */
 export async function handleCalendarioConsultar(telefono: string) {
   try {
-    // Buscar usuario
     const user = await prisma.user.findUnique({
       where: { telefono },
       select: { id: true, campoId: true }
@@ -116,41 +98,33 @@ export async function handleCalendarioConsultar(telefono: string) {
       return
     }
 
-    // Obtener fecha actual (inicio del día en Uruguay)
     const hoy = new Date()
     hoy.setHours(0, 0, 0, 0)
 
-    // Calcular límite de 60 días
-    const limite = new Date(hoy)
-    limite.setDate(limite.getDate() + 60)
-
-    // Buscar actividades pendientes
     const actividades = await prisma.actividadCalendario.findMany({
       where: {
         campoId: user.campoId,
         realizada: false,
         fechaProgramada: {
-          gte: hoy,
-          lte: limite
+          gte: hoy
         }
       },
       orderBy: {
         fechaProgramada: 'asc'
       },
-      take: 10 // Máximo 10 para no saturar el mensaje
+      take: 10
     })
 
     if (actividades.length === 0) {
       await sendWhatsAppMessage(
         telefono,
         "📅 *Calendario*\n\n" +
-        "No tenés actividades pendientes en los próximos 60 días.\n\n" +
+        "No tenés actividades pendientes.\n\n" +
         "_Podés agendar diciendo por ejemplo: \"en 5 días vacunar\"_"
       )
       return
     }
 
-    // Formatear lista de actividades
     let mensaje = "📅 *Actividades pendientes*\n\n"
 
     for (const act of actividades) {
@@ -178,14 +152,12 @@ export async function handleCalendarioConsultar(telefono: string) {
       mensaje += `• *${act.titulo}*\n  ${fechaStr} (${urgencia})\n\n`
     }
 
-    // Contar total si hay más de 10
     const total = await prisma.actividadCalendario.count({
       where: {
         campoId: user.campoId,
         realizada: false,
         fechaProgramada: {
-          gte: hoy,
-          lte: limite
+          gte: hoy
         }
       }
     })

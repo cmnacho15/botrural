@@ -173,12 +173,11 @@ export default function CalendarioPage() {
     })
   }
 
-  // Calcular límites de fecha para el input (90 días)
+  
   const hoy = new Date()
   const fechaMin = hoy.toISOString().split('T')[0]
-  const limite = new Date(hoy)
-  limite.setDate(limite.getDate() + 90)
-  const fechaMax = limite.toISOString().split('T')[0]
+  
+  
 
   const diasCalendario = generarDiasCalendario()
 
@@ -211,8 +210,8 @@ export default function CalendarioPage() {
             Calendario
           </h1>
           <p className="text-gray-500 mt-1">
-            Próximos 90 días · Agendá desde la web o WhatsApp
-          </p>
+  Agendá desde la web o WhatsApp
+</p>
         </div>
 
         <button
@@ -478,23 +477,16 @@ export default function CalendarioPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    ¿Cuándo?
-                  </label>
-                  <input
-                    type="date"
-                    value={nuevaFecha}
-                    onChange={(e) => setNuevaFecha(e.target.value)}
-                    min={fechaMin}
-                    max={fechaMax}
-                    className="w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    required
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Máximo 90 días desde hoy
-                  </p>
-                </div>
-
-                <div>
+  ¿Cuándo?
+</label>
+<input
+  type="date"
+  value={nuevaFecha}
+  onChange={(e) => setNuevaFecha(e.target.value)}
+  min={fechaMin}
+  className="w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+  required
+/>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Notas (opcional)
                   </label>

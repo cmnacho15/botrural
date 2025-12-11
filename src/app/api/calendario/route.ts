@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma"
 import { requireAuth } from "@/lib/auth-helpers"
 
 /**
- * GET - Obtener actividades del calendario (60 días)
+ * GET - Obtener actividades del calendario
  */
 export async function GET(request: Request) {
   try {
@@ -22,27 +22,19 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const mostrarRealizadas = searchParams.get("realizadas") === "true"
 
-    // Fecha actual (inicio del día)
     const hoy = new Date()
     hoy.setHours(0, 0, 0, 0)
 
-    // Límite de 60 días
-    const limite = new Date(hoy)
-    limite.setDate(limite.getDate() + 90)
-
-    // También mostrar actividades vencidas no realizadas (hasta 7 días atrás)
     const inicioVencidas = new Date(hoy)
     inicioVencidas.setDate(inicioVencidas.getDate() - 7)
 
     const where: any = {
       campoId: user.campoId,
       fechaProgramada: {
-        gte: inicioVencidas,
-        lte: limite
+        gte: inicioVencidas
       }
     }
 
-    // Si no quiere ver realizadas, excluirlas
     if (!mostrarRealizadas) {
       where.realizada = false
     }
@@ -64,7 +56,6 @@ export async function GET(request: Request) {
       }
     })
 
-    // Agregar estado calculado
     const actividadesConEstado = actividades.map(act => {
       const fecha = new Date(act.fechaProgramada)
       let estado: "pendiente" | "realizada" | "vencida" | "hoy" = "pendiente"
@@ -119,24 +110,13 @@ export async function POST(request: Request) {
       )
     }
 
-    // Validar que la fecha esté dentro de los 60 días
     const fecha = new Date(fechaProgramada)
     const hoy = new Date()
     hoy.setHours(0, 0, 0, 0)
-    
-    const limite = new Date(hoy)
-    limite.setDate(limite.getDate() + 60)
 
     if (fecha < hoy) {
       return NextResponse.json(
         { error: "No podés agendar actividades en el pasado" },
-        { status: 400 }
-      )
-    }
-
-    if (fecha > limite) {
-      return NextResponse.json(
-        { error: "Solo podés agendar hasta 90 días en el futuro" },
         { status: 400 }
       )
     }
