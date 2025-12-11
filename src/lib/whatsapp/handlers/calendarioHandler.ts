@@ -1,8 +1,7 @@
 // 📁 src/lib/whatsapp/handlers/calendarioHandler.ts
 
 import { prisma } from "@/lib/prisma"
-import { sendWhatsAppMessage } from "../sendMessage"
-
+import { sendWhatsAppMessage, sendWhatsAppButtons } from "../sendMessage"
 /**
  * 📅 Crear actividad en el calendario
  */
@@ -81,7 +80,7 @@ export async function handleCalendarioCrear(
 }
 
 /**
- * 📋 Consultar actividades pendientes
+ * 📋 Consultar actividades pendientes (con botones)
  */
 export async function handleCalendarioConsultar(telefono: string) {
   try {
@@ -125,8 +124,7 @@ export async function handleCalendarioConsultar(telefono: string) {
       return
     }
 
-    let mensaje = "📅 *Actividades pendientes*\n\n"
-
+    // Enviar cada actividad con botones
     for (const act of actividades) {
       const fecha = new Date(act.fechaProgramada)
       const diasRestantes = Math.ceil((fecha.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24))
@@ -146,35 +144,93 @@ export async function handleCalendarioConsultar(telefono: string) {
       } else if (diasRestantes <= 3) {
         urgencia = `🟡 En ${diasRestantes} días`
       } else {
-        urgencia = `En ${diasRestantes} días`
+        urgencia = `📅 En ${diasRestantes} días`
       }
 
-      mensaje += `• *${act.titulo}*\n  ${fechaStr} (${urgencia})\n\n`
+      await sendWhatsAppButtons(
+        telefono,
+        `*${act.titulo}*\n${fechaStr} (${urgencia})`,
+        [
+          { id: `cal_done_${act.id}`, title: "✅ Realizada" },
+          { id: `cal_delete_${act.id}`, title: "🗑️ Eliminar" }
+        ]
+      )
     }
-
-    const total = await prisma.actividadCalendario.count({
-      where: {
-        campoId: user.campoId,
-        realizada: false,
-        fechaProgramada: {
-          gte: hoy
-        }
-      }
-    })
-
-    if (total > 10) {
-      mensaje += `_...y ${total - 10} más. Consultá la web para ver todas._`
-    } else {
-      mensaje += `_Para marcar como realizada, entrá a la web._`
-    }
-
-    await sendWhatsAppMessage(telefono, mensaje)
 
   } catch (error) {
     console.error("❌ Error consultando calendario:", error)
     await sendWhatsAppMessage(
       telefono,
       "❌ Error al consultar el calendario. Intentá de nuevo."
+    )
+  }
+}
+
+/**
+ * 🔘 Manejar respuesta de botones del calendario
+ */
+export async function handleCalendarioButtonResponse(
+  telefono: string,
+  buttonId: string
+) {
+  try {
+    // Extraer acción e ID
+    const parts = buttonId.split('_')
+    const accion = parts[1] // "done" o "delete"
+    const actividadId = parts[2]
+
+    const user = await prisma.user.findUnique({
+      where: { telefono },
+      select: { campoId: true }
+    })
+
+    if (!user?.campoId) {
+      await sendWhatsAppMessage(telefono, "❌ Error: usuario no encontrado")
+      return
+    }
+
+    // Verificar que la actividad existe y pertenece al campo
+    const actividad = await prisma.actividadCalendario.findFirst({
+      where: {
+        id: actividadId,
+        campoId: user.campoId
+      }
+    })
+
+    if (!actividad) {
+      await sendWhatsAppMessage(telefono, "❌ Actividad no encontrada")
+      return
+    }
+
+    if (accion === "done") {
+      await prisma.actividadCalendario.update({
+        where: { id: actividadId },
+        data: {
+          realizada: true,
+          fechaRealizacion: new Date()
+        }
+      })
+
+      await sendWhatsAppMessage(
+        telefono,
+        `✅ *Completada:* ${actividad.titulo}\n\n_¡Bien hecho!_`
+      )
+    } else if (accion === "delete") {
+      await prisma.actividadCalendario.delete({
+        where: { id: actividadId }
+      })
+
+      await sendWhatsAppMessage(
+        telefono,
+        `🗑️ *Eliminada:* ${actividad.titulo}`
+      )
+    }
+
+  } catch (error) {
+    console.error("❌ Error procesando botón calendario:", error)
+    await sendWhatsAppMessage(
+      telefono,
+      "❌ Error al procesar. Intentá de nuevo."
     )
   }
 }

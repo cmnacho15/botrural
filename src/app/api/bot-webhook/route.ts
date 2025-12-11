@@ -19,13 +19,11 @@ import {
   handleNombreRegistro,
   isToken,
   solicitarConfirmacionConFlow,
-} from "@/lib/whatsapp"
-
-// 📅 NUEVOS IMPORTS PARA CALENDARIO
-import {
   handleCalendarioCrear,
   handleCalendarioConsultar,
-} from "@/lib/whatsapp/handlers/calendarioHandler"
+  handleCalendarioButtonResponse,
+} from "@/lib/whatsapp"
+
 
 const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || "mi_token_secreto"
 
@@ -92,6 +90,11 @@ export async function POST(request: Request) {
         console.log("Botón clickeado:", messageText)
 
         // Manejar botones específicos
+        if (messageText.startsWith("cal_")) {
+          await handleCalendarioButtonResponse(from, messageText)
+          return NextResponse.json({ status: "calendario button processed" })
+        }
+
         if (messageText.startsWith("invoice_")) {
           await handleInvoiceButtonResponse(from, messageText)
           return NextResponse.json({ status: "invoice button processed" })

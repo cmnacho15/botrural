@@ -1,24 +1,41 @@
-📅 Calendario - Bot Rural
-Resumen
-Sistema de calendario a corto plazo (60 días) integrado con WhatsApp y la web.
-Funcionalidades:
+# 📅 Calendario - Bot Rural
 
-✅ Crear actividades desde WhatsApp (audio o texto)
-✅ Crear actividades desde la web
-✅ Consultar pendientes desde WhatsApp
-✅ Ver calendario visual en la web
-✅ Marcar como realizada desde la web
-✅ Colores por estado (pendiente, hoy, vencida, realizada)
-✅ Zona horaria Uruguay
+## Resumen
 
+Sistema de calendario integrado con WhatsApp y la web.
 
-📁 Archivos incluidos
-ArchivoDestinoDescripciónopenai-parser.tssrc/lib/openai-parser.tsParser actualizado con tipos CALENDARIOcalendarioHandler.tssrc/lib/whatsapp/handlers/calendarioHandler.tsHandlers de WhatsAppapi-calendario-route.tssrc/app/api/calendario/route.tsAPI GET/POSTapi-calendario-id-route.tssrc/app/api/calendario/[id]/route.tsAPI PATCH/DELETEcalendario-page.tsxsrc/app/dashboard/calendario/page.tsxPágina del calendarioINTEGRACION-BOT-WEBHOOK.ts(instrucciones)Código para integrar en el webhookINSTRUCCIONES-SIDEBAR.ts(instrucciones)Cómo agregar al sidebar
+### Funcionalidades:
+- ✅ Crear actividades desde WhatsApp (audio o texto)
+- ✅ Crear actividades desde la web
+- ✅ Consultar pendientes desde WhatsApp
+- ✅ Ver calendario visual en la web
+- ✅ Marcar como realizada desde la web
+- ✅ Colores por estado (pendiente, hoy, vencida, realizada)
+- ✅ Zona horaria Uruguay
 
-🚀 Pasos de implementación
-1. Schema de Prisma
-Agregar al final de prisma/schema.prisma:
-prismamodel ActividadCalendario {
+---
+
+## 📁 Archivos incluidos
+
+| Archivo | Destino | Descripción |
+|---------|---------|-------------|
+| `openai-parser.ts` | `src/lib/openai-parser.ts` | Parser actualizado con tipos CALENDARIO |
+| `calendarioHandler.ts` | `src/lib/whatsapp/handlers/calendarioHandler.ts` | Handlers de WhatsApp |
+| `api-calendario-route.ts` | `src/app/api/calendario/route.ts` | API GET/POST |
+| `api-calendario-id-route.ts` | `src/app/api/calendario/[id]/route.ts` | API PATCH/DELETE |
+| `calendario-page.tsx` | `src/app/dashboard/calendario/page.tsx` | Página del calendario |
+| `INTEGRACION-BOT-WEBHOOK.ts` | (instrucciones) | Código para integrar en el webhook |
+| `INSTRUCCIONES-SIDEBAR.ts` | (instrucciones) | Cómo agregar al sidebar |
+
+---
+
+## 🚀 Pasos de implementación
+
+### 1. Schema de Prisma
+
+Agregar al final de `prisma/schema.prisma`:
+```prisma
+model ActividadCalendario {
   id                String    @id @default(cuid())
   campoId           String
   usuarioId         String?
@@ -40,12 +57,21 @@ prismamodel ActividadCalendario {
   @@index([fechaProgramada])
   @@index([realizada])
 }
-Y en el modelo Campo agregar:
-prismaactividadesCalendario ActividadCalendario[]
+```
+
+Y en el modelo `Campo` agregar:
+```prisma
+actividadesCalendario ActividadCalendario[]
+```
+
 Luego ejecutar:
-bashnpx prisma db push
-2. Copiar archivos
-bash# Parser actualizado
+```bash
+npx prisma db push
+```
+
+### 2. Copiar archivos
+```bash
+# Parser actualizado
 cp openai-parser.ts src/lib/openai-parser.ts
 
 # Handler de WhatsApp
@@ -59,47 +85,66 @@ cp api-calendario-id-route.ts src/app/api/calendario/[id]/route.ts
 # Página
 mkdir -p src/app/dashboard/calendario
 cp calendario-page.tsx src/app/dashboard/calendario/page.tsx
-3. Actualizar el webhook
-Ver archivo INTEGRACION-BOT-WEBHOOK.ts para el código exacto.
+```
+
+### 3. Actualizar el webhook
+
+Ver archivo `INTEGRACION-BOT-WEBHOOK.ts` para el código exacto.
+
 Resumen:
+1. Importar los handlers de calendario
+2. Agregar los casos `CALENDARIO_CREAR` y `CALENDARIO_CONSULTAR` antes del switch existente
+3. Actualizar el mensaje de ayuda
 
-Importar los handlers de calendario
-Agregar los casos CALENDARIO_CREAR y CALENDARIO_CONSULTAR antes del switch existente
-Actualizar el mensaje de ayuda
+### 4. Exportar handlers
 
-4. Exportar handlers
-En src/lib/whatsapp/index.ts, agregar:
-typescriptexport {
+En `src/lib/whatsapp/index.ts`, agregar:
+```typescript
+export {
   handleCalendarioCrear,
   handleCalendarioConsultar,
 } from "./handlers/calendarioHandler"
-5. Agregar al sidebar
-En tu layout.tsx del dashboard, agregar el link:
-typescript{ href: '/dashboard/calendario', icon: '📅', label: 'Calendario' }
+```
 
-💬 Ejemplos de uso por WhatsApp
-Crear actividades:
+### 5. Agregar al sidebar
 
-"en 14 días tengo que sacar tablilla"
-"acordame el martes de llamar al veterinario"
-"la semana que viene hay que vacunar"
-"mañana llega el camión"
-"pasado mañana pagar al peón"
-"el 20 revisar bebederos"
+En tu `layout.tsx` del dashboard, agregar el link:
+```typescript
+{ href: '/dashboard/calendario', icon: '📅', label: 'Calendario' }
+```
 
-Consultar pendientes:
+---
 
-"calendario"
-"pendientes"
-"qué tengo agendado"
-"qué hay para hacer"
+## 💬 Ejemplos de uso por WhatsApp
 
+### Crear actividades:
+- "en 14 días tengo que sacar tablilla"
+- "acordame el martes de llamar al veterinario"
+- "la semana que viene hay que vacunar"
+- "mañana llega el camión"
+- "pasado mañana pagar al peón"
+- "el 20 revisar bebederos"
 
-🎨 Estados visuales
-EstadoColorDescripciónPendiente🔵 AzulActividad futuraHoy🟡 AmarilloActividad para hoyVencida🔴 RojoNo realizada y pasó la fechaRealizada🟢 VerdeMarcada como completada
+### Consultar pendientes:
+- "calendario"
+- "pendientes"
+- "qué tengo agendado"
+- "qué hay para hacer"
 
-⚠️ Limitaciones
+---
 
-Máximo 60 días hacia adelante
-Las actividades vencidas se muestran hasta 7 días después
-Solo se puede marcar como realizada desde la web
+## 🎨 Estados visuales
+
+| Estado | Color | Descripción |
+|--------|-------|-------------|
+| Pendiente | 🔵 Azul | Actividad futura |
+| Hoy | 🟡 Amarillo | Actividad para hoy |
+| Vencida | 🔴 Rojo | No realizada y pasó la fecha |
+| Realizada | 🟢 Verde | Marcada como completada |
+
+---
+
+## ⚠️ Notas
+
+- Las actividades vencidas se muestran hasta 7 días después
+- Solo se puede marcar como realizada desde la web
