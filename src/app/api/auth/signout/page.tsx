@@ -3,36 +3,28 @@
 import { signOut } from 'next-auth/react'
 
 export default function SignOutPage() {
-  const handleSignOut = () => {
-    // 🔥 SOLUCIÓN: redirect: true y callbackUrl
-    signOut({ 
-      callbackUrl: '/login',
-      redirect: true  // Deja que NextAuth maneje todo
-    })
-  }
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="bg-white p-8 rounded-2xl shadow-lg max-w-md w-full mx-4">
-        <h1 className="text-2xl font-bold text-gray-900 mb-4 text-center">
+      <div className="bg-white p-8 rounded-2xl shadow-lg max-w-md w-full mx-4 text-center">
+        <h1 className="text-2xl font-bold text-gray-900 mb-4">
           Cerrar sesión
         </h1>
         
-        <p className="text-gray-600 text-center mb-8">
-          ¿Estás seguro que deseas cerrar sesión?
+        <p className="text-gray-600 mb-8">
+          ¿Estás seguro de que quieres salir?
         </p>
 
         <div className="space-y-3">
           <button
-            onClick={handleSignOut}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors"
+            onClick={() => signOut({ callbackUrl: '/login' })}
+            className="w-full bg-red-600 hover:bg-red-700 text-white font-medium py-3 px-4 rounded-lg transition"
           >
-            Cerrar sesión
+            Sí, cerrar sesión
           </button>
 
           <button
             onClick={() => window.history.back()}
-            className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-3 px-4 rounded-lg transition-colors"
+            className="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-3 px-4 rounded-lg transition"
           >
             Cancelar
           </button>

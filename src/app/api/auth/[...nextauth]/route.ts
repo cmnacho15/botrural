@@ -1,6 +1,4 @@
-// ========================================
-// 1. ACTUALIZAR: src/app/api/auth/[...nextauth]/route.ts
-// ========================================
+// src/app/api/auth/[...nextauth]/route.ts
 
 import NextAuth, { type NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
@@ -34,11 +32,7 @@ export const authOptions: NextAuthOptions = {
 
         if (!user || !user.password) return null;
 
-        const isValid = await bcrypt.compare(
-          credentials.password,
-          user.password
-        );
-
+        const isValid = await bcrypt.compare(credentials.password, user.password);
         if (!isValid) return null;
 
         return {
@@ -58,9 +52,10 @@ export const authOptions: NextAuthOptions = {
 
   secret: process.env.NEXTAUTH_SECRET,
 
+  // DEJAMOS LA PÁGINA PERSONALIZADA (porque queremos la bonita en español)
   pages: {
     signIn: "/login",
-    signOut: "/auth/signout", // 👈 AGREGAR ESTA LÍNEA
+    signOut: "/auth/signout", // ← MANTENEMOS ESTA LÍNEA
   },
 
   callbacks: {
