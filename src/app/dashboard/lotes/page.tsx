@@ -57,10 +57,10 @@ function Tooltip({ children, content }: TooltipProps) {
       top = rect.bottom + 12
       setPosicionArriba(false)
     } else {
-      // Posicionar ARRIBA
-      top = rect.top - tooltipHeight - 12
-      setPosicionArriba(true)
-    }
+  // Posicionar ARRIBA - más cerca del badge
+  top = rect.top - tooltipHeight
+  setPosicionArriba(true)
+}
     
     // Centrar horizontalmente respecto al trigger
     let left = rect.left + rect.width / 2 - tooltipWidth / 2
