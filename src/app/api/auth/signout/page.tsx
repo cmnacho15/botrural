@@ -1,23 +1,14 @@
 'use client'
 
 import { signOut } from 'next-auth/react'
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 
 export default function SignOutPage() {
-  const [isLoading, setIsLoading] = useState(false)
-  const router = useRouter()
-
-  const handleSignOut = async () => {
-    setIsLoading(true)
-    try {
-      // 🔥 Llamar al signOut sin redirect, luego redirigir manualmente
-      await signOut({ redirect: false })
-      router.push('/login')
-    } catch (error) {
-      console.error('Error al cerrar sesión:', error)
-      setIsLoading(false)
-    }
+  const handleSignOut = () => {
+    // 🔥 SOLUCIÓN: redirect: true y callbackUrl
+    signOut({ 
+      callbackUrl: '/login',
+      redirect: true  // Deja que NextAuth maneje todo
+    })
   }
 
   return (
@@ -34,16 +25,14 @@ export default function SignOutPage() {
         <div className="space-y-3">
           <button
             onClick={handleSignOut}
-            disabled={isLoading}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors"
           >
-            {isLoading ? 'Cerrando sesión...' : 'Cerrar sesión'}
+            Cerrar sesión
           </button>
 
           <button
-            onClick={() => router.back()}
-            disabled={isLoading}
-            className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={() => window.history.back()}
+            className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-3 px-4 rounded-lg transition-colors"
           >
             Cancelar
           </button>
