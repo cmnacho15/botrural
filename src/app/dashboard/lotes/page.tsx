@@ -806,7 +806,7 @@ const [acordeonesAbiertos, setAcordeonesAbiertos] = useState<{[key: string]: boo
           (click para {(acordeonesAbiertos['sin-modulo'] ?? false) ? 'contraer' : 'expandir'})
         </span>
       </h3>
-      <p className="text-sm text-gray-600">Potreros sin módulo asignado</p>
+      <p className="text-sm text-gray-600">Potreros sin módulo de pastoreo asignado</p>
     </div>
   </div>
   
