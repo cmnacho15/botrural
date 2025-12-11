@@ -69,27 +69,26 @@ export default function ModulosPreferencias() {
   }
 
   async function handleDesvincularPotrero(potreroId: string) {
-    if (!moduloPotreros) return
+  if (!moduloPotreros) return
 
-    try {
-      const response = await fetch(`/api/modulos-pastoreo/${moduloPotreros.id}/potreros/${potreroId}`, {
-        method: 'DELETE',
-      })
+  try {
+    const response = await fetch(`/api/modulos-pastoreo/${moduloPotreros.id}/potreros`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ potreroId })
+    })
 
-      if (response.ok) {
-        // Recargar potreros del módulo
-        cargarPotrerosDelModulo(moduloPotreros.id)
-        // Recargar módulos para actualizar el contador
-        cargarModulos()
-        alert('Potrero desvinculado. Ahora está en "Resto del campo".')
-      } else {
-        const error = await response.json()
-        alert(error.error || 'Error al desvincular potrero')
-      }
-    } catch (error) {
-      alert('Error al desvincular potrero')
+    if (response.ok) {
+      cargarPotrerosDelModulo(moduloPotreros.id)
+      cargarModulos()
+      alert('Potrero desvinculado. Ahora está en "Resto del campo".')
+    } else {
+      alert('Error al desvincular')
     }
+  } catch (error) {
+    alert('Error al desvincular')
   }
+}
 
   async function handleGuardarModulo() {
     if (!nuevoModulo.nombre.trim()) {
