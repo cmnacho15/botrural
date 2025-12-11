@@ -60,17 +60,16 @@ export async function handleCalendarioCrear(
       timeZone: 'America/Montevideo'
     })
 
-    // Enviar con botón de editar por si el audio se entendió mal
+    // ✅ SOLO BOTÓN EDITAR - Si está mal, permite corregir TODO desde cero
     await sendWhatsAppButtons(
       telefono,
       `✅ *Actividad agendada*\n\n` +
       `📌 ${parsedData.titulo}\n` +
       `📅 ${fechaFormateada}\n` +
       `⏰ En ${parsedData.diasDesdeHoy} día${parsedData.diasDesdeHoy !== 1 ? 's' : ''}\n\n` +
-      `_Si el texto no es correcto, podés editarlo._`,
+      `_Si algo no es correcto, podés editarlo._`,
       [
-        { id: `cal_edit_${actividad.id}`, title: "✏️ Editar" },
-        { id: `cal_ok_${actividad.id}`, title: "👍 Está bien" }
+        { id: `cal_edit_${actividad.id}`, title: "✏️ Editar" }
       ]
     )
 
@@ -130,7 +129,6 @@ export async function handleCalendarioConsultar(telefono: string) {
       return
     }
 
-    // Enviar cada actividad con botones
     for (const act of actividades) {
       const fecha = new Date(act.fechaProgramada)
       const diasRestantes = Math.ceil((fecha.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24))
@@ -181,7 +179,7 @@ export async function handleCalendarioButtonResponse(
 ) {
   try {
     const parts = buttonId.split('_')
-    const accion = parts[1] // "done", "delete", "edit", "ok"
+    const accion = parts[1] // "done", "delete", "edit"
     const actividadId = parts[2]
 
     const user = await prisma.user.findUnique({
@@ -206,36 +204,28 @@ export async function handleCalendarioButtonResponse(
       return
     }
 
+    // ==========================================
+    // ✏️ EDITAR - Borra actividad y pide mensaje completo de nuevo
+    // ==========================================
     if (accion === "edit") {
-      // Guardar que está editando esta actividad
-      await prisma.pendingConfirmation.upsert({
-        where: { telefono },
-        create: {
-          telefono,
-          data: JSON.stringify({ tipo: "EDITAR_CALENDARIO", actividadId })
-        },
-        update: {
-          data: JSON.stringify({ tipo: "EDITAR_CALENDARIO", actividadId })
-        }
+      // Borrar la actividad
+      await prisma.actividadCalendario.delete({
+        where: { id: actividadId }
       })
 
       await sendWhatsAppMessage(
         telefono,
         `✏️ *Editando actividad*\n\n` +
-        `Texto actual: "${actividad.titulo}"\n\n` +
-        `Escribí o mandá un audio con el texto corregido:`
+        `La actividad fue eliminada.\n\n` +
+        `Mandame de nuevo el mensaje completo (texto o audio) con la información correcta.\n\n` +
+        `Ejemplo: "en 15 días sacar tablilla"`
       )
       return
     }
 
-    if (accion === "ok") {
-      await sendWhatsAppMessage(
-        telefono,
-        `👍 Perfecto, actividad guardada.\n\n_Escribí "calendario" para ver tus pendientes._`
-      )
-      return
-    }
-
+    // ==========================================
+    // ✅ MARCAR COMO REALIZADA
+    // ==========================================
     if (accion === "done") {
       await prisma.actividadCalendario.update({
         where: { id: actividadId },
@@ -252,6 +242,9 @@ export async function handleCalendarioButtonResponse(
       return
     }
 
+    // ==========================================
+    // 🗑️ ELIMINAR
+    // ==========================================
     if (accion === "delete") {
       await prisma.actividadCalendario.delete({
         where: { id: actividadId }

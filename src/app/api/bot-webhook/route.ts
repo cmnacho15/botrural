@@ -24,7 +24,6 @@ import {
   handleCalendarioButtonResponse,
 } from "@/lib/whatsapp"
 
-
 const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || "mi_token_secreto"
 
 /**
@@ -48,7 +47,7 @@ export async function GET(request: Request) {
  * POST - Recibir mensajes de WhatsApp
  */
 export async function POST(request: Request) {
-  console.error("=== VERSIÓN: v3.1 CON CALENDARIO - 2025-12-11 ===")
+  console.error("=== VERSIÓN: v3.2 CALENDARIO CON EDICIÓN COMPLETA - 2025-12-11 ===")
   try {
     const body = await request.json()
 
@@ -159,29 +158,9 @@ export async function POST(request: Request) {
     })
 
     if (confirmacionPendiente) {
-  const pendingData = JSON.parse(confirmacionPendiente.data)
-  
-  // Si está editando una actividad del calendario
-  if (pendingData.tipo === "EDITAR_CALENDARIO") {
-    await prisma.actividadCalendario.update({
-      where: { id: pendingData.actividadId },
-      data: { titulo: messageText.trim() }
-    })
-    
-    await prisma.pendingConfirmation.delete({
-      where: { telefono: from }
-    })
-    
-    await sendWhatsAppMessage(
-      from,
-      `✅ *Actividad actualizada*\n\n📌 ${messageText.trim()}\n\n_Escribí "calendario" para ver tus pendientes._`
-    )
-    return NextResponse.json({ status: "calendario edited" })
-  }
-  
-  await handleConfirmacion(from, messageText, confirmacionPendiente)
-  return NextResponse.json({ status: "confirmacion processed" })
-}
+      await handleConfirmacion(from, messageText, confirmacionPendiente)
+      return NextResponse.json({ status: "confirmacion processed" })
+    }
 
     // ==========================================
     // 6. FASE 3: Procesar con GPT (texto/audio)
