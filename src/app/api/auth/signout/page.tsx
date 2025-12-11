@@ -1,7 +1,3 @@
-// ========================================
-// 2. CREAR: src/app/auth/signout/page.tsx
-// ========================================
-
 'use client'
 
 import { signOut } from 'next-auth/react'
@@ -12,7 +8,8 @@ export default function SignOutPage() {
 
   const handleSignOut = async () => {
     setIsLoading(true)
-    await signOut({ callbackUrl: '/login' })
+    // 🔥 Esto llama al endpoint correcto de NextAuth
+    await signOut({ callbackUrl: '/login', redirect: true })
   }
 
   return (
