@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma"
 import { sendWhatsAppMessage, sendWhatsAppButtons } from "../sendMessage"
+
 /**
  * 📅 Crear actividad en el calendario
  */
@@ -59,14 +60,19 @@ export async function handleCalendarioCrear(
       timeZone: 'America/Montevideo'
     })
 
-    await sendWhatsAppMessage(
-  telefono,
-  `✅ *Actividad agendada*\n\n` +
-  `📌 ${parsedData.titulo}\n` +
-  `📅 ${fechaFormateada}\n` +
-  `⏰ En ${parsedData.diasDesdeHoy} día${parsedData.diasDesdeHoy !== 1 ? 's' : ''}\n\n` +
-  `_Escribí o mandá un audio diciendo "calendario" para ver tus pendientes, o entrá a la web en la sección Calendario._`
-)
+    // Enviar con botón de editar por si el audio se entendió mal
+    await sendWhatsAppButtons(
+      telefono,
+      `✅ *Actividad agendada*\n\n` +
+      `📌 ${parsedData.titulo}\n` +
+      `📅 ${fechaFormateada}\n` +
+      `⏰ En ${parsedData.diasDesdeHoy} día${parsedData.diasDesdeHoy !== 1 ? 's' : ''}\n\n` +
+      `_Si el texto no es correcto, podés editarlo._`,
+      [
+        { id: `cal_edit_${actividad.id}`, title: "✏️ Editar" },
+        { id: `cal_ok_${actividad.id}`, title: "👍 Está bien" }
+      ]
+    )
 
     console.log("✅ Actividad creada:", actividad.id)
 
@@ -174,9 +180,8 @@ export async function handleCalendarioButtonResponse(
   buttonId: string
 ) {
   try {
-    // Extraer acción e ID
     const parts = buttonId.split('_')
-    const accion = parts[1] // "done" o "delete"
+    const accion = parts[1] // "done", "delete", "edit", "ok"
     const actividadId = parts[2]
 
     const user = await prisma.user.findUnique({
@@ -189,7 +194,6 @@ export async function handleCalendarioButtonResponse(
       return
     }
 
-    // Verificar que la actividad existe y pertenece al campo
     const actividad = await prisma.actividadCalendario.findFirst({
       where: {
         id: actividadId,
@@ -199,6 +203,36 @@ export async function handleCalendarioButtonResponse(
 
     if (!actividad) {
       await sendWhatsAppMessage(telefono, "❌ Actividad no encontrada")
+      return
+    }
+
+    if (accion === "edit") {
+      // Guardar que está editando esta actividad
+      await prisma.pendingConfirmation.upsert({
+        where: { telefono },
+        create: {
+          telefono,
+          data: JSON.stringify({ tipo: "EDITAR_CALENDARIO", actividadId })
+        },
+        update: {
+          data: JSON.stringify({ tipo: "EDITAR_CALENDARIO", actividadId })
+        }
+      })
+
+      await sendWhatsAppMessage(
+        telefono,
+        `✏️ *Editando actividad*\n\n` +
+        `Texto actual: "${actividad.titulo}"\n\n` +
+        `Escribí o mandá un audio con el texto corregido:`
+      )
+      return
+    }
+
+    if (accion === "ok") {
+      await sendWhatsAppMessage(
+        telefono,
+        `👍 Perfecto, actividad guardada.\n\n_Escribí "calendario" para ver tus pendientes._`
+      )
       return
     }
 
@@ -215,7 +249,10 @@ export async function handleCalendarioButtonResponse(
         telefono,
         `✅ *Completada:* ${actividad.titulo}\n\n_¡Bien hecho!_`
       )
-    } else if (accion === "delete") {
+      return
+    }
+
+    if (accion === "delete") {
       await prisma.actividadCalendario.delete({
         where: { id: actividadId }
       })
@@ -224,6 +261,7 @@ export async function handleCalendarioButtonResponse(
         telefono,
         `🗑️ *Eliminada:* ${actividad.titulo}`
       )
+      return
     }
 
   } catch (error) {

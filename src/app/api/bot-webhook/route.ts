@@ -159,9 +159,29 @@ export async function POST(request: Request) {
     })
 
     if (confirmacionPendiente) {
-      await handleConfirmacion(from, messageText, confirmacionPendiente)
-      return NextResponse.json({ status: "confirmacion processed" })
-    }
+  const pendingData = JSON.parse(confirmacionPendiente.data)
+  
+  // Si está editando una actividad del calendario
+  if (pendingData.tipo === "EDITAR_CALENDARIO") {
+    await prisma.actividadCalendario.update({
+      where: { id: pendingData.actividadId },
+      data: { titulo: messageText.trim() }
+    })
+    
+    await prisma.pendingConfirmation.delete({
+      where: { telefono: from }
+    })
+    
+    await sendWhatsAppMessage(
+      from,
+      `✅ *Actividad actualizada*\n\n📌 ${messageText.trim()}\n\n_Escribí "calendario" para ver tus pendientes._`
+    )
+    return NextResponse.json({ status: "calendario edited" })
+  }
+  
+  await handleConfirmacion(from, messageText, confirmacionPendiente)
+  return NextResponse.json({ status: "confirmacion processed" })
+}
 
     // ==========================================
     // 6. FASE 3: Procesar con GPT (texto/audio)
