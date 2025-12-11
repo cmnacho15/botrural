@@ -37,6 +37,7 @@ function Tooltip({ children, content }: TooltipProps) {
   const [isVisible, setIsVisible] = useState(false)
   const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 })
   const [arrowLeft, setArrowLeft] = useState(0)
+  const [posicionArriba, setPosicionArriba] = useState(false)
   const triggerRef = useRef<HTMLDivElement>(null)
 
   const handleMouseEnter = () => {
@@ -44,9 +45,22 @@ function Tooltip({ children, content }: TooltipProps) {
 
     const rect = triggerRef.current.getBoundingClientRect()
     const tooltipWidth = 384 // w-96 = 384px
+    const tooltipHeight = 220 // altura estimada del tooltip
     
-    // Siempre posicionar DEBAJO del elemento
-    const top = rect.bottom + 12 // 12px de separación
+    // Detectar si hay espacio abajo
+    const espacioAbajo = window.innerHeight - rect.bottom
+    const hayEspacioAbajo = espacioAbajo > tooltipHeight + 20
+    
+    let top: number
+    if (hayEspacioAbajo) {
+      // Posicionar DEBAJO
+      top = rect.bottom + 12
+      setPosicionArriba(false)
+    } else {
+      // Posicionar ARRIBA
+      top = rect.top - tooltipHeight - 12
+      setPosicionArriba(true)
+    }
     
     // Centrar horizontalmente respecto al trigger
     let left = rect.left + rect.width / 2 - tooltipWidth / 2
@@ -76,9 +90,9 @@ function Tooltip({ children, content }: TooltipProps) {
       }}
       className="w-96 p-4 bg-gray-900 text-white text-sm rounded-lg shadow-2xl pointer-events-none"
     >
-      {/* Flecha siempre arriba, apuntando al trigger */}
+      {/* Flecha dinámica: arriba o abajo según posición */}
       <div 
-        className="absolute w-3 h-3 bg-gray-900 transform rotate-45 top-[-6px]"
+        className={`absolute w-3 h-3 bg-gray-900 transform rotate-45 ${posicionArriba ? 'bottom-[-6px]' : 'top-[-6px]'}`}
         style={{ left: `${arrowLeft}px`, marginLeft: '-6px' }}
       ></div>
       {content}
