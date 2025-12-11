@@ -15,4 +15,7 @@ export { isToken } from './handlers/tokenHandler'
 export {
   handleCalendarioCrear,
   handleCalendarioConsultar,
+  handleCalendarioButtonResponse,
 } from "./handlers/calendarioHandler"
+
+export { sendWhatsAppButtons } from "./sendMessage"

@@ -1,3 +1,5 @@
+//src/lib/whatsapp/sendMessage.ts
+
 export async function sendWhatsAppMessage(to: string, text: string) {
   const phoneId = process.env.WHATSAPP_PHONE_ID
   const token = process.env.WHATSAPP_TOKEN
@@ -37,4 +39,64 @@ export async function sendWhatsAppMessage(to: string, text: string) {
   
   console.log('✅ Mensaje enviado exitosamente')
   return responseData
+}
+
+/**
+ * 📤 Enviar mensaje con botones interactivos
+ */
+export async function sendWhatsAppButtons(
+  to: string,
+  body: string,
+  buttons: Array<{ id: string; title: string }>
+) {
+  const phoneId = process.env.WHATSAPP_PHONE_ID
+  const token = process.env.WHATSAPP_TOKEN
+
+  if (!phoneId || !token) {
+    console.error('❌ WHATSAPP_PHONE_ID o WHATSAPP_TOKEN no configurados')
+    throw new Error('WhatsApp no configurado')
+  }
+
+  try {
+    const response = await fetch(
+      `https://graph.facebook.com/v22.0/${phoneId}/messages`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          messaging_product: "whatsapp",
+          to: to,
+          type: "interactive",
+          interactive: {
+            type: "button",
+            body: { text: body },
+            action: {
+              buttons: buttons.map(btn => ({
+                type: "reply",
+                reply: {
+                  id: btn.id,
+                  title: btn.title.substring(0, 20)
+                }
+              }))
+            }
+          }
+        }),
+      }
+    )
+
+    const responseData = await response.json()
+
+    if (!response.ok) {
+      console.error("❌ Error enviando botones:", responseData)
+    } else {
+      console.log("✅ Botones enviados exitosamente")
+    }
+
+    return responseData
+  } catch (error) {
+    console.error("❌ Error enviando botones:", error)
+  }
 }
