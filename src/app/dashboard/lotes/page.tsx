@@ -415,12 +415,21 @@ const [acordeonesAbiertos, setAcordeonesAbiertos] = useState<{[key: string]: boo
 
   // Calcular totales por módulo
   const calcularTotalesModulo = (lotesDelModulo: Lote[]) => {
-    const totalHectareas = lotesDelModulo.reduce((sum, l) => sum + l.hectareas, 0)
-    const todosAnimales = lotesDelModulo.flatMap(l => l.animalesLote || [])
-    const totalAnimales = todosAnimales.reduce((sum, a) => sum + a.cantidad, 0)
-    
-    return { totalHectareas, totalAnimales }
-  }
+  const totalHectareas = lotesDelModulo.reduce((sum, l) => sum + l.hectareas, 0)
+  const todosAnimales = lotesDelModulo.flatMap(l => l.animalesLote || [])
+  const totalAnimales = todosAnimales.reduce((sum, a) => sum + a.cantidad, 0)
+  
+  // 🔥 NUEVO: Calcular UG totales del módulo
+  const ugTotales = todosAnimales.reduce((total, animal) => {
+    const equivalencia = EQUIVALENCIAS_UG[animal.categoria] || 0
+    return total + (animal.cantidad * equivalencia)
+  }, 0)
+  
+  // 🔥 NUEVO: Calcular UG/ha del módulo
+  const ugPorHa = totalHectareas > 0 ? ugTotales / totalHectareas : 0
+  
+  return { totalHectareas, totalAnimales, ugPorHa }
+}
 
   // 🎴 COMPONENTE PARA RENDERIZAR UN POTRERO (reutilizable)
   const PotreroCard = ({ lote }: { lote: Lote }) => (
@@ -686,7 +695,7 @@ const [acordeonesAbiertos, setAcordeonesAbiertos] = useState<{[key: string]: boo
               {/* 📦 MÓDULOS DE PASTOREO */}
               {lotesAgrupados.modulos.map((modulo) => {
                 const estaAbierto = acordeonesAbiertos[modulo.id] ?? false
-                const { totalHectareas, totalAnimales } = calcularTotalesModulo(modulo.lotes)
+                const { totalHectareas, totalAnimales, ugPorHa } = calcularTotalesModulo(modulo.lotes)
                 
                 return (
                   <div key={modulo.id} className="border border-gray-200 rounded-lg overflow-hidden">
@@ -715,11 +724,29 @@ const [acordeonesAbiertos, setAcordeonesAbiertos] = useState<{[key: string]: boo
   
   <div className="flex items-center gap-3 flex-wrap justify-end">
     <span className="text-sm text-gray-600 bg-white px-3 py-1 rounded-full">
-      {modulo.lotes.length} potrero{modulo.lotes.length !== 1 ? 's' : ''}
-    </span>
-    <span className="text-sm text-gray-600 bg-white px-3 py-1 rounded-full">
-      {totalHectareas.toFixed(1)} ha
-    </span>
+  {modulo.lotes.length} potrero{modulo.lotes.length !== 1 ? 's' : ''}
+</span>
+
+{/* 🔥 NUEVO: UG/ha del módulo con tooltip */}
+{totalAnimales > 0 && (() => {
+  const color = 
+    ugPorHa < 0.7 ? 'bg-blue-100 text-blue-700' :
+    ugPorHa <= 1.5 ? 'bg-green-100 text-green-700' :
+    ugPorHa <= 2.0 ? 'bg-orange-100 text-orange-700' :
+    'bg-red-100 text-red-700'
+  
+  return (
+    <Tooltip content={<TooltipCargaGlobal />}>
+      <span className={`px-3 py-1 rounded-full text-sm font-medium ${color}`}>
+        {ugPorHa.toFixed(2)} UG/ha
+      </span>
+    </Tooltip>
+  )
+})()}
+
+<span className="text-sm text-gray-600 bg-white px-3 py-1 rounded-full">
+  {totalHectareas.toFixed(1)} ha
+</span>
     <span className="text-sm text-gray-600 bg-white px-3 py-1 rounded-full">
       {totalAnimales} animales
     </span>
