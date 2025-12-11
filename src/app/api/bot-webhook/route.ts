@@ -103,10 +103,16 @@ export async function POST(request: Request) {
         }
       }
     } else if (messageType === "audio") {
-      // Procesar audio
-      await handleAudioMessage(message, from)
-      return NextResponse.json({ status: "audio processed" })
-    } else {
+  // Procesar audio y obtener transcripción
+  const transcription = await handleAudioMessage(message, from)
+  if (transcription) {
+    // Usar la transcripción como mensaje de texto
+    messageText = transcription
+    console.log(`Audio transcrito, procesando como texto: ${messageText}`)
+  } else {
+    return NextResponse.json({ status: "audio failed" })
+  }
+} else {
       // Tipo no soportado
       await sendWhatsAppMessage(
         from,
