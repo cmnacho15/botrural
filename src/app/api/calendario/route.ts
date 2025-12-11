@@ -28,7 +28,7 @@ export async function GET(request: Request) {
 
     // Límite de 60 días
     const limite = new Date(hoy)
-    limite.setDate(limite.getDate() + 60)
+    limite.setDate(limite.getDate() + 90)
 
     // También mostrar actividades vencidas no realizadas (hasta 7 días atrás)
     const inicioVencidas = new Date(hoy)
@@ -136,7 +136,7 @@ export async function POST(request: Request) {
 
     if (fecha > limite) {
       return NextResponse.json(
-        { error: "Solo podés agendar hasta 60 días en el futuro" },
+        { error: "Solo podés agendar hasta 90 días en el futuro" },
         { status: 400 }
       )
     }

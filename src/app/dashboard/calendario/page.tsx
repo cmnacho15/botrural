@@ -7,13 +7,14 @@ import {
   Calendar, 
   Plus, 
   Check, 
-  X, 
+  Trash2, 
   Clock, 
   AlertTriangle,
   ChevronLeft,
   ChevronRight,
   MessageSquare,
-  Globe
+  Globe,
+  X
 } from "lucide-react"
 
 interface Actividad {
@@ -39,6 +40,9 @@ export default function CalendarioPage() {
   const [nuevaFecha, setNuevaFecha] = useState("")
   const [nuevaNota, setNuevaNota] = useState("")
   const [guardando, setGuardando] = useState(false)
+
+  // Modal para ver detalle de actividad
+  const [actividadSeleccionada, setActividadSeleccionada] = useState<Actividad | null>(null)
 
   // Cargar actividades
   const cargarActividades = async () => {
@@ -70,6 +74,7 @@ export default function CalendarioPage() {
 
       if (res.ok) {
         cargarActividades()
+        setActividadSeleccionada(null)
       }
     } catch (error) {
       console.error("Error actualizando actividad:", error)
@@ -87,6 +92,7 @@ export default function CalendarioPage() {
 
       if (res.ok) {
         cargarActividades()
+        setActividadSeleccionada(null)
       }
     } catch (error) {
       console.error("Error eliminando actividad:", error)
@@ -167,11 +173,11 @@ export default function CalendarioPage() {
     })
   }
 
-  // Calcular límites de fecha para el input
+  // Calcular límites de fecha para el input (90 días)
   const hoy = new Date()
   const fechaMin = hoy.toISOString().split('T')[0]
   const limite = new Date(hoy)
-  limite.setDate(limite.getDate() + 60)
+  limite.setDate(limite.getDate() + 90)
   const fechaMax = limite.toISOString().split('T')[0]
 
   const diasCalendario = generarDiasCalendario()
@@ -181,8 +187,22 @@ export default function CalendarioPage() {
   const vencidas = actividades.filter(a => a.estado === "vencida").length
   const realizadasCount = actividades.filter(a => a.estado === "realizada").length
 
+  // Colores más vivos para el calendario
+  const getColorDia = (actividadesDia: Actividad[]) => {
+    if (actividadesDia.length === 0) return ""
+    
+    const tieneVencida = actividadesDia.some(a => a.estado === "vencida")
+    const tieneHoy = actividadesDia.some(a => a.estado === "hoy")
+    const tieneRealizada = actividadesDia.every(a => a.estado === "realizada")
+    
+    if (tieneVencida) return "bg-red-100 border-red-300"
+    if (tieneHoy) return "bg-amber-100 border-amber-300"
+    if (tieneRealizada) return "bg-green-100 border-green-300"
+    return "bg-blue-100 border-blue-300"
+  }
+
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="p-4 sm:p-6 max-w-7xl mx-auto">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
@@ -191,13 +211,13 @@ export default function CalendarioPage() {
             Calendario
           </h1>
           <p className="text-gray-500 mt-1">
-            Próximos 60 días · Agendá desde la web o WhatsApp
+            Próximos 90 días · Agendá desde la web o WhatsApp
           </p>
         </div>
 
         <button
           onClick={() => setModalOpen(true)}
-          className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+          className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-xl hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200"
         >
           <Plus className="w-5 h-5" />
           Nueva actividad
@@ -205,29 +225,29 @@ export default function CalendarioPage() {
       </div>
 
       {/* Estadísticas rápidas */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+      <div className="grid grid-cols-3 gap-3 sm:gap-4 mb-6">
+        <div className="bg-gradient-to-br from-amber-50 to-amber-100 border-2 border-amber-200 rounded-xl p-3 sm:p-4">
           <div className="flex items-center gap-2">
-            <Clock className="w-5 h-5 text-yellow-600" />
-            <span className="text-yellow-800 font-medium">Pendientes</span>
+            <Clock className="w-5 h-5 text-amber-600" />
+            <span className="text-amber-800 font-medium text-sm sm:text-base">Pendientes</span>
           </div>
-          <p className="text-2xl font-bold text-yellow-900 mt-1">{pendientes}</p>
+          <p className="text-2xl sm:text-3xl font-bold text-amber-900 mt-1">{pendientes}</p>
         </div>
         
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+        <div className="bg-gradient-to-br from-red-50 to-red-100 border-2 border-red-200 rounded-xl p-3 sm:p-4">
           <div className="flex items-center gap-2">
             <AlertTriangle className="w-5 h-5 text-red-600" />
-            <span className="text-red-800 font-medium">Vencidas</span>
+            <span className="text-red-800 font-medium text-sm sm:text-base">Vencidas</span>
           </div>
-          <p className="text-2xl font-bold text-red-900 mt-1">{vencidas}</p>
+          <p className="text-2xl sm:text-3xl font-bold text-red-900 mt-1">{vencidas}</p>
         </div>
         
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+        <div className="bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-200 rounded-xl p-3 sm:p-4">
           <div className="flex items-center gap-2">
             <Check className="w-5 h-5 text-green-600" />
-            <span className="text-green-800 font-medium">Realizadas</span>
+            <span className="text-green-800 font-medium text-sm sm:text-base">Realizadas</span>
           </div>
-          <p className="text-2xl font-bold text-green-900 mt-1">{realizadasCount}</p>
+          <p className="text-2xl sm:text-3xl font-bold text-green-900 mt-1">{realizadasCount}</p>
         </div>
       </div>
 
@@ -245,10 +265,10 @@ export default function CalendarioPage() {
       </div>
 
       {/* Navegación del mes */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-4 bg-white rounded-xl border border-gray-200 p-3">
         <button
           onClick={() => setMesActual(new Date(mesActual.getFullYear(), mesActual.getMonth() - 1))}
-          className="p-2 hover:bg-gray-100 rounded-lg"
+          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
         >
           <ChevronLeft className="w-5 h-5" />
         </button>
@@ -259,18 +279,18 @@ export default function CalendarioPage() {
         
         <button
           onClick={() => setMesActual(new Date(mesActual.getFullYear(), mesActual.getMonth() + 1))}
-          className="p-2 hover:bg-gray-100 rounded-lg"
+          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
         >
           <ChevronRight className="w-5 h-5" />
         </button>
       </div>
 
       {/* Calendario */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden mb-6">
+      <div className="bg-white rounded-xl border-2 border-gray-200 overflow-hidden mb-6 shadow-sm">
         {/* Días de la semana */}
-        <div className="grid grid-cols-7 bg-gray-50 border-b">
+        <div className="grid grid-cols-7 bg-gray-100 border-b-2 border-gray-200">
           {['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'].map(dia => (
-            <div key={dia} className="p-3 text-center text-sm font-medium text-gray-600">
+            <div key={dia} className="p-2 sm:p-3 text-center text-xs sm:text-sm font-semibold text-gray-600">
               {dia}
             </div>
           ))}
@@ -281,37 +301,40 @@ export default function CalendarioPage() {
           {diasCalendario.map((dia, idx) => {
             const actividadesDia = getActividadesDia(dia.fecha)
             const esHoy = dia.fecha.toDateString() === new Date().toDateString()
+            const colorDia = getColorDia(actividadesDia)
             
             return (
               <div
                 key={idx}
                 className={`
-                  min-h-[100px] p-2 border-b border-r
+                  min-h-[80px] sm:min-h-[100px] p-1 sm:p-2 border-b border-r border-gray-100
                   ${!dia.esDelMes ? 'bg-gray-50' : ''}
-                  ${esHoy ? 'bg-blue-50' : ''}
+                  ${esHoy ? 'ring-2 ring-blue-500 ring-inset' : ''}
+                  ${colorDia}
                 `}
               >
                 <div className={`
-                  text-sm font-medium mb-1
+                  text-xs sm:text-sm font-semibold mb-1
                   ${!dia.esDelMes ? 'text-gray-400' : 'text-gray-700'}
                   ${esHoy ? 'text-blue-600' : ''}
                 `}>
                   {dia.fecha.getDate()}
+                  {esHoy && <span className="ml-1 text-[10px] sm:text-xs font-normal">(hoy)</span>}
                 </div>
                 
-                {/* Actividades del día */}
+                {/* Actividades del día - Click abre detalle */}
                 <div className="space-y-1">
-                  {actividadesDia.slice(0, 3).map(act => (
+                  {actividadesDia.slice(0, 2).map(act => (
                     <div
                       key={act.id}
-                      onClick={() => toggleRealizada(act.id, act.realizada)}
+                      onClick={() => setActividadSeleccionada(act)}
                       className={`
-                        text-xs p-1 rounded cursor-pointer truncate
-                        flex items-center gap-1
-                        ${act.estado === 'realizada' ? 'bg-green-100 text-green-800 line-through' : ''}
-                        ${act.estado === 'vencida' ? 'bg-red-100 text-red-800' : ''}
-                        ${act.estado === 'hoy' ? 'bg-yellow-100 text-yellow-800 font-medium' : ''}
-                        ${act.estado === 'pendiente' ? 'bg-blue-100 text-blue-800' : ''}
+                        text-[10px] sm:text-xs p-1 sm:p-1.5 rounded cursor-pointer
+                        flex items-center gap-1 transition-all hover:scale-[1.02]
+                        ${act.estado === 'realizada' ? 'bg-green-500 text-white' : ''}
+                        ${act.estado === 'vencida' ? 'bg-red-500 text-white' : ''}
+                        ${act.estado === 'hoy' ? 'bg-amber-500 text-white font-semibold' : ''}
+                        ${act.estado === 'pendiente' ? 'bg-blue-500 text-white' : ''}
                       `}
                       title={act.titulo}
                     >
@@ -323,9 +346,12 @@ export default function CalendarioPage() {
                       <span className="truncate">{act.titulo}</span>
                     </div>
                   ))}
-                  {actividadesDia.length > 3 && (
-                    <div className="text-xs text-gray-500">
-                      +{actividadesDia.length - 3} más
+                  {actividadesDia.length > 2 && (
+                    <div 
+                      className="text-[10px] sm:text-xs text-gray-600 font-medium cursor-pointer hover:text-blue-600"
+                      onClick={() => setActividadSeleccionada(actividadesDia[0])}
+                    >
+                      +{actividadesDia.length - 2} más
                     </div>
                   )}
                 </div>
@@ -336,53 +362,52 @@ export default function CalendarioPage() {
       </div>
 
       {/* Lista de actividades */}
-      <div className="bg-white rounded-xl border border-gray-200">
-        <div className="p-4 border-b">
+      <div className="bg-white rounded-xl border-2 border-gray-200 shadow-sm">
+        <div className="p-4 border-b border-gray-200 bg-gray-50 rounded-t-xl">
           <h3 className="font-semibold text-gray-900">Todas las actividades</h3>
         </div>
         
         {loading ? (
           <div className="p-8 text-center text-gray-500">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-3"></div>
             Cargando...
           </div>
         ) : actividades.length === 0 ? (
           <div className="p-8 text-center text-gray-500">
             <Calendar className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-            <p>No hay actividades agendadas</p>
+            <p className="font-medium">No hay actividades agendadas</p>
             <p className="text-sm mt-1">
               Creá una desde acá o enviá un audio a WhatsApp
             </p>
           </div>
         ) : (
-          <div className="divide-y">
+          <div className="divide-y divide-gray-100">
             {actividades.map(act => (
               <div
                 key={act.id}
                 className={`
-                  p-4 flex items-center justify-between
-                  ${act.estado === 'realizada' ? 'bg-gray-50' : ''}
-                  ${act.estado === 'vencida' ? 'bg-red-50' : ''}
-                  ${act.estado === 'hoy' ? 'bg-yellow-50' : ''}
+                  p-4 flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer
+                  ${act.estado === 'realizada' ? 'bg-green-50/50' : ''}
+                  ${act.estado === 'vencida' ? 'bg-red-50/50' : ''}
+                  ${act.estado === 'hoy' ? 'bg-amber-50/50' : ''}
                 `}
+                onClick={() => setActividadSeleccionada(act)}
               >
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => toggleRealizada(act.id, act.realizada)}
-                    className={`
-                      w-6 h-6 rounded-full border-2 flex items-center justify-center
-                      ${act.realizada 
-                        ? 'bg-green-500 border-green-500 text-white' 
-                        : 'border-gray-300 hover:border-blue-500'}
-                    `}
-                  >
-                    {act.realizada && <Check className="w-4 h-4" />}
-                  </button>
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  {/* Indicador de estado */}
+                  <div className={`
+                    w-3 h-3 rounded-full flex-shrink-0
+                    ${act.estado === 'realizada' ? 'bg-green-500' : ''}
+                    ${act.estado === 'vencida' ? 'bg-red-500' : ''}
+                    ${act.estado === 'hoy' ? 'bg-amber-500' : ''}
+                    ${act.estado === 'pendiente' ? 'bg-blue-500' : ''}
+                  `} />
                   
-                  <div>
-                    <p className={`font-medium ${act.realizada ? 'line-through text-gray-500' : 'text-gray-900'}`}>
+                  <div className="min-w-0 flex-1">
+                    <p className={`font-medium truncate ${act.realizada ? 'line-through text-gray-500' : 'text-gray-900'}`}>
                       {act.titulo}
                     </p>
-                    <div className="flex items-center gap-2 mt-1">
+                    <div className="flex items-center gap-2 mt-1 flex-wrap">
                       <span className="text-sm text-gray-500">
                         {new Date(act.fechaProgramada).toLocaleDateString('es-UY', {
                           weekday: 'short',
@@ -399,26 +424,21 @@ export default function CalendarioPage() {
                       )}
                       
                       {act.estado === 'vencida' && (
-                        <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full">
+                        <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-medium">
                           Vencida
                         </span>
                       )}
                       
                       {act.estado === 'hoy' && (
-                        <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full">
-                          Hoy
+                        <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">
+                          ¡Hoy!
                         </span>
                       )}
                     </div>
                   </div>
                 </div>
 
-                <button
-                  onClick={() => eliminarActividad(act.id)}
-                  className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg"
-                >
-                  <X className="w-5 h-5" />
-                </button>
+                <ChevronRight className="w-5 h-5 text-gray-400 flex-shrink-0" />
               </div>
             ))}
           </div>
@@ -428,8 +448,16 @@ export default function CalendarioPage() {
       {/* Modal Nueva Actividad */}
       {modalOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-md w-full p-6">
-            <h2 className="text-xl font-bold mb-4">Nueva actividad</h2>
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold">Nueva actividad</h2>
+              <button 
+                onClick={() => setModalOpen(false)}
+                className="p-2 hover:bg-gray-100 rounded-full"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
             
             <form onSubmit={crearActividad}>
               <div className="space-y-4">
@@ -442,7 +470,7 @@ export default function CalendarioPage() {
                     value={nuevoTitulo}
                     onChange={(e) => setNuevoTitulo(e.target.value)}
                     placeholder="Ej: Vacunar terneros, llamar veterinario..."
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     required
                     autoFocus
                   />
@@ -458,11 +486,11 @@ export default function CalendarioPage() {
                     onChange={(e) => setNuevaFecha(e.target.value)}
                     min={fechaMin}
                     max={fechaMax}
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     required
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    Máximo 60 días desde hoy
+                    Máximo 90 días desde hoy
                   </p>
                 </div>
 
@@ -475,7 +503,7 @@ export default function CalendarioPage() {
                     onChange={(e) => setNuevaNota(e.target.value)}
                     placeholder="Información adicional..."
                     rows={2}
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                 </div>
               </div>
@@ -484,19 +512,118 @@ export default function CalendarioPage() {
                 <button
                   type="button"
                   onClick={() => setModalOpen(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                  className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-xl hover:bg-gray-50 font-medium"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={guardando || !nuevoTitulo.trim() || !nuevaFecha}
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                  className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50 font-medium"
                 >
                   {guardando ? "Guardando..." : "Agendar"}
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Detalle de Actividad */}
+      {actividadSeleccionada && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  {actividadSeleccionada.origen === 'WHATSAPP' ? (
+                    <span className="inline-flex items-center gap-1 text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
+                      <MessageSquare className="w-3 h-3" />
+                      WhatsApp
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                      <Globe className="w-3 h-3" />
+                      Web
+                    </span>
+                  )}
+                  
+                  {actividadSeleccionada.estado === 'vencida' && (
+                    <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full font-medium">
+                      Vencida
+                    </span>
+                  )}
+                  {actividadSeleccionada.estado === 'hoy' && (
+                    <span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full font-medium">
+                      ¡Hoy!
+                    </span>
+                  )}
+                  {actividadSeleccionada.estado === 'realizada' && (
+                    <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">
+                      Realizada
+                    </span>
+                  )}
+                </div>
+                <h2 className="text-xl font-bold text-gray-900">
+                  {actividadSeleccionada.titulo}
+                </h2>
+              </div>
+              <button 
+                onClick={() => setActividadSeleccionada(null)}
+                className="p-2 hover:bg-gray-100 rounded-full"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="space-y-3 mb-6">
+              <div className="flex items-center gap-3 text-gray-600">
+                <Calendar className="w-5 h-5" />
+                <span>
+                  {new Date(actividadSeleccionada.fechaProgramada).toLocaleDateString('es-UY', {
+                    weekday: 'long',
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric'
+                  })}
+                </span>
+              </div>
+              
+              {actividadSeleccionada.notas && (
+                <div className="bg-gray-50 rounded-xl p-4">
+                  <p className="text-sm text-gray-600 font-medium mb-1">Notas:</p>
+                  <p className="text-gray-800">{actividadSeleccionada.notas}</p>
+                </div>
+              )}
+              
+              {actividadSeleccionada.fechaRealizacion && (
+                <div className="text-sm text-green-600">
+                  ✓ Realizada el {new Date(actividadSeleccionada.fechaRealizacion).toLocaleDateString('es-UY')}
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => eliminarActividad(actividadSeleccionada.id)}
+                className="flex items-center justify-center gap-2 px-4 py-3 border-2 border-red-200 text-red-600 rounded-xl hover:bg-red-50 font-medium"
+              >
+                <Trash2 className="w-4 h-4" />
+                Eliminar
+              </button>
+              
+              <button
+                onClick={() => toggleRealizada(actividadSeleccionada.id, actividadSeleccionada.realizada)}
+                className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-medium ${
+                  actividadSeleccionada.realizada
+                    ? 'bg-amber-100 text-amber-700 hover:bg-amber-200'
+                    : 'bg-green-600 text-white hover:bg-green-700'
+                }`}
+              >
+                <Check className="w-4 h-4" />
+                {actividadSeleccionada.realizada ? 'Marcar pendiente' : 'Marcar realizada'}
+              </button>
+            </div>
           </div>
         </div>
       )}

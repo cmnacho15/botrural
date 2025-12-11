@@ -39,11 +39,11 @@ export async function handleCalendarioCrear(
     fechaProgramada.setHours(0, 0, 0, 0)
 
     // Validar que no sea más de 60 días
-    const diasMaximos = 60
+    const diasMaximos = 90
     if (parsedData.diasDesdeHoy > diasMaximos) {
       await sendWhatsAppMessage(
         telefono,
-        `⚠️ Solo podés agendar actividades hasta 60 días en el futuro.\n\n"${parsedData.titulo}" está programada para ${parsedData.diasDesdeHoy} días.`
+        `⚠️ Solo podés agendar actividades hasta 90 días en el futuro.\n\n"${parsedData.titulo}" está programada para ${parsedData.diasDesdeHoy} días.`
       )
       return
     }
