@@ -407,15 +407,32 @@ export default function MapaPoligono({
       map.on(DrawEvent.DELETED, () => setAreaHectareas(null))
     }
 
-    return () => map.remove()
+    return () => {
+  // Limpiar handlers antes de destruir el mapa
+  if (mapRef.current) {
+    mapRef.current.off('zoomend')
+    mapRef.current.off('moveend')
+    mapRef.current._tooltipZoomHandler = false
+  }
+  map.remove()
+  mapRef.current = null
+}
   }, [isReady, initialCenter, initialZoom, readOnly, existingPolygons])
 
   /**
    * 🔄 Redibujar polígonos cuando cambian
    */
   useEffect(() => {
-    if (!mapRef.current || !existingLayersRef.current) return
-    if (!isReady) return
+  if (!mapRef.current || !existingLayersRef.current) return
+  if (!isReady) return
+  
+  // Verificar que el mapa sigue siendo válido
+  try {
+    mapRef.current.getCenter()
+  } catch (e) {
+    console.warn('Mapa no disponible, saltando actualización')
+    return
+  }
 
     existingLayersRef.current.clearLayers()
 
