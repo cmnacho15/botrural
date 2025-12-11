@@ -60,13 +60,13 @@ export async function handleCalendarioCrear(
     })
 
     await sendWhatsAppMessage(
-      telefono,
-      `✅ *Actividad agendada*\n\n` +
-      `📌 ${parsedData.titulo}\n` +
-      `📅 ${fechaFormateada}\n` +
-      `⏰ En ${parsedData.diasDesdeHoy} día${parsedData.diasDesdeHoy !== 1 ? 's' : ''}\n\n` +
-      `_Podés ver y marcar como realizada desde la web._`
-    )
+  telefono,
+  `✅ *Actividad agendada*\n\n` +
+  `📌 ${parsedData.titulo}\n` +
+  `📅 ${fechaFormateada}\n` +
+  `⏰ En ${parsedData.diasDesdeHoy} día${parsedData.diasDesdeHoy !== 1 ? 's' : ''}\n\n` +
+  `_Escribí o mandá un audio diciendo "calendario" para ver tus pendientes, o entrá a la web en la sección Calendario._`
+)
 
     console.log("✅ Actividad creada:", actividad.id)
 
