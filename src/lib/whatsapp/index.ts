@@ -12,3 +12,7 @@ export * from './handlers/potreroHandler'
 export * from './handlers/registrationHandler'
 export * from './handlers/ventaHandler'
 export { isToken } from './handlers/tokenHandler'
+export {
+  handleCalendarioCrear,
+  handleCalendarioConsultar,
+} from "./handlers/calendarioHandler"

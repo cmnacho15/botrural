@@ -109,13 +109,14 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
       ],
     },
     {
-      title: "Otros",
-      items: [
-        { href: "/dashboard/gastos", icon: "💸", label: "Gastos", roles: ["ADMIN_GENERAL", "COLABORADOR", "CONTADOR"], requiresFinance: true },
-        { href: "/dashboard/insumos", icon: "📦", label: "Insumos", roles: ["ADMIN_GENERAL", "COLABORADOR"], requiresFinance: false },
-        { href: "/dashboard/mano-de-obra", icon: "👷", label: "Mano de Obra", roles: ["ADMIN_GENERAL", "COLABORADOR", "CONTADOR"], requiresFinance: false },
-      ],
-    },
+  title: "Otros",
+  items: [
+    { href: "/dashboard/gastos", icon: "💸", label: "Gastos", roles: ["ADMIN_GENERAL", "COLABORADOR", "CONTADOR"], requiresFinance: true },
+    { href: "/dashboard/insumos", icon: "📦", label: "Insumos", roles: ["ADMIN_GENERAL", "COLABORADOR"], requiresFinance: false },
+    { href: "/dashboard/calendario", icon: "📅", label: "Calendario", roles: ["ADMIN_GENERAL", "COLABORADOR", "EMPLEADO"], requiresFinance: false },  // ← AGREGAR ESTA LÍNEA
+    { href: "/dashboard/mano-de-obra", icon: "👷", label: "Mano de Obra", roles: ["ADMIN_GENERAL", "COLABORADOR", "CONTADOR"], requiresFinance: false },
+  ],
+},
     {
       title: "Configuración",
       items: [

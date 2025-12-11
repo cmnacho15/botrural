@@ -4,7 +4,6 @@ import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { parseMessageWithAI } from "@/lib/openai-parser"
 
-
 // Importar todos los handlers organizados
 import {
   sendWhatsAppMessage,
@@ -21,6 +20,12 @@ import {
   isToken,
   solicitarConfirmacionConFlow,
 } from "@/lib/whatsapp"
+
+// 📅 NUEVOS IMPORTS PARA CALENDARIO
+import {
+  handleCalendarioCrear,
+  handleCalendarioConsultar,
+} from "@/lib/whatsapp/handlers/calendarioHandler"
 
 const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || "mi_token_secreto"
 
@@ -45,7 +50,7 @@ export async function GET(request: Request) {
  * POST - Recibir mensajes de WhatsApp
  */
 export async function POST(request: Request) {
-  console.error("=== VERSIÓN: v3.0 REFACTORIZADO - 2025-12-08 ===")
+  console.error("=== VERSIÓN: v3.1 CON CALENDARIO - 2025-12-11 ===")
   try {
     const body = await request.json()
 
@@ -103,16 +108,16 @@ export async function POST(request: Request) {
         }
       }
     } else if (messageType === "audio") {
-  // Procesar audio y obtener transcripción
-  const transcription = await handleAudioMessage(message, from)
-  if (transcription) {
-    // Usar la transcripción como mensaje de texto
-    messageText = transcription
-    console.log(`Audio transcrito, procesando como texto: ${messageText}`)
-  } else {
-    return NextResponse.json({ status: "audio failed" })
-  }
-} else {
+      // Procesar audio y obtener transcripción
+      const transcription = await handleAudioMessage(message, from)
+      if (transcription) {
+        // Usar la transcripción como mensaje de texto
+        messageText = transcription
+        console.log(`Audio transcrito, procesando como texto: ${messageText}`)
+      } else {
+        return NextResponse.json({ status: "audio failed" })
+      }
+    } else {
       // Tipo no soportado
       await sendWhatsAppMessage(
         from,
@@ -161,7 +166,25 @@ export async function POST(request: Request) {
     const parsedData = await parseMessageWithAI(messageText, from)
 
     if (parsedData) {
+      // ========================================
+      // 📅 CALENDARIO - Crear actividad
+      // ========================================
+      if (parsedData.tipo === "CALENDARIO_CREAR") {
+        await handleCalendarioCrear(from, parsedData)
+        return NextResponse.json({ status: "calendario created" })
+      }
+
+      // ========================================
+      // 📅 CALENDARIO - Consultar pendientes
+      // ========================================
+      if (parsedData.tipo === "CALENDARIO_CONSULTAR") {
+        await handleCalendarioConsultar(from)
+        return NextResponse.json({ status: "calendario consulted" })
+      }
+
+      // ========================================
       // Decidir qué tipo de confirmación usar
+      // ========================================
       if (parsedData.tipo === "GASTO") {
         await solicitarConfirmacionConFlow(from, parsedData)
       } else if (parsedData.tipo === "CAMBIO_POTRERO") {
@@ -183,6 +206,10 @@ export async function POST(request: Request) {
         "• llovieron 25mm\n" +
         "• gasté $5000 en alimento\n" +
         "• moví 10 vacas del potrero norte al sur\n\n" +
+        "📅 *Calendario:*\n" +
+        "• en 14 días sacar tablilla\n" +
+        "• el martes vacunar\n" +
+        "• calendario (ver pendientes)\n\n" +
         "También podés enviarme un *audio* o una *foto de factura*"
     )
 

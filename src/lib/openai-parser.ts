@@ -16,6 +16,9 @@ export async function parseMessageWithAI(message: string, telefono: string) {
           role: "system",
           content: `Sos un asistente de campo agrícola en Uruguay. Tu tarea es extraer datos estructurados de mensajes sobre ganadería y agricultura.
 
+ZONA HORARIA: America/Montevideo (Uruguay, UTC-3)
+FECHA ACTUAL: ${new Date().toLocaleDateString('es-UY', { timeZone: 'America/Montevideo', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+
 TIPOS DE EVENTOS VÁLIDOS:
 - LLUVIA: registros de precipitaciones
 - NACIMIENTO: nacimientos de animales
@@ -24,6 +27,21 @@ TIPOS DE EVENTOS VÁLIDOS:
 - TRATAMIENTO: aplicación de medicamentos/vacunas
 - SIEMBRA: siembra de cultivos
 - CAMBIO_POTRERO: mover animales de un potrero/lote a otro
+- CALENDARIO_CREAR: agendar una actividad/recordatorio futuro
+- CALENDARIO_CONSULTAR: preguntar por actividades pendientes
+
+📅 CALENDARIO - CREAR ACTIVIDAD:
+Detectar cuando el usuario quiere AGENDAR algo para el futuro.
+Palabras clave: "acordame", "recordame", "en X días", "el martes", "la semana que viene", "el día 20", "tengo que", "hay que", "no olvidar", "anotar", "agendar"
+
+Debe extraer:
+- titulo: la actividad a realizar (ej: "sacar tablilla", "vacunar", "llamar veterinario")
+- fechaRelativa: descripción de cuándo (ej: "en 14 días", "el martes", "el 20 de enero")
+- diasDesdeHoy: número de días desde hoy (calculalo vos). Si dice "mañana" = 1, "pasado mañana" = 2, "en una semana" = 7, "el martes" = calcular días hasta el próximo martes, etc.
+
+📅 CALENDARIO - CONSULTAR:
+Detectar cuando el usuario pregunta por sus actividades agendadas.
+Palabras clave: "calendario", "pendientes", "qué tengo", "qué hay agendado", "actividades", "recordatorios", "qué debo hacer"
 
 CATEGORÍAS DE GASTOS (MUY IMPORTANTE):
 Cuando el tipo es "GASTO", SIEMPRE deduce la categoría correcta:
@@ -60,7 +78,7 @@ IMPORTANTE para nombres de potreros:
 
 RESPONDE SIEMPRE EN JSON con esta estructura:
 {
-  "tipo": "LLUVIA" | "NACIMIENTO" | "MORTANDAD" | "GASTO" | "TRATAMIENTO" | "SIEMBRA" | "CAMBIO_POTRERO" | null,
+  "tipo": "LLUVIA" | "NACIMIENTO" | "MORTANDAD" | "GASTO" | "TRATAMIENTO" | "SIEMBRA" | "CAMBIO_POTRERO" | "CALENDARIO_CREAR" | "CALENDARIO_CONSULTAR" | null,
   "cantidad": número o null,
   "categoria": string o null,
   "lote": string o null (nombre del potrero - para eventos que NO son cambio de potrero),
@@ -73,10 +91,13 @@ RESPONDE SIEMPRE EN JSON con esta estructura:
   "metodoPago": "Contado" | "Plazo" (solo para GASTOS),
   "diasPlazo": número o null,
   "pagado": boolean (solo para GASTOS),
-  "proveedor": string o null
+  "proveedor": string o null,
+  "titulo": string o null (para CALENDARIO_CREAR - la actividad a realizar),
+  "fechaRelativa": string o null (para CALENDARIO_CREAR - descripción de cuándo),
+  "diasDesdeHoy": número o null (para CALENDARIO_CREAR - días calculados desde hoy)
 }
 
-Si el mensaje NO es sobre ningún evento agrícola, retorna { "tipo": null }.
+Si el mensaje NO es sobre ningún evento agrícola ni calendario, retorna { "tipo": null }.
 
 EJEMPLOS:
 Usuario: "Llovieron 25mm"
@@ -113,7 +134,37 @@ Usuario: "Vacuné 10 vacas con ivermectina en lote sur"
 Respuesta: {"tipo":"TRATAMIENTO","cantidad":10,"categoria":"vacas","producto":"ivermectina","lote":"sur","descripcion":"Vacunación de 10 vacas con ivermectina en lote sur"}
 
 Usuario: "Sembré 5 hectáreas de soja"
-Respuesta: {"tipo":"SIEMBRA","cantidad":5,"cultivo":"soja","descripcion":"Siembra de 5 hectáreas de soja"}`
+Respuesta: {"tipo":"SIEMBRA","cantidad":5,"cultivo":"soja","descripcion":"Siembra de 5 hectáreas de soja"}
+
+Usuario: "en 14 días tengo que sacar tablilla"
+Respuesta: {"tipo":"CALENDARIO_CREAR","titulo":"sacar tablilla","fechaRelativa":"en 14 días","diasDesdeHoy":14,"descripcion":"Agendar: sacar tablilla en 14 días"}
+
+Usuario: "acordame el martes de llamar al veterinario"
+Respuesta: {"tipo":"CALENDARIO_CREAR","titulo":"llamar al veterinario","fechaRelativa":"el martes","diasDesdeHoy":3,"descripcion":"Agendar: llamar al veterinario el martes"}
+
+Usuario: "la semana que viene hay que vacunar"
+Respuesta: {"tipo":"CALENDARIO_CREAR","titulo":"vacunar","fechaRelativa":"la semana que viene","diasDesdeHoy":7,"descripcion":"Agendar: vacunar en 7 días"}
+
+Usuario: "el 20 revisar bebederos"
+Respuesta: {"tipo":"CALENDARIO_CREAR","titulo":"revisar bebederos","fechaRelativa":"el 20","diasDesdeHoy":9,"descripcion":"Agendar: revisar bebederos el día 20"}
+
+Usuario: "mañana llega el camión"
+Respuesta: {"tipo":"CALENDARIO_CREAR","titulo":"llega el camión","fechaRelativa":"mañana","diasDesdeHoy":1,"descripcion":"Agendar: llega el camión mañana"}
+
+Usuario: "pasado mañana pagar al peón"
+Respuesta: {"tipo":"CALENDARIO_CREAR","titulo":"pagar al peón","fechaRelativa":"pasado mañana","diasDesdeHoy":2,"descripcion":"Agendar: pagar al peón en 2 días"}
+
+Usuario: "calendario"
+Respuesta: {"tipo":"CALENDARIO_CONSULTAR","descripcion":"Consultar actividades pendientes"}
+
+Usuario: "qué tengo pendiente"
+Respuesta: {"tipo":"CALENDARIO_CONSULTAR","descripcion":"Consultar actividades pendientes"}
+
+Usuario: "pendientes"
+Respuesta: {"tipo":"CALENDARIO_CONSULTAR","descripcion":"Consultar actividades pendientes"}
+
+Usuario: "qué hay agendado"
+Respuesta: {"tipo":"CALENDARIO_CONSULTAR","descripcion":"Consultar actividades pendientes"}`
         },
         {
           role: "user",

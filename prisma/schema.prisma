@@ -101,6 +101,8 @@ model Campo {
   ventas Venta[]
 
   compras Compra[]
+
+  actividadesCalendario ActividadCalendario[]
 }
 
 model CategoriaGasto {
@@ -763,4 +765,35 @@ model ModuloPastoreo {
   
   @@unique([nombre, campoId])
   @@index([campoId])
+}
+
+
+
+
+
+// ==========================================
+// 📅 CALENDARIO DE ACTIVIDADES
+// ==========================================
+
+model ActividadCalendario {
+  id                String    @id @default(cuid())
+  campoId           String
+  usuarioId         String?
+  
+  titulo            String
+  fechaProgramada   DateTime  @db.Date
+  realizada         Boolean   @default(false)
+  fechaRealizacion  DateTime?
+  
+  origen            String    @default("WEB")  // "WEB" | "WHATSAPP"
+  notas             String?
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  campo             Campo     @relation(fields: [campoId], references: [id], onDelete: Cascade)
+  
+  @@index([campoId])
+  @@index([fechaProgramada])
+  @@index([realizada])
 }
