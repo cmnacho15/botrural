@@ -815,62 +815,92 @@ const [acordeonesAbiertos, setAcordeonesAbiertos] = useState<{[key: string]: boo
               })}
               
               {/* 📦 POTREROS SIN MÓDULO (RESTO DEL CAMPO) */}
-              {lotesAgrupados.sinModulo.length > 0 && (
-                <div className="border border-gray-200 rounded-lg overflow-hidden">
-                  <button
-  onClick={() => toggleAcordeon('sin-modulo')}
-  className="w-full px-6 py-4 bg-gray-50 hover:bg-gray-100 transition flex items-center justify-between group"
->
-  <div className="flex items-center gap-3">
-    {/* Icono con animación */}
-    <span className="text-2xl transition-transform duration-200" style={{ transform: (acordeonesAbiertos['sin-modulo'] ?? false) ? 'rotate(90deg)' : 'rotate(0deg)' }}>
-      ▶
-    </span>
-    <div className="text-left">
-      <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-        Resto del campo
-        <span className="text-xs text-gray-500 font-normal group-hover:text-gray-700">
-          (click para {(acordeonesAbiertos['sin-modulo'] ?? false) ? 'contraer' : 'expandir'})
+{lotesAgrupados.sinModulo.length > 0 && (
+  // 🔥 SI HAY MÓDULOS CREADOS -> mostrar acordeón "Resto del campo"
+  // 🔥 SI NO HAY MÓDULOS -> mostrar tabla directa sin acordeón
+  modulos.length > 0 ? (
+    <div className="border border-gray-200 rounded-lg overflow-hidden">
+      <button
+        onClick={() => toggleAcordeon('sin-modulo')}
+        className="w-full px-6 py-4 bg-gray-50 hover:bg-gray-100 transition flex items-center justify-between group"
+      >
+        <div className="flex items-center gap-3">
+          <span className="text-2xl transition-transform duration-200" style={{ transform: (acordeonesAbiertos['sin-modulo'] ?? false) ? 'rotate(90deg)' : 'rotate(0deg)' }}>
+            ▶
+          </span>
+          <div className="text-left">
+            <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+              Resto del campo
+              <span className="text-xs text-gray-500 font-normal group-hover:text-gray-700">
+                (click para {(acordeonesAbiertos['sin-modulo'] ?? false) ? 'contraer' : 'expandir'})
+              </span>
+            </h3>
+            <p className="text-sm text-gray-600">Potreros sin módulo de pastoreo asignado</p>
+          </div>
+        </div>
+        
+        <span className="text-sm text-gray-600 bg-white px-3 py-1 rounded-full">
+          {lotesAgrupados.sinModulo.length} potrero{lotesAgrupados.sinModulo.length !== 1 ? 's' : ''}
         </span>
-      </h3>
-      <p className="text-sm text-gray-600">Potreros sin módulo de pastoreo asignado</p>
+      </button>
+      
+      {(acordeonesAbiertos['sin-modulo'] ?? false) && (
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                  Potrero
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                  Cultivos
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                  Animales
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">
+                  Acciones
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-100">
+              {lotesAgrupados.sinModulo.map((lote) => (
+                <PotreroCard key={lote.id} lote={lote} />
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
-  </div>
-  
-  <span className="text-sm text-gray-600 bg-white px-3 py-1 rounded-full">
-    {lotesAgrupados.sinModulo.length} potrero{lotesAgrupados.sinModulo.length !== 1 ? 's' : ''}
-  </span>
-</button>
-                  
-                  {(acordeonesAbiertos['sin-modulo'] ?? false) && (
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead className="bg-gray-50 border-b border-gray-200">
-                          <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                              Potrero
-                            </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                              Cultivos
-                            </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                              Animales
-                            </th>
-                            <th className="px-6 py-3 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">
-                              Acciones
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-100">
-                          {lotesAgrupados.sinModulo.map((lote) => (
-                            <PotreroCard key={lote.id} lote={lote} />
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
-              )}
+  ) : (
+    // 🔥 NO HAY MÓDULOS -> Mostrar tabla directa
+    <div className="overflow-x-auto">
+      <table className="w-full">
+        <thead className="bg-gray-50 border-b border-gray-200">
+          <tr>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+              Potrero
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+              Cultivos
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+              Animales
+            </th>
+            <th className="px-6 py-3 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">
+              Acciones
+            </th>
+          </tr>
+        </thead>
+        <tbody className="bg-white divide-y divide-gray-100">
+          {lotesAgrupados.sinModulo.map((lote) => (
+            <PotreroCard key={lote.id} lote={lote} />
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )
+    )}
               
             </div>
           )}
