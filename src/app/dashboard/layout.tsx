@@ -253,7 +253,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
 
                   {/* Cerrar Sesión */}
                   <a
-                    href="/api/auth/signout"
+                    href="/auth/signout"
                     className="flex items-center gap-3 px-6 py-3 hover:bg-red-50 transition-colors border-t border-gray-100 mt-2"
                   >
                     <span className="text-xl">⏻</span>
