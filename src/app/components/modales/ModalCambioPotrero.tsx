@@ -25,19 +25,24 @@ export default function ModalCambioPotrero({ onClose, onSuccess }: ModalCambioPo
   const [potreroOrigen, setPotreroOrigen] = useState('')
   const [potreroDestino, setPotreroDestino] = useState('')
   const [animalesDisponibles, setAnimalesDisponibles] = useState<AnimalLote[]>([])
-  const [categoriaSeleccionada, setCategoriaSeleccionada] = useState('')
-  const [cantidadMover, setCantidadMover] = useState('')
-  const [cantidadMaxima, setCantidadMaxima] = useState(0)
   const [notas, setNotas] = useState('')
   const [loading, setLoading] = useState(false)
   const [loadingAnimales, setLoadingAnimales] = useState(false)
 
-  // ✅ NUEVOS ESTADOS PARA RODEOS
+  // ✅ Estado para múltiples animales
+  const [animalesAMover, setAnimalesAMover] = useState<Array<{
+    id: string
+    categoria: string
+    cantidad: string
+    cantidadMaxima: number
+  }>>([{ id: '1', categoria: '', cantidad: '', cantidadMaxima: 0 }])
+
+  // ✅ Estados para rodeos/lotes
   const [rodeos, setRodeos] = useState<{ id: string; nombre: string }[]>([])
   const [rodeoSeleccionado, setRodeoSeleccionado] = useState('')
   const [modoRodeo, setModoRodeo] = useState<'NO_INCLUIR' | 'OPCIONAL' | 'OBLIGATORIO'>('OPCIONAL')
 
-  // ✅ CARGAR CONFIGURACIÓN DE RODEOS, POTREROS Y RODEOS AL MONTAR
+  // ✅ Cargar configuración, potreros y rodeos al montar
   useEffect(() => {
     Promise.all([
       fetch('/api/configuracion-rodeos').then(r => r.json()),
@@ -56,7 +61,7 @@ export default function ModalCambioPotrero({ onClose, onSuccess }: ModalCambioPo
   useEffect(() => {
     if (!potreroOrigen) {
       setAnimalesDisponibles([])
-      setCategoriaSeleccionada('')
+      setAnimalesAMover([{ id: '1', categoria: '', cantidad: '', cantidadMaxima: 0 }])
       return
     }
 
@@ -65,6 +70,7 @@ export default function ModalCambioPotrero({ onClose, onSuccess }: ModalCambioPo
       .then((res) => res.json())
       .then((data) => {
         setAnimalesDisponibles(data)
+        setAnimalesAMover([{ id: '1', categoria: '', cantidad: '', cantidadMaxima: 0 }])
         setLoadingAnimales(false)
       })
       .catch(() => {
@@ -73,14 +79,40 @@ export default function ModalCambioPotrero({ onClose, onSuccess }: ModalCambioPo
       })
   }, [potreroOrigen])
 
-  // Actualizar cantidad máxima cuando se selecciona categoría
-  useEffect(() => {
-    if (categoriaSeleccionada) {
-      const animal = animalesDisponibles.find((a) => a.categoria === categoriaSeleccionada)
-      setCantidadMaxima(animal?.cantidad || 0)
-      setCantidadMover(animal?.cantidad.toString() || '')
+  // ✅ Funciones para manejar múltiples animales
+  const agregarAnimal = () => {
+    setAnimalesAMover([
+      ...animalesAMover,
+      { id: Date.now().toString(), categoria: '', cantidad: '', cantidadMaxima: 0 }
+    ])
+  }
+
+  const eliminarAnimal = (id: string) => {
+    if (animalesAMover.length > 1) {
+      setAnimalesAMover(animalesAMover.filter(a => a.id !== id))
     }
-  }, [categoriaSeleccionada, animalesDisponibles])
+  }
+
+  const actualizarAnimal = (id: string, campo: 'categoria' | 'cantidad', valor: string) => {
+    setAnimalesAMover(animalesAMover.map(a => {
+      if (a.id !== id) return a
+      
+      if (campo === 'categoria') {
+        const animalDisponible = animalesDisponibles.find(ad => ad.categoria === valor)
+        return {
+          ...a,
+          categoria: valor,
+          cantidad: animalDisponible?.cantidad.toString() || '',
+          cantidadMaxima: animalDisponible?.cantidad || 0
+        }
+      }
+      
+      return { ...a, [campo]: valor }
+    }))
+  }
+
+  // Categorías ya seleccionadas (para no repetir)
+  const categoriasSeleccionadas = animalesAMover.map(a => a.categoria).filter(Boolean)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -90,15 +122,23 @@ export default function ModalCambioPotrero({ onClose, onSuccess }: ModalCambioPo
       return
     }
 
-    if (!categoriaSeleccionada || !cantidadMover) {
-      alert('Debe seleccionar animales y cantidad')
+    // Validar animales
+    const animalesValidos = animalesAMover.filter(a => 
+      a.categoria && a.cantidad && parseInt(a.cantidad) > 0
+    )
+
+    if (animalesValidos.length === 0) {
+      alert('Debe seleccionar al menos una categoría con cantidad')
       return
     }
 
-    const cantidad = parseInt(cantidadMover)
-    if (cantidad <= 0 || cantidad > cantidadMaxima) {
-      alert(`La cantidad debe estar entre 1 y ${cantidadMaxima}`)
-      return
+    // Validar cantidades
+    for (const animal of animalesValidos) {
+      const cantidad = parseInt(animal.cantidad)
+      if (cantidad <= 0 || cantidad > animal.cantidadMaxima) {
+        alert(`La cantidad de ${animal.categoria} debe estar entre 1 y ${animal.cantidadMaxima}`)
+        return
+      }
     }
 
     setLoading(true)
@@ -110,13 +150,15 @@ export default function ModalCambioPotrero({ onClose, onSuccess }: ModalCambioPo
         body: JSON.stringify({
           tipo: 'CAMBIO_POTRERO',
           fecha: fecha,
-          descripcion: `Cambio de ${cantidad} ${categoriaSeleccionada} al ${potreros.find(p => p.id === potreroDestino)?.nombre}${rodeoSeleccionado && rodeos.find(r => r.id === rodeoSeleccionado) ? ` - Lote ${rodeos.find(r => r.id === rodeoSeleccionado)?.nombre}` : ''}`,
+          descripcion: `Cambio de ${animalesValidos.map(a => `${a.cantidad} ${a.categoria}`).join(', ')} al ${potreros.find(p => p.id === potreroDestino)?.nombre}${rodeoSeleccionado && rodeos.find(r => r.id === rodeoSeleccionado) ? ` - Lote ${rodeos.find(r => r.id === rodeoSeleccionado)?.nombre}` : ''}`,
           loteId: potreroOrigen,
           loteDestinoId: potreroDestino,
-          categoria: categoriaSeleccionada,
-          cantidad,
+          animales: animalesValidos.map(a => ({
+            categoria: a.categoria,
+            cantidad: parseInt(a.cantidad)
+          })),
           notas: notas || null,
-          rodeoId: rodeoSeleccionado || null, // ✅ AGREGAR RODEO
+          rodeoId: rodeoSeleccionado || null,
         }),
       })
 
@@ -133,6 +175,9 @@ export default function ModalCambioPotrero({ onClose, onSuccess }: ModalCambioPo
       setLoading(false)
     }
   }
+
+  // Verificar si hay al menos un animal válido seleccionado
+  const hayAnimalesValidos = animalesAMover.some(a => a.categoria && a.cantidad && parseInt(a.cantidad) > 0)
 
   return (
     <form onSubmit={handleSubmit} className="p-6">
@@ -175,11 +220,7 @@ export default function ModalCambioPotrero({ onClose, onSuccess }: ModalCambioPo
               <label className="block text-xs text-gray-600 mb-1">Potrero Original</label>
               <select
                 value={potreroOrigen}
-                onChange={(e) => {
-                  setPotreroOrigen(e.target.value)
-                  setCategoriaSeleccionada('')
-                  setCantidadMover('')
-                }}
+                onChange={(e) => setPotreroOrigen(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
                 required
               >
@@ -215,7 +256,7 @@ export default function ModalCambioPotrero({ onClose, onSuccess }: ModalCambioPo
           </div>
         </div>
 
-        {/* ANIMALES */}
+        {/* ANIMALES - MÚLTIPLES CATEGORÍAS */}
         {potreroOrigen && (
           <div className="bg-blue-50 rounded-lg p-4">
             <h3 className="font-semibold text-gray-900 mb-3">Animales</h3>
@@ -224,55 +265,83 @@ export default function ModalCambioPotrero({ onClose, onSuccess }: ModalCambioPo
               <p className="text-sm text-gray-600 italic">Cargando animales...</p>
             ) : animalesDisponibles.length === 0 ? (
               <p className="text-sm text-gray-600 italic">
-                Selecciona los potreros para cargar los animales
+                No hay animales en este potrero
               </p>
             ) : (
               <div className="space-y-3">
-                {/* Selector de categoría */}
-                <div>
-                  <label className="block text-xs text-gray-600 mb-1">Categoría</label>
-                  <select
-                    value={categoriaSeleccionada}
-                    onChange={(e) => setCategoriaSeleccionada(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white text-sm"
-                    required
-                  >
-                    <option value="">Seleccionar categoría...</option>
-                    {animalesDisponibles.map((animal) => (
-                      <option key={animal.id} value={animal.categoria}>
-                        {animal.categoria} ({animal.cantidad} disponibles)
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                {animalesAMover.map((animal, index) => (
+                  <div key={animal.id} className="grid grid-cols-12 gap-2 items-start">
+                    {/* Categoría */}
+                    <div className="col-span-5">
+                      <label className="block text-xs text-gray-600 mb-1">Categoría</label>
+                      <select
+                        value={animal.categoria}
+                        onChange={(e) => actualizarAnimal(animal.id, 'categoria', e.target.value)}
+                        className="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white text-sm"
+                      >
+                        <option value="">Seleccionar...</option>
+                        {animalesDisponibles
+                          .filter(a => !categoriasSeleccionadas.includes(a.categoria) || a.categoria === animal.categoria)
+                          .map((a) => (
+                            <option key={a.id} value={a.categoria}>
+                              {a.categoria} ({a.cantidad})
+                            </option>
+                          ))}
+                      </select>
+                    </div>
 
-                {/* Cantidad */}
-                {categoriaSeleccionada && (
-                  <div>
-                    <label className="block text-xs text-gray-600 mb-1">
-                      Cantidad (máx: {cantidadMaxima})
-                    </label>
-                    <input
-                      type="number"
-                      value={cantidadMover}
-                      onChange={(e) => setCantidadMover(e.target.value)}
-                      min="1"
-                      max={cantidadMaxima}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
-                      required
-                    />
+                    {/* Cantidad */}
+                    <div className="col-span-5">
+                      <label className="block text-xs text-gray-600 mb-1">
+                        Cantidad {animal.cantidadMaxima > 0 && `(máx: ${animal.cantidadMaxima})`}
+                      </label>
+                      <input
+                        type="number"
+                        value={animal.cantidad}
+                        onChange={(e) => actualizarAnimal(animal.id, 'cantidad', e.target.value)}
+                        min="1"
+                        max={animal.cantidadMaxima}
+                        placeholder="0"
+                        className="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+                        disabled={!animal.categoria}
+                      />
+                    </div>
+
+                    {/* Botón eliminar */}
+                    <div className="col-span-2 flex items-end pb-1">
+                      <button
+                        type="button"
+                        onClick={() => eliminarAnimal(animal.id)}
+                        className="w-full py-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition text-lg disabled:opacity-30 disabled:cursor-not-allowed"
+                        disabled={animalesAMover.length === 1}
+                        title="Eliminar"
+                      >
+                        🗑️
+                      </button>
+                    </div>
                   </div>
+                ))}
+
+                {/* Botón agregar más */}
+                {animalesDisponibles.length > categoriasSeleccionadas.length && (
+                  <button
+                    type="button"
+                    onClick={agregarAnimal}
+                    className="w-full py-2 border-2 border-dashed border-blue-300 rounded-lg text-blue-600 hover:bg-blue-50 transition text-sm font-medium"
+                  >
+                    + Agregar otra categoría
+                  </button>
                 )}
               </div>
             )}
           </div>
         )}
 
-        {/* ✅ SELECTOR DE RODEO */}
+        {/* ✅ SELECTOR DE RODEO/LOTE */}
         {modoRodeo !== 'NO_INCLUIR' && rodeos.length > 0 && (
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Lotes {modoRodeo === 'OBLIGATORIO' && <span className="text-red-500">*</span>}
+              Lote {modoRodeo === 'OBLIGATORIO' && <span className="text-red-500">*</span>}
             </label>
             <select
               value={rodeoSeleccionado}
@@ -314,7 +383,7 @@ export default function ModalCambioPotrero({ onClose, onSuccess }: ModalCambioPo
         </button>
         <button
           type="submit"
-          disabled={loading || !potreroOrigen || !potreroDestino || !categoriaSeleccionada || (modoRodeo === 'OBLIGATORIO' && !rodeoSeleccionado)}
+          disabled={loading || !potreroOrigen || !potreroDestino || !hayAnimalesValidos || (modoRodeo === 'OBLIGATORIO' && !rodeoSeleccionado)}
           className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
         >
           {loading ? 'Guardando...' : 'Continuar'}
@@ -323,5 +392,3 @@ export default function ModalCambioPotrero({ onClose, onSuccess }: ModalCambioPo
     </form>
   )
 }
-
-// Modal para cambio de potrero - 2025-12-08
