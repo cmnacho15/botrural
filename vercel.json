@@ -7,6 +7,10 @@
     {
       "path": "/api/cron/capturar-carga",
       "schedule": "5 3 * * *"
+    },
+    {
+      "path": "/api/cron/calendario-recordatorios",
+      "schedule": "0 12 * * *"
     }
   ]
 }
