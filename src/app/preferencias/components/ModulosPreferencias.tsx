@@ -11,12 +11,22 @@ type ModuloPastoreo = {
   }
 }
 
+type Potrero = {
+  id: string
+  nombre: string
+  hectareas: number
+}
+
 export default function ModulosPreferencias() {
   const [modulos, setModulos] = useState<ModuloPastoreo[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [showModalEliminar, setShowModalEliminar] = useState(false)
+  const [showModalPotreros, setShowModalPotreros] = useState(false)
   const [moduloAEliminar, setModuloAEliminar] = useState<ModuloPastoreo | null>(null)
+  const [moduloPotreros, setModuloPotreros] = useState<ModuloPastoreo | null>(null)
+  const [potreros, setPotreros] = useState<Potrero[]>([])
+  const [loadingPotreros, setLoadingPotreros] = useState(false)
   const [nuevoModulo, setNuevoModulo] = useState({
     nombre: '',
     descripcion: ''
@@ -40,6 +50,44 @@ export default function ModulosPreferencias() {
       console.error('Error cargando módulos:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function cargarPotrerosDelModulo(moduloId: string) {
+    setLoadingPotreros(true)
+    try {
+      const response = await fetch(`/api/modulos-pastoreo/${moduloId}/potreros`)
+      if (response.ok) {
+        const data = await response.json()
+        setPotreros(data)
+      }
+    } catch (error) {
+      console.error('Error cargando potreros:', error)
+    } finally {
+      setLoadingPotreros(false)
+    }
+  }
+
+  async function handleDesvincularPotrero(potreroId: string) {
+    if (!moduloPotreros) return
+
+    try {
+      const response = await fetch(`/api/modulos-pastoreo/${moduloPotreros.id}/potreros/${potreroId}`, {
+        method: 'DELETE',
+      })
+
+      if (response.ok) {
+        // Recargar potreros del módulo
+        cargarPotrerosDelModulo(moduloPotreros.id)
+        // Recargar módulos para actualizar el contador
+        cargarModulos()
+        alert('Potrero desvinculado. Ahora está en "Resto del campo".')
+      } else {
+        const error = await response.json()
+        alert(error.error || 'Error al desvincular potrero')
+      }
+    } catch (error) {
+      alert('Error al desvincular potrero')
     }
   }
 
@@ -86,6 +134,12 @@ export default function ModulosPreferencias() {
     setShowModalEliminar(true)
   }
 
+  function abrirModalPotreros(modulo: ModuloPastoreo) {
+    setModuloPotreros(modulo)
+    setShowModalPotreros(true)
+    cargarPotrerosDelModulo(modulo.id)
+  }
+
   async function handleEliminarModulo() {
     if (!moduloAEliminar) return
 
@@ -125,6 +179,12 @@ export default function ModulosPreferencias() {
     setShowModal(false)
     setEditandoModulo(null)
     setNuevoModulo({ nombre: '', descripcion: '' })
+  }
+
+  function cerrarModalPotreros() {
+    setShowModalPotreros(false)
+    setModuloPotreros(null)
+    setPotreros([])
   }
 
   if (loading) {
@@ -204,6 +264,15 @@ export default function ModulosPreferencias() {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-3">
+                      {modulo._count.lotes > 0 && (
+                        <button
+                          onClick={() => abrirModalPotreros(modulo)}
+                          className="text-green-600 hover:text-green-900"
+                          title="Ver potreros"
+                        >
+                          📍
+                        </button>
+                      )}
                       <button
                         onClick={() => abrirModalEditar(modulo)}
                         className="text-blue-600 hover:text-blue-900"
@@ -282,6 +351,73 @@ export default function ModulosPreferencias() {
                 className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
               >
                 {saving ? 'Guardando...' : editandoModulo ? 'Actualizar' : 'Crear'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL VER POTREROS DEL MÓDULO */}
+      {showModalPotreros && moduloPotreros && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl">
+            <div className="p-6 border-b border-gray-200 flex justify-between items-center">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">
+                  Potreros de "{moduloPotreros.nombre}"
+                </h2>
+                <p className="text-sm text-gray-500 mt-1">
+                  Gestiona qué potreros pertenecen a este módulo
+                </p>
+              </div>
+              <button onClick={cerrarModalPotreros} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">
+                ✕
+              </button>
+            </div>
+
+            <div className="p-6">
+              {loadingPotreros ? (
+                <div className="text-center py-12">
+                  <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500 mx-auto mb-3"></div>
+                  <p className="text-gray-600 text-sm">Cargando potreros...</p>
+                </div>
+              ) : potreros.length === 0 ? (
+                <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+                  <p className="text-gray-500">Este módulo no tiene potreros asignados</p>
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-96 overflow-y-auto">
+                  {potreros.map((potrero) => (
+                    <div
+                      key={potrero.id}
+                      className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition"
+                    >
+                      <div className="flex-1">
+                        <h3 className="font-medium text-gray-900">{potrero.nombre}</h3>
+                        <p className="text-sm text-gray-500">{potrero.hectareas} ha</p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          if (confirm(`¿Desvincular "${potrero.nombre}" de este módulo?\n\nEl potrero pasará a "Resto del campo".`)) {
+                            handleDesvincularPotrero(potrero.id)
+                          }
+                        }}
+                        className="px-4 py-2 text-sm bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition font-medium"
+                      >
+                        Desvincular
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="p-6 border-t border-gray-200 flex justify-end">
+              <button
+                onClick={cerrarModalPotreros}
+                className="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition font-medium"
+              >
+                Cerrar
               </button>
             </div>
           </div>
