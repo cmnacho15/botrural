@@ -52,10 +52,10 @@ export const authOptions: NextAuthOptions = {
 
   secret: process.env.NEXTAUTH_SECRET,
 
-  // DEJAMOS LA PÁGINA PERSONALIZADA (porque queremos la bonita en español)
+  // BORRAMOS signOut de aquí → así NextAuth deja de bloquear el callbackUrl
   pages: {
-    signIn: "/login",
-    signOut: "/auth/signout", // ← MANTENEMOS ESTA LÍNEA
+    signIn: "/login",        // mantenemos tu login personalizado
+    // signOut: "/auth/signout"  ← LÍNEA BORRADA O COMENTADA
   },
 
   callbacks: {
