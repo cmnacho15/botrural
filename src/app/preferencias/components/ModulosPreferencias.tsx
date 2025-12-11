@@ -56,7 +56,7 @@ export default function ModulosPreferencias() {
         ? `/api/modulos-pastoreo/${editandoModulo.id}`
         : '/api/modulos-pastoreo'
       
-      const method = editandoModulo ? 'PATCH' : 'POST'
+      const method = editandoModulo ? 'PUT' : 'POST'
 
       const response = await fetch(url, {
         method,
