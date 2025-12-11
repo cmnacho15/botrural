@@ -375,7 +375,7 @@ export default function CalendarioPage() {
                         ${act.estado === 'realizada' ? 'bg-green-500 text-white' : ''}
                         ${act.estado === 'vencida' ? 'bg-red-500 text-white' : ''}
                         ${act.estado === 'hoy' ? 'bg-amber-500 text-white font-semibold' : ''}
-                        ${act.estado === 'pendiente' ? 'bg-amber-600 text-white' : ''}
+                        ${act.estado === 'pendiente' ? 'bg-yellow-100 text-amber-800' : ''}
                       `}
                       title={act.titulo}
                     >
