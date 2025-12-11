@@ -1,11 +1,12 @@
+// ========================================
+// 1. ACTUALIZAR: src/app/api/auth/[...nextauth]/route.ts
+// ========================================
+
 import NextAuth, { type NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 
-// ===============================================================
-//  A U T H   O P T I O N S   C O N   T I P A D O   C O R R E C T O
-// ===============================================================
 export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
@@ -40,7 +41,6 @@ export const authOptions: NextAuthOptions = {
 
         if (!isValid) return null;
 
-        // Datos que se guardan dentro del JWT
         return {
           id: user.id,
           email: user.email,
@@ -60,11 +60,9 @@ export const authOptions: NextAuthOptions = {
 
   pages: {
     signIn: "/login",
+    signOut: "/auth/signout", // 👈 AGREGAR ESTA LÍNEA
   },
 
-  // ===============================================================
-  //  C A L L B A C K S   –   J W T   Y   S E S S I O N
-  // ===============================================================
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
@@ -115,6 +113,5 @@ export const authOptions: NextAuthOptions = {
   },
 };
 
-// Export final compatible con App Router
 const handler = NextAuth(authOptions);
 export { handler as GET, handler as POST };
