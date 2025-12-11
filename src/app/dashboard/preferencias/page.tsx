@@ -778,6 +778,13 @@ export default function PreferenciasPage() {
             </div>
           )}
 
+          {/* CONTENIDO TAB MÓDULOS */}
+          {activeTab === 'modulos' && (
+            <div className="p-6">
+              <ModulosPreferencias />
+            </div>
+          )}
+
           {/* CONTENIDO TAB RODEOS */}
           {activeTab === 'rodeos' && (
             <div className="p-6">
