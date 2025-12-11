@@ -57,8 +57,8 @@ function Tooltip({ children, content }: TooltipProps) {
       top = rect.bottom + 12
       setPosicionArriba(false)
     } else {
-  // Posicionar ARRIBA - más cerca del badge
-  top = rect.top - tooltipHeight
+  // Posicionar ARRIBA - borde inferior del tooltip toca borde superior del badge
+  top = rect.top - 12
   setPosicionArriba(true)
 }
     
@@ -83,11 +83,14 @@ function Tooltip({ children, content }: TooltipProps) {
   const tooltipContent = isVisible && (
     <div 
       style={{
-        position: 'fixed',
-        top: `${tooltipPosition.top}px`,
-        left: `${tooltipPosition.left}px`,
-        zIndex: 9999
-      }}
+  position: 'fixed',
+  ...(posicionArriba 
+    ? { bottom: `${window.innerHeight - tooltipPosition.top}px` }
+    : { top: `${tooltipPosition.top}px` }
+  ),
+  left: `${tooltipPosition.left}px`,
+  zIndex: 9999
+}}
       className="w-96 p-4 bg-gray-900 text-white text-sm rounded-lg shadow-2xl pointer-events-none"
     >
       {/* Flecha dinámica: arriba o abajo según posición */}
