@@ -42,7 +42,15 @@ export default function CalendarioPage() {
   const [guardando, setGuardando] = useState(false)
 
   // Modal para ver detalle de actividad
+ // Modal para ver detalle de actividad
   const [actividadSeleccionada, setActividadSeleccionada] = useState<Actividad | null>(null)
+  
+  // Estado para modo edición
+  const [modoEdicion, setModoEdicion] = useState(false)
+  const [tituloEdicion, setTituloEdicion] = useState("")
+  const [fechaEdicion, setFechaEdicion] = useState("")
+  const [notaEdicion, setNotaEdicion] = useState("")
+  const [guardandoEdicion, setGuardandoEdicion] = useState(false)
 
   // Cargar actividades
   const cargarActividades = async () => {
@@ -130,6 +138,40 @@ export default function CalendarioPage() {
       console.error("Error creando actividad:", error)
     } finally {
       setGuardando(false)
+    }
+  }
+
+  // Actualizar actividad existente
+  const actualizarActividad = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!actividadSeleccionada || !tituloEdicion.trim() || !fechaEdicion) return
+
+    setGuardandoEdicion(true)
+    try {
+      const res = await fetch(`/api/calendario/${actividadSeleccionada.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          titulo: tituloEdicion,
+          fechaProgramada: fechaEdicion,
+          notas: notaEdicion || null
+        })
+      })
+
+      if (res.ok) {
+        setModoEdicion(false)
+        cargarActividades()
+        // Actualizar la actividad seleccionada con los nuevos datos
+        const actividadActualizada = await res.json()
+        setActividadSeleccionada(actividadActualizada)
+      } else {
+        const error = await res.json()
+        alert(error.error || "Error al actualizar actividad")
+      }
+    } catch (error) {
+      console.error("Error actualizando actividad:", error)
+    } finally {
+      setGuardandoEdicion(false)
     }
   }
 
@@ -556,66 +598,149 @@ export default function CalendarioPage() {
                     </span>
                   )}
                 </div>
-                <h2 className="text-xl font-bold text-gray-900">
-                  {actividadSeleccionada.titulo}
-                </h2>
+                
+                {!modoEdicion ? (
+                  <h2 className="text-xl font-bold text-gray-900">
+                    {actividadSeleccionada.titulo}
+                  </h2>
+                ) : (
+                  <form onSubmit={actualizarActividad}>
+                    <input
+                      type="text"
+                      value={tituloEdicion}
+                      onChange={(e) => setTituloEdicion(e.target.value)}
+                      className="text-xl font-bold text-gray-900 w-full px-3 py-2 border-2 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 mb-2"
+                      required
+                      autoFocus
+                    />
+                  </form>
+                )}
               </div>
               <button 
-                onClick={() => setActividadSeleccionada(null)}
+                onClick={() => {
+                  setActividadSeleccionada(null)
+                  setModoEdicion(false)
+                }}
                 className="p-2 hover:bg-gray-100 rounded-full"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
             
-            <div className="space-y-3 mb-6">
-              <div className="flex items-center gap-3 text-gray-600">
-                <Calendar className="w-5 h-5" />
-                <span>
-                  {new Date(actividadSeleccionada.fechaProgramada).toLocaleDateString('es-UY', {
-                    weekday: 'long',
-                    day: 'numeric',
-                    month: 'long',
-                    year: 'numeric'
-                  })}
-                </span>
-              </div>
-              
-              {actividadSeleccionada.notas && (
-                <div className="bg-gray-50 rounded-xl p-4">
-                  <p className="text-sm text-gray-600 font-medium mb-1">Notas:</p>
-                  <p className="text-gray-800">{actividadSeleccionada.notas}</p>
+            {!modoEdicion ? (
+              // Vista normal
+              <>
+                <div className="space-y-3 mb-6">
+                  <div className="flex items-center gap-3 text-gray-600">
+                    <Calendar className="w-5 h-5" />
+                    <span>
+                      {new Date(actividadSeleccionada.fechaProgramada).toLocaleDateString('es-UY', {
+                        weekday: 'long',
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric'
+                      })}
+                    </span>
+                  </div>
+                  
+                  {actividadSeleccionada.notas && (
+                    <div className="bg-gray-50 rounded-xl p-4">
+                      <p className="text-sm text-gray-600 font-medium mb-1">Notas:</p>
+                      <p className="text-gray-800">{actividadSeleccionada.notas}</p>
+                    </div>
+                  )}
+                  
+                  {actividadSeleccionada.fechaRealizacion && (
+                    <div className="text-sm text-green-600">
+                      ✓ Realizada el {new Date(actividadSeleccionada.fechaRealizacion).toLocaleDateString('es-UY')}
+                    </div>
+                  )}
                 </div>
-              )}
-              
-              {actividadSeleccionada.fechaRealizacion && (
-                <div className="text-sm text-green-600">
-                  ✓ Realizada el {new Date(actividadSeleccionada.fechaRealizacion).toLocaleDateString('es-UY')}
-                </div>
-              )}
-            </div>
 
-            <div className="flex gap-3">
-              <button
-                onClick={() => eliminarActividad(actividadSeleccionada.id)}
-                className="flex items-center justify-center gap-2 px-4 py-3 border-2 border-red-200 text-red-600 rounded-xl hover:bg-red-50 font-medium"
-              >
-                <Trash2 className="w-4 h-4" />
-                Eliminar
-              </button>
-              
-              <button
-                onClick={() => toggleRealizada(actividadSeleccionada.id, actividadSeleccionada.realizada)}
-                className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-medium ${
-                  actividadSeleccionada.realizada
-                    ? 'bg-amber-100 text-amber-700 hover:bg-amber-200'
-                    : 'bg-green-600 text-white hover:bg-green-700'
-                }`}
-              >
-                <Check className="w-4 h-4" />
-                {actividadSeleccionada.realizada ? 'Marcar pendiente' : 'Marcar realizada'}
-              </button>
-            </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => eliminarActividad(actividadSeleccionada.id)}
+                    className="flex items-center justify-center gap-2 px-4 py-3 border-2 border-red-200 text-red-600 rounded-xl hover:bg-red-50 font-medium"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Eliminar
+                  </button>
+                  
+                  <button
+                    onClick={() => {
+                      setModoEdicion(true)
+                      setTituloEdicion(actividadSeleccionada.titulo)
+                      setFechaEdicion(actividadSeleccionada.fechaProgramada.split('T')[0])
+                      setNotaEdicion(actividadSeleccionada.notas || "")
+                    }}
+                    className="flex items-center justify-center gap-2 px-4 py-3 border-2 border-blue-200 text-blue-600 rounded-xl hover:bg-blue-50 font-medium"
+                  >
+                    Editar
+                  </button>
+                  
+                  <button
+                    onClick={() => toggleRealizada(actividadSeleccionada.id, actividadSeleccionada.realizada)}
+                    className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-medium ${
+                      actividadSeleccionada.realizada
+                        ? 'bg-amber-100 text-amber-700 hover:bg-amber-200'
+                        : 'bg-green-600 text-white hover:bg-green-700'
+                    }`}
+                  >
+                    <Check className="w-4 h-4" />
+                    {actividadSeleccionada.realizada ? 'Marcar pendiente' : 'Marcar realizada'}
+                  </button>
+                </div>
+              </>
+            ) : (
+              // Modo edición
+              <form onSubmit={actualizarActividad}>
+                <div className="space-y-4 mb-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Fecha
+                    </label>
+                    <input
+                      type="date"
+                      value={fechaEdicion}
+                      onChange={(e) => setFechaEdicion(e.target.value)}
+                      min={fechaMin}
+                      className="w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Notas (opcional)
+                    </label>
+                    <textarea
+                      value={notaEdicion}
+                      onChange={(e) => setNotaEdicion(e.target.value)}
+                      placeholder="Información adicional..."
+                      rows={3}
+                      className="w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setModoEdicion(false)}
+                    className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-xl hover:bg-gray-50 font-medium"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={guardandoEdicion || !tituloEdicion.trim() || !fechaEdicion}
+                    className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50 font-medium"
+                  >
+                    {guardandoEdicion ? "Guardando..." : "Guardar cambios"}
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}
