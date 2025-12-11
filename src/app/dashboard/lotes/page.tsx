@@ -45,11 +45,11 @@ function Tooltip({ children, content }: TooltipProps) {
 
     const rect = triggerRef.current.getBoundingClientRect()
     const tooltipWidth = 384 // w-96 = 384px
-    const tooltipHeight = 220 // altura estimada del tooltip
-    
-    // Detectar si hay espacio abajo
-    const espacioAbajo = window.innerHeight - rect.bottom
-    const hayEspacioAbajo = espacioAbajo > tooltipHeight + 20
+    const tooltipHeight = 320 // altura del tooltip + margen extra
+
+// Detectar si hay espacio abajo
+const espacioAbajo = window.innerHeight - rect.bottom
+const hayEspacioAbajo = espacioAbajo > tooltipHeight + 50
     
     let top: number
     if (hayEspacioAbajo) {
