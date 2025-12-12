@@ -802,8 +802,10 @@ if (!mapRef.current._tooltipZoomHandler) {
    * 🎨 Actualizar opacidad de curvas dinámicamente
    */
   useEffect(() => {
+    if (!mapRef.current) return
+    
     const curvasLayer = curvasLayerRef.current
-    if (curvasLayer) {
+    if (curvasLayer && mapRef.current.hasLayer(curvasLayer)) {
       curvasLayer.setOpacity(opacidadCurvas / 100)
     }
   }, [opacidadCurvas])
