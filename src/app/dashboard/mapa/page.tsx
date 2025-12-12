@@ -734,9 +734,39 @@ export default function MapaPage() {
                   )}
                 </>
               )}
+
+              
               {/* VISTA CURVAS DE NIVEL */}
               {vistaActual === 'curvas' && (
                 <>
+
+                {/* Control de opacidad */}
+                  <div className="mb-4 bg-white border border-gray-200 rounded-lg p-3 sm:p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-xs sm:text-sm font-medium text-gray-700">
+                        Opacidad del mapa
+                      </label>
+                      <span className="text-xs font-semibold text-amber-600 bg-amber-50 px-2 py-1 rounded">
+                        {opacidadCurvas}%
+                      </span>
+                    </div>
+                    <input 
+                      type="range" 
+                      min="10" 
+                      max="100" 
+                      value={opacidadCurvas}
+                      onChange={(e) => setOpacidadCurvas(Number(e.target.value))}
+                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-amber-600"
+                      style={{
+                        background: `linear-gradient(to right, #d97706 0%, #d97706 ${opacidadCurvas}%, #e5e7eb ${opacidadCurvas}%, #e5e7eb 100%)`
+                      }}
+                    />
+                    <div className="flex justify-between text-[10px] sm:text-xs text-gray-500 mt-1">
+                      <span>Transparente</span>
+                      <span>Opaco</span>
+                    </div>
+                  </div>
+                  
                   {/* Información */}
                   <div className="mb-5 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-lg p-3 sm:p-4">
                     <h3 className="text-xs sm:text-sm font-semibold text-gray-800 mb-2">
@@ -786,32 +816,7 @@ export default function MapaPage() {
                       </div>
                     </div>
                   </div>
-                  {/* Control de opacidad */}
-                  <div className="mb-4 bg-white border border-gray-200 rounded-lg p-3 sm:p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="text-xs sm:text-sm font-medium text-gray-700">
-                        Opacidad del mapa
-                      </label>
-                      <span className="text-xs font-semibold text-amber-600 bg-amber-50 px-2 py-1 rounded">
-                        {opacidadCurvas}%
-                      </span>
-                    </div>
-                    <input 
-                      type="range" 
-                      min="10" 
-                      max="100" 
-                      value={opacidadCurvas}
-                      onChange={(e) => setOpacidadCurvas(Number(e.target.value))}
-                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-amber-600"
-                      style={{
-                        background: `linear-gradient(to right, #d97706 0%, #d97706 ${opacidadCurvas}%, #e5e7eb ${opacidadCurvas}%, #e5e7eb 100%)`
-                      }}
-                    />
-                    <div className="flex justify-between text-[10px] sm:text-xs text-gray-500 mt-1">
-                      <span>Transparente</span>
-                      <span>Opaco</span>
-                    </div>
-                  </div>
+                  
 
                   {/* Tip de uso */}
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 text-xs sm:text-[13px]">
