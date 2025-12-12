@@ -322,16 +322,14 @@ const curvasLayer = L.tileLayer(
   }
 )
 
-// 🔥 NUEVO: Capa de CONEAT (WMS del MGAP)
-const coneatLayer = (L.tileLayer as any).wms(
-  'https://visualizador.mgap.gub.uy/geoserver/RENARE/wms',
+// 🔥 Capa de CONEAT usando ArcGIS REST Services del MGAP
+const coneatLayer = L.tileLayer(
+  'https://dgrn.mgap.gub.uy/arcgis/rest/services/CONEAT/MapServer/tile/{z}/{y}/{x}',
   {
-    layers: 'RENARE:coneat',
-    format: 'image/png',
-    transparent: true,
+    attribution: '© MGAP Uruguay',
+    maxZoom: 19,
     opacity: 0.7,
-    zIndex: 1000,
-    attribution: '© MGAP Uruguay'
+    zIndex: 1000
   }
 )
 
