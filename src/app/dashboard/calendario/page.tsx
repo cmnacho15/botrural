@@ -28,6 +28,12 @@ interface Actividad {
   estado: "pendiente" | "realizada" | "vencida" | "hoy"
 }
 
+// 🇺🇾 Helper para convertir fechas ISO a fecha local Uruguay sin problemas de zona horaria
+const parseFechaLocal = (fechaISO: string): Date => {
+  const [year, month, day] = fechaISO.split('T')[0].split('-')
+  return new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
+}
+
 export default function CalendarioPage() {
   const [actividades, setActividades] = useState<Actividad[]>([])
   const [loading, setLoading] = useState(true)
@@ -207,13 +213,14 @@ export default function CalendarioPage() {
   }
 
   // Obtener actividades de un día específico
-  const getActividadesDia = (fecha: Date) => {
-    const fechaStr = fecha.toISOString().split('T')[0]
-    return actividades.filter(a => {
-      const actFecha = new Date(a.fechaProgramada).toISOString().split('T')[0]
-      return actFecha === fechaStr
-    })
-  }
+const getActividadesDia = (fecha: Date) => {
+  const fechaStr = fecha.toISOString().split('T')[0]
+  return actividades.filter(a => {
+    const actFecha = parseFechaLocal(a.fechaProgramada)
+    const actFechaStr = `${actFecha.getFullYear()}-${String(actFecha.getMonth() + 1).padStart(2, '0')}-${String(actFecha.getDate()).padStart(2, '0')}`
+    return actFechaStr === fechaStr
+  })
+}
 
   
   const hoy = new Date()
@@ -450,12 +457,12 @@ export default function CalendarioPage() {
                     </p>
                     <div className="flex items-center gap-2 mt-1 flex-wrap">
                       <span className="text-sm text-gray-500">
-                        {new Date(act.fechaProgramada).toLocaleDateString('es-UY', {
-                          weekday: 'short',
-                          day: 'numeric',
-                          month: 'short'
-                        })}
-                      </span>
+  {parseFechaLocal(act.fechaProgramada).toLocaleDateString('es-UY', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short'
+  })}
+</span>
                       
                       {act.origen === 'WHATSAPP' && (
                         <span className="inline-flex items-center gap-1 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
@@ -634,13 +641,13 @@ export default function CalendarioPage() {
                   <div className="flex items-center gap-3 text-gray-600">
                     <Calendar className="w-5 h-5" />
                     <span>
-                      {new Date(actividadSeleccionada.fechaProgramada).toLocaleDateString('es-UY', {
-                        weekday: 'long',
-                        day: 'numeric',
-                        month: 'long',
-                        year: 'numeric'
-                      })}
-                    </span>
+  {parseFechaLocal(actividadSeleccionada.fechaProgramada).toLocaleDateString('es-UY', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  })}
+</span>
                   </div>
                   
                   {actividadSeleccionada.notas && (
@@ -651,10 +658,10 @@ export default function CalendarioPage() {
                   )}
                   
                   {actividadSeleccionada.fechaRealizacion && (
-                    <div className="text-sm text-green-600">
-                      ✓ Realizada el {new Date(actividadSeleccionada.fechaRealizacion).toLocaleDateString('es-UY')}
-                    </div>
-                  )}
+  <div className="text-sm text-green-600">
+    ✓ Realizada el {parseFechaLocal(actividadSeleccionada.fechaRealizacion).toLocaleDateString('es-UY')}
+  </div>
+)}
                 </div>
 
                 <div className="flex gap-3">
