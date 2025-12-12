@@ -8,7 +8,6 @@ import 'leaflet-draw/dist/leaflet.draw.css'
 
 if (typeof window !== 'undefined') {
   require('leaflet-draw')
-  require('esri-leaflet')
   
   // Agregar estilos para tooltips sin fondo
   if (!document.getElementById('leaflet-tooltip-override')) {
@@ -324,16 +323,35 @@ const curvasLayer = L.tileLayer(
   }
 )
 
-// 🔥 Capa de CONEAT - ArcGIS Dynamic MapServer del MGAP
-const coneatLayer = (L as any).esri.dynamicMapLayer({
-  url: 'https://dgrn.mgap.gub.uy/arcgis/rest/services/CONEAT/SuelosConeat/MapServer',
+// 🔥 Capa de CONEAT - ArcGIS Dynamic MapServer del MGAP (sin esri-leaflet)
+const coneatLayer = (L as any).tileLayer('', {
   opacity: 0.7,
-  layers: [1],
-  f: 'image',
-  format: 'png8',
-  transparent: true,
+  zIndex: 1000,
   attribution: '© MGAP Uruguay'
 })
+
+// Sobrescribir getTileUrl para generar URLs de ArcGIS Export
+coneatLayer.getTileUrl = function(coords: any) {
+  const map = this._map
+  const bounds = this._tileCoordsToBounds(coords)
+  const sw = map.options.crs.project(bounds.getSouthWest())
+  const ne = map.options.crs.project(bounds.getNorthEast())
+  
+  const url = 'https://dgrn.mgap.gub.uy/arcgis/rest/services/CONEAT/SuelosConeat/MapServer/export'
+  const params = new URLSearchParams({
+    bbox: `${sw.x},${sw.y},${ne.x},${ne.y}`,
+    bboxSR: '3857',
+    imageSR: '3857',
+    size: '256,256',
+    dpi: '96',
+    format: 'png8',
+    transparent: 'true',
+    layers: 'show:1',
+    f: 'image'
+  })
+  
+  return `${url}?${params.toString()}`
+}
 
 // Agregar capa base por defecto
 satelitalLayer.addTo(map)
