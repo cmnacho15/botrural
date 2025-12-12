@@ -1059,15 +1059,24 @@ if (!mapRef.current._tooltipZoomHandler) {
       {/* 📏 BOTÓN DE MEDICIÓN - Debajo del zoom */}
       <button
         onClick={toggleMedicion}
-        className={`absolute top-[110px] right-3 z-[10] rounded-lg shadow-lg hover:shadow-xl transition-all w-[34px] h-[34px] sm:w-[36px] sm:h-[36px] flex items-center justify-center border-2 ${
+        className={`absolute top-3 left-3 z-[10] rounded-lg shadow-lg hover:shadow-xl transition-all w-[34px] h-[34px] sm:w-[36px] sm:h-[36px] flex items-center justify-center border-2 ${
           midiendo 
             ? 'bg-blue-600 border-blue-600 text-white' 
             : 'bg-white border-gray-300 text-gray-700'
         }`}
+        style={{ marginTop: '88px' }}
         title={midiendo ? "Terminar medición" : "Medir distancia"}
       >
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-          <path d="M21 3L3 21M21 3l-6 18-3-9-9-3 18-6z"/>
+          <line x1="4" y1="21" x2="4" y2="14"/>
+          <line x1="4" y1="10" x2="4" y2="3"/>
+          <line x1="12" y1="21" x2="12" y2="11"/>
+          <line x1="12" y1="7" x2="12" y2="3"/>
+          <line x1="20" y1="21" x2="20" y2="16"/>
+          <line x1="20" y1="12" x2="20" y2="3"/>
+          <line x1="2" y1="14" x2="6" y2="14"/>
+          <line x1="10" y1="7" x2="14" y2="7"/>
+          <line x1="18" y1="16" x2="22" y2="16"/>
         </svg>
       </button>
 
