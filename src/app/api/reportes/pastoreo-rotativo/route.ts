@@ -75,7 +75,7 @@ export async function GET(request: Request) {
     // Obtener eventos de CAMBIO_POTRERO hacia estos potreros
     const eventos = await prisma.evento.findMany({
       where: {
-        tipo: 'CAMBIO_POTRERO',
+        tipo: { in: ['CAMBIO_POTRERO', 'AJUSTE'] }, // 🔥 Solo movimientos y ajustes
         campoId: usuario.campoId,
         loteDestinoId: { in: potrerosIds },
         ...(Object.keys(filtroFechas).length > 0 && { fecha: filtroFechas }),
