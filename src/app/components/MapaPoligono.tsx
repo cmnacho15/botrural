@@ -5,8 +5,10 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import 'leaflet-draw/dist/leaflet.draw.css'
 
+
 if (typeof window !== 'undefined') {
   require('leaflet-draw')
+  require('esri-leaflet')
   
   // Agregar estilos para tooltips sin fondo
   if (!document.getElementById('leaflet-tooltip-override')) {
@@ -322,16 +324,16 @@ const curvasLayer = L.tileLayer(
   }
 )
 
-// 🔥 Capa de CONEAT usando ArcGIS REST Services del MGAP
-const coneatLayer = L.tileLayer(
-  'https://dgrn.mgap.gub.uy/arcgis/rest/services/CONEAT/MapServer/tile/{z}/{y}/{x}',
-  {
-    attribution: '© MGAP Uruguay',
-    maxZoom: 19,
-    opacity: 0.7,
-    zIndex: 1000
-  }
-)
+// 🔥 Capa de CONEAT - ArcGIS Dynamic MapServer del MGAP
+const coneatLayer = (L as any).esri.dynamicMapLayer({
+  url: 'https://dgrn.mgap.gub.uy/arcgis/rest/services/CONEAT/SuelosConeat/MapServer',
+  opacity: 0.7,
+  layers: [1],
+  f: 'image',
+  format: 'png8',
+  transparent: true,
+  attribution: '© MGAP Uruguay'
+})
 
 // Agregar capa base por defecto
 satelitalLayer.addTo(map)
