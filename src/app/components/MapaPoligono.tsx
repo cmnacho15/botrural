@@ -828,52 +828,102 @@ if (!mapRef.current._tooltipZoomHandler) {
     const handleClick = (e: any) => {
       if (!midiendo) return
       
-      const newPuntos = [...puntosMedicion, e.latlng]
+      // Verificar si clickeó cerca del primer punto (cerrar polígono)
+      const primerPunto = puntosMedicion[0]
+      const distanciaAlPrimero = primerPunto ? e.latlng.distanceTo(primerPunto) : Infinity
+      const esCierre = puntosMedicion.length >= 3 && distanciaAlPrimero < 20 // 20 metros de tolerancia
+      
+      let newPuntos
+      if (esCierre) {
+        // Cerrar el polígono
+        newPuntos = [...puntosMedicion, primerPunto]
+      } else {
+        newPuntos = [...puntosMedicion, e.latlng]
+      }
+      
       setPuntosMedicion(newPuntos)
       
-      // Dibujar línea
       if (newPuntos.length > 1) {
-        // Eliminar línea anterior
-        mapRef.current.eachLayer((layer: any) => {
-        if ((layer as any).options?.className === 'linea-medicion') {
-            mapRef.current?.removeLayer(layer)
-          }
-        })
-        
-        // Nueva línea
+        // Dibujar la línea completa
         const linea = (L as any).polyline(newPuntos, {
           color: '#3b82f6',
           weight: 3,
-          className: 'linea-medicion'
+          className: 'linea-medicion',
+          fill: esCierre,
+          fillColor: '#3b82f6',
+          fillOpacity: 0.1
         }).addTo(mapRef.current)
         
-        // Calcular distancia
-        let distanciaTotal = 0
+        // Dibujar tooltips para cada segmento
         for (let i = 0; i < newPuntos.length - 1; i++) {
-          distanciaTotal += newPuntos[i].distanceTo(newPuntos[i + 1])
+          const p1 = newPuntos[i]
+          const p2 = newPuntos[i + 1]
+          const distancia = p1.distanceTo(p2)
+          const puntoMedio = (L as any).latLng(
+            (p1.lat + p2.lat) / 2,
+            (p1.lng + p2.lng) / 2
+          )
+          
+          const distanciaMetros = p1.distanceTo(p2)
+let textoDistancia = ""
+if (distanciaMetros > 1000) {
+  textoDistancia = (distanciaMetros / 1000).toFixed(2) + " km"
+} else {
+  textoDistancia = Math.round(distanciaMetros) + " m"
+}
+          
+          // Tooltip para cada segmento
+          (L as any).marker(puntoMedio, {
+            icon: (L as any).divIcon({
+              className: 'medicion-label',
+              html: `<div style="background: white; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; border: 1px solid #3b82f6; white-space: nowrap;">${textoDistancia}</div>`,
+              iconSize: [0, 0]
+            }),
+            className: 'linea-medicion'
+          }).addTo(mapRef.current)
         }
         
-        // Mostrar tooltip con distancia
-        const textoDistancia = distanciaTotal > 1000 
-          ? `${(distanciaTotal / 1000).toFixed(2)} km`
-          : `${distanciaTotal.toFixed(0)} m`
-        
-        linea.bindTooltip(textoDistancia, {
-          permanent: true,
-          direction: 'center',
-          className: 'tooltip-medicion'
-        }).openTooltip()
+        // Si es polígono cerrado, mostrar área
+        if (esCierre) {
+          const area = (L as any).GeometryUtil.geodesicArea(newPuntos)
+          const areaHa = area / 10000
+          const centroide = linea.getBounds().getCenter()
+          
+          const areaNum = Number(area) || 0
+          let textoArea = ""
+          if (areaHa > 1) {
+            textoArea = areaHa.toFixed(2) + " ha"
+          } else {
+            textoArea = Math.round(areaNum) + " m²"
+          }
+          
+          (L as any).marker(centroide, {
+            icon: (L as any).divIcon({
+              className: 'medicion-area',
+              html: `<div style="background: #3b82f6; color: white; padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: bold; white-space: nowrap;">📐 ${textoArea}</div>`,
+              iconSize: [0, 0]
+            }),
+            className: 'linea-medicion'
+          }).addTo(mapRef.current)
+          
+          // Terminar medición automáticamente
+          setTimeout(() => {
+            setMidiendo(false)
+          }, 100)
+        }
       }
       
-      // Agregar marcador en el punto
-      (L as any).circleMarker(e.latlng, {
-        radius: 5,
-        color: '#3b82f6',
-        fillColor: '#ffffff',
-        fillOpacity: 1,
-        weight: 2,
-        className: 'linea-medicion'
-      }).addTo(mapRef.current)
+      // Agregar marcador en el punto (excepto si es cierre)
+      if (!esCierre) {
+        (L as any).circleMarker(e.latlng, {
+          radius: 5,
+          color: '#3b82f6',
+          fillColor: '#ffffff',
+          fillOpacity: 1,
+          weight: 2,
+          className: 'linea-medicion'
+        }).addTo(mapRef.current)
+      }
     }
     
     if (midiendo) {
