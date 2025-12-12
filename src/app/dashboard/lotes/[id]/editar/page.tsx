@@ -405,63 +405,7 @@ export default function EditarLotePage() {
             />
           </div>
 
-          {/* 📦 SELECTOR DE MÓDULO */}
-          <div className="bg-purple-50 rounded-lg p-4">
-            <h3 className="font-medium text-gray-900 mb-3">📦 Módulo de Pastoreo</h3>
-            
-            {!crearNuevoModulo ? (
-              <div className="space-y-3">
-                <select
-                  value={moduloSeleccionado}
-                  onChange={(e) => setModuloSeleccionado(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5"
-                >
-                  <option value="">Sin módulo asignado</option>
-                  {modulos.map((mod) => (
-                    <option key={mod.id} value={mod.id}>
-                      {mod.nombre}
-                    </option>
-                  ))}
-                </select>
-                
-                <button
-                  type="button"
-                  onClick={() => setCrearNuevoModulo(true)}
-                  className="text-purple-600 text-sm hover:underline"
-                >
-                  + Crear nuevo módulo
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                <input
-                  type="text"
-                  value={nuevoModuloNombre}
-                  onChange={(e) => setNuevoModuloNombre(e.target.value)}
-                  placeholder="Nombre del módulo"
-                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5"
-                />
-                <input
-                  type="text"
-                  value={nuevoModuloDescripcion}
-                  onChange={(e) => setNuevoModuloDescripcion(e.target.value)}
-                  placeholder="Descripción (opcional)"
-                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5"
-                />
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCrearNuevoModulo(false)
-                    setNuevoModuloNombre('')
-                    setNuevoModuloDescripcion('')
-                  }}
-                  className="text-gray-600 text-sm hover:underline"
-                >
-                  ← Seleccionar módulo existente
-                </button>
-              </div>
-            )}
-          </div>
+          
 
           {/* CULTIVOS */}
           <div className="bg-blue-50 rounded-lg p-4">
@@ -575,7 +519,67 @@ export default function EditarLotePage() {
               + Agregar animales
             </button>
           </div>
+          
 
+          {/* 📦 SELECTOR DE MÓDULO */}
+          <div className="bg-purple-50 rounded-lg p-4">
+            <h3 className="font-medium text-gray-900 mb-3">📦 Módulo de Pastoreo</h3>
+            
+            {!crearNuevoModulo ? (
+              <div className="space-y-3">
+                <select
+                  value={moduloSeleccionado}
+                  onChange={(e) => setModuloSeleccionado(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5"
+                >
+                  <option value="">Sin módulo asignado</option>
+                  {modulos.map((mod) => (
+                    <option key={mod.id} value={mod.id}>
+                      {mod.nombre}
+                    </option>
+                  ))}
+                </select>
+                
+                <button
+                  type="button"
+                  onClick={() => setCrearNuevoModulo(true)}
+                  className="text-purple-600 text-sm hover:underline"
+                >
+                  + Crear nuevo módulo
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <input
+                  type="text"
+                  value={nuevoModuloNombre}
+                  onChange={(e) => setNuevoModuloNombre(e.target.value)}
+                  placeholder="Nombre del módulo"
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5"
+                />
+                <input
+                  type="text"
+                  value={nuevoModuloDescripcion}
+                  onChange={(e) => setNuevoModuloDescripcion(e.target.value)}
+                  placeholder="Descripción (opcional)"
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCrearNuevoModulo(false)
+                    setNuevoModuloNombre('')
+                    setNuevoModuloDescripcion('')
+                  }}
+                  className="text-gray-600 text-sm hover:underline"
+                >
+                  ← Seleccionar módulo existente
+                </button>
+              </div>
+            )}
+          </div>
+
+          
           {/* MAPA */}
           {poligono && (
             <div className="bg-green-50 border border-green-200 rounded-lg p-4">
