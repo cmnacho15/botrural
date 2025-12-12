@@ -4,11 +4,11 @@ import { useEffect, useRef, useState } from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import 'leaflet-draw/dist/leaflet.draw.css'
-import 'leaflet-measure/dist/leaflet-measure.css'
+
 
 if (typeof window !== 'undefined') {
   require('leaflet-draw')
-  require('leaflet-measure')
+  require('leaflet-geometryutil')
 
   // Agregar estilos para tooltips sin fondo
   if (!document.getElementById('leaflet-tooltip-override')) {
@@ -262,6 +262,9 @@ export default function MapaPoligono({
   const [isReady, setIsReady] = useState(false)
   const [ubicandoUsuario, setUbicandoUsuario] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
+  
+  const [midiendo, setMidiendo] = useState(false)
+  const [puntosMedicion, setPuntosMedicion] = useState<any[]>([])
 
   // 🖥️ Función para entrar/salir de pantalla completa
   const toggleFullscreen = () => {
@@ -363,16 +366,7 @@ satelitalLayer.addTo(map)
 // Control de capas base
 L.control.layers({ 'Satélite': satelitalLayer, 'Mapa': osmLayer }).addTo(map)
 
-// 📏 Control de medición
-    const measureControl = new (L.Control as any).Measure({
-      position: 'bottomleft',
-      primaryLengthUnit: 'meters',
-      secondaryLengthUnit: 'kilometers',
-      primaryAreaUnit: 'hectares',
-      activeColor: '#3b82f6',
-      completedColor: '#10b981'
-    })
-    measureControl.addTo(map)
+
 
     const existingLayers = new L.FeatureGroup()
     map.addLayer(existingLayers)
@@ -823,6 +817,77 @@ if (!mapRef.current._tooltipZoomHandler) {
       console.log('🎨 Opacidad actualizada a:', opacidadCurvas)
     }
   }, [opacidadCurvas])
+  
+
+  /**
+   * 📏 Manejar clicks para medición
+   */
+  useEffect(() => {
+    if (!mapRef.current) return
+    
+    const handleClick = (e: any) => {
+      if (!midiendo) return
+      
+      const newPuntos = [...puntosMedicion, e.latlng]
+      setPuntosMedicion(newPuntos)
+      
+      // Dibujar línea
+      if (newPuntos.length > 1) {
+        // Eliminar línea anterior
+        mapRef.current.eachLayer((layer: any) => {
+        if ((layer as any).options?.className === 'linea-medicion') {
+            mapRef.current?.removeLayer(layer)
+          }
+        })
+        
+        // Nueva línea
+        const linea = (L as any).polyline(newPuntos, {
+          color: '#3b82f6',
+          weight: 3,
+          className: 'linea-medicion'
+        }).addTo(mapRef.current)
+        
+        // Calcular distancia
+        let distanciaTotal = 0
+        for (let i = 0; i < newPuntos.length - 1; i++) {
+          distanciaTotal += newPuntos[i].distanceTo(newPuntos[i + 1])
+        }
+        
+        // Mostrar tooltip con distancia
+        const textoDistancia = distanciaTotal > 1000 
+          ? `${(distanciaTotal / 1000).toFixed(2)} km`
+          : `${distanciaTotal.toFixed(0)} m`
+        
+        linea.bindTooltip(textoDistancia, {
+          permanent: true,
+          direction: 'center',
+          className: 'tooltip-medicion'
+        }).openTooltip()
+      }
+      
+      // Agregar marcador en el punto
+      (L as any).circleMarker(e.latlng, {
+        radius: 5,
+        color: '#3b82f6',
+        fillColor: '#ffffff',
+        fillOpacity: 1,
+        weight: 2,
+        className: 'linea-medicion'
+      }).addTo(mapRef.current)
+    }
+    
+    if (midiendo) {
+      mapRef.current.on('click', handleClick)
+    }
+    
+    return () => {
+      if (mapRef.current) {
+        mapRef.current.off('click', handleClick)
+      }
+    }
+  }, [midiendo, puntosMedicion])
+
+  
 
   const buscarUbicacion = async () => {
     if (!searchQuery.trim()) return
@@ -954,6 +1019,21 @@ if (!mapRef.current._tooltipZoomHandler) {
       onPolygonComplete(coordinates, areaHectareas)
     }
   }
+  
+  // 📏 Activar/desactivar medición
+  const toggleMedicion = () => {
+    setMidiendo(!midiendo)
+    setPuntosMedicion([])
+    
+    // Limpiar líneas anteriores
+    if (mapRef.current) {
+      mapRef.current.eachLayer((layer: any) => {
+        if ((layer as any).options?.className === 'linea-medicion') {
+          mapRef.current?.removeLayer(layer)
+        }
+      })
+    }
+  }
 
   return (
     <div id="map-container" className="relative w-full h-full flex flex-col">
@@ -975,6 +1055,20 @@ if (!mapRef.current._tooltipZoomHandler) {
             <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
           </svg>
         )}
+      </button>
+      {/* 📏 BOTÓN DE MEDICIÓN - Debajo del zoom */}
+      <button
+        onClick={toggleMedicion}
+        className={`absolute top-[110px] right-3 z-[10] rounded-lg shadow-lg hover:shadow-xl transition-all w-[34px] h-[34px] sm:w-[36px] sm:h-[36px] flex items-center justify-center border-2 ${
+          midiendo 
+            ? 'bg-blue-600 border-blue-600 text-white' 
+            : 'bg-white border-gray-300 text-gray-700'
+        }`}
+        title={midiendo ? "Terminar medición" : "Medir distancia"}
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+          <path d="M21 3L3 21M21 3l-6 18-3-9-9-3 18-6z"/>
+        </svg>
       </button>
 
       {/* 🎯 BOTÓN DE UBICACIÓN - Debajo del control de capas */}
