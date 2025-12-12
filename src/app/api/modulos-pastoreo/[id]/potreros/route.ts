@@ -27,6 +27,31 @@ export async function GET(
   }
 }
 
+export async function POST(
+  request: Request,
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await context.params
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+    }
+
+    const { potreroId } = await request.json()
+
+    await prisma.lote.update({
+      where: { id: potreroId },
+      data: { moduloPastoreoId: id }
+    })
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error('Error:', error)
+    return NextResponse.json({ error: 'Error' }, { status: 500 })
+  }
+}
+
 export async function DELETE(request: Request) {
   try {
     const session = await getServerSession(authOptions)

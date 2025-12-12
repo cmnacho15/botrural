@@ -24,6 +24,7 @@ export default function ModulosPreferencias() {
   const [showModalEliminar, setShowModalEliminar] = useState(false)
   const [moduloAEliminar, setModuloAEliminar] = useState<ModuloPastoreo | null>(null)
   const [potreros, setPotreros] = useState<Potrero[]>([])
+  const [potrerosDisponibles, setPotrerosDisponibles] = useState<Potrero[]>([])
   const [loadingPotreros, setLoadingPotreros] = useState(false)
   const [nuevoModulo, setNuevoModulo] = useState({
     nombre: '',
@@ -66,6 +67,18 @@ export default function ModulosPreferencias() {
     }
   }
 
+  async function cargarPotrerosDisponibles() {
+    try {
+      const response = await fetch('/api/modulos-pastoreo/potreros-disponibles')
+      if (response.ok) {
+        const data = await response.json()
+        setPotrerosDisponibles(data)
+      }
+    } catch (error) {
+      console.error('Error cargando potreros disponibles:', error)
+    }
+  }
+
   async function handleDesvincularPotrero(potreroId: string) {
     if (!editandoModulo) return
 
@@ -78,12 +91,35 @@ export default function ModulosPreferencias() {
 
       if (response.ok) {
         cargarPotrerosDelModulo(editandoModulo.id)
+        cargarPotrerosDisponibles()
         cargarModulos()
       } else {
         alert('Error al desvincular')
       }
     } catch (error) {
       alert('Error al desvincular')
+    }
+  }
+
+  async function handleAgregarPotrero(potreroId: string) {
+    if (!editandoModulo) return
+
+    try {
+      const response = await fetch(`/api/modulos-pastoreo/${editandoModulo.id}/potreros`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ potreroId })
+      })
+
+      if (response.ok) {
+        cargarPotrerosDelModulo(editandoModulo.id)
+        cargarPotrerosDisponibles()
+        cargarModulos()
+      } else {
+        alert('Error al agregar potrero')
+      }
+    } catch (error) {
+      alert('Error al agregar potrero')
     }
   }
 
@@ -113,6 +149,7 @@ export default function ModulosPreferencias() {
         setShowModal(false)
         setEditandoModulo(null)
         setPotreros([])
+        setPotrerosDisponibles([])
         cargarModulos()
         alert(editandoModulo ? '¡Módulo actualizado!' : '¡Módulo creado!')
       } else {
@@ -164,7 +201,9 @@ export default function ModulosPreferencias() {
       descripcion: modulo.descripcion || ''
     })
     setPotreros([])
+    setPotrerosDisponibles([])
     cargarPotrerosDelModulo(modulo.id)
+    cargarPotrerosDisponibles()
     setShowModal(true)
   }
 
@@ -173,6 +212,7 @@ export default function ModulosPreferencias() {
     setEditandoModulo(null)
     setNuevoModulo({ nombre: '', descripcion: '' })
     setPotreros([])
+    setPotrerosDisponibles([])
   }
 
   if (loading) {
@@ -197,6 +237,7 @@ export default function ModulosPreferencias() {
               setEditandoModulo(null)
               setNuevoModulo({ nombre: '', descripcion: '' })
               setPotreros([])
+              setPotrerosDisponibles([])
               setShowModal(true)
             }}
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
@@ -319,44 +360,78 @@ export default function ModulosPreferencias() {
 
               {/* SECCIÓN DE POTREROS (SOLO AL EDITAR) */}
               {editandoModulo && (
-                <div className="border-t pt-6">
-                  <h3 className="text-sm font-semibold text-gray-900 mb-3">Potreros de este módulo</h3>
-                  
-                  {loadingPotreros ? (
-                    <div className="text-center py-8">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>
-                      <p className="text-gray-600 text-sm">Cargando...</p>
-                    </div>
-                  ) : potreros.length === 0 ? (
-                    <div className="text-center py-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-                      <p className="text-gray-500 text-sm">Este módulo no tiene potreros asignados</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {potreros.map((potrero) => (
-                        <div
-                          key={potrero.id}
-                          className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition"
-                        >
-                          <div>
-                            <h4 className="font-medium text-gray-900 text-sm">{potrero.nombre}</h4>
-                            <p className="text-xs text-gray-500">{potrero.hectareas} ha</p>
-                          </div>
-                          <button
-                            onClick={() => {
-                              if (confirm(`¿Desvincular "${potrero.nombre}" de este módulo?\n\nEl potrero pasará a "Resto del campo".`)) {
-                                handleDesvincularPotrero(potrero.id)
-                              }
-                            }}
-                            className="px-3 py-1.5 text-xs bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition font-medium"
+                <>
+                  {/* POTREROS ACTUALES DEL MÓDULO */}
+                  <div className="border-t pt-6">
+                    <h3 className="text-sm font-semibold text-gray-900 mb-3">Potreros de este módulo</h3>
+                    
+                    {loadingPotreros ? (
+                      <div className="text-center py-8">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>
+                        <p className="text-gray-600 text-sm">Cargando...</p>
+                      </div>
+                    ) : potreros.length === 0 ? (
+                      <div className="text-center py-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+                        <p className="text-gray-500 text-sm">Este módulo no tiene potreros asignados</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {potreros.map((potrero) => (
+                          <div
+                            key={potrero.id}
+                            className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition"
                           >
-                            Quitar
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                            <div>
+                              <h4 className="font-medium text-gray-900 text-sm">{potrero.nombre}</h4>
+                              <p className="text-xs text-gray-500">{potrero.hectareas} ha</p>
+                            </div>
+                            <button
+                              onClick={() => {
+                                if (confirm(`¿Desvincular "${potrero.nombre}" de este módulo?\n\nEl potrero pasará a "Resto del campo".`)) {
+                                  handleDesvincularPotrero(potrero.id)
+                                }
+                              }}
+                              className="px-3 py-1.5 text-xs bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition font-medium"
+                            >
+                              Quitar
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* POTREROS DISPONIBLES PARA AGREGAR */}
+                  <div className="border-t pt-6">
+                    <h3 className="text-sm font-semibold text-gray-900 mb-3">Potreros disponibles</h3>
+                    
+                    {potrerosDisponibles.length === 0 ? (
+                      <div className="text-center py-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+                        <p className="text-gray-500 text-sm">No hay potreros disponibles sin asignar</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {potrerosDisponibles.map((potrero) => (
+                          <div
+                            key={potrero.id}
+                            className="flex items-center justify-between p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition"
+                          >
+                            <div>
+                              <h4 className="font-medium text-gray-900 text-sm">{potrero.nombre}</h4>
+                              <p className="text-xs text-gray-500">{potrero.hectareas} ha</p>
+                            </div>
+                            <button
+                              onClick={() => handleAgregarPotrero(potrero.id)}
+                              className="px-3 py-1.5 text-xs bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium"
+                            >
+                              Agregar
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </>
               )}
             </div>
 
