@@ -49,10 +49,16 @@ if (typeof window !== 'undefined') {
       .leaflet-top.leaflet-left {
         top: 50px !important;
       }
+      /* 📏 Quitar fondo azul de los marcadores de medición */
+      .medicion-label {
+        background: transparent !important;
+        border: none !important;
+      }
     `
     document.head.appendChild(style)
   }
 }
+
 
 // 🎨 Colores por módulo de pastoreo (mismos que en page.tsx)
 const COLORES_MODULOS: string[] = [
@@ -1115,19 +1121,13 @@ if (distanciaMetros > 1000) {
             ? 'bg-blue-600 border-blue-600 text-white' 
             : 'bg-white border-gray-300 text-gray-700'
         }`}
-        style={{ marginTop: '88px' }}
+        style={{ marginTop: '106px' }}
         title={midiendo ? "Terminar medición" : "Medir distancia"}
       >
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-          <line x1="4" y1="21" x2="4" y2="14"/>
-          <line x1="4" y1="10" x2="4" y2="3"/>
-          <line x1="12" y1="21" x2="12" y2="11"/>
-          <line x1="12" y1="7" x2="12" y2="3"/>
-          <line x1="20" y1="21" x2="20" y2="16"/>
-          <line x1="20" y1="12" x2="20" y2="3"/>
-          <line x1="2" y1="14" x2="6" y2="14"/>
-          <line x1="10" y1="7" x2="14" y2="7"/>
-          <line x1="18" y1="16" x2="22" y2="16"/>
+          <path d="M3 21L21 3M7 8L16 17M10.5 10.5L13.5 13.5"/>
+          <circle cx="6" cy="6" r="2"/>
+          <circle cx="18" cy="18" r="2"/>
         </svg>
       </button>
 
