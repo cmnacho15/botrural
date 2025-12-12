@@ -98,7 +98,8 @@ interface MapaPoligonoProps {
   modulosLeyenda?: ModuloLeyenda[]
   mostrarLeyendaModulos?: boolean
   mostrarCurvasNivel?: boolean
-  mostrarConeat?: boolean  // 🔥 NUEVO
+  mostrarConeat?: boolean
+  opacidadCurvas?: number
 }
 
 function calcularAreaPoligono(latlngs: any[]): number {
@@ -241,6 +242,7 @@ export default function MapaPoligono({
   mostrarLeyendaModulos = false,
   mostrarCurvasNivel = false,
   mostrarConeat = false,  // 🔥 NUEVO
+  opacidadCurvas = 95,
 }: MapaPoligonoProps) {
 
   const mapRef = useRef<any>(null)
@@ -312,13 +314,12 @@ const osmLayer = L.tileLayer(
   { attribution: '© OpenStreetMap', maxZoom: 19 }
 )
 
-// 🔥 Capa de curvas de nivel (creada pero NO agregada aún)
 const curvasLayer = L.tileLayer(
   'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
   { 
     attribution: '© OpenTopoMap', 
     maxZoom: 17,
-    opacity: 0.95,
+    opacity: opacidadCurvas / 100,
     zIndex: 1000
   }
 )
@@ -796,6 +797,16 @@ if (!mapRef.current._tooltipZoomHandler) {
       }
     }
   }, [mostrarConeat, isReady])
+
+  /**
+   * 🎨 Actualizar opacidad de curvas dinámicamente
+   */
+  useEffect(() => {
+    const curvasLayer = curvasLayerRef.current
+    if (curvasLayer) {
+      curvasLayer.setOpacity(opacidadCurvas / 100)
+    }
+  }, [opacidadCurvas])
 
   const buscarUbicacion = async () => {
     if (!searchQuery.trim()) return
