@@ -626,27 +626,43 @@ const [acordeonesAbiertos, setAcordeonesAbiertos] = useState<{[key: string]: boo
           </div>
 
           {hayLotes && (
-            <div className="flex flex-wrap justify-center md:justify-end gap-3">
-              <Link
-                href="/dashboard/ug-evolution"
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 shadow-sm transition text-sm font-medium"
-              >
-                <span className="text-lg">📊</span> Evolución de Carga Animal
-              </Link>
-              
-              <Link
-                href="/dashboard/lotes/nuevo"
-                className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 bg-white hover:bg-gray-100 text-gray-800 shadow-sm transition text-sm"
-              >
-                <span className="text-lg">+</span> Nuevo potrero
-              </Link>
-              <button
-                className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 bg-white hover:bg-gray-100 text-gray-800 shadow-sm transition text-sm"
-              >
-                <span className="text-lg">⬆️</span> Importar CSV
-              </button>
-            </div>
-          )}
+  <div className="flex flex-col gap-3 items-end">
+    {/* PRIMERA FILA: Nuevo potrero + Importar CSV */}
+    <div className="flex flex-wrap justify-center md:justify-end gap-3">
+      <Link
+        href="/dashboard/lotes/nuevo"
+        className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 bg-white hover:bg-gray-100 text-gray-800 shadow-sm transition text-sm"
+      >
+        <span className="text-lg">+</span> Nuevo potrero
+      </Link>
+      <button
+        className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 bg-white hover:bg-gray-100 text-gray-800 shadow-sm transition text-sm"
+      >
+        <span className="text-lg">⬆️</span> Importar CSV
+      </button>
+    </div>
+
+    {/* SEGUNDA FILA: Evolución Carga Animal + (Reporte Pastoreo si hay módulos en uso) */}
+    <div className="flex flex-wrap justify-center md:justify-end gap-3">
+      <Link
+        href="/dashboard/ug-evolution"
+        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 shadow-sm transition text-sm font-medium"
+      >
+        <span className="text-lg">📊</span> Evolución de Carga Animal
+      </Link>
+      
+      {/* 🔥 NUEVO: Mostrar SOLO si hay módulos CON potreros asignados */}
+      {lotesAgrupados.modulos.some(m => m.lotes.length > 0) && (
+        <Link
+          href="/dashboard/reportes/pastoreo"
+          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-purple-600 text-white hover:bg-purple-700 shadow-sm transition text-sm font-medium"
+        >
+          <span className="text-lg">📋</span> Reporte Pastoreo
+        </Link>
+      )}
+    </div>
+  </div>
+)}
         </div>
 
         {/* CONTENIDO */}
