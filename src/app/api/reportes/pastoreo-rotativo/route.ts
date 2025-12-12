@@ -89,31 +89,52 @@ export async function GET(request: Request) {
       ],
     })
 
-    // Procesar eventos para calcular datos de la tabla
+    // Agrupar eventos por potrero + fecha (mismo día, mismo potrero)
+    const eventosPorGrupo = new Map<string, typeof eventos>()
+    
+    eventos.forEach(evento => {
+      const fechaStr = new Date(evento.fecha).toISOString().split('T')[0]
+      const key = `${evento.loteDestinoId}-${fechaStr}`
+      
+      if (!eventosPorGrupo.has(key)) {
+        eventosPorGrupo.set(key, [])
+      }
+      eventosPorGrupo.get(key)!.push(evento)
+    })
+
+    // Procesar cada grupo
     const registros: any[] = []
     const hoy = new Date()
+    const gruposArray = Array.from(eventosPorGrupo.entries())
 
-    for (let i = 0; i < eventos.length; i++) {
-      const evento = eventos[i]
+    gruposArray.forEach(([key, grupo], index) => {
+      const primerEvento = grupo[0]
       
-      // Buscar el siguiente evento en el MISMO potrero
-      const siguienteEvento = eventos.find(
-        (e, idx) => idx > i && e.loteDestinoId === evento.loteDestinoId
-      )
-
-      const potrero = potreros.find(p => p.id === evento.loteDestinoId)
+      // Combinar categorías
+      const categorias = grupo
+        .map(e => e.categoria)
+        .filter(Boolean)
+        .join(', ') || grupo[0].descripcion || '-'
       
-      const fechaEntrada = new Date(evento.fecha)
-      const fechaSalida = siguienteEvento ? new Date(siguienteEvento.fecha) : null
+      // Buscar el siguiente grupo en el MISMO potrero
+      const potreroId = primerEvento.loteDestinoId
+      const siguienteGrupo = gruposArray
+        .slice(index + 1)
+        .find(([k, g]) => g[0].loteDestinoId === potreroId)
+      
+      const potrero = potreros.find(p => p.id === potreroId)
+      
+      const fechaEntrada = new Date(primerEvento.fecha)
+      const fechaSalida = siguienteGrupo ? new Date(siguienteGrupo[1][0].fecha) : null
       
       // Calcular días en el potrero
       const dias = fechaSalida 
         ? Math.ceil((fechaSalida.getTime() - fechaEntrada.getTime()) / (1000 * 60 * 60 * 24))
         : 0
 
-      // Calcular días de descanso (hasta el siguiente evento en ese potrero)
-      const descanso = siguienteEvento 
-        ? Math.ceil((new Date(siguienteEvento.fecha).getTime() - fechaSalida!.getTime()) / (1000 * 60 * 60 * 24))
+      // Calcular días de descanso
+      const descanso = siguienteGrupo 
+        ? Math.ceil((new Date(siguienteGrupo[1][0].fecha).getTime() - fechaSalida!.getTime()) / (1000 * 60 * 60 * 24))
         : 0
 
       // Días desde hoy
@@ -127,9 +148,9 @@ export async function GET(request: Request) {
         fechaSalida: fechaSalida ? fechaSalida.toISOString().split('T')[0] : '-',
         descanso,
         hectareas: potrero?.hectareas || 0,
-        comentarios: evento.categoria || evento.descripcion || '-',
+        comentarios: categorias,
       })
-    }
+    })
 
     // Ordenar por fecha de entrada descendente (más recientes primero)
     registros.sort((a, b) => b.diasDesdeHoy - a.diasDesdeHoy)
