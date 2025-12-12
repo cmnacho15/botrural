@@ -1116,19 +1116,15 @@ if (distanciaMetros > 1000) {
       {/* 📏 BOTÓN DE MEDICIÓN - Debajo del zoom */}
       <button
         onClick={toggleMedicion}
-        className={`absolute top-3 left-3 z-[10] rounded-lg shadow-lg hover:shadow-xl transition-all w-[34px] h-[34px] sm:w-[36px] sm:h-[36px] flex items-center justify-center border-2 ${
+        className={`absolute top-3 left-3 z-[10] rounded-lg shadow-lg hover:shadow-xl transition-all w-[34px] h-[34px] sm:w-[36px] sm:h-[36px] flex items-center justify-center border-2 text-lg ${
           midiendo 
-            ? 'bg-blue-600 border-blue-600 text-white' 
-            : 'bg-white border-gray-300 text-gray-700'
+            ? 'bg-blue-600 border-blue-600' 
+            : 'bg-white border-gray-300'
         }`}
-        style={{ marginTop: '106px' }}
+        style={{ marginTop: '124px' }}
         title={midiendo ? "Terminar medición" : "Medir distancia"}
       >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-          <path d="M3 21L21 3M7 8L16 17M10.5 10.5L13.5 13.5"/>
-          <circle cx="6" cy="6" r="2"/>
-          <circle cx="18" cy="18" r="2"/>
-        </svg>
+        📏
       </button>
 
       {/* 🎯 BOTÓN DE UBICACIÓN - Debajo del control de capas */}
