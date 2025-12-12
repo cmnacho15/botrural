@@ -757,7 +757,7 @@ if (!mapRef.current._tooltipZoomHandler) {
         console.log('ℹ️ La capa de curvas no estaba en el mapa')
       }
     }
-  }, [mostrarCurvasNivel, isReady])
+  }, [mostrarCurvasNivel, isReady, opacidadCurvas])
 
   /**
    * 🌱 Controlar capa de CONEAT

@@ -453,7 +453,7 @@ export default function MapaPage() {
                 </div>
               ) : (
                 <MapaPoligono
-  key={`vista-${vistaActual}-${lotes.length}-${Object.keys(ndviData).length}`}
+  key={`vista-${vistaActual}-${lotes.length}-${Object.keys(ndviData).length}-mapa`}
   initialCenter={mapCenter}
   initialZoom={14}
   existingPolygons={poligonosParaMapa}
@@ -847,32 +847,7 @@ export default function MapaPage() {
                     </div>
                   </div>
 
-                  {/* Escala de índices */}
-                  <div className="mb-5">
-                    <h3 className="text-xs sm:text-sm font-semibold text-gray-700 mb-2 sm:mb-3">
-                      📊 Escala de Productividad
-                    </h3>
-                    <div className="space-y-1.5 text-xs sm:text-[13px]">
-                      {[
-                        { color: '#006400', rango: '200+', desc: 'Suelos excelentes' },
-                        { color: '#228B22', rango: '150-200', desc: 'Suelos muy buenos' },
-                        { color: '#9ACD32', rango: '100-150', desc: 'Suelos buenos' },
-                        { color: '#FFFF00', rango: '80-100', desc: 'Suelos medios' },
-                        { color: '#FFA500', rango: '60-80', desc: 'Suelos bajos' },
-                        { color: '#FF4500', rango: '40-60', desc: 'Suelos muy bajos' },
-                        { color: '#8B4513', rango: '<40', desc: 'Suelos de baja productividad' },
-                      ].map(({ color, rango, desc }) => (
-                        <div key={rango} className="flex items-center gap-2 sm:gap-3">
-                          <div
-                            className="w-7 h-3 sm:w-8 sm:h-4 rounded border border-gray-300"
-                            style={{ backgroundColor: color }}
-                          />
-                          <span className="font-medium min-w-[70px]">{rango}</span>
-                          <span className="text-gray-600">{desc}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+              
 
                   {/* Usos prácticos */}
                   <div className="mb-5">
