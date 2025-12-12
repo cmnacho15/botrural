@@ -889,7 +889,7 @@ if (distanciaMetros > 1000) {
           (L as any).marker(puntoMedio, {
             icon: (L as any).divIcon({
               className: 'medicion-label',
-              html: `<div style="background: #3b82f6; color: white; padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; white-space: nowrap; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">${textoDistancia}</div>`,
+              html: `<span style="background: #3b82f6; color: white; padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; white-space: nowrap; box-shadow: 0 2px 4px rgba(0,0,0,0.2); display: inline-block;">${textoDistancia}</span>`,
               iconSize: [0, 0]
             }),
             className: 'linea-medicion',
