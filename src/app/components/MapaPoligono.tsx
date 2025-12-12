@@ -54,6 +54,13 @@ if (typeof window !== 'undefined') {
         background: transparent !important;
         border: none !important;
       }
+      .medicion-label::before {
+        display: none !important;
+      }
+      .leaflet-marker-icon.medicion-label {
+        background: transparent !important;
+        border: none !important;
+      }
     `
     document.head.appendChild(style)
   }
