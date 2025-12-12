@@ -70,7 +70,7 @@ function getColorModulo(moduloIndex: number): string {
 export default function MapaPage() {
   const [lotes, setLotes] = useState<Lote[]>([])
   const [loading, setLoading] = useState(true)
-  const [vistaActual, setVistaActual] = useState<'indice' | 'cultivo' | 'ndvi' | 'curvas'>(
+  const [vistaActual, setVistaActual] = useState<'indice' | 'cultivo' | 'ndvi' | 'curvas' | 'coneat'>(
   'indice',
 )
   const [mapCenter, setMapCenter] = useState<[number, number]>([
@@ -413,6 +413,16 @@ export default function MapaPage() {
 >
   📏 Curvas
 </button>
+<button
+  onClick={() => setVistaActual('coneat')}
+  className={`px-3 py-2 text-xs sm:text-sm font-medium transition ${
+    vistaActual === 'coneat'
+      ? 'bg-green-600 text-white'
+      : 'text-gray-700 hover:bg-gray-50'
+  }`}
+>
+  🌱 CONEAT
+</button>
             </div>
           </div>
         </div>
@@ -450,6 +460,7 @@ export default function MapaPage() {
   modulosLeyenda={modulosLeyendaParaMapa}
   mostrarLeyendaModulos={vistaActual === 'indice'}
   mostrarCurvasNivel={vistaActual === 'curvas'}
+  mostrarConeat={vistaActual === 'coneat'}
 />
               )}
             </div>
@@ -464,6 +475,7 @@ export default function MapaPage() {
   {vistaActual === 'cultivo' && '🌾 Cultivos por potrero'}
   {vistaActual === 'ndvi' && '🛰️ Índice de Vegetación (NDVI)'}
   {vistaActual === 'curvas' && '📏 Curvas de Nivel'}
+  {vistaActual === 'coneat' && '🌱 Grupos CONEAT'}
 </h2>
             </div>
 
@@ -782,6 +794,91 @@ export default function MapaPage() {
                 </>
               )}
 
+              {/* VISTA CONEAT */}
+              {vistaActual === 'coneat' && (
+                <>
+                  {/* Información */}
+                  <div className="mb-5 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-3 sm:p-4">
+                    <h3 className="text-xs sm:text-sm font-semibold text-gray-800 mb-2">
+                      🌱 ¿Qué es CONEAT?
+                    </h3>
+                    <div className="space-y-2 text-xs sm:text-[13px] text-gray-700">
+                      <div className="flex items-start gap-2">
+                        <span>📊</span>
+                        <span><strong>CONEAT</strong> es el Índice de Productividad de Suelos de Uruguay (0-200+)</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <span>🏛️</span>
+                        <span><strong>Fuente:</strong> MGAP - Ministerio de Ganadería, Agricultura y Pesca</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <span>💡</span>
+                        <span><strong>Uso:</strong> Evaluar potencial productivo del suelo para toma de decisiones</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Escala de índices */}
+                  <div className="mb-5">
+                    <h3 className="text-xs sm:text-sm font-semibold text-gray-700 mb-2 sm:mb-3">
+                      📊 Escala de Productividad
+                    </h3>
+                    <div className="space-y-1.5 text-xs sm:text-[13px]">
+                      {[
+                        { color: '#006400', rango: '200+', desc: 'Suelos excelentes' },
+                        { color: '#228B22', rango: '150-200', desc: 'Suelos muy buenos' },
+                        { color: '#9ACD32', rango: '100-150', desc: 'Suelos buenos' },
+                        { color: '#FFFF00', rango: '80-100', desc: 'Suelos medios' },
+                        { color: '#FFA500', rango: '60-80', desc: 'Suelos bajos' },
+                        { color: '#FF4500', rango: '40-60', desc: 'Suelos muy bajos' },
+                        { color: '#8B4513', rango: '<40', desc: 'Suelos de baja productividad' },
+                      ].map(({ color, rango, desc }) => (
+                        <div key={rango} className="flex items-center gap-2 sm:gap-3">
+                          <div
+                            className="w-7 h-3 sm:w-8 sm:h-4 rounded border border-gray-300"
+                            style={{ backgroundColor: color }}
+                          />
+                          <span className="font-medium min-w-[70px]">{rango}</span>
+                          <span className="text-gray-600">{desc}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Usos prácticos */}
+                  <div className="mb-5">
+                    <h3 className="text-xs sm:text-sm font-semibold text-gray-700 mb-2 sm:mb-3">
+                      💡 ¿Para qué sirve?
+                    </h3>
+                    <div className="space-y-2 text-xs sm:text-[13px]">
+                      <div className="p-2.5 bg-white rounded-lg border border-gray-200">
+                        <p className="font-medium text-gray-900 mb-1">🌾 Decisiones de siembra</p>
+                        <p className="text-gray-600">Elegir cultivos según potencial del suelo</p>
+                      </div>
+                      <div className="p-2.5 bg-white rounded-lg border border-gray-200">
+                        <p className="font-medium text-gray-900 mb-1">💰 Cálculo de arrendamientos</p>
+                        <p className="text-gray-600">Base para determinar valor de alquiler</p>
+                      </div>
+                      <div className="p-2.5 bg-white rounded-lg border border-gray-200">
+                        <p className="font-medium text-gray-900 mb-1">📈 Planificación productiva</p>
+                        <p className="text-gray-600">Rotaciones cultivo/pastoreo según CONEAT</p>
+                      </div>
+                      <div className="p-2.5 bg-white rounded-lg border border-gray-200">
+                        <p className="font-medium text-gray-900 mb-1">🎯 Expectativas de rinde</p>
+                        <p className="text-gray-600">Estimar productividad esperada por potrero</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Nota oficial */}
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs sm:text-[13px]">
+                    <p className="font-semibold text-blue-900 mb-1.5">ℹ️ Datos Oficiales</p>
+                    <p className="text-blue-800">
+                      Los datos CONEAT provienen del MGAP (Ministerio de Ganadería, Agricultura y Pesca) y son los mismos que usa el gobierno uruguayo para políticas agropecuarias.
+                    </p>
+                  </div>
+                </>
+              )}
 
               {/* VISTA CULTIVOS */}
               {vistaActual === 'cultivo' && (

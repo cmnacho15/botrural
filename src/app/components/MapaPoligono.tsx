@@ -96,7 +96,8 @@ interface MapaPoligonoProps {
   readOnly?: boolean
   modulosLeyenda?: ModuloLeyenda[]
   mostrarLeyendaModulos?: boolean
-  mostrarCurvasNivel?: boolean  // 🔥 NUEVO
+  mostrarCurvasNivel?: boolean
+  mostrarConeat?: boolean  // 🔥 NUEVO
 }
 
 function calcularAreaPoligono(latlngs: any[]): number {
@@ -237,12 +238,16 @@ export default function MapaPoligono({
   readOnly = false,
   modulosLeyenda = [],
   mostrarLeyendaModulos = false,
-  mostrarCurvasNivel = false,  // 🔥 NUEVO
+  mostrarCurvasNivel = false,
+  mostrarConeat = false,  // 🔥 NUEVO
 }: MapaPoligonoProps) {
+
   const mapRef = useRef<any>(null)
   const drawnItemsRef = useRef<any>(null)
   const existingLayersRef = useRef<any>(null)
   const locationLayersRef = useRef<any[]>([])
+  const curvasLayerRef = useRef<any>(null)  // 🔥 NUEVO
+  const coneatLayerRef = useRef<any>(null)  // 🔥 NUEVO
 
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<any[]>([])
@@ -313,7 +318,20 @@ const curvasLayer = L.tileLayer(
     attribution: '© OpenTopoMap', 
     maxZoom: 17,
     opacity: 0.95,
-    zIndex: 1000  // 🔥 Z-index alto para estar encima
+    zIndex: 1000
+  }
+)
+
+// 🔥 NUEVO: Capa de CONEAT (WMS del MGAP)
+const coneatLayer = (L.tileLayer as any).wms(
+  'https://visualizador.mgap.gub.uy/geoserver/RENARE/wms',
+  {
+    layers: 'RENARE:coneat',
+    format: 'image/png',
+    transparent: true,
+    opacity: 0.7,
+    zIndex: 1000,
+    attribution: '© MGAP Uruguay'
   }
 )
 
@@ -421,9 +439,11 @@ L.control.layers({ 'Satélite': satelitalLayer, 'Mapa': osmLayer }).addTo(map)
 
       map.on(DrawEvent.DELETED, () => setAreaHectareas(null))
     }
-  // 🔥 Guardar referencia a la capa de curvas
-    (map as any)._curvasLayer = curvasLayer
+  // 🔥 Guardar referencias a las capas en refs
+    curvasLayerRef.current = curvasLayer
+    coneatLayerRef.current = coneatLayer
     console.log('📦 Referencia de curvas guardada:', curvasLayer)
+    console.log('📦 Referencia de CONEAT guardada:', coneatLayer)
 
     return () => {
   // Limpiar handlers antes de destruir el mapa
@@ -685,9 +705,8 @@ if (!mapRef.current._tooltipZoomHandler) {
       console.log('⚠️ Esperando que el mapa esté listo... isReady:', isReady, 'mapRef:', !!mapRef.current)
       return
     }
-
     
-    const curvasLayer = (mapRef.current as any)._curvasLayer
+    const curvasLayer = curvasLayerRef.current
     
     if (!curvasLayer) {
       console.log('⚠️ No hay capa de curvas guardada')
@@ -698,25 +717,67 @@ if (!mapRef.current._tooltipZoomHandler) {
       console.log('🗺️ Intentando mostrar curvas...')
       
       if (!mapRef.current.hasLayer(curvasLayer)) {
-        console.log('➕ Agregando capa al mapa...')
+        console.log('➕ Agregando capa de curvas al mapa...')
         curvasLayer.addTo(mapRef.current)
         curvasLayer.setZIndex(1000)
-        console.log('✅ Capa agregada exitosamente')
+        console.log('✅ Capa de curvas agregada exitosamente')
       } else {
-        console.log('ℹ️ La capa ya estaba en el mapa')
+        console.log('ℹ️ La capa de curvas ya estaba en el mapa')
       }
     } else {
       console.log('🗺️ Ocultando curvas...')
       
       if (mapRef.current.hasLayer(curvasLayer)) {
-        console.log('➖ Removiendo capa del mapa...')
+        console.log('➖ Removiendo capa de curvas del mapa...')
         mapRef.current.removeLayer(curvasLayer)
-        console.log('✅ Capa removida exitosamente')
+        console.log('✅ Capa de curvas removida exitosamente')
       } else {
-        console.log('ℹ️ La capa no estaba en el mapa')
+        console.log('ℹ️ La capa de curvas no estaba en el mapa')
       }
     }
   }, [mostrarCurvasNivel, isReady])
+
+  /**
+   * 🌱 Controlar capa de CONEAT
+   */
+  useEffect(() => {
+    console.log('🔄 useEffect CONEAT ejecutado. mostrarConeat:', mostrarConeat, 'isReady:', isReady)
+    
+    if (!isReady || !mapRef.current) {
+      console.log('⚠️ Esperando que el mapa esté listo... isReady:', isReady, 'mapRef:', !!mapRef.current)
+      return
+    }
+    
+    const coneatLayer = coneatLayerRef.current
+    
+    if (!coneatLayer) {
+      console.log('⚠️ No hay capa de CONEAT guardada')
+      return
+    }
+    
+    if (mostrarConeat) {
+      console.log('🌱 Intentando mostrar CONEAT...')
+      
+      if (!mapRef.current.hasLayer(coneatLayer)) {
+        console.log('➕ Agregando capa CONEAT al mapa...')
+        coneatLayer.addTo(mapRef.current)
+        coneatLayer.setZIndex(1000)
+        console.log('✅ Capa CONEAT agregada exitosamente')
+      } else {
+        console.log('ℹ️ La capa CONEAT ya estaba en el mapa')
+      }
+    } else {
+      console.log('🌱 Ocultando CONEAT...')
+      
+      if (mapRef.current.hasLayer(coneatLayer)) {
+        console.log('➖ Removiendo capa CONEAT del mapa...')
+        mapRef.current.removeLayer(coneatLayer)
+        console.log('✅ Capa CONEAT removida exitosamente')
+      } else {
+        console.log('ℹ️ La capa CONEAT no estaba en el mapa')
+      }
+    }
+  }, [mostrarConeat, isReady])
 
   const buscarUbicacion = async () => {
     if (!searchQuery.trim()) return
