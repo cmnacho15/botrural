@@ -986,6 +986,40 @@ if (!mapRef.current._tooltipZoomHandler) {
         )}
       </button>
 
+      {/* 🎨 CONTROL DE OPACIDAD - Solo en pantalla completa y vista Curvas */}
+      {isFullscreen && mostrarCurvasNivel && (
+        <div className="absolute top-[120px] right-3 z-[10] bg-white/95 backdrop-blur-sm rounded-xl shadow-2xl border border-gray-200 p-4 w-[280px]">
+          <div className="flex items-center justify-between mb-3">
+            <label className="text-sm font-semibold text-gray-800">
+              📏 Opacidad Curvas
+            </label>
+            <span className="text-sm font-bold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-lg">
+              {opacidadCurvas}%
+            </span>
+          </div>
+          <input 
+            type="range" 
+            min="10" 
+            max="100" 
+            value={opacidadCurvas}
+            onChange={(e) => {
+              const newOpacity = Number(e.target.value)
+              if (onOpacidadCurvasChange) {
+                onOpacidadCurvasChange(newOpacity)
+              }
+            }}
+            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-amber-600"
+            style={{
+              background: `linear-gradient(to right, #d97706 0%, #d97706 ${opacidadCurvas}%, #e5e7eb ${opacidadCurvas}%, #e5e7eb 100%)`
+            }}
+          />
+          <div className="flex justify-between text-xs text-gray-500 mt-2">
+            <span>Transparente</span>
+            <span>Opaco</span>
+          </div>
+        </div>
+      )}
+
       {/* 📦 LEYENDA DE MÓDULOS - Solo visible en PANTALLA COMPLETA */}
 {isFullscreen && mostrarLeyendaModulos && modulosLeyenda.length > 0 && (
   <div className="absolute top-[120px] right-3 z-[1000] bg-white/95 backdrop-blur-sm rounded-xl shadow-2xl border border-gray-200 p-4 max-w-[320px]">
