@@ -4,11 +4,12 @@ import { useEffect, useRef, useState } from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import 'leaflet-draw/dist/leaflet.draw.css'
-
+import 'leaflet-measure/dist/leaflet-measure.css'
 
 if (typeof window !== 'undefined') {
   require('leaflet-draw')
-  
+  require('leaflet-measure')
+
   // Agregar estilos para tooltips sin fondo
   if (!document.getElementById('leaflet-tooltip-override')) {
     const style = document.createElement('style')
@@ -361,6 +362,17 @@ satelitalLayer.addTo(map)
 
 // Control de capas base
 L.control.layers({ 'Satélite': satelitalLayer, 'Mapa': osmLayer }).addTo(map)
+
+// 📏 Control de medición
+    const measureControl = new (L.Control as any).Measure({
+      position: 'bottomleft',
+      primaryLengthUnit: 'meters',
+      secondaryLengthUnit: 'kilometers',
+      primaryAreaUnit: 'hectares',
+      activeColor: '#3b82f6',
+      completedColor: '#10b981'
+    })
+    measureControl.addTo(map)
 
     const existingLayers = new L.FeatureGroup()
     map.addLayer(existingLayers)
