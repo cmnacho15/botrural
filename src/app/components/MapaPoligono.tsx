@@ -300,23 +300,27 @@ export default function MapaPoligono({
   'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
   { attribution: '© Esri', maxZoom: 19 }
 )
-satelitalLayer.addTo(map)
 
 const osmLayer = L.tileLayer(
   'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   { attribution: '© OpenStreetMap', maxZoom: 19 }
 )
 
-// 🔥 NUEVO: Capa de curvas de nivel
+// 🔥 Capa de curvas de nivel (creada pero NO agregada aún)
 const curvasLayer = L.tileLayer(
   'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
   { 
     attribution: '© OpenTopoMap', 
     maxZoom: 17,
-    opacity: 0.7
+    opacity: 0.95,
+    zIndex: 1000  // 🔥 Z-index alto para estar encima
   }
 )
 
+// Agregar capa base por defecto
+satelitalLayer.addTo(map)
+
+// Control de capas base
 L.control.layers({ 'Satélite': satelitalLayer, 'Mapa': osmLayer }).addTo(map)
 
     const existingLayers = new L.FeatureGroup()
@@ -419,6 +423,7 @@ L.control.layers({ 'Satélite': satelitalLayer, 'Mapa': osmLayer }).addTo(map)
     }
   // 🔥 Guardar referencia a la capa de curvas
     (map as any)._curvasLayer = curvasLayer
+    console.log('📦 Referencia de curvas guardada:', curvasLayer)
 
     return () => {
   // Limpiar handlers antes de destruir el mapa
@@ -668,27 +673,50 @@ if (!mapRef.current._tooltipZoomHandler) {
         mapRef.current.fitBounds(bounds, { padding: [100, 100], maxZoom: 16 })
       } catch {}
     }
-  }, [existingPolygons, isReady])
+   }, [existingPolygons, isReady])
 
-  // 🔥 NUEVO: Controlar visibilidad de curvas de nivel
+  /**
+   * 🗺️ Controlar capa de curvas de nivel
+   */
   useEffect(() => {
-    if (!mapRef.current) return
+    console.log('🔄 useEffect curvas ejecutado. mostrarCurvasNivel:', mostrarCurvasNivel, 'isReady:', isReady)
+    
+    if (!isReady || !mapRef.current) {
+      console.log('⚠️ Esperando que el mapa esté listo... isReady:', isReady, 'mapRef:', !!mapRef.current)
+      return
+    }
+
     
     const curvasLayer = (mapRef.current as any)._curvasLayer
-    if (!curvasLayer) return
+    
+    if (!curvasLayer) {
+      console.log('⚠️ No hay capa de curvas guardada')
+      return
+    }
     
     if (mostrarCurvasNivel) {
-      // Mostrar curvas
+      console.log('🗺️ Intentando mostrar curvas...')
+      
       if (!mapRef.current.hasLayer(curvasLayer)) {
+        console.log('➕ Agregando capa al mapa...')
         curvasLayer.addTo(mapRef.current)
+        curvasLayer.setZIndex(1000)
+        console.log('✅ Capa agregada exitosamente')
+      } else {
+        console.log('ℹ️ La capa ya estaba en el mapa')
       }
     } else {
-      // Ocultar curvas
+      console.log('🗺️ Ocultando curvas...')
+      
       if (mapRef.current.hasLayer(curvasLayer)) {
+        console.log('➖ Removiendo capa del mapa...')
         mapRef.current.removeLayer(curvasLayer)
+        console.log('✅ Capa removida exitosamente')
+      } else {
+        console.log('ℹ️ La capa no estaba en el mapa')
       }
     }
-  }, [mostrarCurvasNivel])
+  }, [mostrarCurvasNivel, isReady])
 
   const buscarUbicacion = async () => {
     if (!searchQuery.trim()) return
