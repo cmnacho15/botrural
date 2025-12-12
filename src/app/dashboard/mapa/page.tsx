@@ -463,6 +463,7 @@ export default function MapaPage() {
   mostrarCurvasNivel={vistaActual === 'curvas'}
   mostrarConeat={vistaActual === 'coneat'}
   opacidadCurvas={opacidadCurvas}
+  onOpacidadCurvasChange={setOpacidadCurvas}
 />
               )}
             </div>
@@ -811,7 +812,7 @@ export default function MapaPage() {
                       <span>Opaco</span>
                     </div>
                   </div>
-                  
+
                   {/* Tip de uso */}
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 text-xs sm:text-[13px]">
                     <p className="font-semibold text-blue-900 mb-1.5">💡 Consejo</p>

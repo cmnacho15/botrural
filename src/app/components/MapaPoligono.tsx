@@ -100,6 +100,7 @@ interface MapaPoligonoProps {
   mostrarCurvasNivel?: boolean
   mostrarConeat?: boolean
   opacidadCurvas?: number
+  onOpacidadCurvasChange?: (opacity: number) => void
 }
 
 function calcularAreaPoligono(latlngs: any[]): number {
@@ -243,6 +244,7 @@ export default function MapaPoligono({
   mostrarCurvasNivel = false,
   mostrarConeat = false,  // 🔥 NUEVO
   opacidadCurvas = 95,
+  onOpacidadCurvasChange,
 }: MapaPoligonoProps) {
 
   const mapRef = useRef<any>(null)
@@ -739,7 +741,8 @@ if (!mapRef.current._tooltipZoomHandler) {
         console.log('➕ Agregando capa de curvas al mapa...')
         curvasLayer.addTo(mapRef.current)
         curvasLayer.setZIndex(1000)
-        console.log('✅ Capa de curvas agregada exitosamente')
+        curvasLayer.setOpacity(opacidadCurvas / 100) // 🔥 AGREGADO
+        console.log('✅ Capa de curvas agregada exitosamente con opacidad:', opacidadCurvas) // 🔥 MODIFICADO
       } else {
         console.log('ℹ️ La capa de curvas ya estaba en el mapa')
       }
@@ -802,11 +805,10 @@ if (!mapRef.current._tooltipZoomHandler) {
    * 🎨 Actualizar opacidad de curvas dinámicamente
    */
   useEffect(() => {
-    if (!mapRef.current) return
-    
     const curvasLayer = curvasLayerRef.current
-    if (curvasLayer && mapRef.current.hasLayer(curvasLayer)) {
+    if (curvasLayer) {
       curvasLayer.setOpacity(opacidadCurvas / 100)
+      console.log('🎨 Opacidad actualizada a:', opacidadCurvas)
     }
   }, [opacidadCurvas])
 
