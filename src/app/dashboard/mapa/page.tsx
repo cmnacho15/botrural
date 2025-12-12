@@ -70,9 +70,9 @@ function getColorModulo(moduloIndex: number): string {
 export default function MapaPage() {
   const [lotes, setLotes] = useState<Lote[]>([])
   const [loading, setLoading] = useState(true)
-  const [vistaActual, setVistaActual] = useState<'indice' | 'cultivo' | 'ndvi'>(
-    'indice',
-  )
+  const [vistaActual, setVistaActual] = useState<'indice' | 'cultivo' | 'ndvi' | 'curvas'>(
+  'indice',
+)
   const [mapCenter, setMapCenter] = useState<[number, number]>([
     -32.5228, -55.7658,
   ])
@@ -403,6 +403,16 @@ export default function MapaPage() {
                   <span className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 rounded-full animate-pulse" />
                 )}
               </button>
+              <button
+  onClick={() => setVistaActual('curvas')}
+  className={`px-3 py-2 text-xs sm:text-sm font-medium transition ${
+    vistaActual === 'curvas'
+      ? 'bg-amber-600 text-white'
+      : 'text-gray-700 hover:bg-gray-50'
+  }`}
+>
+  📏 Curvas
+</button>
             </div>
           </div>
         </div>
@@ -439,6 +449,7 @@ export default function MapaPage() {
   readOnly={true}
   modulosLeyenda={modulosLeyendaParaMapa}
   mostrarLeyendaModulos={vistaActual === 'indice'}
+  mostrarCurvasNivel={vistaActual === 'curvas'}
 />
               )}
             </div>
@@ -449,10 +460,11 @@ export default function MapaPage() {
             {/* Encabezado de panel */}
             <div className="px-4 sm:px-5 py-3 border-b border-gray-200 bg-white">
               <h2 className="text-sm sm:text-base font-semibold text-gray-900">
-                {vistaActual === 'indice' && '🗺️ Vista General'}
-                {vistaActual === 'cultivo' && '🌾 Cultivos por potrero'}
-                {vistaActual === 'ndvi' && '🛰️ Índice de Vegetación (NDVI)'}
-              </h2>
+  {vistaActual === 'indice' && '🗺️ Vista General'}
+  {vistaActual === 'cultivo' && '🌾 Cultivos por potrero'}
+  {vistaActual === 'ndvi' && '🛰️ Índice de Vegetación (NDVI)'}
+  {vistaActual === 'curvas' && '📏 Curvas de Nivel'}
+</h2>
             </div>
 
             {/* Contenido del panel:
@@ -707,6 +719,69 @@ export default function MapaPage() {
                   )}
                 </>
               )}
+              {/* VISTA CURVAS DE NIVEL */}
+              {vistaActual === 'curvas' && (
+                <>
+                  {/* Información */}
+                  <div className="mb-5 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-lg p-3 sm:p-4">
+                    <h3 className="text-xs sm:text-sm font-semibold text-gray-800 mb-2">
+                      📏 Información de Curvas de Nivel
+                    </h3>
+                    <div className="space-y-2 text-xs sm:text-[13px] text-gray-700">
+                      <div className="flex items-start gap-2">
+                        <span>📐</span>
+                        <span><strong>Intervalo:</strong> Curvas cada 10 metros de elevación</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <span>🗺️</span>
+                        <span><strong>Fuente:</strong> OpenTopoMap (datos topográficos abiertos)</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <span>🌍</span>
+                        <span><strong>Cobertura:</strong> Todo Uruguay y el mundo</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <span>💡</span>
+                        <span><strong>Uso:</strong> Identifica pendientes, zonas bajas/altas y planifica drenajes</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Guía de interpretación */}
+                  <div className="mb-5">
+                    <h3 className="text-xs sm:text-sm font-semibold text-gray-700 mb-2 sm:mb-3">
+                      📊 ¿Cómo interpretar?
+                    </h3>
+                    <div className="space-y-2 text-xs sm:text-[13px]">
+                      <div className="p-2.5 bg-white rounded-lg border border-gray-200">
+                        <p className="font-medium text-gray-900 mb-1">🔵 Líneas muy juntas</p>
+                        <p className="text-gray-600">Pendiente pronunciada / Zona empinada</p>
+                      </div>
+                      <div className="p-2.5 bg-white rounded-lg border border-gray-200">
+                        <p className="font-medium text-gray-900 mb-1">🔵 Líneas separadas</p>
+                        <p className="text-gray-600">Pendiente suave / Zona plana</p>
+                      </div>
+                      <div className="p-2.5 bg-white rounded-lg border border-gray-200">
+                        <p className="font-medium text-gray-900 mb-1">⭕ Círculos concéntricos</p>
+                        <p className="text-gray-600">Cerros o lomadas elevadas</p>
+                      </div>
+                      <div className="p-2.5 bg-white rounded-lg border border-gray-200">
+                        <p className="font-medium text-gray-900 mb-1">🔽 Curvas en "V"</p>
+                        <p className="text-gray-600">Cañadas o cursos de agua</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Tip de uso */}
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 text-xs sm:text-[13px]">
+                    <p className="font-semibold text-blue-900 mb-1.5">💡 Consejo</p>
+                    <p className="text-blue-800">
+                      Hacé zoom para ver más detalle de las curvas. Las líneas representan puntos de igual elevación sobre el nivel del mar.
+                    </p>
+                  </div>
+                </>
+              )}
+
 
               {/* VISTA CULTIVOS */}
               {vistaActual === 'cultivo' && (

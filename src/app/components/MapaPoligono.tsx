@@ -94,9 +94,9 @@ interface MapaPoligonoProps {
     }
   }>
   readOnly?: boolean
-  // 🆕 Props para la leyenda de módulos
   modulosLeyenda?: ModuloLeyenda[]
   mostrarLeyendaModulos?: boolean
+  mostrarCurvasNivel?: boolean  // 🔥 NUEVO
 }
 
 function calcularAreaPoligono(latlngs: any[]): number {
@@ -237,6 +237,7 @@ export default function MapaPoligono({
   readOnly = false,
   modulosLeyenda = [],
   mostrarLeyendaModulos = false,
+  mostrarCurvasNivel = false,  // 🔥 NUEVO
 }: MapaPoligonoProps) {
   const mapRef = useRef<any>(null)
   const drawnItemsRef = useRef<any>(null)
@@ -296,17 +297,27 @@ export default function MapaPoligono({
     mapRef.current = map
 
     const satelitalLayer = L.tileLayer(
-      'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-      { attribution: '© Esri', maxZoom: 19 }
-    )
-    satelitalLayer.addTo(map)
+  'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+  { attribution: '© Esri', maxZoom: 19 }
+)
+satelitalLayer.addTo(map)
 
-    const osmLayer = L.tileLayer(
-      'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-      { attribution: '© OpenStreetMap', maxZoom: 19 }
-    )
+const osmLayer = L.tileLayer(
+  'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+  { attribution: '© OpenStreetMap', maxZoom: 19 }
+)
 
-    L.control.layers({ 'Satélite': satelitalLayer, 'Mapa': osmLayer }).addTo(map)
+// 🔥 NUEVO: Capa de curvas de nivel
+const curvasLayer = L.tileLayer(
+  'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+  { 
+    attribution: '© OpenTopoMap', 
+    maxZoom: 17,
+    opacity: 0.7
+  }
+)
+
+L.control.layers({ 'Satélite': satelitalLayer, 'Mapa': osmLayer }).addTo(map)
 
     const existingLayers = new L.FeatureGroup()
     map.addLayer(existingLayers)
@@ -406,6 +417,8 @@ export default function MapaPoligono({
 
       map.on(DrawEvent.DELETED, () => setAreaHectareas(null))
     }
+  // 🔥 Guardar referencia a la capa de curvas
+    (map as any)._curvasLayer = curvasLayer
 
     return () => {
   // Limpiar handlers antes de destruir el mapa
@@ -656,6 +669,26 @@ if (!mapRef.current._tooltipZoomHandler) {
       } catch {}
     }
   }, [existingPolygons, isReady])
+
+  // 🔥 NUEVO: Controlar visibilidad de curvas de nivel
+  useEffect(() => {
+    if (!mapRef.current) return
+    
+    const curvasLayer = (mapRef.current as any)._curvasLayer
+    if (!curvasLayer) return
+    
+    if (mostrarCurvasNivel) {
+      // Mostrar curvas
+      if (!mapRef.current.hasLayer(curvasLayer)) {
+        curvasLayer.addTo(mapRef.current)
+      }
+    } else {
+      // Ocultar curvas
+      if (mapRef.current.hasLayer(curvasLayer)) {
+        mapRef.current.removeLayer(curvasLayer)
+      }
+    }
+  }, [mostrarCurvasNivel])
 
   const buscarUbicacion = async () => {
     if (!searchQuery.trim()) return
