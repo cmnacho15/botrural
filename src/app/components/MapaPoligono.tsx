@@ -741,45 +741,51 @@ if (!mapRef.current._tooltipZoomHandler) {
     }
    }, [existingPolygons, isReady])
    /**
-   * 🎨 Crear capa de curvas UNA SOLA VEZ
+   * 🎨 Crear y manejar capa de curvas (DEFINITIVO)
    */
   useEffect(() => {
-    if (!isReady || !mapRef.current || curvasLayerRef.current) return
+    if (!isReady || !mapRef.current) return
 
-    curvasLayerRef.current = L.tileLayer(
-      'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
-      {
-        attribution: '© OpenTopoMap',
-        maxZoom: 17,
-        opacity: opacidadCurvas / 100,
-        zIndex: 1000
-      }
-    )
-    console.log('📦 Capa de curvas creada una sola vez')
-  }, [isReady])
-
-  /**
-   * 🎨 Actualizar opacidad sin recrear la capa
-   */
-  useEffect(() => {
+    // Si ya existe, solo actualizar opacidad
     if (curvasLayerRef.current) {
       curvasLayerRef.current.setOpacity(opacidadCurvas / 100)
-      console.log('🎨 Opacidad actualizada:', opacidadCurvas)
+      return
     }
-  }, [opacidadCurvas])
+
+    console.log('📦 Capa de curvas creada y agregada al mapa')
+
+    const layer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenTopoMap',
+      maxZoom: 17,
+      opacity: opacidadCurvas / 100,
+      zIndex: 1000
+    })
+
+    curvasLayerRef.current = layer
+
+    // Solo agregarla si debe estar visible
+    if (mostrarCurvasNivel) {
+      layer.addTo(mapRef.current)
+    }
+
+  }, [isReady, opacidadCurvas, mostrarCurvasNivel])
 
   /**
-   * 🗺️ Mostrar/ocultar capa de curvas
+   * 🗺️ Solo manejar visibilidad
    */
   useEffect(() => {
-    if (!isReady || !mapRef.current || !curvasLayerRef.current) return
+    if (!curvasLayerRef.current || !mapRef.current) return
 
     if (mostrarCurvasNivel) {
-      curvasLayerRef.current.addTo(mapRef.current)
-      console.log('✅ Curvas visibles')
+      if (!mapRef.current.hasLayer(curvasLayerRef.current)) {
+        curvasLayerRef.current.addTo(mapRef.current)
+        console.log('✅ Curvas agregadas')
+      }
     } else {
-      mapRef.current.removeLayer(curvasLayerRef.current)
-      console.log('✅ Curvas ocultas')
+      if (mapRef.current.hasLayer(curvasLayerRef.current)) {
+        mapRef.current.removeLayer(curvasLayerRef.current)
+        console.log('✅ Curvas removidas')
+      }
     }
   }, [mostrarCurvasNivel, isReady])
 
