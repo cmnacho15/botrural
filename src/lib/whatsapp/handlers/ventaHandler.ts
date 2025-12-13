@@ -86,30 +86,39 @@ async function sendVentaConfirmation(phoneNumber: string, data: any) {
  * Maneja respuesta a botones de venta
  */
 export async function handleVentaButtonResponse(phoneNumber: string, buttonId: string) {
-  console.log("🔍 handleVentaButtonResponse - buttonId:", buttonId) // ← AGREGAR ESTO
+  console.log("🔵 handleVentaButtonResponse INICIADO")
+  console.log("🔵 phoneNumber:", phoneNumber)
+  console.log("🔵 buttonId:", buttonId)
+  
   const pending = await prisma.pendingConfirmation.findUnique({ 
     where: { telefono: phoneNumber } 
   })
   
-  console.log("🔍 Pending encontrado:", pending ? "SÍ" : "NO") // ← AGREGAR ESTO
-  console.log("🔍 Tipo pending:", pending ? JSON.parse(pending.data).tipo : "N/A") // ← AGREGAR ESTO
+  console.log("🔵 pending encontrado:", pending ? "SÍ" : "NO")
   
   if (!pending) {
+    console.log("🔴 NO HAY PENDING - enviando mensaje de error")
     await sendWhatsAppMessage(phoneNumber, "No hay venta pendiente.")
     return
   }
 
   const savedData = JSON.parse(pending.data)
+  console.log("🔵 savedData.tipo:", savedData.tipo)
+  
   if (savedData.tipo !== "VENTA") {
+    console.log("🔴 TIPO INCORRECTO - tipo era:", savedData.tipo)
     await sendWhatsAppMessage(phoneNumber, "Usá los botones de la factura.")
     return
   }
 
   const action = buttonId.replace("venta_", "")
+  console.log("🔵 action extraída:", action)
 
   if (action === "confirm") {
+    console.log("🟢 CONFIRMADO - llamando a guardarVentaEnBD")
     await guardarVentaEnBD(savedData, phoneNumber)
   } else {
+    console.log("🟡 CANCELADO")
     await sendWhatsAppMessage(phoneNumber, "Venta cancelada.")
     await prisma.pendingConfirmation.delete({ where: { telefono: phoneNumber } })
   }
