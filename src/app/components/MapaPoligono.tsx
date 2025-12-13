@@ -514,6 +514,7 @@ L.control.layers({ 'Satélite': satelitalLayer, 'Mapa': osmLayer }).addTo(map)
    * 🔄 Redibujar polígonos cuando cambian
    */
   useEffect(() => {
+  console.log('🔄 useEffect REDIBUJAR POLÍGONOS ejecutado')
   if (!mapRef.current || !existingLayersRef.current) return
   if (!isReady) return
   
@@ -838,10 +839,12 @@ if (!mapRef.current._tooltipZoomHandler) {
    * 🎨 Actualizar opacidad de curvas dinámicamente
    */
   useEffect(() => {
+    console.log('🎨 useEffect de OPACIDAD ejecutado')
     const curvasLayer = curvasLayerRef.current
     if (curvasLayer) {
       curvasLayer.setOpacity(opacidadCurvas / 100)
       console.log('🎨 Opacidad actualizada a:', opacidadCurvas)
+      console.log('🗺️ Zoom actual:', mapRef.current?.getZoom())
     }
   }, [opacidadCurvas])
   
