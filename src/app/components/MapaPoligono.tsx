@@ -740,20 +740,14 @@ if (!mapRef.current._tooltipZoomHandler) {
       } catch {}
     }
    }, [existingPolygons, isReady])
-   /**
-   * 🎨 Crear capa de curvas (UNA VEZ) + actualizar opacidad si ya existe
+   
+    /**
+   * 🎨 Crear capa de curvas UNA SOLA VEZ
    */
   useEffect(() => {
-    if (!isReady || !mapRef.current) return
+    if (!isReady || !mapRef.current || curvasLayerRef.current) return
 
-    // Si ya existe, solo actualizar opacidad y salir
-    if (curvasLayerRef.current) {
-      curvasLayerRef.current.setOpacity(opacidadCurvas / 100)
-      return
-    }
-
-    // Crear una sola vez
-    console.log('📦 Capa de curvas creada')
+    console.log('📦 Capa de curvas creada UNA VEZ')
 
     const layer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenTopoMap',
@@ -764,35 +758,49 @@ if (!mapRef.current._tooltipZoomHandler) {
 
     curvasLayerRef.current = layer
 
-    if (mostrarCurvasNivel) {
-      layer.addTo(mapRef.current)
-    }
-
-  }, [isReady, mostrarCurvasNivel])  // ← SIN opacidadCurvas
+  }, [isReady])  // ← SOLO isReady
 
   /**
-   * 🎨 Solo actualizar opacidad cuando cambie
-   */
-  useEffect(() => {
-    if (curvasLayerRef.current) {
-      curvasLayerRef.current.setOpacity(opacidadCurvas / 100)
-      console.log('🎨 Opacidad actualizada:', opacidadCurvas)
-    }
-  }, [opacidadCurvas])
-
-  /**
-   * 🗺️ Solo mostrar/ocultar
+   * 🎨 Actualizar opacidad SIN mover el zoom
    */
   useEffect(() => {
     if (!curvasLayerRef.current || !mapRef.current) return
+    
+    // Guardar zoom y centro ANTES de cambiar opacidad
+    const currentZoom = mapRef.current.getZoom()
+    const currentCenter = mapRef.current.getCenter()
+    
+    // Cambiar opacidad
+    curvasLayerRef.current.setOpacity(opacidadCurvas / 100)
+    console.log('🎨 Opacidad actualizada:', opacidadCurvas)
+    
+    // Restaurar zoom y centro DESPUÉS (en el siguiente tick)
+    setTimeout(() => {
+      if (mapRef.current) {
+        mapRef.current.setView(currentCenter, currentZoom, { animate: false })
+      }
+    }, 0)
+    
+  }, [opacidadCurvas])
 
-    if (mostrarCurvasNivel && !mapRef.current.hasLayer(curvasLayerRef.current)) {
-      curvasLayerRef.current.addTo(mapRef.current)
-      console.log('✅ Curvas agregadas')
-    } else if (!mostrarCurvasNivel && mapRef.current.hasLayer(curvasLayerRef.current)) {
-      mapRef.current.removeLayer(curvasLayerRef.current)
-      console.log('✅ Curvas removidas')
+  /**
+   * 🗺️ Mostrar/ocultar capa según vista
+   */
+  useEffect(() => {
+    if (!isReady || !mapRef.current || !curvasLayerRef.current) return
+
+    if (mostrarCurvasNivel) {
+      if (!mapRef.current.hasLayer(curvasLayerRef.current)) {
+        curvasLayerRef.current.addTo(mapRef.current)
+        console.log('✅ Curvas mostradas')
+      }
+    } else {
+      if (mapRef.current.hasLayer(curvasLayerRef.current)) {
+        mapRef.current.removeLayer(curvasLayerRef.current)
+        console.log('✅ Curvas ocultadas')
+      }
     }
+    
   }, [mostrarCurvasNivel, isReady])
 
   /**
