@@ -346,15 +346,7 @@ const osmLayer = L.tileLayer(
   { attribution: '© OpenStreetMap', maxZoom: 19 }
 )
 
-const curvasLayer = L.tileLayer(
-  'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
-  { 
-    attribution: '© OpenTopoMap', 
-    maxZoom: 17,
-    opacity: opacidadCurvas / 100,
-    zIndex: 1000
-  }
-)
+
 
 // 🔥 Capa de CONEAT - ArcGIS Dynamic MapServer del MGAP (sin esri-leaflet)
 const coneatLayer = (L as any).tileLayer('', {
@@ -493,10 +485,9 @@ L.control.layers({ 'Satélite': satelitalLayer, 'Mapa': osmLayer }).addTo(map)
       map.on(DrawEvent.DELETED, () => setAreaHectareas(null))
     }
   // 🔥 Guardar referencias a las capas en refs
-    curvasLayerRef.current = curvasLayer
+    // curvasLayerRef.current = curvasLayer
     coneatLayerRef.current = coneatLayer
-    console.log('📦 Referencia de curvas guardada:', curvasLayer)
-    console.log('📦 Referencia de CONEAT guardada:', coneatLayer)
+    
 
     return () => {
   // Limpiar handlers antes de destruir el mapa
@@ -749,45 +740,53 @@ if (!mapRef.current._tooltipZoomHandler) {
       } catch {}
     }
    }, [existingPolygons, isReady])
+   /**
+   * 🎨 Crear/actualizar capa de curvas cuando cambie opacidad
+   */
+  useEffect(() => {
+    if (!isReady || !mapRef.current) return
+
+    // Si ya existe una capa anterior, removerla
+    if (curvasLayerRef.current && mapRef.current.hasLayer(curvasLayerRef.current)) {
+      mapRef.current.removeLayer(curvasLayerRef.current)
+    }
+
+    // Crear nueva capa con la opacidad actual
+    const nuevaCapa = L.tileLayer(
+      'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+      { 
+        attribution: '© OpenTopoMap', 
+        maxZoom: 17,
+        opacity: opacidadCurvas / 100,
+        zIndex: 1000
+      }
+    )
+
+    // Solo agregarla si debe estar visible
+    if (mostrarCurvasNivel) {
+      nuevaCapa.addTo(mapRef.current)
+    }
+
+    curvasLayerRef.current = nuevaCapa
+    console.log('🎨 Capa curvas creada con opacidad:', opacidadCurvas)
+
+  }, [opacidadCurvas, isReady, mostrarCurvasNivel])
 
   /**
    * 🗺️ Controlar capa de curvas de nivel
    */
   useEffect(() => {
-    console.log('🔄 useEffect curvas ejecutado. mostrarCurvasNivel:', mostrarCurvasNivel, 'isReady:', isReady)
-    
-    if (!isReady || !mapRef.current) {
-      console.log('⚠️ Esperando que el mapa esté listo... isReady:', isReady, 'mapRef:', !!mapRef.current)
-      return
-    }
-    
-    const curvasLayer = curvasLayerRef.current
-    
-    if (!curvasLayer) {
-      console.log('⚠️ No hay capa de curvas guardada')
-      return
-    }
-    
+    if (!isReady || !mapRef.current || !curvasLayerRef.current) return
+
     if (mostrarCurvasNivel) {
-      console.log('🗺️ Intentando mostrar curvas...')
-      
-      if (!mapRef.current.hasLayer(curvasLayer)) {
-        console.log('➕ Agregando capa de curvas al mapa...')
-        curvasLayer.addTo(mapRef.current)
-        curvasLayer.setZIndex(1000)
-        console.log('✅ Capa de curvas agregada exitosamente')
-      } else {
-        console.log('ℹ️ La capa de curvas ya estaba en el mapa')
+      if (!mapRef.current.hasLayer(curvasLayerRef.current)) {
+        curvasLayerRef.current.addTo(mapRef.current)
+        console.log('✅ Capa de curvas agregada')
       }
     } else {
-      console.log('🗺️ Ocultando curvas...')
-      
-      if (mapRef.current.hasLayer(curvasLayer)) {
-        console.log('➖ Removiendo capa de curvas del mapa...')
-        mapRef.current.removeLayer(curvasLayer)
-        console.log('✅ Capa de curvas removida exitosamente')
-      } else {
-        console.log('ℹ️ La capa de curvas no estaba en el mapa')
+      if (mapRef.current.hasLayer(curvasLayerRef.current)) {
+        mapRef.current.removeLayer(curvasLayerRef.current)
+        console.log('✅ Capa de curvas removida')
       }
     }
   }, [mostrarCurvasNivel, isReady])
@@ -834,18 +833,6 @@ if (!mapRef.current._tooltipZoomHandler) {
     }
   }, [mostrarConeat, isReady])
 
-  /**
-   * 🎨 Actualizar opacidad de curvas dinámicamente
-   */
-  useEffect(() => {
-    console.log('🎨 useEffect de OPACIDAD ejecutado')
-    const curvasLayer = curvasLayerRef.current
-    if (curvasLayer) {
-      curvasLayer.setOpacity(opacidadCurvas / 100)
-      console.log('🎨 Opacidad actualizada a:', opacidadCurvas)
-      console.log('🗺️ Zoom actual:', mapRef.current?.getZoom())
-    }
-  }, [opacidadCurvas])
   
 
   /**
