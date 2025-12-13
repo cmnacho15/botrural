@@ -204,6 +204,7 @@ export async function POST(request: Request) {
     const {
       fecha,
       comprador,
+      firmaId,
       consignatario,
       nroTropa,
       nroFactura,
@@ -242,6 +243,7 @@ export async function POST(request: Request) {
       const nuevaVenta = await tx.venta.create({
         data: {
           campoId: user!.campoId!,
+          firmaId: firmaId || null,
           fecha: new Date(fechaISO),
           comprador: comprador.trim(),
           consignatario: consignatario?.trim() || null,
