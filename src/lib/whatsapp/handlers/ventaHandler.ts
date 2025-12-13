@@ -124,10 +124,28 @@ async function guardarVentaEnBD(savedData: any, phoneNumber: string) {
       where: { telefono: phoneNumber }, 
       select: { id: true } 
     })
+    
+    // Detectar firma automáticamente por RUT
+let firmaId = null
+if (ventaData.rutEmisor) {
+  const firma = await prisma.firma.findFirst({
+    where: { 
+      campoId,
+      rut: ventaData.rutEmisor 
+    }
+  })
+  if (firma) {
+    firmaId = firma.id
+    console.log(`✅ Firma detectada: ${firma.razonSocial} (${firma.rut})`)
+  } else {
+    console.log(`⚠️ RUT ${ventaData.rutEmisor} no encontrado en firmas configuradas`)
+  }
+}
 
     const venta = await prisma.venta.create({
       data: {
         campoId,
+        firmaId,
         fecha: new Date(ventaData.fecha),
         comprador: ventaData.comprador,
         consignatario: ventaData.consignatario || null,

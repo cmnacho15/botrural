@@ -40,6 +40,7 @@ export interface ParsedVenta {
   productor: string;        // "ERNESTO ESTEVEZ"
   productorDicose?: string; // "HH.07.19526"
   productorRut?: string;
+  rutEmisor?: string;
   
   // Consignatario (intermediario)
   consignatario?: string;   // "CANEPA MARTINEZ FRANCISCO ANSELMO"
@@ -260,6 +261,7 @@ RESPONDE EN JSON (sin markdown):
   "comprador": "nombre del frigorífico",
   "productor": "nombre del productor",
   "productorDicose": "XX.XX.XXXXX",
+  "rutEmisor": "RUT del emisor de la factura",
   "consignatario": "nombre o null",
   "fecha": "YYYY-MM-DD",
   "nroFactura": "número",
