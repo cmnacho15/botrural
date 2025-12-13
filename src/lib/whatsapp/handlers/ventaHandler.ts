@@ -86,9 +86,13 @@ async function sendVentaConfirmation(phoneNumber: string, data: any) {
  * Maneja respuesta a botones de venta
  */
 export async function handleVentaButtonResponse(phoneNumber: string, buttonId: string) {
+  console.log("🔍 handleVentaButtonResponse - buttonId:", buttonId) // ← AGREGAR ESTO
   const pending = await prisma.pendingConfirmation.findUnique({ 
     where: { telefono: phoneNumber } 
   })
+  
+  console.log("🔍 Pending encontrado:", pending ? "SÍ" : "NO") // ← AGREGAR ESTO
+  console.log("🔍 Tipo pending:", pending ? JSON.parse(pending.data).tipo : "N/A") // ← AGREGAR ESTO
   
   if (!pending) {
     await sendWhatsAppMessage(phoneNumber, "No hay venta pendiente.")
