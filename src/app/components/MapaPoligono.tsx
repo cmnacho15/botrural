@@ -61,6 +61,18 @@ if (typeof window !== 'undefined') {
         background: transparent !important;
         border: none !important;
       }
+        /* 📐 Quitar punto azul del marcador de área */
+      .medicion-area {
+        background: transparent !important;
+        border: none !important;
+      }
+      .medicion-area::before {
+        display: none !important;
+      }
+      .leaflet-marker-icon.medicion-area {
+        background: transparent !important;
+        border: none !important;
+      }
     `
     document.head.appendChild(style)
   }
@@ -914,10 +926,11 @@ if (distanciaMetros > 1000) {
           (L as any).marker(centroide, {
             icon: (L as any).divIcon({
               className: 'medicion-area',
-              html: `<div style="background: #3b82f6; color: white; padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: bold; white-space: nowrap;">📐 ${textoArea}</div>`,
+              html: `<span style="background: #3b82f6; color: white; padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: bold; white-space: nowrap; display: inline-block; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">📐 ${textoArea}</span>`,
               iconSize: [0, 0]
             }),
-            className: 'linea-medicion'
+            className: 'linea-medicion',
+            interactive: false
           }).addTo(mapRef.current)
           
           // Terminar medición automáticamente
