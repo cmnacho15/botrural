@@ -742,13 +742,17 @@ if (!mapRef.current._tooltipZoomHandler) {
    }, [existingPolygons, isReady])
    
     /**
-   * 🎨 Crear capa de curvas UNA SOLA VEZ
+   * 🎨 Crear y manejar capa de curvas (VERSIÓN SIMPLE)
    */
   useEffect(() => {
-    if (!isReady || !mapRef.current || curvasLayerRef.current) return
+    if (!isReady || !mapRef.current) return
 
-    console.log('📦 Capa de curvas creada UNA VEZ')
+    // Limpiar capa anterior si existe
+    if (curvasLayerRef.current) {
+      mapRef.current.removeLayer(curvasLayerRef.current)
+    }
 
+    // Crear NUEVA capa con la opacidad actual
     const layer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenTopoMap',
       maxZoom: 17,
@@ -758,50 +762,13 @@ if (!mapRef.current._tooltipZoomHandler) {
 
     curvasLayerRef.current = layer
 
-  }, [isReady])  // ← SOLO isReady
-
-  /**
-   * 🎨 Actualizar opacidad SIN mover el zoom
-   */
-  useEffect(() => {
-    if (!curvasLayerRef.current || !mapRef.current) return
-    
-    // Guardar zoom y centro ANTES de cambiar opacidad
-    const currentZoom = mapRef.current.getZoom()
-    const currentCenter = mapRef.current.getCenter()
-    
-    // Cambiar opacidad
-    curvasLayerRef.current.setOpacity(opacidadCurvas / 100)
-    console.log('🎨 Opacidad actualizada:', opacidadCurvas)
-    
-    // Restaurar zoom y centro DESPUÉS (en el siguiente tick)
-    setTimeout(() => {
-      if (mapRef.current) {
-        mapRef.current.setView(currentCenter, currentZoom, { animate: false })
-      }
-    }, 0)
-    
-  }, [opacidadCurvas])
-
-  /**
-   * 🗺️ Mostrar/ocultar capa según vista
-   */
-  useEffect(() => {
-    if (!isReady || !mapRef.current || !curvasLayerRef.current) return
-
+    // Solo agregarla si debe estar visible
     if (mostrarCurvasNivel) {
-      if (!mapRef.current.hasLayer(curvasLayerRef.current)) {
-        curvasLayerRef.current.addTo(mapRef.current)
-        console.log('✅ Curvas mostradas')
-      }
-    } else {
-      if (mapRef.current.hasLayer(curvasLayerRef.current)) {
-        mapRef.current.removeLayer(curvasLayerRef.current)
-        console.log('✅ Curvas ocultadas')
-      }
+      layer.addTo(mapRef.current)
+      console.log('✅ Capa agregada con opacidad:', opacidadCurvas)
     }
-    
-  }, [mostrarCurvasNivel, isReady])
+
+  }, [isReady, opacidadCurvas, mostrarCurvasNivel])
 
   /**
    * 🌱 Controlar capa de CONEAT
