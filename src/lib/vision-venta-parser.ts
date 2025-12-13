@@ -105,7 +105,7 @@ CONTEXTO IMPORTANTE:
 SEÑALES FUERTES DE VENTA (si tiene 2 o más → es VENTA):
 1. Menciona animales con PESO y PRECIO: VACAS, OVEJAS, CORDEROS, NOVILLOS, TERNEROS, CAPONES
 2. Tiene datos de PRODUCTOR o VENDEDOR (nombre, RUT, DICOSE)
-3. Tiene datos de COMPRADOR que es un frigorífico o empresa: Frigo Salto, Marfrig, CHIADEL, PUL, Pradera de Rosas
+3. Tiene datos de COMPRADOR identificado (puede ser frigorífico, empresa ganadera, otro campo): Frigo Salto, Marfrig, CHIADEL, PUL, Pradera de Rosas, etc.
 4. Tiene columnas típicas de venta ganadera: Cantidad/Cant, Kilos/Peso, Precio, Rendimiento, Importe
 5. Menciona: TROPA, DICOSE, GUIAS, Segunda Balanza, Primera Balanza
 6. Tiene impuestos de venta ganadera: MEVIR, INIA, IMEBA, Comisión, C.S.E, TCB, TCF
