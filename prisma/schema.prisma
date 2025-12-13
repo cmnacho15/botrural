@@ -85,6 +85,8 @@ model Campo {
   tiposCultivo TipoCultivo[]
   categoriasAnimal CategoriaAnimal[]
   categoriasGasto CategoriaGasto[]
+  
+  firmas   Firma[]
 
   rodeos      Rodeo[]
 
@@ -557,6 +559,8 @@ model Venta {
   totalImpuestosUSD Float     @default(0) // suma de todos los impuestos
   totalNetoUSD      Float     // subtotal - impuestos
   
+  firmaId  String?
+
   // 📎 ADJUNTAR BOLETA
   imageUrl          String?   // URL de la boleta guardada
   imageName         String?   // nombre del archivo
@@ -571,10 +575,13 @@ model Venta {
   
   campo             Campo     @relation(fields: [campoId], references: [id], onDelete: Cascade)
   renglones         VentaRenglon[]
-  
+  firma    Firma?   @relation(fields: [firmaId], references: [id])
+
   @@index([campoId])
   @@index([fecha])
   @@index([comprador])
+  @@index([firmaId])
+  
 }
 
 model VentaRenglon {
@@ -686,6 +693,8 @@ model Compra {
   nroTropa          String?
   nroFactura        String?
   
+  firmaId  String? 
+
   metodoPago        String    @default("Contado")
   diasPlazo         Int?
   fechaVencimiento  DateTime?
@@ -708,10 +717,13 @@ model Compra {
   
   campo             Campo     @relation(fields: [campoId], references: [id], onDelete: Cascade)
   renglones         CompraRenglon[]
-  
+
+  firma    Firma?   @relation(fields: [firmaId], references: [id])
+
   @@index([campoId])
   @@index([fecha])
   @@index([proveedor])
+  @@index([firmaId]) 
 }
 
 model CompraRenglon {
@@ -796,4 +808,31 @@ model ActividadCalendario {
   @@index([campoId])
   @@index([fechaProgramada])
   @@index([realizada])
+}
+
+
+
+
+
+
+
+
+
+
+
+model Firma {
+  id           String   @id @default(cuid())
+  campoId      String
+  rut          String   
+  razonSocial  String
+  esPrincipal  Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  campo        Campo    @relation(fields: [campoId], references: [id], onDelete: Cascade)
+  ventas       Venta[]
+  compras      Compra[]
+  
+  @@unique([rut, campoId])
+  @@index([campoId])
 }

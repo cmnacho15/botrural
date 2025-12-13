@@ -21,7 +21,7 @@ type CategoriaAnimal = {
 
 export default function PreferenciasPage() {
   const router = useRouter()
-  const [activeTab, setActiveTab] = useState<'campo' | 'cultivos' | 'animales' | 'gastos' | 'rodeos' | 'modulos'>('campo')
+  const [activeTab, setActiveTab] = useState<'campo' | 'cultivos' | 'animales' | 'gastos' | 'rodeos' | 'modulos' | 'firmas'>('campo')
 
   
   // Estados de campo
@@ -56,6 +56,13 @@ export default function PreferenciasPage() {
   const [nuevoRodeo, setNuevoRodeo] = useState('')
   const [savingRodeo, setSavingRodeo] = useState(false)
   const [editandoRodeo, setEditandoRodeo] = useState<{ id: string; nombre: string } | null>(null)
+// Estados de firmas
+const [firmas, setFirmas] = useState<{ id: string; rut: string; razonSocial: string; esPrincipal: boolean }[]>([])
+const [loadingFirmas, setLoadingFirmas] = useState(true)
+const [showModalFirma, setShowModalFirma] = useState(false)
+const [nuevaFirma, setNuevaFirma] = useState({ rut: '', razonSocial: '', esPrincipal: false })
+const [savingFirma, setSavingFirma] = useState(false)
+const [editandoFirma, setEditandoFirma] = useState<{ id: string; rut: string; razonSocial: string; esPrincipal: boolean } | null>(null)
 
   // Cargar nombre del campo
   useEffect(() => {
@@ -80,6 +87,13 @@ export default function PreferenciasPage() {
       })
       .catch(err => console.error('Error cargando configuración:', err))
   }, [])
+  
+  // Cargar firmas cuando se abre el tab
+useEffect(() => {
+  if (activeTab === 'firmas') {
+    cargarFirmas()
+  }
+}, [activeTab])
 
   // Cargar cultivos al montar
   useEffect(() => {
@@ -161,6 +175,21 @@ export default function PreferenciasPage() {
       setLoadingRodeos(false)
     }
   }
+  
+
+  async function cargarFirmas() {
+  try {
+    const response = await fetch('/api/firmas')
+    if (response.ok) {
+      const data = await response.json()
+      setFirmas(data)
+    }
+  } catch (error) {
+    console.error('Error cargando firmas:', error)
+  } finally {
+    setLoadingFirmas(false)
+  }
+}
 
   async function handleAgregarCultivo() {
     if (!nuevoCultivo.trim()) {
@@ -375,6 +404,88 @@ export default function PreferenciasPage() {
       alert('Error al eliminar lote')
     }
   }
+  
+  // Funciones de firmas
+async function handleAgregarFirma() {
+  if (!nuevaFirma.rut.trim() || !nuevaFirma.razonSocial.trim()) {
+    alert('Complete todos los campos obligatorios')
+    return
+  }
+
+  setSavingFirma(true)
+
+  try {
+    const response = await fetch('/api/firmas', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(nuevaFirma),
+    })
+
+    if (response.ok) {
+      setNuevaFirma({ rut: '', razonSocial: '', esPrincipal: false })
+      setShowModalFirma(false)
+      setEditandoFirma(null)
+      cargarFirmas()
+      alert('¡Firma creada!')
+    } else {
+      const error = await response.json()
+      alert(error.error || 'Error al crear firma')
+    }
+  } catch (error) {
+    alert('Error al crear firma')
+  } finally {
+    setSavingFirma(false)
+  }
+}
+
+async function handleEditarFirma() {
+  if (!editandoFirma || !nuevaFirma.rut.trim() || !nuevaFirma.razonSocial.trim()) return
+
+  setSavingFirma(true)
+
+  try {
+    const response = await fetch(`/api/firmas/${editandoFirma.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(nuevaFirma),
+    })
+
+    if (response.ok) {
+      setNuevaFirma({ rut: '', razonSocial: '', esPrincipal: false })
+      setShowModalFirma(false)
+      setEditandoFirma(null)
+      cargarFirmas()
+      alert('¡Firma actualizada!')
+    } else {
+      const error = await response.json()
+      alert(error.error || 'Error al actualizar firma')
+    }
+  } catch (error) {
+    alert('Error al actualizar firma')
+  } finally {
+    setSavingFirma(false)
+  }
+}
+
+async function handleEliminarFirma(id: string) {
+  if (!confirm('¿Estás seguro de eliminar esta firma?')) return
+
+  try {
+    const response = await fetch(`/api/firmas/${id}`, {
+      method: 'DELETE',
+    })
+
+    if (response.ok) {
+      cargarFirmas()
+      alert('Firma eliminada')
+    } else {
+      const error = await response.json()
+      alert(error.error || 'Error al eliminar firma')
+    }
+  } catch (error) {
+    alert('Error al eliminar firma')
+  }
+}
 
   // Agrupar categorías por tipo
   const categoriasPorTipo = {
@@ -460,6 +571,17 @@ export default function PreferenciasPage() {
                 }`}
               >
                 🔄 Módulos de Pastoreo
+              </button>
+
+              <button
+                onClick={() => setActiveTab('firmas')}
+                className={`py-4 px-1 border-b-2 font-medium text-sm transition ${
+                  activeTab === 'firmas'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                📝 Firmas
               </button>
             </nav>
           </div>
@@ -784,7 +906,110 @@ export default function PreferenciasPage() {
               <ModulosPreferencias />
             </div>
           )}
+          
 
+          {/* CONTENIDO TAB FIRMAS */}
+{activeTab === 'firmas' && (
+  <div className="p-6">
+    <div className="flex justify-between items-center mb-6">
+      <div>
+        <h2 className="text-lg font-semibold text-gray-900">Firmas / RUTs</h2>
+        <p className="text-sm text-gray-500">Gestiona las razones sociales y RUTs bajo los cuales operás</p>
+      </div>
+      <button
+        onClick={() => {
+          setEditandoFirma(null)
+          setNuevaFirma({ rut: '', razonSocial: '', esPrincipal: false })
+          setShowModalFirma(true)
+        }}
+        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+      >
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+        </svg>
+        Nueva Firma
+      </button>
+    </div>
+
+    {loadingFirmas ? (
+      <div className="text-center py-12">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+        <p className="text-gray-600">Cargando firmas...</p>
+      </div>
+    ) : firmas.length === 0 ? (
+      <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+        <p className="text-gray-500 mb-2">No hay firmas configuradas</p>
+        <p className="text-sm text-gray-400">Crea tu primera firma para comenzar a organizar tus ventas</p>
+      </div>
+    ) : (
+      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                RUT
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Razón Social
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Estado
+              </th>
+              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Acciones
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {firmas.map((firma) => (
+              <tr key={firma.id} className="hover:bg-gray-50">
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <span className="text-sm font-mono text-gray-900">{firma.rut}</span>
+                </td>
+                <td className="px-6 py-4">
+                  <span className="text-sm font-medium text-gray-900">{firma.razonSocial}</span>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  {firma.esPrincipal ? (
+                    <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium">
+                      ⭐ Principal
+                    </span>
+                  ) : (
+                    <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs font-medium">
+                      Secundaria
+                    </span>
+                  )}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-3">
+                  <button
+                    onClick={() => {
+                      setEditandoFirma(firma)
+                      setNuevaFirma({ 
+                        rut: firma.rut, 
+                        razonSocial: firma.razonSocial,
+                        esPrincipal: firma.esPrincipal 
+                      })
+                      setShowModalFirma(true)
+                    }}
+                    className="text-blue-600 hover:text-blue-900"
+                  >
+                    ✏️
+                  </button>
+                  <button
+                    onClick={() => handleEliminarFirma(firma.id)}
+                    className="text-red-600 hover:text-red-900"
+                  >
+                    🗑️
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    )}
+  </div>
+)}
           {/* CONTENIDO TAB RODEOS */}
           {activeTab === 'rodeos' && (
             <div className="p-6">
@@ -1114,6 +1339,94 @@ className="text-red-600 hover:text-red-900">
                   className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
                 >
                   {savingRodeo ? 'Guardando...' : editandoRodeo ? 'Actualizar' : 'Crear'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL NUEVA/EDITAR FIRMA */}
+        {showModalFirma && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
+              <div className="p-6 border-b border-gray-200 flex justify-between items-center">
+                <h2 className="text-lg font-semibold text-gray-900">
+                  {editandoFirma ? 'Editar Firma' : 'Nueva Firma'}
+                </h2>
+                <button
+                  onClick={() => {
+                    setShowModalFirma(false)
+                    setEditandoFirma(null)
+                    setNuevaFirma({ rut: '', razonSocial: '', esPrincipal: false })
+                  }}
+                  className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="p-6 space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    RUT <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={nuevaFirma.rut}
+                    onChange={(e) => setNuevaFirma({ ...nuevaFirma, rut: e.target.value })}
+                    placeholder="Ej: 160096500018"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"
+                    autoFocus
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Razón Social <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={nuevaFirma.razonSocial}
+                    onChange={(e) => setNuevaFirma({ ...nuevaFirma, razonSocial: e.target.value })}
+                    placeholder="Ej: Apa Othaix Leonardo y Da Rosa Simoes Nahir"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+
+                <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <input
+                    type="checkbox"
+                    id="esPrincipal"
+                    checked={nuevaFirma.esPrincipal}
+                    onChange={(e) => setNuevaFirma({ ...nuevaFirma, esPrincipal: e.target.checked })}
+                    className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                  />
+                  <label htmlFor="esPrincipal" className="text-sm font-medium text-gray-900 cursor-pointer">
+                    ⭐ Marcar como firma principal
+                  </label>
+                </div>
+                <p className="text-xs text-gray-500">
+                  La firma principal se pre-seleccionará automáticamente al cargar nuevas ventas
+                </p>
+              </div>
+
+              <div className="p-6 border-t border-gray-200 flex gap-3">
+                <button
+                  onClick={() => {
+                    setShowModalFirma(false)
+                    setEditandoFirma(null)
+                    setNuevaFirma({ rut: '', razonSocial: '', esPrincipal: false })
+                  }}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700 font-medium"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={editandoFirma ? handleEditarFirma : handleAgregarFirma}
+                  disabled={savingFirma || !nuevaFirma.rut.trim() || !nuevaFirma.razonSocial.trim()}
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                >
+                  {savingFirma ? 'Guardando...' : editandoFirma ? 'Actualizar' : 'Crear'}
                 </button>
               </div>
             </div>
