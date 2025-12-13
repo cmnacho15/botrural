@@ -126,30 +126,32 @@ export async function handleAwaitingInvoiceType(
   const respuesta = messageText.toLowerCase().trim()
   
   if (respuesta.includes("venta") || respuesta === "1") {
-    await sendWhatsAppMessage(phoneNumber, "Procesando como venta... 📊")
-    await handleVentaImage(
-      phoneNumber, 
-      savedData.imageUrl, 
-      savedData.imageName, 
-      savedData.campoId, 
-      savedData.caption
-    )
-    await prisma.pendingConfirmation.delete({ where: { telefono: phoneNumber } })
-    return true
-  }
+  await sendWhatsAppMessage(phoneNumber, "Procesando como venta... 📊")
+  // NO borrar aquí - handleVentaImage creará su propio pending
+  await handleVentaImage(
+    phoneNumber, 
+    savedData.imageUrl, 
+    savedData.imageName, 
+    savedData.campoId, 
+    savedData.caption
+  )
+  // Borrado movido después de handleVentaImage
+  return true
+}
   
   if (respuesta.includes("gasto") || respuesta === "2") {
-    await sendWhatsAppMessage(phoneNumber, "Procesando como gasto... 💰")
-    await handleGastoImage(
-      phoneNumber,
-      savedData.imageUrl,
-      savedData.imageName,
-      savedData.campoId,
-      savedData.caption
-    )
-    await prisma.pendingConfirmation.delete({ where: { telefono: phoneNumber } })
-    return true
-  }
+  await sendWhatsAppMessage(phoneNumber, "Procesando como gasto... 💰")
+  // NO borrar aquí - handleGastoImage creará su propio pending
+  await handleGastoImage(
+    phoneNumber,
+    savedData.imageUrl,
+    savedData.imageName,
+    savedData.campoId,
+    savedData.caption
+  )
+  // Borrado movido después de handleGastoImage
+  return true
+}
 
   await sendWhatsAppMessage(
     phoneNumber, 
