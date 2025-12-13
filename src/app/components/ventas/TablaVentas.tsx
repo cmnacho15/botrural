@@ -13,7 +13,7 @@ interface Venta {
   totalNetoUSD: number
   imageUrl: string | null
   notas: string | null
-  firma?: {                    // ← AGREGAR ESTAS LÍNEAS
+  firma?: {
     id: string
     razonSocial: string
     rut: string
@@ -46,6 +46,8 @@ interface TablaVentasProps {
 
 export default function TablaVentas({ ventas, onRefresh }: TablaVentasProps) {
   const [verImagen, setVerImagen] = useState<string | null>(null)
+  const [ventaAEliminar, setVentaAEliminar] = useState<string | null>(null)
+  const [eliminando, setEliminando] = useState(false)
 
   const formatNumber = (num: number) => {
     return num.toLocaleString('es-UY', {
@@ -60,6 +62,30 @@ export default function TablaVentas({ ventas, onRefresh }: TablaVentasProps) {
       month: '2-digit',
       year: 'numeric',
     })
+  }
+
+  const handleEliminarVenta = async (ventaId: string) => {
+    setEliminando(true)
+    try {
+      const response = await fetch(`/api/ventas/${ventaId}`, {
+        method: 'DELETE'
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Error al eliminar')
+      }
+
+      // Refrescar la lista
+      onRefresh()
+      setVentaAEliminar(null)
+      alert('✅ Venta eliminada correctamente')
+    } catch (error: any) {
+      console.error('Error:', error)
+      alert(`❌ ${error.message}`)
+    } finally {
+      setEliminando(false)
+    }
   }
 
   // Agrupar ventas por tipo animal
@@ -101,10 +127,10 @@ export default function TablaVentas({ ventas, onRefresh }: TablaVentasProps) {
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-100 border-b border-gray-200">
-  <tr>
-    <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase whitespace-nowrap">Firma</th>
-    <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase whitespace-nowrap">Fecha de venta</th>
-    <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase whitespace-nowrap">Comprador</th>
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase whitespace-nowrap">Firma</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase whitespace-nowrap">Fecha de venta</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase whitespace-nowrap">Comprador</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase whitespace-nowrap">Fecha Vencimiento</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase whitespace-nowrap">Categoría</th>
                 <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase whitespace-nowrap">nº anim</th>
@@ -114,29 +140,30 @@ export default function TablaVentas({ ventas, onRefresh }: TablaVentasProps) {
                 <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase whitespace-nowrap">Peso lote</th>
                 <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase whitespace-nowrap">US$ Bruto</th>
                 <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase whitespace-nowrap">US$ Neto</th>
+                <th className="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase whitespace-nowrap">Factura</th>
                 <th className="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase whitespace-nowrap">Acciones</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-100">
               {ventasFiltradas.map((venta) => (
-  <Fragment key={venta.id}>
-    {venta.renglones.map((renglon, idx) => (
+                <Fragment key={venta.id}>
+                  {venta.renglones.map((renglon, idx) => (
                     <tr key={renglon.id} className="hover:bg-gray-50">
-  {idx === 0 && (
-    <>
-      <td className="px-4 py-3 text-sm text-gray-700" rowSpan={venta.renglones.length}>
-        {venta.firma ? (
-          <div className="flex flex-col">
-            <span className="font-medium text-gray-900">{venta.firma.razonSocial}</span>
-            <span className="text-xs text-gray-500 font-mono">{venta.firma.rut}</span>
-          </div>
-        ) : (
-          <span className="text-gray-400 italic text-xs">Sin asignar</span>
-        )}
-      </td>
-      <td className="px-4 py-3 text-sm text-gray-700" rowSpan={venta.renglones.length}>
-        {formatFecha(venta.fecha)}
-      </td>
+                      {idx === 0 && (
+                        <>
+                          <td className="px-4 py-3 text-sm text-gray-700" rowSpan={venta.renglones.length}>
+                            {venta.firma ? (
+                              <div className="flex flex-col">
+                                <span className="font-medium text-gray-900">{venta.firma.razonSocial}</span>
+                                <span className="text-xs text-gray-500 font-mono">{venta.firma.rut}</span>
+                              </div>
+                            ) : (
+                              <span className="text-gray-400 italic text-xs">Sin asignar</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-700" rowSpan={venta.renglones.length}>
+                            {formatFecha(venta.fecha)}
+                          </td>
                           <td className="px-4 py-3 text-sm text-gray-700" rowSpan={venta.renglones.length}>
                             {venta.comprador}
                           </td>
@@ -167,22 +194,26 @@ export default function TablaVentas({ ventas, onRefresh }: TablaVentasProps) {
                             {formatNumber(venta.totalNetoUSD)}
                           </td>
                           <td className="px-4 py-3 text-center" rowSpan={venta.renglones.length}>
-                            <div className="flex items-center justify-center gap-2">
-                              {venta.imageUrl && (
-                                <button
-                                  onClick={() => setVerImagen(venta.imageUrl)}
-                                  className="text-blue-600 hover:text-blue-800 transition"
-                                  title="Ver boleta"
-                                >
-                                  📄
-                                </button>
-                              )}
-                              {!venta.pagado && (
-                                <span className="text-red-600" title="Pendiente de pago">
-                                  ⏳
-                                </span>
-                              )}
-                            </div>
+                            {venta.imageUrl ? (
+                              <button
+                                onClick={() => setVerImagen(venta.imageUrl)}
+                                className="text-blue-600 hover:text-blue-800 transition text-lg"
+                                title="Ver factura"
+                              >
+                                📄
+                              </button>
+                            ) : (
+                              <span className="text-gray-400">-</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-center" rowSpan={venta.renglones.length}>
+                            <button
+                              onClick={() => setVentaAEliminar(venta.id)}
+                              className="text-red-600 hover:text-red-800 transition text-lg"
+                              title="Eliminar venta"
+                            >
+                              🗑️
+                            </button>
                           </td>
                         </>
                       )}
@@ -192,7 +223,7 @@ export default function TablaVentas({ ventas, onRefresh }: TablaVentasProps) {
               ))}
               {/* TOTALES */}
               <tr className="bg-blue-50 font-bold border-t-2 border-blue-200">
-  <td colSpan={5} className="px-4 py-3 text-gray-900">Totales</td>
+                <td colSpan={5} className="px-4 py-3 text-gray-900">Totales</td>
                 <td className="px-4 py-3 text-right text-gray-900">{totales.cantidad}</td>
                 <td className="px-4 py-3 text-right text-gray-900">{formatNumber(precioPromedio)}</td>
                 <td className="px-4 py-3 text-right text-gray-900">{formatNumber(pesoPromedio)}</td>
@@ -200,6 +231,7 @@ export default function TablaVentas({ ventas, onRefresh }: TablaVentasProps) {
                 <td className="px-4 py-3 text-right text-gray-900">{formatNumber(totales.pesoTotal)}</td>
                 <td className="px-4 py-3 text-right text-gray-900">{formatNumber(totales.importeBruto)}</td>
                 <td className="px-4 py-3 text-right text-blue-900">{formatNumber(totales.importeNeto)}</td>
+                <td></td>
                 <td></td>
               </tr>
             </tbody>
@@ -243,6 +275,46 @@ export default function TablaVentas({ ventas, onRefresh }: TablaVentasProps) {
               alt="Boleta de venta" 
               className="w-full h-auto rounded-lg shadow-2xl"
             />
+          </div>
+        </div>
+      )}
+
+      {/* MODAL CONFIRMAR ELIMINACIÓN */}
+      {ventaAEliminar && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <span className="text-3xl">⚠️</span>
+              <h3 className="text-lg font-bold text-gray-900">¿Eliminar esta venta?</h3>
+            </div>
+            
+            <div className="mb-6 text-sm text-gray-700 space-y-2">
+              <p className="font-medium">Esto revertirá:</p>
+              <ul className="list-disc list-inside space-y-1 text-gray-600">
+                <li>Stock devuelto a potreros</li>
+                <li>Factura eliminada</li>
+              </ul>
+              <p className="text-red-600 font-medium mt-3">
+                Esta acción NO se puede deshacer.
+              </p>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setVentaAEliminar(null)}
+                disabled={eliminando}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700 font-medium disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => handleEliminarVenta(ventaAEliminar)}
+                disabled={eliminando}
+                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium disabled:opacity-50"
+              >
+                {eliminando ? 'Eliminando...' : 'Sí, eliminar'}
+              </button>
+            </div>
           </div>
         </div>
       )}
