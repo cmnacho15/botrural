@@ -775,8 +775,7 @@ if (!mapRef.current._tooltipZoomHandler) {
         console.log('➕ Agregando capa de curvas al mapa...')
         curvasLayer.addTo(mapRef.current)
         curvasLayer.setZIndex(1000)
-        curvasLayer.setOpacity(opacidadCurvas / 100) // 🔥 AGREGADO
-        console.log('✅ Capa de curvas agregada exitosamente con opacidad:', opacidadCurvas) // 🔥 MODIFICADO
+        console.log('✅ Capa de curvas agregada exitosamente')
       } else {
         console.log('ℹ️ La capa de curvas ya estaba en el mapa')
       }
@@ -791,7 +790,7 @@ if (!mapRef.current._tooltipZoomHandler) {
         console.log('ℹ️ La capa de curvas no estaba en el mapa')
       }
     }
-  }, [mostrarCurvasNivel, isReady, opacidadCurvas])
+  }, [mostrarCurvasNivel, isReady])
 
   /**
    * 🌱 Controlar capa de CONEAT
