@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import dynamic from 'next/dynamic'
 
 const MapaPoligono = dynamic(() => import('@/app/components/MapaPoligono'), {
@@ -81,6 +81,12 @@ export default function MapaPage() {
   const [ndviData, setNdviData] = useState<Record<string, any>>({})
   const [modulos, setModulos] = useState<Array<{id: string, nombre: string}>>([])
   const [opacidadCurvas, setOpacidadCurvas] = useState(95)
+  
+  // Memorizar el key para que no cambie cuando solo cambia opacidad
+  const mapaKey = useMemo(() => 
+    `vista-${vistaActual}-${lotes.length}-${Object.keys(ndviData).length}-mapa`,
+    [vistaActual, lotes.length, Object.keys(ndviData).length]
+  )
 
   // Cargar lotes y módulos
   useEffect(() => {
@@ -452,8 +458,9 @@ export default function MapaPage() {
                   </div>
                 </div>
               ) : (
-                <MapaPoligono
-  key={`vista-${vistaActual}-${lotes.length}-${Object.keys(ndviData).length}-mapa`}
+                
+  <MapaPoligono
+  key={mapaKey}
   initialCenter={mapCenter}
   initialZoom={14}
   existingPolygons={poligonosParaMapa}
@@ -766,7 +773,7 @@ export default function MapaPage() {
                       <span>Opaco</span>
                     </div>
                   </div>
-                  
+
                   {/* Información */}
                   <div className="mb-5 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-lg p-3 sm:p-4">
                     <h3 className="text-xs sm:text-sm font-semibold text-gray-800 mb-2">
