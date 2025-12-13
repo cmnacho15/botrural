@@ -36,26 +36,27 @@ export async function GET(request: Request) {
     }
 
     const ventas = await prisma.venta.findMany({
-      where,
+  where,
+  include: {
+    renglones: {
       include: {
-        renglones: {
-          include: {
-            animalLote: {
+        animalLote: {
+          select: {
+            id: true,
+            categoria: true,
+            lote: {
               select: {
-                id: true,
-                categoria: true,
-                lote: {
-                  select: {
-                    nombre: true,
-                  },
-                },
+                nombre: true,
               },
             },
           },
         },
       },
-      orderBy: { fecha: "desc" },
-    })
+    },
+    firma: true,  // ← AGREGAR ESTA LÍNEA
+  },
+  orderBy: { fecha: "desc" },
+})
 
     // ==========================================
     // 📊 CALCULAR RESUMEN TIPO EXCEL

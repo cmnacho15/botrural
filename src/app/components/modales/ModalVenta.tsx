@@ -35,6 +35,10 @@ export default function ModalVenta({ onClose, onSuccess }: ModalVentaProps) {
   const [pagado, setPagado] = useState(false)
   const [notas, setNotas] = useState('')
 
+  // Firmas
+  const [firmas, setFirmas] = useState<any[]>([])
+  const [firmaId, setFirmaId] = useState<string>('')
+
   // PASO 2: Renglones
   const [renglones, setRenglones] = useState<Renglon[]>([
     {
@@ -56,7 +60,6 @@ export default function ModalVenta({ onClose, onSuccess }: ModalVentaProps) {
   // Cargar potreros con stock
   const [potreros, setPotreros] = useState<any[]>([])
 
-  // ✅ CORREGIDO: Funciones dentro del useEffect
   useEffect(() => {
     const cargarCategorias = async () => {
       try {
@@ -80,21 +83,40 @@ export default function ModalVenta({ onClose, onSuccess }: ModalVentaProps) {
       }
     }
 
+    const cargarPotreros = async () => {
+      try {
+        const res = await fetch('/api/lotes')
+        if (res.ok) {
+          const data = await res.json()
+          setPotreros(data)
+        }
+      } catch (err) {
+        console.error('Error cargando potreros:', err)
+      }
+    }
+
+    const cargarFirmas = async () => {
+      try {
+        const res = await fetch('/api/firmas')
+        if (res.ok) {
+          const data = await res.json()
+          setFirmas(data)
+          
+          // Pre-seleccionar la firma principal
+          const principal = data.find((f: any) => f.esPrincipal)
+          if (principal) {
+            setFirmaId(principal.id)
+          }
+        }
+      } catch (err) {
+        console.error('Error cargando firmas:', err)
+      }
+    }
+
     cargarCategorias()
     cargarPotreros()
-  }, []) // ✅ Ahora las funciones están dentro del effect
-
-  const cargarPotreros = async () => {
-    try {
-      const res = await fetch('/api/lotes')
-      if (res.ok) {
-        const data = await res.json()
-        setPotreros(data)
-      }
-    } catch (err) {
-      console.error('Error cargando potreros:', err)
-    }
-  }
+    cargarFirmas()
+  }, [])
 
   const handleRenglonChange = (id: string, field: keyof Renglon, value: any) => {
     setRenglones(prev =>
@@ -204,6 +226,7 @@ export default function ModalVenta({ onClose, onSuccess }: ModalVentaProps) {
       const payload = {
         fecha,
         comprador: comprador.trim(),
+        firmaId: firmaId || null,
         consignatario: consignatario.trim() || null,
         nroTropa: nroTropa.trim() || null,
         nroFactura: nroFactura.trim() || null,
@@ -310,6 +333,27 @@ export default function ModalVenta({ onClose, onSuccess }: ModalVentaProps) {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   required
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Firma / RUT
+                </label>
+                <select
+                  value={firmaId}
+                  onChange={(e) => setFirmaId(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Sin asignar</option>
+                  {firmas.map(firma => (
+                    <option key={firma.id} value={firma.id}>
+                      {firma.razonSocial} ({firma.rut})
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  Asigna esta venta a una firma/RUT específica
+                </p>
               </div>
 
               <div>

@@ -1388,7 +1388,7 @@ className="text-red-600 hover:text-red-900">
                     type="text"
                     value={nuevaFirma.razonSocial}
                     onChange={(e) => setNuevaFirma({ ...nuevaFirma, razonSocial: e.target.value })}
-                    placeholder="Ej: Apa Othaix Leonardo y Da Rosa Simoes Nahir"
+                    placeholder="Ej: Lema Abadie Juan y Da Rosa Maria"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>

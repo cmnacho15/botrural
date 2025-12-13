@@ -13,6 +13,11 @@ interface Venta {
   totalNetoUSD: number
   imageUrl: string | null
   notas: string | null
+  firma?: {                    // ← AGREGAR ESTAS LÍNEAS
+    id: string
+    razonSocial: string
+    rut: string
+  } | null
   renglones: Array<{
     id: string
     categoria: string
@@ -96,9 +101,10 @@ export default function TablaVentas({ ventas, onRefresh }: TablaVentasProps) {
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-100 border-b border-gray-200">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase whitespace-nowrap">Fecha de venta</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase whitespace-nowrap">Comprador</th>
+  <tr>
+    <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase whitespace-nowrap">Firma</th>
+    <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase whitespace-nowrap">Fecha de venta</th>
+    <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase whitespace-nowrap">Comprador</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase whitespace-nowrap">Fecha Vencimiento</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase whitespace-nowrap">Categoría</th>
                 <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase whitespace-nowrap">nº anim</th>
@@ -116,11 +122,21 @@ export default function TablaVentas({ ventas, onRefresh }: TablaVentasProps) {
   <Fragment key={venta.id}>
     {venta.renglones.map((renglon, idx) => (
                     <tr key={renglon.id} className="hover:bg-gray-50">
-                      {idx === 0 && (
-                        <>
-                          <td className="px-4 py-3 text-sm text-gray-700" rowSpan={venta.renglones.length}>
-                            {formatFecha(venta.fecha)}
-                          </td>
+  {idx === 0 && (
+    <>
+      <td className="px-4 py-3 text-sm text-gray-700" rowSpan={venta.renglones.length}>
+        {venta.firma ? (
+          <div className="flex flex-col">
+            <span className="font-medium text-gray-900">{venta.firma.razonSocial}</span>
+            <span className="text-xs text-gray-500 font-mono">{venta.firma.rut}</span>
+          </div>
+        ) : (
+          <span className="text-gray-400 italic text-xs">Sin asignar</span>
+        )}
+      </td>
+      <td className="px-4 py-3 text-sm text-gray-700" rowSpan={venta.renglones.length}>
+        {formatFecha(venta.fecha)}
+      </td>
                           <td className="px-4 py-3 text-sm text-gray-700" rowSpan={venta.renglones.length}>
                             {venta.comprador}
                           </td>
@@ -176,7 +192,7 @@ export default function TablaVentas({ ventas, onRefresh }: TablaVentasProps) {
               ))}
               {/* TOTALES */}
               <tr className="bg-blue-50 font-bold border-t-2 border-blue-200">
-                <td colSpan={4} className="px-4 py-3 text-gray-900">Totales</td>
+  <td colSpan={5} className="px-4 py-3 text-gray-900">Totales</td>
                 <td className="px-4 py-3 text-right text-gray-900">{totales.cantidad}</td>
                 <td className="px-4 py-3 text-right text-gray-900">{formatNumber(precioPromedio)}</td>
                 <td className="px-4 py-3 text-right text-gray-900">{formatNumber(pesoPromedio)}</td>

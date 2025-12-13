@@ -1,6 +1,7 @@
 'use client'
 import { useState, useMemo } from 'react'
 import useSWR from 'swr'
+import Link from 'next/link'
 import ModalVenta from '@/app/components/modales/ModalVenta'
 import ResumenVentas from '@/app/components/ventas/ResumenVentas'
 import TablaVentas from '@/app/components/ventas/TablaVentas'
@@ -127,25 +128,32 @@ export default function VentasPage() {
     <>
       <div className="bg-gray-50 min-h-screen p-4 sm:p-6 md:p-8 text-gray-900">
         {/* HEADER */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8 gap-6">
-          <div className="text-center md:text-left space-y-1">
-            <h1 className="text-3xl font-bold text-gray-900 leading-tight">
-              Ventas de Ganado
-            </h1>
-            <p className="text-gray-600 text-sm">
-              Gestión de ventas de vacunos, ovinos y lana
-            </p>
-          </div>
+<div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8 gap-6">
+  <div className="text-center md:text-left space-y-1">
+    <h1 className="text-3xl font-bold text-gray-900 leading-tight">
+      Ventas de Ganado
+    </h1>
+    <p className="text-gray-600 text-sm">
+      Gestión de ventas de vacunos, ovinos y lana
+    </p>
+  </div>
 
-          <div className="flex flex-wrap justify-center md:justify-end gap-3">
-            <button
-              onClick={() => setModalOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 shadow-sm transition text-sm font-medium"
-            >
-              <span className="text-lg">+</span> Nueva Venta
-            </button>
-          </div>
-        </div>
+  <div className="flex flex-wrap justify-center md:justify-end gap-3">
+    <Link 
+      href="/dashboard/ventas-por-firmas"
+      className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 shadow-sm transition text-sm font-medium"
+    >
+      📊 Ver por Firmas
+    </Link>
+    
+    <button
+      onClick={() => setModalOpen(true)}
+      className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 shadow-sm transition text-sm font-medium"
+    >
+      <span className="text-lg">+</span> Nueva Venta
+    </button>
+  </div>
+</div>
 
         {/* FILTROS DE FECHA */}
         <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6 mb-6">
