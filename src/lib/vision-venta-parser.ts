@@ -97,18 +97,35 @@ export async function detectarTipoFactura(imageUrl: string): Promise<"VENTA" | "
 
 PREGUNTA: ¿Esta imagen es una factura de VENTA de animales a un frigorífico o comprador de hacienda?
 
-SEÑALES DE VENTA:
-- Menciona animales: OVEJAS, CORDEROS, NOVILLOS, VACAS, CAPONES, TERNEROS
-- Menciona un frigorífico: Frigo Salto, Marfrig, PUL, etc.
-- Tiene columnas: Cantidad, Kilos, Precio/kg, Rendimiento
-- Dice "TROPA", "DICOSE", "Fact.Haciendas", "Segunda Balanza"
-- El productor/vendedor está identificado
-- Hay descuentos de impuestos: MEVIR, INIA, IMEBA
+CONTEXTO IMPORTANTE:
+- VENTA = El productor/vendedor VENDE animales al frigorífico/comprador
+- El frigorífico/comprador es quien PAGA por los animales
+- Puede ser e-factura, factura física, liquidación, etc.
+
+SEÑALES FUERTES DE VENTA (si tiene 2 o más → es VENTA):
+1. Menciona animales con PESO y PRECIO: VACAS, OVEJAS, CORDEROS, NOVILLOS, TERNEROS, CAPONES
+2. Tiene datos de PRODUCTOR o VENDEDOR (nombre, RUT, DICOSE)
+3. Tiene datos de COMPRADOR que es un frigorífico o empresa: Frigo Salto, Marfrig, CHIADEL, PUL, Pradera de Rosas
+4. Tiene columnas típicas de venta ganadera: Cantidad/Cant, Kilos/Peso, Precio, Rendimiento, Importe
+5. Menciona: TROPA, DICOSE, GUIAS, Segunda Balanza, Primera Balanza
+6. Tiene impuestos de venta ganadera: MEVIR, INIA, IMEBA, Comisión, C.S.E, TCB, TCF
+7. Dice "Fact.Haciendas", "e-Factura", "Liquidación", "PRODUCTOR"
+8. Tipo de documento: "e-Factura" con categoría de animales
+
+SEÑALES DE GASTO (factura común):
+- Es un proveedor vendiendo insumos/servicios (veterinaria, alimento, combustible, etc.)
+- No menciona kilos ni precio por kilo de animales
+- Es una factura de compra de productos/servicios
+
+IMPORTANTE:
+- Si menciona RUT COMPRADOR + categoría de animales con kilos → es VENTA
+- Si dice "e-Factura" y tiene animales con precio/kg → es VENTA
+- Confiá en las señales, aunque el formato sea diferente
 
 RESPONDE SOLO:
-- "SI" si es claramente una venta de animales
+- "SI" si es claramente una venta de animales (2+ señales fuertes)
 - "NO" si es una compra/gasto (factura común)
-- "INCIERTO" si no estás seguro`
+- "INCIERTO" si realmente no podés determinar`
         },
         {
           role: "user",
@@ -174,7 +191,16 @@ RESPONDE SOLO:
       "IMEBA",
       "PRODUCTOR:",
       "LIQUIDACION",
-      "LIQUIDACIÓN"
+      "LIQUIDACIÓN",
+      "CHIADEL",
+      "E-FACTURA",
+      "RUT COMPRADOR",
+      "COMISION",
+      "COMISIÓN",
+      "C.S.E",
+      "TCB",
+      "TCF",
+      "COMPENSACION KILOS"
     ];
 
     for (const palabra of palabrasVentaFuertes) {
