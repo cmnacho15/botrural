@@ -81,9 +81,62 @@ export interface ParsedVenta {
 /**
  * Detectar si una imagen es una factura de VENTA (no de gasto)
  */
-export async function detectarTipoFactura(imageUrl: string): Promise<"VENTA" | "GASTO" | null> {
+export async function detectarTipoFactura(imageUrl: string, campoId?: string): Promise<"VENTA" | "GASTO" | null> {
   console.log("🔍 Detectando tipo factura:", imageUrl)
+ 
+
+// NUEVO: Extraer RUT rápido y verificar si es de una firma conocida
+if (campoId) {
+  try {
+    const quickOCR = await openai.chat.completions.create({
+  model: "gpt-4o",
+  messages: [
+    {
+      role: "system",
+      content: "Extrae de esta factura SOLO:\n1. RUT EMISOR (solo números, sin puntos ni guiones)\n2. Nombre del EMISOR/VENDEDOR\n\nResponde en formato: RUT|NOMBRE\nEjemplo: 160096500018|Leonardo Apa & Cía\n\nSi no encuentras algo, usa 'NO_ENCONTRADO'"
+    },
+        {
+          role: "user",
+          content: [{ type: "image_url", image_url: { url: imageUrl, detail: "low" } }]
+        }
+      ],
+      max_tokens: 50,
+      temperature: 0
+    })
+
+    const respuesta = quickOCR.choices[0].message.content?.trim()
+console.log("📋 Datos extraídos:", respuesta)
+
+if (respuesta && respuesta !== "NO_ENCONTRADO") {
+  const [rutExtraido, nombreExtraido] = respuesta.split("|")
   
+  const { prisma } = await import("@/lib/prisma")
+  
+  // Buscar por RUT O por razón social
+  const firmaEncontrada = await prisma.firma.findFirst({
+    where: {
+      campoId,
+      OR: [
+        { rut: rutExtraido?.trim() },
+        { razonSocial: { contains: nombreExtraido?.trim(), mode: 'insensitive' } }
+      ]
+    }
+  })
+
+      if (firmaEncontrada) {
+        console.log(`✅ RUT ${rutExtraido} pertenece a firma configurada: ${firmaEncontrada.razonSocial}`)
+        console.log("🎯 AUTO-DETECTADO como VENTA (es tu firma)")
+        return "VENTA"
+      } else {
+        console.log(`ℹ️ RUT ${rutExtraido} NO está en tus firmas configuradas`)
+      }
+    }
+  } catch (err) {
+    console.warn("⚠️ Error en detección rápida de RUT, continuando con método normal:", err)
+  }
+}
+
+
   try {
     // Estrategia: Hacer 2 preguntas directas a GPT
     

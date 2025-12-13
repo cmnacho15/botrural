@@ -50,7 +50,7 @@ export async function handleImageMessage(message: any, phoneNumber: string) {
     let tipoFactura: "VENTA" | "GASTO" | null = null
 
     try {
-      tipoFactura = await detectarTipoFactura(uploadResult.url)
+      tipoFactura = await detectarTipoFactura(uploadResult.url, user.campoId)
       console.log("Tipo detectado:", tipoFactura)
     } catch (err: any) {
       console.error("Error en detectarTipoFactura:", err?.message)
