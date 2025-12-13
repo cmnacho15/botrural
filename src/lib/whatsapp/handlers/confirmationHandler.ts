@@ -48,6 +48,9 @@ export async function solicitarConfirmacion(phone: string, data: any) {
       mensaje += `\n• Cultivo: ${data.cultivo}`
       if (data.lote) mensaje += `\n• Potrero: ${data.lote}`
       break
+    case "MOVER_POTRERO_MODULO":
+      mensaje += `*Mover Potrero a Módulo*\n• Potrero: ${data.nombrePotrero}\n• Módulo destino: ${data.moduloDestino}`
+      break
   }
 
   await prisma.pendingConfirmation.create({
@@ -96,6 +99,9 @@ export async function handleConfirmacion(
     try {
       if (data.tipo === "CAMBIO_POTRERO") {
         await ejecutarCambioPotrero(data)
+      } else if (data.tipo === "MOVER_POTRERO_MODULO") {
+        const { handleMoverPotreroModuloConfirmacion } = await import("./moverPotreroModuloHandler")
+        await handleMoverPotreroModuloConfirmacion(data)
       } else {
         await handleDataEntry(data)
       }

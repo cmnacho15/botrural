@@ -19,3 +19,8 @@ export {
 } from "./handlers/calendarioHandler"
 
 export { sendWhatsAppButtons } from "./sendMessage"
+
+export {
+  handleMoverPotreroModulo,
+  handleMoverPotreroModuloConfirmacion,
+} from "./handlers/moverPotreroModuloHandler"

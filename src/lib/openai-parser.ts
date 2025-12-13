@@ -27,6 +27,7 @@ TIPOS DE EVENTOS VÁLIDOS:
 - TRATAMIENTO: aplicación de medicamentos/vacunas
 - SIEMBRA: siembra de cultivos
 - CAMBIO_POTRERO: mover animales de un potrero/lote a otro
+- MOVER_POTRERO_MODULO: mover un potrero de un módulo de pastoreo a otro
 - CALENDARIO_CREAR: agendar una actividad/recordatorio futuro
 - CALENDARIO_CONSULTAR: preguntar por actividades pendientes
 
@@ -76,9 +77,22 @@ IMPORTANTE para nombres de potreros:
 - Ejemplo: "al lote 2" → "2"
 - Ejemplo: "de campo grande" → "campo grande"
 
+MOVER_POTRERO_MODULO (MÓDULOS DE PASTOREO):
+Detectar cuando el usuario quiere mover un POTRERO completo de un módulo de pastoreo a otro.
+Palabras clave: "mover potrero", "pasar potrero", "cambiar potrero", "potrero a módulo", "lote a módulo"
+Debe extraer:
+- nombrePotrero: nombre del potrero a mover (limpiar prefijos como "potrero", "lote", "el")
+- moduloDestino: nombre del módulo destino (puede ser letras+números o cualquier nombre: "D3", "v1", "Módulo Norte", etc.)
+
+IMPORTANTE para MOVER_POTRERO_MODULO:
+- NO confundir con CAMBIO_POTRERO (que mueve ANIMALES entre potreros)
+- MOVER_POTRERO_MODULO mueve el POTRERO entre módulos de pastoreo rotativo
+- Ejemplo: "mover potrero bajo a módulo D3" → mueve el potrero "bajo" al módulo "D3"
+- Ejemplo: "pasar lote norte al v1" → mueve el potrero "norte" al módulo "v1"
+
 RESPONDE SIEMPRE EN JSON con esta estructura:
 {
-  "tipo": "LLUVIA" | "NACIMIENTO" | "MORTANDAD" | "GASTO" | "TRATAMIENTO" | "SIEMBRA" | "CAMBIO_POTRERO" | "CALENDARIO_CREAR" | "CALENDARIO_CONSULTAR" | null,
+  "tipo": "LLUVIA" | "NACIMIENTO" | "MORTANDAD" | "GASTO" | "TRATAMIENTO" | "SIEMBRA" | "CAMBIO_POTRERO" | "MOVER_POTRERO_MODULO" | "CALENDARIO_CREAR" | "CALENDARIO_CONSULTAR" | null,
   "cantidad": número o null,
   "categoria": string o null,
   "lote": string o null (nombre del potrero - para eventos que NO son cambio de potrero),
@@ -92,6 +106,8 @@ RESPONDE SIEMPRE EN JSON con esta estructura:
   "diasPlazo": número o null,
   "pagado": boolean (solo para GASTOS),
   "proveedor": string o null,
+  "nombrePotrero": string o null (nombre del potrero a mover - SOLO para MOVER_POTRERO_MODULO),
+  "moduloDestino": string o null (nombre del módulo destino - SOLO para MOVER_POTRERO_MODULO),
   "titulo": string o null (para CALENDARIO_CREAR - la actividad a realizar),
   "fechaRelativa": string o null (para CALENDARIO_CREAR - descripción de cuándo),
   "diasDesdeHoy": número o null (para CALENDARIO_CREAR - días calculados desde hoy)
@@ -129,6 +145,15 @@ Respuesta: {"tipo":"CAMBIO_POTRERO","cantidad":15,"categoria":"vaquillonas","lot
 
 Usuario: "saqué todas las vacas del norte y las mandé al sur"
 Respuesta: {"tipo":"CAMBIO_POTRERO","cantidad":null,"categoria":"vacas","loteOrigen":"norte","loteDestino":"sur","descripcion":"Cambio de vacas de norte a sur"}
+
+Usuario: "mover potrero bajo a módulo D3"
+Respuesta: {"tipo":"MOVER_POTRERO_MODULO","nombrePotrero":"bajo","moduloDestino":"D3","descripcion":"Mover potrero bajo a módulo D3"}
+
+Usuario: "pasar el potrero norte al módulo v1"
+Respuesta: {"tipo":"MOVER_POTRERO_MODULO","nombrePotrero":"norte","moduloDestino":"v1","descripcion":"Mover potrero norte a módulo v1"}
+
+Usuario: "cambiar lote sur de módulo, ponerlo en D2"
+Respuesta: {"tipo":"MOVER_POTRERO_MODULO","nombrePotrero":"sur","moduloDestino":"D2","descripcion":"Mover potrero sur a módulo D2"}
 
 Usuario: "Vacuné 10 vacas con ivermectina en lote sur"
 Respuesta: {"tipo":"TRATAMIENTO","cantidad":10,"categoria":"vacas","producto":"ivermectina","lote":"sur","descripcion":"Vacunación de 10 vacas con ivermectina en lote sur"}

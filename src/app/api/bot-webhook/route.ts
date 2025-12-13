@@ -22,6 +22,7 @@ import {
   handleCalendarioCrear,
   handleCalendarioConsultar,
   handleCalendarioButtonResponse,
+  handleMoverPotreroModulo,
 } from "@/lib/whatsapp"
 
 const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || "mi_token_secreto"
@@ -191,6 +192,8 @@ export async function POST(request: Request) {
         await solicitarConfirmacionConFlow(from, parsedData)
       } else if (parsedData.tipo === "CAMBIO_POTRERO") {
         await handleCambioPotrero(from, parsedData)
+      } else if (parsedData.tipo === "MOVER_POTRERO_MODULO") {
+        await handleMoverPotreroModulo(from, parsedData)
       } else {
         await solicitarConfirmacion(from, parsedData)
       }
