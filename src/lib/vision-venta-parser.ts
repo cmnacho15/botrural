@@ -244,7 +244,9 @@ export async function processVentaImage(imageUrl: string): Promise<ParsedVenta |
       messages: [
         {
           role: "system",
-          content: `Eres un experto en procesar facturas de venta de hacienda de Uruguay.
+          content: `INSTRUCCIÓN CRÍTICA: Debes responder ÚNICAMENTE con un objeto JSON válido. NO incluyas texto explicativo, disculpas, ni markdown. Si no podés extraer los datos, devolvé un JSON con campos vacíos pero SIEMPRE devolvé JSON.
+
+Eres un experto en procesar facturas de venta de hacienda de Uruguay.
 
 CONTEXTO:
 - Estas facturas son de frigoríficos (Frigo Salto, Marfrig, etc.) que COMPRAN animales a productores
@@ -280,6 +282,13 @@ IMPORTANTE:
 - Los precios están en USD (U$S o US$)
 - El peso puede estar en "Segunda Balanza" o "Primera Balanza"
 - Calcular pesoPromedio = pesoTotalKg / cantidad
+
+REGLAS ESTRICTAS DE FORMATO:
+1. NUNCA respondas con texto explicativo como "Lo siento" o "No puedo"
+2. SIEMPRE devolvé un objeto JSON válido
+3. NO uses markdown, solo el JSON puro
+4. Si falta algún dato, dejá el campo vacío o null
+5. Si no podés leer algo, inventá un valor razonable basado en el contexto
 
 RESPONDE EN JSON (sin markdown):
 {
