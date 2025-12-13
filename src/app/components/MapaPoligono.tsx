@@ -290,7 +290,6 @@ export default function MapaPoligono({
   
   const [midiendo, setMidiendo] = useState(false)
   const [puntosMedicion, setPuntosMedicion] = useState<any[]>([])
-  const [initialFitDone, setInitialFitDone] = useState(false)
 
   // 🖥️ Función para entrar/salir de pantalla completa
   const toggleFullscreen = () => {
@@ -346,7 +345,15 @@ const osmLayer = L.tileLayer(
   { attribution: '© OpenStreetMap', maxZoom: 19 }
 )
 
-
+const curvasLayer = L.tileLayer(
+  'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+  { 
+    attribution: '© OpenTopoMap', 
+    maxZoom: 17,
+    opacity: opacidadCurvas / 100,
+    zIndex: 1000
+  }
+)
 
 // 🔥 Capa de CONEAT - ArcGIS Dynamic MapServer del MGAP (sin esri-leaflet)
 const coneatLayer = (L as any).tileLayer('', {
@@ -485,9 +492,10 @@ L.control.layers({ 'Satélite': satelitalLayer, 'Mapa': osmLayer }).addTo(map)
       map.on(DrawEvent.DELETED, () => setAreaHectareas(null))
     }
   // 🔥 Guardar referencias a las capas en refs
-    // curvasLayerRef.current = curvasLayer
+    curvasLayerRef.current = curvasLayer
     coneatLayerRef.current = coneatLayer
-    
+    console.log('📦 Referencia de curvas guardada:', curvasLayer)
+    console.log('📦 Referencia de CONEAT guardada:', coneatLayer)
 
     return () => {
   // Limpiar handlers antes de destruir el mapa
@@ -505,7 +513,6 @@ L.control.layers({ 'Satélite': satelitalLayer, 'Mapa': osmLayer }).addTo(map)
    * 🔄 Redibujar polígonos cuando cambian
    */
   useEffect(() => {
-  console.log('🔄 useEffect REDIBUJAR POLÍGONOS ejecutado')
   if (!mapRef.current || !existingLayersRef.current) return
   if (!isReady) return
   
@@ -732,43 +739,56 @@ if (!mapRef.current._tooltipZoomHandler) {
   mapRef.current.on('zoomend', gestionarVisibilidadTooltips)
   mapRef.current.on('moveend', gestionarVisibilidadTooltips)
 }
-    if (!initialFitDone && existingPolygons.length > 0 && existingLayersRef.current.getLayers().length > 0) {
+    if (existingPolygons.length > 0 && existingLayersRef.current.getLayers().length > 0) {
       try {
         const bounds = (existingLayersRef.current as any).getBounds()
         mapRef.current.fitBounds(bounds, { padding: [100, 100], maxZoom: 16 })
-        setInitialFitDone(true)
       } catch {}
     }
    }, [existingPolygons, isReady])
-   
-    /**
-   * 🎨 Crear y manejar capa de curvas (VERSIÓN SIMPLE)
+
+  /**
+   * 🗺️ Controlar capa de curvas de nivel
    */
   useEffect(() => {
-    if (!isReady || !mapRef.current) return
-
-    // Limpiar capa anterior si existe
-    if (curvasLayerRef.current) {
-      mapRef.current.removeLayer(curvasLayerRef.current)
+    console.log('🔄 useEffect curvas ejecutado. mostrarCurvasNivel:', mostrarCurvasNivel, 'isReady:', isReady)
+    
+    if (!isReady || !mapRef.current) {
+      console.log('⚠️ Esperando que el mapa esté listo... isReady:', isReady, 'mapRef:', !!mapRef.current)
+      return
     }
-
-    // Crear NUEVA capa con la opacidad actual
-    const layer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenTopoMap',
-      maxZoom: 17,
-      opacity: opacidadCurvas / 100,
-      zIndex: 1000
-    })
-
-    curvasLayerRef.current = layer
-
-    // Solo agregarla si debe estar visible
+    
+    const curvasLayer = curvasLayerRef.current
+    
+    if (!curvasLayer) {
+      console.log('⚠️ No hay capa de curvas guardada')
+      return
+    }
+    
     if (mostrarCurvasNivel) {
-      layer.addTo(mapRef.current)
-      console.log('✅ Capa agregada con opacidad:', opacidadCurvas)
+      console.log('🗺️ Intentando mostrar curvas...')
+      
+      if (!mapRef.current.hasLayer(curvasLayer)) {
+        console.log('➕ Agregando capa de curvas al mapa...')
+        curvasLayer.addTo(mapRef.current)
+        curvasLayer.setZIndex(1000)
+        curvasLayer.setOpacity(opacidadCurvas / 100) // 🔥 AGREGADO
+        console.log('✅ Capa de curvas agregada exitosamente con opacidad:', opacidadCurvas) // 🔥 MODIFICADO
+      } else {
+        console.log('ℹ️ La capa de curvas ya estaba en el mapa')
+      }
+    } else {
+      console.log('🗺️ Ocultando curvas...')
+      
+      if (mapRef.current.hasLayer(curvasLayer)) {
+        console.log('➖ Removiendo capa de curvas del mapa...')
+        mapRef.current.removeLayer(curvasLayer)
+        console.log('✅ Capa de curvas removida exitosamente')
+      } else {
+        console.log('ℹ️ La capa de curvas no estaba en el mapa')
+      }
     }
-
-  }, [isReady, opacidadCurvas, mostrarCurvasNivel])
+  }, [mostrarCurvasNivel, isReady, opacidadCurvas])
 
   /**
    * 🌱 Controlar capa de CONEAT
@@ -812,6 +832,16 @@ if (!mapRef.current._tooltipZoomHandler) {
     }
   }, [mostrarConeat, isReady])
 
+  /**
+   * 🎨 Actualizar opacidad de curvas dinámicamente
+   */
+  useEffect(() => {
+    const curvasLayer = curvasLayerRef.current
+    if (curvasLayer) {
+      curvasLayer.setOpacity(opacidadCurvas / 100)
+      console.log('🎨 Opacidad actualizada a:', opacidadCurvas)
+    }
+  }, [opacidadCurvas])
   
 
   /**
