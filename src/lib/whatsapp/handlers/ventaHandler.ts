@@ -155,29 +155,37 @@ if (ventaData.rutEmisor) {
   }
 }
 
-    const venta = await prisma.venta.create({
-      data: {
-        campoId,
-        firmaId,
-        fecha: new Date(ventaData.fecha),
-        comprador: ventaData.comprador,
-        consignatario: ventaData.consignatario || null,
-        nroTropa: ventaData.nroTropa || null,
-        nroFactura: ventaData.nroFactura || null,
-        metodoPago: ventaData.metodoPago || "Contado",
-        diasPlazo: ventaData.diasPlazo || null,
-        pagado: ventaData.metodoPago === "Contado",
-        moneda: "USD",
-        tasaCambio: ventaData.tipoCambio || null,
-        subtotalUSD: ventaData.subtotalUSD,
-        totalImpuestosUSD: ventaData.totalImpuestosUSD || 0,
-        totalNetoUSD: ventaData.totalNetoUSD,
-        imageUrl,
-        imageName,
-        impuestos: ventaData.impuestos || null,
-        notas: "Venta desde WhatsApp",
-      },
-    })
+    let venta
+try {
+  venta = await prisma.venta.create({
+    data: {
+      campoId,
+      firmaId,
+      fecha: new Date(ventaData.fecha),
+      comprador: ventaData.comprador,
+      consignatario: ventaData.consignatario || null,
+      nroTropa: ventaData.nroTropa || null,
+      nroFactura: ventaData.nroFactura || null,
+      metodoPago: ventaData.metodoPago || "Contado",
+      diasPlazo: ventaData.diasPlazo || null,
+      pagado: ventaData.metodoPago === "Contado",
+      moneda: "USD",
+      tasaCambio: ventaData.tipoCambio || null,
+      subtotalUSD: ventaData.subtotalUSD,
+      totalImpuestosUSD: ventaData.totalImpuestosUSD || 0,
+      totalNetoUSD: ventaData.totalNetoUSD,
+      imageUrl,
+      imageName,
+      impuestos: ventaData.impuestos || null,
+      notas: "Venta desde WhatsApp",
+    },
+  })
+  console.log("✅ VENTA CREADA EN BD - ID:", venta.id)
+} catch (error: any) {
+  console.error("❌ ERROR AL CREAR VENTA:", error.message)
+  console.error("❌ Error completo:", error)
+  throw error
+}
 
     // Crear renglones
     const renglonesCreados: Array<{ id: string; categoria: string; cantidad: number }> = []
