@@ -290,6 +290,7 @@ export default function MapaPoligono({
   
   const [midiendo, setMidiendo] = useState(false)
   const [puntosMedicion, setPuntosMedicion] = useState<any[]>([])
+  const [initialFitDone, setInitialFitDone] = useState(false)
 
   // 🖥️ Función para entrar/salir de pantalla completa
   const toggleFullscreen = () => {
@@ -739,10 +740,11 @@ if (!mapRef.current._tooltipZoomHandler) {
   mapRef.current.on('zoomend', gestionarVisibilidadTooltips)
   mapRef.current.on('moveend', gestionarVisibilidadTooltips)
 }
-    if (existingPolygons.length > 0 && existingLayersRef.current.getLayers().length > 0) {
+    if (!initialFitDone && existingPolygons.length > 0 && existingLayersRef.current.getLayers().length > 0) {
       try {
         const bounds = (existingLayersRef.current as any).getBounds()
         mapRef.current.fitBounds(bounds, { padding: [100, 100], maxZoom: 16 })
+        setInitialFitDone(true)
       } catch {}
     }
    }, [existingPolygons, isReady])
@@ -788,7 +790,7 @@ if (!mapRef.current._tooltipZoomHandler) {
         console.log('ℹ️ La capa de curvas no estaba en el mapa')
       }
     }
-  }, [mostrarCurvasNivel, isReady])
+  }, [mostrarCurvasNivel, isReady, opacidadCurvas])
 
   /**
    * 🌱 Controlar capa de CONEAT
