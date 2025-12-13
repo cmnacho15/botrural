@@ -280,44 +280,51 @@ export default function TablaVentas({ ventas, onRefresh }: TablaVentasProps) {
       )}
 
       {/* MODAL CONFIRMAR ELIMINACIÓN */}
-      {ventaAEliminar && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <span className="text-3xl">⚠️</span>
-              <h3 className="text-lg font-bold text-gray-900">¿Eliminar esta venta?</h3>
-            </div>
-            
-            <div className="mb-6 text-sm text-gray-700 space-y-2">
-              <p className="font-medium">Esto revertirá:</p>
-              <ul className="list-disc list-inside space-y-1 text-gray-600">
-                <li>Stock devuelto a potreros</li>
-                <li>Factura eliminada</li>
-              </ul>
-              <p className="text-red-600 font-medium mt-3">
-                Esta acción NO se puede deshacer.
-              </p>
-            </div>
+      {ventaAEliminar && (() => {
+        // Buscar la venta completa
+        const ventaCompleta = ventas.find(v => v.id === ventaAEliminar)
+        const tieneStockDescontado = ventaCompleta?.renglones.some(r => r.descontadoDeStock) || false
 
-            <div className="flex gap-3">
-              <button
-                onClick={() => setVentaAEliminar(null)}
-                disabled={eliminando}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700 font-medium disabled:opacity-50"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={() => handleEliminarVenta(ventaAEliminar)}
-                disabled={eliminando}
-                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium disabled:opacity-50"
-              >
-                {eliminando ? 'Eliminando...' : 'Sí, eliminar'}
-              </button>
+        return (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <span className="text-3xl">⚠️</span>
+                <h3 className="text-lg font-bold text-gray-900">¿Eliminar esta venta?</h3>
+              </div>
+              
+              <div className="mb-6 text-sm text-gray-700 space-y-2">
+                <p className="font-medium">Esto eliminará:</p>
+                <ul className="list-disc list-inside space-y-1 text-gray-600">
+                  {tieneStockDescontado && <li>Stock devuelto a potreros</li>}
+                  <li>Registro de venta</li>
+                  {ventaCompleta?.imageUrl && <li>Factura adjunta</li>}
+                </ul>
+                <p className="text-red-600 font-medium mt-3">
+                  Esta acción NO se puede deshacer.
+                </p>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setVentaAEliminar(null)}
+                  disabled={eliminando}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700 font-medium disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={() => handleEliminarVenta(ventaAEliminar)}
+                  disabled={eliminando}
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium disabled:opacity-50"
+                >
+                  {eliminando ? 'Eliminando...' : 'Sí, eliminar'}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      })()}
     </>
   )
 }
