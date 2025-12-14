@@ -14,7 +14,9 @@ export async function solicitarConfirmacion(phone: string, data: any) {
 
   switch (data.tipo) {
     case "LLUVIA":
-      mensaje += `*Lluvia*\n• Cantidad: ${data.cantidad}mm`
+      // 🔥 FIX: GPT retorna "milimetros", no "cantidad"
+      const mm = data.milimetros || data.cantidad || 0
+      mensaje += `*Lluvia*\n• Cantidad: ${mm}mm`
       break
     case "NACIMIENTO":
       mensaje += `*Nacimiento*\n• Cantidad: ${data.cantidad} ${data.categoria}`
@@ -251,12 +253,15 @@ async function handleDataEntry(data: any) {
 
     return
   } else if (data.tipo === "LLUVIA") {
+    // 🔥 FIX: usar milimetros (no cantidad)
+    const milimetros = data.milimetros || data.cantidad || 0
+    
     await prisma.evento.create({
       data: {
         tipo: "LLUVIA",
-        descripcion: data.descripcion,
+        descripcion: `Lluvia de ${milimetros}mm`,
         fecha: new Date(),
-        cantidad: data.cantidad,
+        cantidad: milimetros,  // Guardamos en cantidad para compatibilidad
         usuarioId: user.id,
         campoId: user.campoId,
       },
