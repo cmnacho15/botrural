@@ -55,10 +55,16 @@ export async function solicitarConfirmacion(phone: string, data: any) {
       break
   }
 
+  // 🔥 FIX: Agregar teléfono al objeto data para que esté disponible al confirmar
+  const dataWithPhone = {
+    ...data,
+    telefono: phone
+  }
+
   await prisma.pendingConfirmation.create({
     data: {
       telefono: phone,
-      data: JSON.stringify(data),
+      data: JSON.stringify(dataWithPhone),
     },
   })
 
