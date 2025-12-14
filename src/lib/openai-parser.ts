@@ -1,3 +1,4 @@
+
 // src/lib/openai-parser.ts
 import OpenAI from "openai"
 import { prisma } from "@/lib/prisma"
@@ -203,6 +204,8 @@ RESPONDE ÚNICAMENTE CON EL JSON, SIN TEXTO ADICIONAL.
  */
 export async function transcribeAudio(audioUrl: string): Promise<string | null> {
   try {
+    console.log("🎤 Descargando audio desde WhatsApp...")
+    
     // Descargar el audio
     const audioResponse = await fetch(audioUrl, {
       headers: {
@@ -211,27 +214,30 @@ export async function transcribeAudio(audioUrl: string): Promise<string | null> 
     })
 
     if (!audioResponse.ok) {
-      console.error("Error descargando audio")
+      console.error("❌ Error descargando audio:", audioResponse.status)
       return null
     }
 
     const audioBuffer = await audioResponse.arrayBuffer()
-    const audioBlob = new Blob([audioBuffer], { type: "audio/ogg" })
+    console.log(`✅ Audio descargado: ${audioBuffer.byteLength} bytes`)
 
-    // Crear FormData para enviar a Whisper
-    const formData = new FormData()
-    formData.append("file", audioBlob, "audio.ogg")
-    formData.append("model", "whisper-1")
-    formData.append("language", "es")
+    // Convertir ArrayBuffer a File object (lo que espera OpenAI SDK)
+    const audioFile = new File([audioBuffer], "audio.ogg", { 
+      type: "audio/ogg; codecs=opus" 
+    })
+
+    console.log("🤖 Enviando a Whisper para transcripción...")
 
     // Transcribir con Whisper
     const transcriptionResponse = await openai.audio.transcriptions.create({
-      file: audioBlob as any,
+      file: audioFile,
       model: "whisper-1",
       language: "es",
+      response_format: "text"
     })
 
-    return transcriptionResponse.text
+    console.log("✅ Transcripción exitosa:", transcriptionResponse)
+    return transcriptionResponse
   } catch (error) {
     console.error("❌ Error en transcribeAudio:", error)
     return null
