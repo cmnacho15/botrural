@@ -167,29 +167,49 @@ export async function POST(request: Request) {
 // 6. FASE 3: Procesar con GPT (texto/audio)
 // ==========================================
 
-// 🔥 OBTENER POTREROS DEL USUARIO (una sola vez)
-const usuario = await prisma.user.findUnique({
-  where: { telefono: from },
-  select: { campoId: true }
-})
+// 🔥 PASO 1: Análisis rápido sin contexto para determinar tipo de evento
+const quickAnalysis = await parseMessageWithAI(messageText, [], [])
 
-let potreros: Array<{ id: string; nombre: string }> = []
-let categorias: Array<{ nombreSingular: string; nombrePlural: string }> = []
+// 🔥 PASO 2: Solo consultar DB si el evento necesita contexto de potreros/categorías
+let parsedData = quickAnalysis
 
-if (usuario?.campoId) {
-  potreros = await prisma.lote.findMany({
-    where: { campoId: usuario.campoId },
-    select: { id: true, nombre: true },
-    orderBy: { nombre: 'asc' }
+// Eventos que NECESITAN contexto de potreros y categorías:
+const needsContext = [
+  "CAMBIO_POTRERO", 
+  "NACIMIENTO", 
+  "MUERTE", 
+  "VENTA",
+  "MOVER_POTRERO_MODULO"
+]
+
+if (parsedData && needsContext.includes(parsedData.tipo)) {
+  console.log(`🔍 Evento ${parsedData.tipo} requiere contexto - consultando potreros y categorías...`)
+  
+  const usuario = await prisma.user.findUnique({
+    where: { telefono: from },
+    select: { campoId: true }
   })
 
-  categorias = await prisma.categoriaAnimal.findMany({
-    where: { campoId: usuario.campoId, activo: true },
-    select: { nombreSingular: true, nombrePlural: true }
-  })
+  if (usuario?.campoId) {
+    const potreros = await prisma.lote.findMany({
+      where: { campoId: usuario.campoId },
+      select: { id: true, nombre: true },
+      orderBy: { nombre: 'asc' }
+    })
+
+    const categorias = await prisma.categoriaAnimal.findMany({
+      where: { campoId: usuario.campoId, activo: true },
+      select: { nombreSingular: true, nombrePlural: true }
+    })
+
+    console.log(`📋 Contexto cargado: ${potreros.length} potreros, ${categorias.length} categorías`)
+
+    // 🔥 PASO 3: Reparsear con contexto completo
+    parsedData = await parseMessageWithAI(messageText, potreros, categorias)
+  }
+} else {
+  console.log(`⚡ Evento ${parsedData?.tipo} no requiere contexto - ahorrando consultas a DB`)
 }
-
-const parsedData = await parseMessageWithAI(messageText, potreros, categorias)
 
     if (parsedData) {
       // ========================================
