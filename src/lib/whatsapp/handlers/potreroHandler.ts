@@ -10,6 +10,9 @@ import { sendWhatsAppMessage } from "../services/messageService"
 import { sendWhatsAppMessageWithButtons } from "../services/messageService"
 
 export async function handleCambioPotrero(phoneNumber: string, data: any) {
+  console.log("🔥 VERSION: 2024-12-14-19:00 FIX FINAL")
+  console.log("📞 User:", phoneNumber)
+  console.log("📦 Data:", data)
   try {
     const user = await prisma.user.findUnique({
       where: { telefono: phoneNumber },
