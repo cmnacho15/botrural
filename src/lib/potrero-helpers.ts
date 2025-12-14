@@ -132,8 +132,9 @@ function normalizarNombrePotrero(nombre: string): string {
  */
 
 /**
- * 🔍 Buscar potrero en una lista (sin consultar BD)
- * Usado cuando ya tenemos la lista de potreros en memoria
+ * 🔍 Buscar potrero en una lista (sin consultar BD) - VERSIÓN MEJORADA
+ * Prioriza SIEMPRE el match exacto normalizado.
+ * Solo usa matches parciales o alfanuméricos si no hay exacto.
  */
 export function buscarPotreroEnLista(
   nombreBuscado: string,
@@ -143,37 +144,49 @@ export function buscarPotreroEnLista(
 
   const nombreNormalizado = normalizarNombrePotrero(nombreBuscado)
 
-  // 1. Buscar coincidencia exacta normalizada
+  let mejorMatch: { id: string; nombre: string; score: number } | null = null
+
   for (const potrero of potreros) {
     const nombrePotreroNorm = normalizarNombrePotrero(potrero.nombre)
+
+    // Score 100: coincidencia exacta → retornamos INMEDIATAMENTE
     if (nombrePotreroNorm === nombreNormalizado) {
-      return potrero
+      return potrero // ¡Prioridad absoluta!
     }
-  }
 
-  // 2. Buscar coincidencia parcial
-  for (const potrero of potreros) {
-    const nombrePotreroNorm = normalizarNombrePotrero(potrero.nombre)
-    
-    if (nombrePotreroNorm.includes(nombreNormalizado) || 
-        nombreNormalizado.includes(nombrePotreroNorm)) {
-      return potrero
+    // Score 50: el buscado está completamente contenido en el potrero
+    if (nombrePotreroNorm.includes(nombreNormalizado)) {
+      const score = 50
+      if (!mejorMatch || score > mejorMatch.score) {
+        mejorMatch = { ...potrero, score }
+      }
     }
-  }
 
-  // 3. Buscar por patrón alfanumérico
-  const patronAlfanumerico = extraerPatronAlfanumerico(nombreNormalizado)
-  if (patronAlfanumerico) {
-    for (const potrero of potreros) {
-      const patronPotrero = extraerPatronAlfanumerico(
-        normalizarNombrePotrero(potrero.nombre)
-      )
-      if (patronPotrero && patronAlfanumerico === patronPotrero) {
-        return potrero
+    // Score 30: el potrero está completamente contenido en el buscado
+    if (nombreNormalizado.includes(nombrePotreroNorm)) {
+      const score = 30
+      if (!mejorMatch || score > mejorMatch.score) {
+        mejorMatch = { ...potrero, score }
+      }
+    }
+
+    // Score 20: match alfanumérico (B2, T1, etc.)
+    const patronBuscado = extraerPatronAlfanumerico(nombreNormalizado)
+    const patronPotrero = extraerPatronAlfanumerico(nombrePotreroNorm)
+    if (patronBuscado && patronPotrero && patronBuscado === patronPotrero) {
+      if (!mejorMatch || 20 > mejorMatch.score) {
+        mejorMatch = { ...potrero, score: 20 }
       }
     }
   }
 
+  // Si no hubo match exacto, devolvemos el mejor parcial encontrado
+  if (mejorMatch) {
+    console.log(`✅ Match aproximado: "${nombreBuscado}" → "${mejorMatch.nombre}"`)
+    return { id: mejorMatch.id, nombre: mejorMatch.nombre }
+  }
+
+  console.log(`❌ No se encontró potrero para: "${nombreBuscado}" (normalizado: "${nombreNormalizado}")`)
   return null
 }
 /**
