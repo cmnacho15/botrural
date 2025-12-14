@@ -1,13 +1,14 @@
-  //src/lib/potrero-helpers.ts
+//src/lib/potrero-helpers.ts
 import { prisma } from "@/lib/prisma"
 
 /**
- * 🔍 Buscar potrero por nombre con match flexible
+ * 🔍 Buscar potrero por nombre con match flexible MEJORADO
  * 
  * Maneja variaciones como:
  * - Mayúsculas/minúsculas: "Norte" = "norte" = "NORTE"
  * - Con/sin prefijos: "potrero norte" = "norte"
  * - Números: "lote 1" = "1" = "Lote 1"
+ * - Alfanuméricos: "B2" = "B 2" = "be dos" = "b-2"
  * - Espacios extra
  */
 export async function buscarPotreroPorNombre(
@@ -25,58 +26,104 @@ export async function buscarPotreroPorNombre(
     select: { id: true, nombre: true },
   })
 
-  // Buscar coincidencia exacta normalizada
+  console.log(`🔍 Buscando potrero: "${nombreBuscado}" → normalizado: "${nombreNormalizado}"`)
+  console.log(`📋 Potreros disponibles:`, potreros.map(p => `"${p.nombre}" → "${normalizarNombrePotrero(p.nombre)}"`))
+
+  // 1. Buscar coincidencia exacta normalizada
   for (const potrero of potreros) {
     const nombrePotreroNorm = normalizarNombrePotrero(potrero.nombre)
     
     if (nombrePotreroNorm === nombreNormalizado) {
+      console.log(`✅ Match exacto: "${nombreBuscado}" → "${potrero.nombre}"`)
       return potrero
     }
   }
 
-  // Buscar coincidencia parcial (el nombre buscado está contenido o contiene)
+  // 2. Buscar coincidencia parcial (el nombre buscado está contenido o contiene)
   for (const potrero of potreros) {
     const nombrePotreroNorm = normalizarNombrePotrero(potrero.nombre)
     
     // Si el nombre del potrero contiene lo buscado
     if (nombrePotreroNorm.includes(nombreNormalizado)) {
+      console.log(`✅ Match parcial (contiene): "${nombreBuscado}" → "${potrero.nombre}"`)
       return potrero
     }
     
     // Si lo buscado contiene el nombre del potrero
     if (nombreNormalizado.includes(nombrePotreroNorm)) {
+      console.log(`✅ Match parcial (contenido): "${nombreBuscado}" → "${potrero.nombre}"`)
       return potrero
     }
   }
 
-  // Buscar por número si es numérico
-  if (/^\d+$/.test(nombreNormalizado)) {
+  // 3. Buscar por patrón alfanumérico (B2, T1, etc.)
+  const patronAlfanumerico = extraerPatronAlfanumerico(nombreNormalizado)
+  if (patronAlfanumerico) {
     for (const potrero of potreros) {
-      // Extraer números del nombre del potrero
-      const numeros = potrero.nombre.match(/\d+/)
-      if (numeros && numeros[0] === nombreNormalizado) {
+      const patronPotrero = extraerPatronAlfanumerico(normalizarNombrePotrero(potrero.nombre))
+      if (patronPotrero && patronAlfanumerico === patronPotrero) {
+        console.log(`✅ Match alfanumérico: "${nombreBuscado}" → "${potrero.nombre}"`)
         return potrero
       }
     }
   }
 
+  // 4. Buscar por número si es numérico
+  if (/^\d+$/.test(nombreNormalizado)) {
+    for (const potrero of potreros) {
+      // Extraer números del nombre del potrero
+      const numeros = potrero.nombre.match(/\d+/)
+      if (numeros && numeros[0] === nombreNormalizado) {
+        console.log(`✅ Match numérico: "${nombreBuscado}" → "${potrero.nombre}"`)
+        return potrero
+      }
+    }
+  }
+
+  console.log(`❌ No se encontró potrero para: "${nombreBuscado}"`)
   return null
 }
 
 /**
  * Normalizar nombre de potrero para comparación
+ * MEJORADO: maneja nombres alfanuméricos cortos como B2, T1
  */
 function normalizarNombrePotrero(nombre: string): string {
-  return nombre
+  let normalizado = nombre
     .toLowerCase()
     .trim()
-    // Remover prefijos comunes
-    .replace(/^(potrero|lote|campo|paddock)\s*/i, '')
-    // Remover artículos
-    .replace(/^(el|la|los|las|del|de la)\s*/i, '')
-    // Normalizar espacios múltiples
+    // Normalizar espacios múltiples primero
     .replace(/\s+/g, ' ')
-    .trim()
+    // Remover guiones y underscores entre caracteres alfanuméricos (B-2 → b2)
+    .replace(/([a-z0-9])\s*[-_]\s*([a-z0-9])/gi, '$1$2')
+    // Remover espacios entre letra y número (B 2 → b2)
+    .replace(/([a-z])\s+(\d)/gi, '$1$2')
+    .replace(/(\d)\s+([a-z])/gi, '$1$2')
+
+  // Solo remover prefijos si NO es un nombre muy corto (≤3 caracteres)
+  // Esto evita que "B2" se convierta en "2" por error
+  if (normalizado.length > 3) {
+    normalizado = normalizado
+      // Remover prefijos comunes
+      .replace(/^(potrero|lote|campo|paddock)\s+/i, '')
+      // Remover artículos
+      .replace(/^(el|la|los|las|del|de la)\s+/i, '')
+  }
+
+  return normalizado.trim()
+}
+
+/**
+ * 🔤 Extraer patrón alfanumérico (B2 → b2, T1 → t1)
+ * Usado para matchear nombres como "B2", "T1", "A3", etc.
+ */
+function extraerPatronAlfanumerico(nombre: string): string | null {
+  // Buscar patrón: 1-2 letras + 1-3 números (B2, T1, AB12, etc.)
+  const match = nombre.match(/^([a-z]{1,2})(\d{1,3})$/i)
+  if (match) {
+    return (match[1] + match[2]).toLowerCase()
+  }
+  return null
 }
 
 /**

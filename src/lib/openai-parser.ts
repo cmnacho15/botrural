@@ -1,270 +1,295 @@
-import OpenAI from 'openai'
+// src/lib/openai-parser.ts
+import OpenAI from "openai"
+import { prisma } from "@/lib/prisma"
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
+  apiKey: process.env.OPENAI_API_KEY,
 })
 
-/**
- * 🤖 Parsear mensaje usando GPT-4o-mini con detección inteligente de categorías
- */
-export async function parseMessageWithAI(message: string, telefono: string) {
+export async function parseMessageWithAI(messageText: string, telefono: string) {
   try {
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+    // 🔥 Obtener el campo del usuario
+    const usuario = await prisma.user.findUnique({
+      where: { telefono: telefono },
+      select: { 
+        campoId: true,
+      },
+    })
+
+    if (!usuario?.campoId) {
+      console.log("⚠️ Usuario sin campo asignado")
+      return null
+    }
+
+    // 🔥 Obtener TODOS los potreros del campo
+    const potreros = await prisma.lote.findMany({
+      where: { campoId: usuario.campoId },
+      select: { id: true, nombre: true },
+      orderBy: { nombre: 'asc' },
+    })
+
+    const nombresPotreros = potreros.map(p => p.nombre).join(", ")
+
+    console.log(`📋 Potreros del campo: ${nombresPotreros}`)
+
+    // 🔥 Obtener categorías de animales del campo
+    const categorias = await prisma.categoriaAnimal.findMany({
+      where: { 
+        campoId: usuario.campoId,
+        activo: true,
+      },
+      select: { nombreSingular: true, nombrePlural: true },
+    })
+
+    const nombresCategorias = categorias
+      .flatMap(c => [c.nombreSingular, c.nombrePlural])
+      .filter((v, i, a) => a.indexOf(v) === i) // unique
+      .join(", ")
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
       messages: [
         {
           role: "system",
-          content: `Sos un asistente de campo agrícola en Uruguay. Tu tarea es extraer datos estructurados de mensajes sobre ganadería y agricultura.
+          content: `
+Eres un asistente que procesa mensajes de texto de un productor agropecuario.
 
-ZONA HORARIA: America/Montevideo (Uruguay, UTC-3)
-FECHA ACTUAL: ${new Date().toLocaleDateString('es-UY', { timeZone: 'America/Montevideo', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+🏞️ CONTEXTO IMPORTANTE - POTREROS DISPONIBLES EN ESTE CAMPO:
+${nombresPotreros || "No hay potreros creados aún"}
 
-TIPOS DE EVENTOS VÁLIDOS:
-- LLUVIA: registros de precipitaciones
-- NACIMIENTO: nacimientos de animales
-- MORTANDAD: muertes de animales
-- GASTO: gastos realizados (contado o a plazo)
-- TRATAMIENTO: aplicación de medicamentos/vacunas
-- SIEMBRA: siembra de cultivos
-- CAMBIO_POTRERO: mover animales de un potrero/lote a otro
-- MOVER_POTRERO_MODULO: mover un potrero de un módulo de pastoreo a otro
-- CALENDARIO_CREAR: agendar una actividad/recordatorio futuro
-- CALENDARIO_CONSULTAR: preguntar por actividades pendientes
+🐄 CATEGORÍAS DE ANIMALES DISPONIBLES:
+${nombresCategorias || "No hay categorías definidas"}
 
-📅 CALENDARIO - CREAR ACTIVIDAD:
-Detectar cuando el usuario quiere AGENDAR algo para el futuro.
-Palabras clave: "acordame", "recordame", "en X días", "el martes", "la semana que viene", "el día 20", "tengo que", "hay que", "no olvidar", "anotar", "agendar"
+IMPORTANTE PARA CAMBIOS DE POTRERO:
+- El usuario SOLO puede mover animales entre los potreros listados arriba
+- Debes normalizar los nombres al formato EXACTO que aparece en la lista
+- Si el usuario dice "B2", "be dos", "B 2", "potrero B2" → usa "B2" (el nombre exacto de la lista)
+- Si el usuario dice "T1", "te uno", "T 1" → usa "T1"
+- Si el usuario menciona un potrero que NO está en la lista, marca como error
 
-Debe extraer:
-- titulo: la actividad a realizar (ej: "sacar tablilla", "vacunar", "llamar veterinario")
-- fechaRelativa: descripción de cuándo (ej: "en 14 días", "el martes", "el 20 de enero")
-- diasDesdeHoy: número de días desde hoy (calculalo vos). Si dice "mañana" = 1, "pasado mañana" = 2, "en una semana" = 7, "el martes" = calcular días hasta el próximo martes, etc.
+EJEMPLOS DE NORMALIZACIÓN:
+Usuario dice: "moví vacas de be dos a te uno"
+- potreroOrigen: "B2" (nombre exacto de la lista)
+- potreroDestino: "T1" (nombre exacto de la lista)
 
-📅 CALENDARIO - CONSULTAR:
-Detectar cuando el usuario pregunta por sus actividades agendadas.
-Palabras clave: "calendario", "pendientes", "qué tengo", "qué hay agendado", "actividades", "recordatorios", "qué debo hacer"
+Usuario dice: "moví vacas del potrero B 2 al lote T 1"
+- potreroOrigen: "B2"
+- potreroDestino: "T1"
 
-CATEGORÍAS DE GASTOS (MUY IMPORTANTE):
-Cuando el tipo es "GASTO", SIEMPRE deduce la categoría correcta:
-- "Alimento": comida, alimento, balanceado, suplemento, ración, forraje, heno, silo, maíz para consumo, hamburguesas, comida para personal
-- "Veterinario": veterinario, vacuna, medicamento, droga, tratamiento veterinario, consulta veterinaria, ivermectina, antibiótico
-- "Combustible": nafta, gasoil, combustible, diesel, gas oil
-- "Insumos": semillas, fertilizante, agroquímico, herbicida, insecticida, abono
-- "Mantenimiento": arreglo, reparación, mantenimiento, repuesto, herramienta
-- "Salarios": sueldo, jornal, pago empleado, salario, honorario
-- "Servicios": luz, agua, internet, teléfono, servicio
-- "Otros": si no encaja en ninguna categoría anterior
+Usuario dice: "moví vacas de norte a sur"
+- Si en la lista hay "Norte" y "Sur" → usa esos nombres exactos
+- Si no existen → marca error
 
-CONDICIONES DE PAGO (PARA GASTOS):
-- Detectá si el gasto es "contado" o "a plazo"
-- Si menciona "a plazo", "en X días", "a X días", "financiado", "cuenta corriente", "crédito", extraé los días
-- Si dice "pagado", "ya pagué", "cancelado" → pagado: true
-- Si dice "debo", "pendiente", "por pagar", "no pagué" → pagado: false
-- Por defecto: contado y pagado
+TIPOS DE EVENTOS QUE DEBES DETECTAR:
 
-CAMBIO DE POTRERO (MUY IMPORTANTE):
-Detectar cuando el usuario quiere MOVER animales de un lugar a otro.
-Palabras clave: "moví", "mover", "pasé", "pasar", "cambié", "cambiar", "trasladé", "trasladar", "llevé", "llevar", "saqué", "sacar"
-Debe extraer:
-- cantidad: número de animales (puede ser null si no se especifica, se moverán todos)
-- categoria: tipo de animal (vacas, terneros, novillos, toros, ovejas, corderos, yeguas, potros, vaquillonas, etc.)
-- loteOrigen: nombre del potrero/lote de origen (limpiar prefijos como "potrero", "lote", "del", "de")
-- loteDestino: nombre del potrero/lote de destino (limpiar prefijos como "potrero", "lote", "al", "a")
+1. CAMBIO_POTRERO:
+   - "moví X animales del potrero A al B"
+   - "pasé 10 vacas de norte a sur"
+   Retorna:
+   {
+     "tipo": "CAMBIO_POTRERO",
+     "categoria": "vacas" (usa categoría de la lista disponible),
+     "cantidad": 10,
+     "potreroOrigen": "Norte" (nombre EXACTO de la lista),
+     "potreroDestino": "Sur" (nombre EXACTO de la lista)
+   }
 
-IMPORTANTE para nombres de potreros:
-- Extraer solo el nombre limpio, sin "potrero", "lote", "del", "al", etc.
-- Ejemplo: "del potrero norte" → "norte"
-- Ejemplo: "al lote 2" → "2"
-- Ejemplo: "de campo grande" → "campo grande"
+2. NACIMIENTO:
+   - "nacieron 3 terneros"
+   - "parió una vaca en el potrero norte"
+   Retorna:
+   {
+     "tipo": "NACIMIENTO",
+     "categoria": "terneros",
+     "cantidad": 3,
+     "potrero": "Norte" (nombre EXACTO si se menciona)
+   }
 
-MOVER_POTRERO_MODULO (MÓDULOS DE PASTOREO):
-Detectar cuando el usuario quiere mover un POTRERO completo de un módulo de pastoreo a otro.
-Palabras clave: "mover potrero", "pasar potrero", "cambiar potrero", "potrero a módulo", "lote a módulo"
-Debe extraer:
-- nombrePotrero: nombre del potrero a mover (limpiar prefijos como "potrero", "lote", "el")
-- moduloDestino: nombre del módulo destino (puede ser letras+números o cualquier nombre: "D3", "v1", "Módulo Norte", etc.)
+3. MUERTE:
+   - "murieron 2 vacas"
+   - "se murió un ternero en el lote sur"
+   Retorna:
+   {
+     "tipo": "MUERTE",
+     "categoria": "vacas",
+     "cantidad": 2,
+     "potrero": "Sur" (nombre EXACTO si se menciona)
+   }
 
-IMPORTANTE para MOVER_POTRERO_MODULO:
-- NO confundir con CAMBIO_POTRERO (que mueve ANIMALES entre potreros)
-- MOVER_POTRERO_MODULO mueve el POTRERO entre módulos de pastoreo rotativo
-- Ejemplo: "mover potrero bajo a módulo D3" → mueve el potrero "bajo" al módulo "D3"
-- Ejemplo: "pasar lote norte al v1" → mueve el potrero "norte" al módulo "v1"
+4. VENTA:
+   - "vendí 5 novillos a $500 cada uno"
+   - "vendí 10 vacas"
+   Retorna:
+   {
+     "tipo": "VENTA",
+     "categoria": "novillos",
+     "cantidad": 5,
+     "precioUnitario": 500,
+     "potrero": null (si no se menciona)
+   }
 
-RESPONDE SIEMPRE EN JSON con esta estructura:
+5. COMPRA:
+   - "compré 20 terneros a $300"
+   Retorna:
+   {
+     "tipo": "COMPRA",
+     "categoria": "terneros",
+     "cantidad": 20,
+     "precioUnitario": 300
+   }
+
+6. LLUVIA:
+   - "llovieron 25mm"
+   - "cayeron 30 milímetros"
+   Retorna:
+   {
+     "tipo": "LLUVIA",
+     "milimetros": 25
+   }
+
+7. GASTO:
+   - "gasté $5000 en alimento"
+   - "compré fertilizante por $3000"
+   Retorna:
+   {
+     "tipo": "GASTO",
+     "descripcion": "alimento",
+     "monto": 5000,
+     "categoria": "Alimentos Animales"
+   }
+
+8. CALENDARIO_CREAR:
+   - "en 14 días sacar tablilla"
+   - "el martes vacunar"
+   - "mañana revisar alambrado"
+   Retorna:
+   {
+     "tipo": "CALENDARIO_CREAR",
+     "descripcion": "sacar tablilla",
+     "fecha": "2025-12-28" (calcular fecha correcta),
+     "prioridad": "media"
+   }
+
+9. CALENDARIO_CONSULTAR:
+   - "calendario"
+   - "qué tengo pendiente"
+   - "actividades"
+   Retorna:
+   {
+     "tipo": "CALENDARIO_CONSULTAR"
+   }
+
+VALIDACIÓN CRÍTICA PARA CAMBIO_POTRERO:
+- Antes de retornar, verifica que potreroOrigen Y potreroDestino estén en la lista de potreros disponibles
+- Si alguno NO está en la lista, retorna:
 {
-  "tipo": "LLUVIA" | "NACIMIENTO" | "MORTANDAD" | "GASTO" | "TRATAMIENTO" | "SIEMBRA" | "CAMBIO_POTRERO" | "MOVER_POTRERO_MODULO" | "CALENDARIO_CREAR" | "CALENDARIO_CONSULTAR" | null,
-  "cantidad": número o null,
-  "categoria": string o null,
-  "lote": string o null (nombre del potrero - para eventos que NO son cambio de potrero),
-  "loteOrigen": string o null (nombre del potrero origen - SOLO para CAMBIO_POTRERO),
-  "loteDestino": string o null (nombre del potrero destino - SOLO para CAMBIO_POTRERO),
-  "monto": número o null (para gastos),
-  "descripcion": string,
-  "producto": string o null (para tratamientos),
-  "cultivo": string o null (para siembra),
-  "metodoPago": "Contado" | "Plazo" (solo para GASTOS),
-  "diasPlazo": número o null,
-  "pagado": boolean (solo para GASTOS),
-  "proveedor": string o null,
-  "nombrePotrero": string o null (nombre del potrero a mover - SOLO para MOVER_POTRERO_MODULO),
-  "moduloDestino": string o null (nombre del módulo destino - SOLO para MOVER_POTRERO_MODULO),
-  "titulo": string o null (para CALENDARIO_CREAR - la actividad a realizar),
-  "fechaRelativa": string o null (para CALENDARIO_CREAR - descripción de cuándo),
-  "diasDesdeHoy": número o null (para CALENDARIO_CREAR - días calculados desde hoy)
+  "tipo": "ERROR",
+  "mensaje": "No encontré el potrero [nombre]. Los potreros disponibles son: ${nombresPotreros}"
 }
 
-Si el mensaje NO es sobre ningún evento agrícola ni calendario, retorna { "tipo": null }.
-
-EJEMPLOS:
-Usuario: "Llovieron 25mm"
-Respuesta: {"tipo":"LLUVIA","cantidad":25,"descripcion":"Llovieron 25mm"}
-
-Usuario: "Nacieron 3 terneros en potrero norte"
-Respuesta: {"tipo":"NACIMIENTO","cantidad":3,"categoria":"terneros","lote":"norte","descripcion":"Nacieron 3 terneros en potrero norte"}
-
-Usuario: "Murieron 2 vacas"
-Respuesta: {"tipo":"MORTANDAD","cantidad":2,"categoria":"vacas","descripcion":"Murieron 2 vacas"}
-
-Usuario: "Gasté $5000 en alimento"
-Respuesta: {"tipo":"GASTO","monto":5000,"descripcion":"alimento","categoria":"Alimento","metodoPago":"Contado","pagado":true}
-
-Usuario: "moví 10 vacas del potrero norte al potrero sur"
-Respuesta: {"tipo":"CAMBIO_POTRERO","cantidad":10,"categoria":"vacas","loteOrigen":"norte","loteDestino":"sur","descripcion":"Cambio de 10 vacas de norte a sur"}
-
-Usuario: "pasé 5 terneros de lote 1 a lote 2"
-Respuesta: {"tipo":"CAMBIO_POTRERO","cantidad":5,"categoria":"terneros","loteOrigen":"1","loteDestino":"2","descripcion":"Cambio de 5 terneros de lote 1 a lote 2"}
-
-Usuario: "cambié 20 novillos de campo grande a campo chico"
-Respuesta: {"tipo":"CAMBIO_POTRERO","cantidad":20,"categoria":"novillos","loteOrigen":"campo grande","loteDestino":"campo chico","descripcion":"Cambio de 20 novillos de campo grande a campo chico"}
-
-Usuario: "llevé las ovejas del potrero 3 al 4"
-Respuesta: {"tipo":"CAMBIO_POTRERO","cantidad":null,"categoria":"ovejas","loteOrigen":"3","loteDestino":"4","descripcion":"Cambio de ovejas del potrero 3 al 4"}
-
-Usuario: "trasladé 15 vaquillonas desde el fondo hasta la entrada"
-Respuesta: {"tipo":"CAMBIO_POTRERO","cantidad":15,"categoria":"vaquillonas","loteOrigen":"fondo","loteDestino":"entrada","descripcion":"Cambio de 15 vaquillonas de fondo a entrada"}
-
-Usuario: "saqué todas las vacas del norte y las mandé al sur"
-Respuesta: {"tipo":"CAMBIO_POTRERO","cantidad":null,"categoria":"vacas","loteOrigen":"norte","loteDestino":"sur","descripcion":"Cambio de vacas de norte a sur"}
-
-Usuario: "mover potrero bajo a módulo D3"
-Respuesta: {"tipo":"MOVER_POTRERO_MODULO","nombrePotrero":"bajo","moduloDestino":"D3","descripcion":"Mover potrero bajo a módulo D3"}
-
-Usuario: "pasar el potrero norte al módulo v1"
-Respuesta: {"tipo":"MOVER_POTRERO_MODULO","nombrePotrero":"norte","moduloDestino":"v1","descripcion":"Mover potrero norte a módulo v1"}
-
-Usuario: "cambiar lote sur de módulo, ponerlo en D2"
-Respuesta: {"tipo":"MOVER_POTRERO_MODULO","nombrePotrero":"sur","moduloDestino":"D2","descripcion":"Mover potrero sur a módulo D2"}
-
-Usuario: "Vacuné 10 vacas con ivermectina en lote sur"
-Respuesta: {"tipo":"TRATAMIENTO","cantidad":10,"categoria":"vacas","producto":"ivermectina","lote":"sur","descripcion":"Vacunación de 10 vacas con ivermectina en lote sur"}
-
-Usuario: "Sembré 5 hectáreas de soja"
-Respuesta: {"tipo":"SIEMBRA","cantidad":5,"cultivo":"soja","descripcion":"Siembra de 5 hectáreas de soja"}
-
-Usuario: "en 14 días tengo que sacar tablilla"
-Respuesta: {"tipo":"CALENDARIO_CREAR","titulo":"sacar tablilla","fechaRelativa":"en 14 días","diasDesdeHoy":14,"descripcion":"Agendar: sacar tablilla en 14 días"}
-
-Usuario: "acordame el martes de llamar al veterinario"
-Respuesta: {"tipo":"CALENDARIO_CREAR","titulo":"llamar al veterinario","fechaRelativa":"el martes","diasDesdeHoy":3,"descripcion":"Agendar: llamar al veterinario el martes"}
-
-Usuario: "la semana que viene hay que vacunar"
-Respuesta: {"tipo":"CALENDARIO_CREAR","titulo":"vacunar","fechaRelativa":"la semana que viene","diasDesdeHoy":7,"descripcion":"Agendar: vacunar en 7 días"}
-
-Usuario: "el 20 revisar bebederos"
-Respuesta: {"tipo":"CALENDARIO_CREAR","titulo":"revisar bebederos","fechaRelativa":"el 20","diasDesdeHoy":9,"descripcion":"Agendar: revisar bebederos el día 20"}
-
-Usuario: "mañana llega el camión"
-Respuesta: {"tipo":"CALENDARIO_CREAR","titulo":"llega el camión","fechaRelativa":"mañana","diasDesdeHoy":1,"descripcion":"Agendar: llega el camión mañana"}
-
-Usuario: "pasado mañana pagar al peón"
-Respuesta: {"tipo":"CALENDARIO_CREAR","titulo":"pagar al peón","fechaRelativa":"pasado mañana","diasDesdeHoy":2,"descripcion":"Agendar: pagar al peón en 2 días"}
-
-Usuario: "calendario"
-Respuesta: {"tipo":"CALENDARIO_CONSULTAR","descripcion":"Consultar actividades pendientes"}
-
-Usuario: "qué tengo pendiente"
-Respuesta: {"tipo":"CALENDARIO_CONSULTAR","descripcion":"Consultar actividades pendientes"}
-
-Usuario: "pendientes"
-Respuesta: {"tipo":"CALENDARIO_CONSULTAR","descripcion":"Consultar actividades pendientes"}
-
-Usuario: "qué hay agendado"
-Respuesta: {"tipo":"CALENDARIO_CONSULTAR","descripcion":"Consultar actividades pendientes"}`
+RESPONDE ÚNICAMENTE CON EL JSON, SIN TEXTO ADICIONAL.
+          `,
         },
         {
           role: "user",
-          content: message
-        }
+          content: messageText,
+        },
       ],
-      response_format: { type: "json_object" },
-      temperature: 0.3,
+      max_tokens: 500,
+      temperature: 0.1,
     })
 
-    const result = completion.choices[0].message.content
-    if (!result) return null
+    const content = response.choices[0].message.content
+    if (!content) return null
 
-    const parsed = JSON.parse(result)
-    
-    if (!parsed.tipo) return null
+    // Parsear JSON
+    const jsonStr = content.replace(/```json/g, "").replace(/```/g, "").trim()
+    const data = JSON.parse(jsonStr)
 
-    return {
-      ...parsed,
-      telefono
+    console.log("✅ GPT parseó:", data)
+
+    // 🔥 VALIDACIÓN ADICIONAL: Si es CAMBIO_POTRERO, verificar que los potreros existen
+    if (data.tipo === "CAMBIO_POTRERO") {
+      const origenExiste = potreros.some(p => 
+        p.nombre.toLowerCase() === data.potreroOrigen?.toLowerCase()
+      )
+      const destinoExiste = potreros.some(p => 
+        p.nombre.toLowerCase() === data.potreroDestino?.toLowerCase()
+      )
+
+      if (!origenExiste || !destinoExiste) {
+        console.log(`❌ Potrero no válido: origen=${data.potreroOrigen}, destino=${data.potreroDestino}`)
+        return {
+          tipo: "ERROR",
+          mensaje: `No encontré los potreros mencionados. Tus potreros son: ${nombresPotreros}`,
+        }
+      }
+
+      // Normalizar nombres a los EXACTOS de la DB
+      if (origenExiste) {
+        const potreroOrigenReal = potreros.find(p => 
+          p.nombre.toLowerCase() === data.potreroOrigen?.toLowerCase()
+        )
+        if (potreroOrigenReal) {
+          data.potreroOrigen = potreroOrigenReal.nombre
+        }
+      }
+
+      if (destinoExiste) {
+        const potreroDestinoReal = potreros.find(p => 
+          p.nombre.toLowerCase() === data.potreroDestino?.toLowerCase()
+        )
+        if (potreroDestinoReal) {
+          data.potreroDestino = potreroDestinoReal.nombre
+        }
+      }
+
+      console.log(`✅ Potreros validados: ${data.potreroOrigen} → ${data.potreroDestino}`)
     }
 
+    return data
   } catch (error) {
-    console.error("Error parseando con GPT:", error)
+    console.error("❌ Error en parseMessageWithAI:", error)
     return null
   }
 }
 
 /**
- * 🎤 Transcribir audio con Whisper
+ * 🎤 Transcribir audio con Whisper de OpenAI
  */
 export async function transcribeAudio(audioUrl: string): Promise<string | null> {
   try {
-    console.log("🎤 Descargando audio desde:", audioUrl)
-    
-    // Descargar el audio desde WhatsApp
+    // Descargar el audio
     const audioResponse = await fetch(audioUrl, {
       headers: {
-        'Authorization': `Bearer ${process.env.WHATSAPP_TOKEN}`
-      }
+        "Authorization": `Bearer ${process.env.WHATSAPP_TOKEN}`,
+      },
     })
 
     if (!audioResponse.ok) {
-      console.error("❌ Error descargando audio:", audioResponse.status, await audioResponse.text())
+      console.error("Error descargando audio")
       return null
     }
 
-    console.log("✅ Audio descargado, tamaño:", audioResponse.headers.get('content-length'))
-
-    // Convertir a buffer
     const audioBuffer = await audioResponse.arrayBuffer()
-    const audioBlob = new Blob([audioBuffer], { type: 'audio/ogg; codecs=opus' })
-    const audioFile = new File([audioBlob], 'audio.ogg', { type: 'audio/ogg; codecs=opus' })
+    const audioBlob = new Blob([audioBuffer], { type: "audio/ogg" })
 
-    console.log("📤 Enviando a Whisper, tamaño archivo:", audioFile.size)
+    // Crear FormData para enviar a Whisper
+    const formData = new FormData()
+    formData.append("file", audioBlob, "audio.ogg")
+    formData.append("model", "whisper-1")
+    formData.append("language", "es")
 
     // Transcribir con Whisper
-    const transcription = await openai.audio.transcriptions.create({
-      file: audioFile,
+    const transcriptionResponse = await openai.audio.transcriptions.create({
+      file: audioBlob as any,
       model: "whisper-1",
       language: "es",
     })
 
-    console.log("✅ Transcripción exitosa:", transcription)
-    
-    // Whisper puede devolver un objeto o string
-    const text = typeof transcription === 'string' ? transcription : transcription.text
-    
-    console.log("📝 Texto transcrito:", text)
-    return text
-
-  } catch (error: any) {
-    console.error("💥 Error transcribiendo audio:", error)
-    console.error("💥 Error detalles:", error.message)
-    console.error("💥 Error stack:", error.stack)
+    return transcriptionResponse.text
+  } catch (error) {
+    console.error("❌ Error en transcribeAudio:", error)
     return null
   }
 }
