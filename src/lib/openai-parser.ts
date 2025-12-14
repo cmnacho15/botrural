@@ -44,12 +44,12 @@ IMPORTANTE PARA CAMBIOS DE POTRERO:
 
 EJEMPLOS DE NORMALIZACIÓN:
 Usuario dice: "moví vacas de be dos a te uno"
-- potreroOrigen: "B2" (nombre exacto de la lista)
-- potreroDestino: "T1" (nombre exacto de la lista)
+- loteOrigen: "B2" (nombre exacto de la lista)
+- loteDestino: "T1" (nombre exacto de la lista)
 
 Usuario dice: "moví vacas del potrero B 2 al lote T 1"
-- potreroOrigen: "B2"
-- potreroDestino: "T1"
+- loteOrigen: "B2"
+- loteDestino: "T1"
 
 Usuario dice: "moví vacas de norte a sur"
 - Si en la lista hay "Norte" y "Sur" → usa esos nombres exactos
@@ -65,8 +65,8 @@ TIPOS DE EVENTOS QUE DEBES DETECTAR:
      "tipo": "CAMBIO_POTRERO",
      "categoria": "vacas" (usa categoría de la lista disponible),
      "cantidad": 10,
-     "potreroOrigen": "Norte" (nombre EXACTO de la lista),
-     "potreroDestino": "Sur" (nombre EXACTO de la lista)
+     "loteOrigen": "Norte" (nombre EXACTO de la lista, NO uses "potreroOrigen"),
+     "loteDestino": "Sur" (nombre EXACTO de la lista, NO uses "potreroDestino")
    }
 
 2. NACIMIENTO:
@@ -154,12 +154,7 @@ TIPOS DE EVENTOS QUE DEBES DETECTAR:
      "tipo": "CALENDARIO_CONSULTAR"
    }
 
-IMPORTANTE PARA CAMBIO_POTRERO:
-- Normaliza los nombres de potreros al MÁS PARECIDO de la lista disponible
-- Si dice "be dos" y en la lista hay "B2" → usa "B2"
-- Si dice "potrero norte" y en la lista hay "Norte" → usa "Norte"
-- Si no encuentras uno parecido, usa el texto EXACTO que dijo el usuario
-- NO valides si existen, solo normaliza al más similar
+⚠️ CRÍTICO: Para CAMBIO_POTRERO usa SIEMPRE "loteOrigen" y "loteDestino", NUNCA "potreroOrigen" ni "potreroDestino"
 
 RESPONDE ÚNICAMENTE CON EL JSON, SIN TEXTO ADICIONAL.
           `,
@@ -182,7 +177,19 @@ RESPONDE ÚNICAMENTE CON EL JSON, SIN TEXTO ADICIONAL.
 
     console.log("✅ GPT parseó:", data)
 
-   
+    // 🔥 MAPEO DE SEGURIDAD: Si GPT usó los nombres incorrectos, corregirlos
+    if (data.tipo === "CAMBIO_POTRERO") {
+      if (data.potreroOrigen && !data.loteOrigen) {
+        console.log("⚠️ Corrigiendo campo: potreroOrigen → loteOrigen")
+        data.loteOrigen = data.potreroOrigen
+        delete data.potreroOrigen
+      }
+      if (data.potreroDestino && !data.loteDestino) {
+        console.log("⚠️ Corrigiendo campo: potreroDestino → loteDestino")
+        data.loteDestino = data.potreroDestino
+        delete data.potreroDestino
+      }
+    }
 
     return data
   } catch (error) {
