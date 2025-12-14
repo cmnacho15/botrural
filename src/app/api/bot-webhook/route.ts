@@ -163,7 +163,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ status: "confirmacion processed" })
     }
 
-    // ==========================================
+    // REEMPLAZAR desde línea 186 hasta el final del POST
+
+// ==========================================
 // 6. FASE 3: Procesar con GPT (texto/audio)
 // ==========================================
 
@@ -196,6 +198,7 @@ const TIPOS_QUE_NECESITAN_CONTEXTO = [
   'NACIMIENTO', 
   'MUERTE',
   'VENTA',
+  'COMPRA',
   'MOVER_POTRERO_MODULO',
   'TRATAMIENTO',
   'SIEMBRA'
