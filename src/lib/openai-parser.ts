@@ -6,45 +6,20 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 })
 
-export async function parseMessageWithAI(messageText: string, telefono: string) {
+export async function parseMessageWithAI(
+  messageText: string, 
+  potreros: Array<{ id: string; nombre: string }>,
+  categorias: Array<{ nombreSingular: string; nombrePlural: string }>
+) {
   try {
-    // 🔥 Obtener el campo del usuario
-    const usuario = await prisma.user.findUnique({
-      where: { telefono: telefono },
-      select: { 
-        campoId: true,
-      },
-    })
-
-    if (!usuario?.campoId) {
-      console.log("⚠️ Usuario sin campo asignado")
-      return null
-    }
-
-    // 🔥 Obtener TODOS los potreros del campo
-    const potreros = await prisma.lote.findMany({
-      where: { campoId: usuario.campoId },
-      select: { id: true, nombre: true },
-      orderBy: { nombre: 'asc' },
-    })
-
+    // Formatear para el prompt
     const nombresPotreros = potreros.map(p => p.nombre).join(", ")
-
-    console.log(`📋 Potreros del campo: ${nombresPotreros}`)
-
-    // 🔥 Obtener categorías de animales del campo
-    const categorias = await prisma.categoriaAnimal.findMany({
-      where: { 
-        campoId: usuario.campoId,
-        activo: true,
-      },
-      select: { nombreSingular: true, nombrePlural: true },
-    })
-
     const nombresCategorias = categorias
       .flatMap(c => [c.nombreSingular, c.nombrePlural])
-      .filter((v, i, a) => a.indexOf(v) === i) // unique
+      .filter((v, i, a) => a.indexOf(v) === i)
       .join(", ")
+
+    console.log(`📋 Potreros del campo: ${nombresPotreros}`)
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o",

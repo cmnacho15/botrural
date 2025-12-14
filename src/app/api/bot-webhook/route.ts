@@ -164,9 +164,32 @@ export async function POST(request: Request) {
     }
 
     // ==========================================
-    // 6. FASE 3: Procesar con GPT (texto/audio)
-    // ==========================================
-    const parsedData = await parseMessageWithAI(messageText, from)
+// 6. FASE 3: Procesar con GPT (texto/audio)
+// ==========================================
+
+// 🔥 OBTENER POTREROS DEL USUARIO (una sola vez)
+const usuario = await prisma.user.findUnique({
+  where: { telefono: from },
+  select: { campoId: true }
+})
+
+let potreros: Array<{ id: string; nombre: string }> = []
+let categorias: Array<{ nombreSingular: string; nombrePlural: string }> = []
+
+if (usuario?.campoId) {
+  potreros = await prisma.lote.findMany({
+    where: { campoId: usuario.campoId },
+    select: { id: true, nombre: true },
+    orderBy: { nombre: 'asc' }
+  })
+
+  categorias = await prisma.categoriaAnimal.findMany({
+    where: { campoId: usuario.campoId, activo: true },
+    select: { nombreSingular: true, nombrePlural: true }
+  })
+}
+
+const parsedData = await parseMessageWithAI(messageText, potreros, categorias)
 
     if (parsedData) {
       // ========================================
