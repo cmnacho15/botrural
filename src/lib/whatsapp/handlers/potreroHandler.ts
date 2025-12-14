@@ -53,7 +53,10 @@ export async function handleCambioPotrero(phoneNumber: string, data: any) {
 
     // 🔍 Buscar potreros en la lista (sin más queries a BD)
     const potreroOrigen = buscarPotreroEnLista(loteOrigen, potreros)
-    
+    console.log("🔍 BÚSQUEDA POTRERO ORIGEN:")
+console.log("  - Buscado:", loteOrigen)
+console.log("  - Encontrado:", potreroOrigen)
+
     if (!potreroOrigen) {
       const nombresDisponibles = potreros.map(p => p.nombre).join(', ')
       await sendWhatsAppMessage(
@@ -86,6 +89,11 @@ export async function handleCambioPotrero(phoneNumber: string, data: any) {
 
     const resultadoBusqueda = await buscarAnimalesEnPotrero(categoria, potreroOrigen.id, user.campoId)
     
+    console.log("🔍 BÚSQUEDA ANIMALES:")
+console.log("  - Categoría:", categoria)
+console.log("  - Potrero ID:", potreroOrigen.id)
+console.log("  - Resultado:", resultadoBusqueda)
+
     if (!resultadoBusqueda.encontrado) {
       if (resultadoBusqueda.opciones && resultadoBusqueda.opciones.length > 0) {
         const opcionesTexto = resultadoBusqueda.opciones
