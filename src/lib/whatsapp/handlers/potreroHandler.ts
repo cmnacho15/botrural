@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/prisma"
 import { 
-  buscarPotreroPorNombre, 
+  buscarPotreroEnLista,  // 🆕 Nueva función
   buscarAnimalesEnPotrero, 
   obtenerNombresPotreros 
 } from "@/lib/potrero-helpers"
@@ -42,26 +42,33 @@ export async function handleCambioPotrero(phoneNumber: string, data: any) {
       return
     }
 
-    const potreroOrigen = await buscarPotreroPorNombre(loteOrigen, user.campoId)
+    // 🔍 Obtener lista de potreros UNA SOLA VEZ
+    const potreros = await prisma.lote.findMany({
+      where: { campoId: user.campoId },
+      select: { id: true, nombre: true },
+    })
+
+    // 🔍 Buscar potreros en la lista (sin más queries a BD)
+    const potreroOrigen = buscarPotreroEnLista(loteOrigen, potreros)
     
     if (!potreroOrigen) {
-      const potreros = await obtenerNombresPotreros(user.campoId)
+      const nombresDisponibles = potreros.map(p => p.nombre).join(', ')
       await sendWhatsAppMessage(
         phoneNumber,
         `No encontré el potrero "${loteOrigen}".\n\n` +
-        `Tus potreros son:\n${potreros.map(p => `• ${p}`).join('\n')}`
+        `Tus potreros son: ${nombresDisponibles}`
       )
       return
     }
 
-    const potreroDestino = await buscarPotreroPorNombre(loteDestino, user.campoId)
+    const potreroDestino = buscarPotreroEnLista(loteDestino, potreros)
     
     if (!potreroDestino) {
-      const potreros = await obtenerNombresPotreros(user.campoId)
+      const nombresDisponibles = potreros.map(p => p.nombre).join(', ')
       await sendWhatsAppMessage(
         phoneNumber,
         `No encontré el potrero "${loteDestino}".\n\n` +
-        `Tus potreros son:\n${potreros.map(p => `• ${p}`).join('\n')}`
+        `Tus potreros son: ${nombresDisponibles}`
       )
       return
     }
@@ -173,78 +180,81 @@ export async function ejecutarCambioPotrero(data: any) {
     throw new Error("Usuario no encontrado")
   }
 
-  const animalOrigen = await prisma.animalLote.findFirst({
-    where: { 
-      loteId: data.loteId, 
-      categoria: data.categoria,
-      lote: { campoId: user.campoId }
-    },
-  })
-
-  if (!animalOrigen || animalOrigen.cantidad < data.cantidad) {
-    throw new Error("No hay suficientes animales")
-  }
-
-  const nuevaCantidadOrigen = animalOrigen.cantidad - data.cantidad
-  
-  if (nuevaCantidadOrigen === 0) {
-    await prisma.animalLote.delete({ where: { id: animalOrigen.id } })
-  } else {
-    await prisma.animalLote.update({
-      where: { id: animalOrigen.id },
-      data: { cantidad: nuevaCantidadOrigen },
-    })
-  }
-
-  const animalDestino = await prisma.animalLote.findFirst({
-    where: { 
-      loteId: data.loteDestinoId, 
-      categoria: data.categoria,
-      lote: { campoId: user.campoId }
-    },
-  })
-
-  if (animalDestino) {
-    await prisma.animalLote.update({
-      where: { id: animalDestino.id },
-      data: { cantidad: animalDestino.cantidad + data.cantidad },
-    })
-  } else {
-    await prisma.animalLote.create({
-      data: {
+  // 🔒 USAR TRANSACCIÓN para evitar race conditions
+  await prisma.$transaction(async (tx) => {
+    const animalOrigen = await tx.animalLote.findFirst({
+      where: { 
+        loteId: data.loteId, 
         categoria: data.categoria,
-        cantidad: data.cantidad,
-        loteId: data.loteDestinoId,
+        lote: { campoId: user.campoId }
       },
     })
-  }
 
-  await prisma.lote.update({
-    where: { id: data.loteId },
-    data: { ultimoCambio: new Date() },
+    if (!animalOrigen || animalOrigen.cantidad < data.cantidad) {
+      throw new Error("No hay suficientes animales")
+    }
+
+    const nuevaCantidadOrigen = animalOrigen.cantidad - data.cantidad
+    
+    if (nuevaCantidadOrigen === 0) {
+      await tx.animalLote.delete({ where: { id: animalOrigen.id } })
+    } else {
+      await tx.animalLote.update({
+        where: { id: animalOrigen.id },
+        data: { cantidad: nuevaCantidadOrigen },
+      })
+    }
+
+    const animalDestino = await tx.animalLote.findFirst({
+      where: { 
+        loteId: data.loteDestinoId, 
+        categoria: data.categoria,
+        lote: { campoId: user.campoId }
+      },
+    })
+
+    if (animalDestino) {
+      await tx.animalLote.update({
+        where: { id: animalDestino.id },
+        data: { cantidad: animalDestino.cantidad + data.cantidad },
+      })
+    } else {
+      await tx.animalLote.create({
+        data: {
+          categoria: data.categoria,
+          cantidad: data.cantidad,
+          loteId: data.loteDestinoId,
+        },
+      })
+    }
+
+    await tx.lote.update({
+      where: { id: data.loteId },
+      data: { ultimoCambio: new Date() },
+    })
+
+    await tx.lote.update({
+      where: { id: data.loteDestinoId },
+      data: { ultimoCambio: new Date() },
+    })
+
+    const descripcion = `Cambio de ${data.cantidad} ${data.categoria} del potrero "${data.loteOrigenNombre}" al potrero "${data.loteDestinoNombre}".`
+
+    await tx.evento.create({
+      data: {
+        tipo: "CAMBIO_POTRERO",
+        descripcion,
+        fecha: new Date(),
+        cantidad: data.cantidad,
+        categoria: data.categoria,
+        loteId: data.loteId,
+        loteDestinoId: data.loteDestinoId,
+        usuarioId: user.id,
+        campoId: user.campoId,
+        origenSnig: "BOT",
+      },
+    })
+
+    console.log(`✅ Cambio de potrero ejecutado: ${descripcion}`)
   })
-
-  await prisma.lote.update({
-    where: { id: data.loteDestinoId },
-    data: { ultimoCambio: new Date() },
-  })
-
-  const descripcion = `Cambio de ${data.cantidad} ${data.categoria} del potrero "${data.loteOrigenNombre}" al potrero "${data.loteDestinoNombre}".`
-
-  await prisma.evento.create({
-    data: {
-      tipo: "CAMBIO_POTRERO",
-      descripcion,
-      fecha: new Date(),
-      cantidad: data.cantidad,
-      categoria: data.categoria,
-      loteId: data.loteId,
-      loteDestinoId: data.loteDestinoId,
-      usuarioId: user.id,
-      campoId: user.campoId,
-      origenSnig: "BOT",
-    },
-  })
-
-  console.log(`Cambio de potrero ejecutado: ${descripcion}`)
 }

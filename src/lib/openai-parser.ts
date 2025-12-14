@@ -154,13 +154,12 @@ TIPOS DE EVENTOS QUE DEBES DETECTAR:
      "tipo": "CALENDARIO_CONSULTAR"
    }
 
-VALIDACIÓN CRÍTICA PARA CAMBIO_POTRERO:
-- Antes de retornar, verifica que potreroOrigen Y potreroDestino estén en la lista de potreros disponibles
-- Si alguno NO está en la lista, retorna:
-{
-  "tipo": "ERROR",
-  "mensaje": "No encontré el potrero [nombre]. Los potreros disponibles son: ${nombresPotreros}"
-}
+IMPORTANTE PARA CAMBIO_POTRERO:
+- Normaliza los nombres de potreros al MÁS PARECIDO de la lista disponible
+- Si dice "be dos" y en la lista hay "B2" → usa "B2"
+- Si dice "potrero norte" y en la lista hay "Norte" → usa "Norte"
+- Si no encuentras uno parecido, usa el texto EXACTO que dijo el usuario
+- NO valides si existen, solo normaliza al más similar
 
 RESPONDE ÚNICAMENTE CON EL JSON, SIN TEXTO ADICIONAL.
           `,
@@ -183,44 +182,7 @@ RESPONDE ÚNICAMENTE CON EL JSON, SIN TEXTO ADICIONAL.
 
     console.log("✅ GPT parseó:", data)
 
-    // 🔥 VALIDACIÓN ADICIONAL: Si es CAMBIO_POTRERO, verificar que los potreros existen
-    if (data.tipo === "CAMBIO_POTRERO") {
-      const origenExiste = potreros.some(p => 
-        p.nombre.toLowerCase() === data.potreroOrigen?.toLowerCase()
-      )
-      const destinoExiste = potreros.some(p => 
-        p.nombre.toLowerCase() === data.potreroDestino?.toLowerCase()
-      )
-
-      if (!origenExiste || !destinoExiste) {
-        console.log(`❌ Potrero no válido: origen=${data.potreroOrigen}, destino=${data.potreroDestino}`)
-        return {
-          tipo: "ERROR",
-          mensaje: `No encontré los potreros mencionados. Tus potreros son: ${nombresPotreros}`,
-        }
-      }
-
-      // Normalizar nombres a los EXACTOS de la DB
-      if (origenExiste) {
-        const potreroOrigenReal = potreros.find(p => 
-          p.nombre.toLowerCase() === data.potreroOrigen?.toLowerCase()
-        )
-        if (potreroOrigenReal) {
-          data.potreroOrigen = potreroOrigenReal.nombre
-        }
-      }
-
-      if (destinoExiste) {
-        const potreroDestinoReal = potreros.find(p => 
-          p.nombre.toLowerCase() === data.potreroDestino?.toLowerCase()
-        )
-        if (potreroDestinoReal) {
-          data.potreroDestino = potreroDestinoReal.nombre
-        }
-      }
-
-      console.log(`✅ Potreros validados: ${data.potreroOrigen} → ${data.potreroDestino}`)
-    }
+   
 
     return data
   } catch (error) {

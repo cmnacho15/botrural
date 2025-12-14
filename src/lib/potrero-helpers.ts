@@ -92,27 +92,90 @@ function normalizarNombrePotrero(nombre: string): string {
   let normalizado = nombre
     .toLowerCase()
     .trim()
-    // Normalizar espacios múltiples primero
     .replace(/\s+/g, ' ')
-    // Remover guiones y underscores entre caracteres alfanuméricos (B-2 → b2)
+  
+  // 🔢 PRIMERO: Convertir números en texto a dígitos
+  const numerosTexto: Record<string, string> = {
+    'cero': '0', 'uno': '1', 'dos': '2', 'tres': '3', 'cuatro': '4',
+    'cinco': '5', 'seis': '6', 'siete': '7', 'ocho': '8', 'nueve': '9',
+    'diez': '10', 'once': '11', 'doce': '12', 'trece': '13', 
+    'catorce': '14', 'quince': '15', 'dieciseis': '16', 'diecisiete': '17',
+    'dieciocho': '18', 'diecinueve': '19', 'veinte': '20'
+  }
+  
+  Object.entries(numerosTexto).forEach(([texto, num]) => {
+    normalizado = normalizado.replace(
+      new RegExp(`\\b${texto}\\b`, 'g'), 
+      num
+    )
+  })
+  
+  // 🔤 SEGUNDO: Remover espacios y guiones entre alfanuméricos
+  normalizado = normalizado
     .replace(/([a-z0-9])\s*[-_]\s*([a-z0-9])/gi, '$1$2')
-    // Remover espacios entre letra y número (B 2 → b2)
     .replace(/([a-z])\s+(\d)/gi, '$1$2')
     .replace(/(\d)\s+([a-z])/gi, '$1$2')
-
-  // Solo remover prefijos si NO es un nombre muy corto (≤3 caracteres)
-  // Esto evita que "B2" se convierta en "2" por error
-  if (normalizado.length > 3) {
+  
+  // 📝 TERCERO: Remover prefijos SOLO si hay algo después
+  if (normalizado.length > 4) {
     normalizado = normalizado
-      // Remover prefijos comunes
-      .replace(/^(potrero|lote|campo|paddock)\s+/i, '')
-      // Remover artículos
-      .replace(/^(el|la|los|las|del|de la)\s+/i, '')
+      .replace(/^(potrero|lote|campo|paddock)\s+(.+)$/i, '$2')
+      .replace(/^(el|la|los|las)\s+(.+)$/i, '$2')
   }
-
+  
   return normalizado.trim()
 }
 
+/**
+ * 🔤 Extraer patrón alfanumérico (B2 → b2, T1 → t1)
+ * Usado para matchear nombres como "B2", "T1", "A3", etc.
+ */
+
+/**
+ * 🔍 Buscar potrero en una lista (sin consultar BD)
+ * Usado cuando ya tenemos la lista de potreros en memoria
+ */
+export function buscarPotreroEnLista(
+  nombreBuscado: string,
+  potreros: Array<{ id: string; nombre: string }>
+): { id: string; nombre: string } | null {
+  if (!nombreBuscado || !potreros.length) return null
+
+  const nombreNormalizado = normalizarNombrePotrero(nombreBuscado)
+
+  // 1. Buscar coincidencia exacta normalizada
+  for (const potrero of potreros) {
+    const nombrePotreroNorm = normalizarNombrePotrero(potrero.nombre)
+    if (nombrePotreroNorm === nombreNormalizado) {
+      return potrero
+    }
+  }
+
+  // 2. Buscar coincidencia parcial
+  for (const potrero of potreros) {
+    const nombrePotreroNorm = normalizarNombrePotrero(potrero.nombre)
+    
+    if (nombrePotreroNorm.includes(nombreNormalizado) || 
+        nombreNormalizado.includes(nombrePotreroNorm)) {
+      return potrero
+    }
+  }
+
+  // 3. Buscar por patrón alfanumérico
+  const patronAlfanumerico = extraerPatronAlfanumerico(nombreNormalizado)
+  if (patronAlfanumerico) {
+    for (const potrero of potreros) {
+      const patronPotrero = extraerPatronAlfanumerico(
+        normalizarNombrePotrero(potrero.nombre)
+      )
+      if (patronPotrero && patronAlfanumerico === patronPotrero) {
+        return potrero
+      }
+    }
+  }
+
+  return null
+}
 /**
  * 🔤 Extraer patrón alfanumérico (B2 → b2, T1 → t1)
  * Usado para matchear nombres como "B2", "T1", "A3", etc.
@@ -266,34 +329,45 @@ function normalizarCategoria(categoria: string): string {
  * "terneros/as" → "ternero"
  */
 function obtenerRaizCategoria(categoria: string): string {
-  return categoria
+  let raiz = categoria
     // Remover rangos de edad
     .replace(/[\+\-]?\d+[\s\-–]*\d*\s*(años?|meses?|dias?)?/gi, '')
-    // Remover sufijos de género
-    .replace(/[\/\-]?(as?|os?)$/i, '')
-    // Remover "dientes", "diente", "dl", etc.
     .replace(/\s*\d+[\s\-]*dientes?/gi, '')
     .replace(/\s*dl$/gi, '')
     .replace(/\s*mamones?$/gi, '')
-    // Normalizar plurales comunes
-    .replace(/vacas?/i, 'vaca')
-    .replace(/toros?/i, 'toro')
-    .replace(/novillos?/i, 'novillo')
-    .replace(/vaquillonas?/i, 'vaquillona')
-    .replace(/terneros?/i, 'ternero')
-    .replace(/terneras?/i, 'ternera')
-    .replace(/ovejas?/i, 'oveja')
-    .replace(/carneros?/i, 'carnero')
-    .replace(/corderos?/i, 'cordero')
-    .replace(/corderas?/i, 'cordera')
-    .replace(/borregas?/i, 'borrega')
-    .replace(/capones?/i, 'capon')
-    .replace(/yeguas?/i, 'yegua')
-    .replace(/caballos?/i, 'caballo')
-    .replace(/potrillos?/i, 'potrillo')
-    .replace(/padrillos?/i, 'padrillo')
+  
+  // 🆕 Remover diminutivos ANTES de normalizar plurales
+  raiz = raiz
+    .replace(/(it[oa]s?)$/i, '') // ovejita, vaquita, ternerito
+    .replace(/(cit[oa]s?)$/i, '') // vaquicita
+  
+  // Remover sufijos de género
+  raiz = raiz
+    .replace(/[\/\-]?(as?|os?)$/i, '')
+  
+  // Normalizar plurales comunes
+  raiz = raiz
+    .replace(/\b(vacas?)\b/i, 'vaca')
+    .replace(/\b(toros?)\b/i, 'toro')
+    .replace(/\b(novillos?)\b/i, 'novillo')
+    .replace(/\b(vaquillonas?)\b/i, 'vaquillona')
+    .replace(/\b(terneros?)\b/i, 'ternero')
+    .replace(/\b(terneras?)\b/i, 'ternera')
+    .replace(/\b(ovejas?)\b/i, 'oveja')
+    .replace(/\b(carneros?)\b/i, 'carnero')
+    .replace(/\b(corderos?)\b/i, 'cordero')
+    .replace(/\b(corderas?)\b/i, 'cordera')
+    .replace(/\b(borregas?)\b/i, 'borrega')
+    .replace(/\b(capones?)\b/i, 'capon')
+    .replace(/\b(yeguas?)\b/i, 'yegua')
+    .replace(/\b(caballos?)\b/i, 'caballo')
+    .replace(/\b(potrillos?)\b/i, 'potrillo')
+    .replace(/\b(padrillos?)\b/i, 'padrillo')
     .trim()
+  
+  return raiz
 }
+ 
 
 /**
  * 🐄 Buscar animales de una categoría en un potrero específico
