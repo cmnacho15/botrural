@@ -163,118 +163,85 @@ export async function POST(request: Request) {
       return NextResponse.json({ status: "confirmacion processed" })
     }
 
-    // REEMPLAZAR desde línea 186 hasta el final del POST
-
-// ==========================================
+    // ==========================================
 // 6. FASE 3: Procesar con GPT (texto/audio)
 // ==========================================
 
-// PASO 1: Parsear sin contexto para detectar el tipo de evento
-console.log('📝 Analizando mensaje...')
-let parsedData = await parseMessageWithAI(messageText, [], [])
+// 🔥 OBTENER POTREROS DEL USUARIO (una sola vez)
+const usuario = await prisma.user.findUnique({
+  where: { telefono: from },
+  select: { campoId: true }
+})
 
-if (!parsedData) {
-  // Si no pudo parsear, mensaje no reconocido
-  await sendWhatsAppMessage(
-    from,
-    "No entendí tu mensaje. Podés enviarme cosas como:\n\n" +
-      "• nacieron 3 terneros en potrero norte\n" +
-      "• murieron 2 vacas en lote sur\n" +
-      "• llovieron 25mm\n" +
-      "• gasté $5000 en alimento\n" +
-      "• moví 10 vacas del potrero norte al sur\n\n" +
-      "📅 *Calendario:*\n" +
-      "• en 14 días sacar tablilla\n" +
-      "• el martes vacunar\n" +
-      "• calendario (ver pendientes)\n\n" +
-      "También podés enviarme un *audio* o una *foto de factura*"
-  )
-  return NextResponse.json({ status: "ok" })
-}
+let potreros: Array<{ id: string; nombre: string }> = []
+let categorias: Array<{ nombreSingular: string; nombrePlural: string }> = []
 
-// PASO 2: Determinar si necesita contexto de potreros/categorías
-const TIPOS_QUE_NECESITAN_CONTEXTO = [
-  'CAMBIO_POTRERO',
-  'NACIMIENTO', 
-  'MUERTE',
-  'VENTA',
-  'COMPRA',
-  'MOVER_POTRERO_MODULO',
-  'TRATAMIENTO',
-  'SIEMBRA'
-]
-
-const necesitaContexto = TIPOS_QUE_NECESITAN_CONTEXTO.includes(parsedData.tipo)
-
-// PASO 3: Si necesita contexto, consultar DB y reparsear
-if (necesitaContexto) {
-  console.log(`🔍 Evento "${parsedData.tipo}" necesita contexto - consultando DB...`)
-  
-  const usuario = await prisma.user.findUnique({
-    where: { telefono: from },
-    select: { campoId: true }
+if (usuario?.campoId) {
+  potreros = await prisma.lote.findMany({
+    where: { campoId: usuario.campoId },
+    select: { id: true, nombre: true },
+    orderBy: { nombre: 'asc' }
   })
 
-  if (usuario?.campoId) {
-    const potreros = await prisma.lote.findMany({
-      where: { campoId: usuario.campoId },
-      select: { id: true, nombre: true },
-      orderBy: { nombre: 'asc' }
-    })
+  categorias = await prisma.categoriaAnimal.findMany({
+    where: { campoId: usuario.campoId, activo: true },
+    select: { nombreSingular: true, nombrePlural: true }
+  })
+}
 
-    const categorias = await prisma.categoriaAnimal.findMany({
-      where: { campoId: usuario.campoId, activo: true },
-      select: { nombreSingular: true, nombrePlural: true }
-    })
+const parsedData = await parseMessageWithAI(messageText, potreros, categorias)
 
-    console.log(`📋 Contexto: ${potreros.length} potreros, ${categorias.length} categorías`)
-    
-    // Reparsear CON contexto
-    parsedData = await parseMessageWithAI(messageText, potreros, categorias)
-    
-    if (!parsedData) {
-      await sendWhatsAppMessage(from, "No pude procesar el mensaje correctamente.")
-      return NextResponse.json({ status: "ok" })
+    if (parsedData) {
+      // ========================================
+      // 📅 CALENDARIO - Crear actividad
+      // ========================================
+      if (parsedData.tipo === "CALENDARIO_CREAR") {
+        await handleCalendarioCrear(from, parsedData)
+        return NextResponse.json({ status: "calendario created" })
+      }
+
+      // ========================================
+      // 📅 CALENDARIO - Consultar pendientes
+      // ========================================
+      if (parsedData.tipo === "CALENDARIO_CONSULTAR") {
+        await handleCalendarioConsultar(from)
+        return NextResponse.json({ status: "calendario consulted" })
+      }
+
+      // ========================================
+      // Decidir qué tipo de confirmación usar
+      // ========================================
+      if (parsedData.tipo === "GASTO") {
+        await solicitarConfirmacionConFlow(from, parsedData)
+      } else if (parsedData.tipo === "CAMBIO_POTRERO") {
+        await handleCambioPotrero(from, parsedData)
+      } else if (parsedData.tipo === "MOVER_POTRERO_MODULO") {
+        await handleMoverPotreroModulo(from, parsedData)
+      } else {
+        await solicitarConfirmacion(from, parsedData)
+      }
+      return NextResponse.json({ status: "awaiting confirmation" })
     }
-  }
-} else {
-  console.log(`⚡ Evento "${parsedData.tipo}" no necesita contexto - procesando directo`)
-}
 
-// PASO 4: Continuar con el flujo normal
-console.log('✅ Mensaje parseado:', parsedData)
+    // ==========================================
+    // 7. Mensaje no reconocido
+    // ==========================================
+    await sendWhatsAppMessage(
+      from,
+      "No entendí tu mensaje. Podés enviarme cosas como:\n\n" +
+        "• nacieron 3 terneros en potrero norte\n" +
+        "• murieron 2 vacas en lote sur\n" +
+        "• llovieron 25mm\n" +
+        "• gasté $5000 en alimento\n" +
+        "• moví 10 vacas del potrero norte al sur\n\n" +
+        "📅 *Calendario:*\n" +
+        "• en 14 días sacar tablilla\n" +
+        "• el martes vacunar\n" +
+        "• calendario (ver pendientes)\n\n" +
+        "También podés enviarme un *audio* o una *foto de factura*"
+    )
 
-// ========================================
-// 📅 CALENDARIO - Crear actividad
-// ========================================
-if (parsedData.tipo === "CALENDARIO_CREAR") {
-  await handleCalendarioCrear(from, parsedData)
-  return NextResponse.json({ status: "calendario created" })
-}
-
-// ========================================
-// 📅 CALENDARIO - Consultar pendientes
-// ========================================
-if (parsedData.tipo === "CALENDARIO_CONSULTAR") {
-  await handleCalendarioConsultar(from)
-  return NextResponse.json({ status: "calendario consulted" })
-}
-
-// ========================================
-// Decidir qué tipo de confirmación usar
-// ========================================
-if (parsedData.tipo === "GASTO") {
-  await solicitarConfirmacionConFlow(from, parsedData)
-} else if (parsedData.tipo === "CAMBIO_POTRERO") {
-  await handleCambioPotrero(from, parsedData)
-} else if (parsedData.tipo === "MOVER_POTRERO_MODULO") {
-  await handleMoverPotreroModulo(from, parsedData)
-} else {
-  await solicitarConfirmacion(from, parsedData)
-}
-
-return NextResponse.json({ status: "awaiting confirmation" })
-
+    return NextResponse.json({ status: "ok" })
   } catch (error) {
     console.error("Error en webhook:", error)
     return NextResponse.json({ error: "Error interno" }, { status: 500 })
