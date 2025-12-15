@@ -862,33 +862,37 @@ if (!mapRef.current._tooltipZoomHandler) {
       setPuntosMedicion(newPuntos)
       
       if (newPuntos.length > 1) {
-        // Dibujar la línea completa
-        const linea = (L as any).polyline(newPuntos, {
-          color: '#3b82f6',
-          weight: 3,
-          className: 'linea-medicion',
-          fill: esCierre,
-          fillColor: '#3b82f6',
-          fillOpacity: 0.1
-        }).addTo(mapRef.current)
-        
-        // Dibujar tooltips para cada segmento
-        for (let i = 0; i < newPuntos.length - 1; i++) {
-          const p1 = newPuntos[i]
-          const p2 = newPuntos[i + 1]
-          const distancia = p1.distanceTo(p2)
-          const puntoMedio = (L as any).latLng(
-            (p1.lat + p2.lat) / 2,
-            (p1.lng + p2.lng) / 2
-          )
-          
-          const distanciaMetros = p1.distanceTo(p2)
-let textoDistancia = ""
-if (distanciaMetros > 1000) {
-  textoDistancia = (distanciaMetros / 1000).toFixed(2) + " km"
-} else {
-  textoDistancia = Math.round(distanciaMetros) + " m"
-}
+  // Dibujar la línea completa
+  const linea = (L as any).polyline(newPuntos, {
+    color: '#3b82f6',
+    weight: 3,
+    className: 'linea-medicion',
+    fill: esCierre,
+    fillColor: '#3b82f6',
+    fillOpacity: 0.1
+  }).addTo(mapRef.current)
+  
+  // Dibujar tooltips para cada segmento
+  for (let i = 0; i < newPuntos.length - 1; i++) {
+    const p1 = newPuntos[i]
+    const p2 = newPuntos[i + 1]
+    
+    // ✅ Usar Turf.js para distancia geodésica precisa
+    const from = turf.point([p1.lng, p1.lat])
+    const to = turf.point([p2.lng, p2.lat])
+    const distanciaMetros = turf.distance(from, to, { units: 'meters' })
+    
+    const puntoMedio = (L as any).latLng(
+      (p1.lat + p2.lat) / 2,
+      (p1.lng + p2.lng) / 2
+    )
+    
+    let textoDistancia = ""
+    if (distanciaMetros > 1000) {
+      textoDistancia = (distanciaMetros / 1000).toFixed(2) + " km"
+    } else {
+      textoDistancia = Math.round(distanciaMetros) + " m"
+    }
           
           // Tooltip para cada segmento
           (L as any).marker(puntoMedio, {
@@ -903,10 +907,14 @@ if (distanciaMetros > 1000) {
         }
         
         // Si es polígono cerrado, mostrar área
-        if (esCierre) {
-          const area = (L as any).GeometryUtil.geodesicArea(newPuntos)
-          const areaHa = area / 10000
-          const centroide = linea.getBounds().getCenter()
+if (esCierre) {
+  // ✅ Usar Turf.js para consistencia
+  const coords = newPuntos.map((p: any) => [p.lng, p.lat])
+  coords.push(coords[0])
+  const polygon = turf.polygon([coords])
+  const area = turf.area(polygon)
+  const areaHa = area / 10000
+  const centroide = linea.getBounds().getCenter()
           
           const areaNum = Number(area) || 0
           let textoArea = ""
