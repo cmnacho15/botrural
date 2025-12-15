@@ -162,10 +162,7 @@ const pendingColaborador = await prisma.pendingRegistration.findFirst({
 const result = await prisma.$transaction(async (tx) => {
   // Crear usuario
   const user = await tx.user.create({
-  data: {
-    ...userData,
-    onboardingCompletedAt: new Date(), // ← esto es lo que falta
-  },
+  data: userData,
 })
 
   // Marcar invitación como usada

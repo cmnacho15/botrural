@@ -67,7 +67,6 @@ export async function POST(request: Request) {
           role: "ADMIN_GENERAL",
           accesoFinanzas: true,
           campoId: campo.id,
-          onboardingCompletedAt: new Date(),
         },
       })
 
