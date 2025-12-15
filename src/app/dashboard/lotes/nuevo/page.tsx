@@ -40,6 +40,7 @@ export default function NuevoLotePage() {
   const [loading, setLoading] = useState(false)
   const [nombre, setNombre] = useState('')
   const [hectareasManual, setHectareasManual] = useState('')
+  const [esPastoreable, setEsPastoreable] = useState(true)  // 🆕 NUEVO
   const [showMap, setShowMap] = useState(false)
   const [poligono, setPoligono] = useState<number[][] | null>(null)
   const [hectareasCalculadas, setHectareasCalculadas] = useState<number | null>(null)
@@ -243,6 +244,7 @@ export default function NuevoLotePage() {
         nombre,
         hectareas: hectareasFinales,
         poligono,
+        esPastoreable,  // 🆕 NUEVO
         cultivos: cultivosValidos,
         animales: animalesValidos,
         moduloPastoreoId: moduloIdFinal, // 🔥 AGREGAR MÓDULO AL PAYLOAD
@@ -338,7 +340,23 @@ export default function NuevoLotePage() {
             />
           </div>
 
-          
+          {/* 🆕 NUEVO: Checkbox Es Pastoreable */}
+<div className="bg-purple-50 rounded-lg p-4">
+  <label className="flex items-center gap-3 cursor-pointer">
+    <input
+      type="checkbox"
+      checked={esPastoreable}
+      onChange={(e) => setEsPastoreable(e.target.checked)}
+      className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+    />
+    <div>
+      <span className="text-sm font-medium text-gray-900">Es pastoreable</span>
+      <p className="text-xs text-gray-600 mt-1">
+        Si está marcado, este potrero se incluirá en el cálculo de SPG (Superficie de Pastoreo Ganadero)
+      </p>
+    </div>
+  </label>
+</div>
 
           {/* 🌾 CULTIVOS */}
           <div className="bg-blue-50 rounded-lg p-4">

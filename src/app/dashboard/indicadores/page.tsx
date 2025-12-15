@@ -13,6 +13,11 @@ interface IndicadoresData {
     fechaDesde: string
     fechaHasta: string
   }
+  superficie: {  // 🆕 AGREGAR ESTO
+    total: number
+    spg: number
+    usandoSPG: boolean
+  }
   eficienciaTecnica: {
     superficieTotal: { global: number; vacunos: number; ovinos: number; equinos: number }
     relacionLanarVacuno: number
@@ -96,6 +101,7 @@ export default function IndicadoresPage() {
   const [eficienciaAbierto, setEficienciaAbierto] = useState(false)
   const [ganaderiaAbierto, setGanaderiaAbierto] = useState(false)
   const [economicosAbierto, setEconomicosAbierto] = useState(false)
+  const [usarSPG, setUsarSPG] = useState(false)  // 🆕 NUEVO
 
   const ejercicios = useMemo(() => generarEjercicios(5), [])
 
@@ -109,7 +115,7 @@ export default function IndicadoresPage() {
 
   useEffect(() => {
     fetchIndicadores()
-  }, [ejercicioSeleccionado])
+  }, [ejercicioSeleccionado, usarSPG])  // 🆕 AGREGAR usarSPG
 
   async function fetchIndicadores() {
     try {
@@ -120,6 +126,7 @@ export default function IndicadoresPage() {
       const params = new URLSearchParams({
         anioInicio: anioInicio.toString(),
         anioFin: anioFin.toString(),
+        usarSPG: usarSPG.toString(),  // 🆕 NUEVO
       })
 
       const res = await fetch(`/api/indicadores?${params}`)
@@ -173,6 +180,23 @@ export default function IndicadoresPage() {
           <p className="text-gray-500 mt-1">Análisis productivo y económico del ejercicio</p>
         </div>
       </div>
+      
+      {/* 🆕 NUEVO: Checkbox SPG */}
+<Card>
+  <CardContent className="pt-6">
+    <label className="flex items-center gap-3 cursor-pointer">
+      <input
+        type="checkbox"
+        checked={usarSPG}
+        onChange={(e) => setUsarSPG(e.target.checked)}
+        className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+      />
+      <span className="text-sm font-medium text-gray-700">
+        Usar SPG (Superficie de Pastoreo Ganadero) para los cálculos
+      </span>
+    </label>
+  </CardContent>
+</Card>
 
       {/* Selector de Ejercicio */}
       <Card>
@@ -225,8 +249,31 @@ export default function IndicadoresPage() {
                 <th className="px-3 py-2 text-center font-semibold text-gray-600 border-b border-gray-200 bg-green-50 min-w-[80px]">Por ha</th>
               </tr>
             </thead>
+            
+            
 
-            <tbody>
+              <tbody>
+  {/* 🆕 NUEVO: Filas de Superficie */}
+  <tr className="bg-gray-50">
+    <td className="px-4 py-2 font-medium text-gray-900 border-b border-gray-200 sticky left-0 bg-gray-50 z-10">
+      Superficie Total (ha)
+    </td>
+    <td className="px-3 py-2 text-center border-b border-gray-200 font-medium">
+      {fmt(data.superficie.total)}
+    </td>
+    <td colSpan={7} className="px-3 py-2 text-center border-b border-gray-200 text-gray-400">-</td>
+  </tr>
+  
+  <tr className={`${usarSPG ? 'bg-blue-50 border-l-4 border-l-blue-500' : 'bg-gray-50'}`}>
+    <td className={`px-4 py-2 font-medium border-b border-gray-200 sticky left-0 z-10 ${usarSPG ? 'bg-blue-50 text-blue-900' : 'bg-gray-50 text-gray-900'}`}>
+      SPG (Superficie de Pastoreo Ganadero)
+      {usarSPG && <span className="ml-2 text-xs text-blue-600">✔ Usada para cálculos</span>}
+    </td>
+    <td className={`px-3 py-2 text-center border-b border-gray-200 font-medium ${usarSPG ? 'text-blue-900' : ''}`}>
+      {fmt(data.superficie.spg)}
+    </td>
+    <td colSpan={7} className="px-3 py-2 text-center border-b border-gray-200 text-gray-400">-</td>
+  </tr>
               {/* EFICIENCIA TÉCNICA - ACORDEÓN */}
               <tr 
                 className="bg-green-100 cursor-pointer hover:bg-green-200 transition-colors"

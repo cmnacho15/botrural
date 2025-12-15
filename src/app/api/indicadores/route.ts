@@ -37,6 +37,7 @@ export async function GET(request: Request) {
     // Permitir override por parámetros
     const paramAnioInicio = searchParams.get("anioInicio")
     const paramAnioFin = searchParams.get("anioFin")
+    const usarSPG = searchParams.get("usarSPG") === "true" 
 
     const ejercicioInicio = paramAnioInicio ? parseInt(paramAnioInicio) : anioInicio
     const ejercicioFin = paramAnioFin ? parseInt(paramAnioFin) : anioFin
@@ -52,19 +53,30 @@ export async function GET(request: Request) {
     // 1 OBTENER LOTES Y CALCULAR UG/HECTÁREAS
     // ---------------------------------------------------------
     const lotes = await prisma.lote.findMany({
-      where: { campoId },
-      include: {
-        animalesLote: {
-          select: {
-            categoria: true,
-            cantidad: true,
-          },
-        },
+  where: { campoId },
+  select: {  // 🆕 CAMBIAR include por select
+    id: true,
+    nombre: true,
+    hectareas: true,
+    esPastoreable: true,  // 🆕 NUEVO
+    animalesLote: {
+      select: {
+        categoria: true,
+        cantidad: true,
       },
-    })
+    },
+  },
+})
 
     const estadisticas = calcularEstadisticasCampo(lotes)
     const { ugTotalesCampo, desglosePorTipo, totalHectareas } = estadisticas
+    
+    // 🆕 CALCULAR SPG (solo potreros pastoreables)
+const lotesPastoreables = lotes.filter(l => l.esPastoreable)
+const spg = lotesPastoreables.reduce((sum, l) => sum + l.hectareas, 0)
+
+// 🆕 DECIDIR QUÉ SUPERFICIE USAR
+const superficieParaCalculos = usarSPG ? spg : totalHectareas
 
     // Calcular hectáreas por especie (proporcional a % UG)
     let porcentajesUG = { vacunos: 0, ovinos: 0, equinos: 0 }
@@ -77,15 +89,15 @@ export async function GET(request: Request) {
     }
 
     const hectareasPorEspecie = {
-      vacunos: (totalHectareas * porcentajesUG.vacunos) / 100,
-      ovinos: (totalHectareas * porcentajesUG.ovinos) / 100,
-      equinos: (totalHectareas * porcentajesUG.equinos) / 100,
-      total: totalHectareas,
-    }
+  vacunos: (superficieParaCalculos * porcentajesUG.vacunos) / 100,  // 🆕 CAMBIO
+  ovinos: (superficieParaCalculos * porcentajesUG.ovinos) / 100,    // 🆕 CAMBIO
+  equinos: (superficieParaCalculos * porcentajesUG.equinos) / 100,  // 🆕 CAMBIO
+  total: superficieParaCalculos,  // 🆕 CAMBIO
+}
 
     // Carga (UG/ha)
     const carga = {
-      global: totalHectareas > 0 ? ugTotalesCampo / totalHectareas : 0,
+      global: superficieParaCalculos > 0 ? ugTotalesCampo / superficieParaCalculos : 0,  // 🆕 CAMBIO
       vacunos: hectareasPorEspecie.vacunos > 0 ? desglosePorTipo.vacunos / hectareasPorEspecie.vacunos : 0,
       ovinos: hectareasPorEspecie.ovinos > 0 ? desglosePorTipo.ovinos / hectareasPorEspecie.ovinos : 0,
       equinos: hectareasPorEspecie.equinos > 0 ? desglosePorTipo.yeguarizos / hectareasPorEspecie.equinos : 0,
@@ -515,7 +527,13 @@ export async function GET(request: Request) {
         fechaDesde: fechaDesde.toISOString().split('T')[0],
         fechaHasta: fechaHasta.toISOString().split('T')[0],
       },
-
+     
+      // 🆕 AGREGAR ESTA SECCIÓN
+  superficie: {
+    total: totalHectareas,
+    spg: spg,
+    usandoSPG: usarSPG,
+  },
       // Indicadores de eficiencia técnica
       eficienciaTecnica: {
         superficieTotal: {

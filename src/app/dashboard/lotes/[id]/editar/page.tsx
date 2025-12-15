@@ -49,6 +49,7 @@ export default function EditarLotePage() {
   const [hectareasCalculadas, setHectareasCalculadas] = useState<number | null>(null)
   const [lotesExistentes, setLotesExistentes] = useState<LoteExistente[]>([])
   const [mapCenter, setMapCenter] = useState<[number, number] | undefined>(undefined)
+  const [esPastoreable, setEsPastoreable] = useState(true)  // 🆕 NUEVO
   const [cultivos, setCultivos] = useState<Cultivo[]>([])
   const [animales, setAnimales] = useState<Animal[]>([])
   const [cultivosDisponibles, setCultivosDisponibles] = useState<string[]>([])
@@ -150,6 +151,7 @@ export default function EditarLotePage() {
           setNombre(lote.nombre);
           setHectareasManual(parseFloat(lote.hectareas).toFixed(2));
           setPoligono(lote.poligono || null);
+          setEsPastoreable(lote.esPastoreable ?? true);  // 🆕 NUEVO
           
           // 🔥 CARGAR MÓDULO ACTUAL
           setModuloSeleccionado(lote.moduloPastoreoId || '')
@@ -305,6 +307,7 @@ export default function EditarLotePage() {
         nombre,
         hectareas: hectareasFinales,
         poligono,
+        esPastoreable,
         cultivos: cultivosValidos,
         animales: animalesValidos,
         moduloPastoreoId: moduloIdFinal, // 🔥 AGREGAR MÓDULO AL PAYLOAD
@@ -404,7 +407,24 @@ export default function EditarLotePage() {
               placeholder="Ej: 25.5"
             />
           </div>
-
+          
+          {/* 🆕 NUEVO: Checkbox Es Pastoreable */}
+<div className="bg-purple-50 rounded-lg p-4">
+  <label className="flex items-center gap-3 cursor-pointer">
+    <input
+      type="checkbox"
+      checked={esPastoreable}
+      onChange={(e) => setEsPastoreable(e.target.checked)}
+      className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+    />
+    <div>
+      <span className="text-sm font-medium text-gray-900">Es pastoreable</span>
+      <p className="text-xs text-gray-600 mt-1">
+        Si está marcado, este potrero se incluirá en el cálculo de SPG (Superficie de Pastoreo Ganadero)
+      </p>
+    </div>
+  </label>
+</div>
           
 
           {/* CULTIVOS */}

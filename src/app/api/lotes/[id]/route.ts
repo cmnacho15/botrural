@@ -37,7 +37,7 @@ export async function PUT(
     }
 
     const body = await request.json();
-    const { nombre, hectareas, poligono, cultivos = [], animales = [], moduloPastoreoId } = body;
+    const { nombre, hectareas, poligono, cultivos = [], animales = [], moduloPastoreoId, esPastoreable } = body;  // 🆕 AGREGAR esPastoreable
 
     if (!nombre || isNaN(parseFloat(hectareas))) {
       return NextResponse.json(
@@ -140,6 +140,7 @@ const animalesAnterioresPorCategoria = animalesAnteriores.reduce((acc: any, a: a
       data: {
         nombre,
         hectareas: parseFloat(hectareas),
+        esPastoreable: esPastoreable ?? true,  // 🆕 NUEVO
         ...(poligono && { poligono }),
         ...(cambioEstadoAnimales && { ultimoCambio: new Date() }), // 🔥 AGREGADO: actualizar solo si cambió estado
         moduloPastoreoId: moduloPastoreoId || null,

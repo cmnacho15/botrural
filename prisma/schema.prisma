@@ -179,8 +179,10 @@ model Lote {
   hectareas         Float
   poligono          Json?
   ultimoCambio      DateTime           @default(now())
+  esPastoreable     Boolean            @default(true)  // 🆕 NUEVO CAMPO
   campoId           String
   moduloPastoreoId  String? 
+  
 
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
@@ -196,6 +198,7 @@ model Lote {
   moduloPastoreo    ModuloPastoreo?    @relation(fields: [moduloPastoreoId], references: [id], onDelete: SetNull)
   
   @@index([moduloPastoreoId])  // ← índice para búsquedas rápidas
+  @@index([esPastoreable])  // 🆕 ÍNDICE para filtrar rápido
 }
 
 model Cultivo {

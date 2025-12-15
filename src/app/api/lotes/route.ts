@@ -70,7 +70,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { nombre, hectareas, poligono, cultivos = [], animales = [], moduloPastoreoId } = body;
+    const { nombre, hectareas, poligono, cultivos = [], animales = [], moduloPastoreoId, esPastoreable } = body;  // 🆕 AGREGAR esPastoreable
 
     if (!nombre || !hectareas) {
       return NextResponse.json(
@@ -93,6 +93,7 @@ export async function POST(request: Request) {
         nombre,
         hectareas: parseFloat(hectareas),
         poligono,
+        esPastoreable: esPastoreable ?? true,  // 🆕 NUEVO
         campoId: usuario.campoId,
         ultimoCambio: new Date(), // 🔥 AGREGADO: registrar fecha de creación
         moduloPastoreoId: moduloPastoreoId || null,
