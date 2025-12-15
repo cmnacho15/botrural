@@ -275,20 +275,33 @@ export default function IndicadoresPage() {
     <td colSpan={7} className="px-3 py-2 text-center border-b border-gray-200 text-gray-400">-</td>
   </tr>
               {/* EFICIENCIA TÉCNICA - ACORDEÓN */}
-              <tr 
-                className="bg-green-100 cursor-pointer hover:bg-green-200 transition-colors"
-                onClick={() => setEficienciaAbierto(!eficienciaAbierto)}
-              >
-                <td colSpan={9} className="px-4 py-3 font-bold text-green-800 border-y border-green-300 sticky left-0 bg-green-100 z-10">
-                  <div className="flex items-center gap-2">
-                    {eficienciaAbierto ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
-                    Indicadores de eficiencia técnica
-                  </div>
-                </td>
-              </tr>
-              {eficienciaAbierto && (
+<tr 
+  className="bg-green-100 cursor-pointer hover:bg-green-200 transition-colors"
+  onClick={() => setEficienciaAbierto(!eficienciaAbierto)}
+>
+  <td colSpan={9} className="px-4 py-3 font-bold text-green-800 border-y border-green-300 sticky left-0 bg-green-100 z-10">
+    <div className="flex items-center gap-2">
+      {eficienciaAbierto ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
+      Indicadores de eficiencia técnica
+    </div>
+  </td>
+</tr>
+{eficienciaAbierto && (
   <>
-    {/* ✅ SOLO DEJAR ESTA FILA */}
+    {/* ✅ PRIMERA FILA: Superficie total */}
+    <tr className="hover:bg-gray-50">
+      <td className="px-4 py-2 font-medium text-gray-900 border-b border-gray-100 sticky left-0 bg-white z-10">Superficie total</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100">{fmt(data.eficienciaTecnica.superficieTotal.global)}</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-gray-400">-</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100">{fmt(Math.round(data.eficienciaTecnica.superficieTotal.vacunos))}</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-gray-400">-</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100">{fmt(Math.round(data.eficienciaTecnica.superficieTotal.ovinos))}</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-gray-400">-</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100">{fmt(Math.round(data.eficienciaTecnica.superficieTotal.equinos))}</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-gray-400">-</td>
+    </tr>
+    
+    {/* ✅ SEGUNDA FILA: Relación lanar/vacuno */}
     <tr className="hover:bg-gray-50">
       <td className="px-4 py-2 font-medium text-gray-900 border-b border-gray-100 sticky left-0 bg-white z-10">Relación lanar/vacuno</td>
       <td className="px-3 py-2 text-center border-b border-gray-100">{fmtDec(data.eficienciaTecnica.relacionLanarVacuno)}</td>
