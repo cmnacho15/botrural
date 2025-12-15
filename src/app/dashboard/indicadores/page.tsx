@@ -287,25 +287,15 @@ export default function IndicadoresPage() {
                 </td>
               </tr>
               {eficienciaAbierto && (
-                <>
-                  <tr className="hover:bg-gray-50">
-                    <td className="px-4 py-2 font-medium text-gray-900 border-b border-gray-100 sticky left-0 bg-white z-10">Superficie total</td>
-                    <td className="px-3 py-2 text-center border-b border-gray-100">{fmt(data.eficienciaTecnica.superficieTotal.global)}</td>
-                    <td className="px-3 py-2 text-center border-b border-gray-100 text-gray-400">-</td>
-                    <td className="px-3 py-2 text-center border-b border-gray-100">{fmt(Math.round(data.eficienciaTecnica.superficieTotal.vacunos))}</td>
-                    <td className="px-3 py-2 text-center border-b border-gray-100 text-gray-400">-</td>
-                    <td className="px-3 py-2 text-center border-b border-gray-100">{fmt(Math.round(data.eficienciaTecnica.superficieTotal.ovinos))}</td>
-                    <td className="px-3 py-2 text-center border-b border-gray-100 text-gray-400">-</td>
-                    <td className="px-3 py-2 text-center border-b border-gray-100">{fmt(Math.round(data.eficienciaTecnica.superficieTotal.equinos))}</td>
-                    <td className="px-3 py-2 text-center border-b border-gray-100 text-gray-400">-</td>
-                  </tr>
-                  <tr className="hover:bg-gray-50">
-                    <td className="px-4 py-2 font-medium text-gray-900 border-b border-gray-100 sticky left-0 bg-white z-10">Relación lanar/vacuno</td>
-                    <td className="px-3 py-2 text-center border-b border-gray-100">{fmtDec(data.eficienciaTecnica.relacionLanarVacuno)}</td>
-                    <td colSpan={7} className="px-3 py-2 text-center border-b border-gray-100 text-gray-400">-</td>
-                  </tr>
-                </>
-              )}
+  <>
+    {/* ✅ SOLO DEJAR ESTA FILA */}
+    <tr className="hover:bg-gray-50">
+      <td className="px-4 py-2 font-medium text-gray-900 border-b border-gray-100 sticky left-0 bg-white z-10">Relación lanar/vacuno</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100">{fmtDec(data.eficienciaTecnica.relacionLanarVacuno)}</td>
+      <td colSpan={7} className="px-3 py-2 text-center border-b border-gray-100 text-gray-400">-</td>
+    </tr>
+  </>
+)}
 
               {/* GANADERÍA - ACORDEÓN */}
               <tr 
