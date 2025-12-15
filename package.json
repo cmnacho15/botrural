@@ -13,6 +13,7 @@
     "@auth/prisma-adapter": "^2.11.1",
     "@react-leaflet/core": "^2.1.0",
     "@supabase/supabase-js": "^2.84.0",
+    "@turf/turf": "^7.3.1",
     "bcryptjs": "^3.0.3",
     "date-fns": "^4.1.0",
     "esri-leaflet": "^3.0.19",

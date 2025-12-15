@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import 'leaflet-draw/dist/leaflet.draw.css'
+import * as turf from '@turf/turf'
 
 
 if (typeof window !== 'undefined') {
@@ -130,23 +131,15 @@ interface MapaPoligonoProps {
 }
 
 function calcularAreaPoligono(latlngs: any[]): number {
-  const R = 6371000
   if (latlngs.length < 3) return 0
-
-  let area = 0
-  const coords = latlngs.map((ll: any) => ({
-    lat: ll.lat * Math.PI / 180,
-    lng: ll.lng * Math.PI / 180,
-  }))
-
-  for (let i = 0; i < coords.length; i++) {
-    const j = (i + 1) % coords.length
-    area += coords[i].lng * coords[j].lat
-    area -= coords[j].lng * coords[i].lat
-  }
-
-  area = Math.abs(area * R * R / 2)
-  return area
+  
+  // ✅ TURF.JS - MÁXIMA PRECISIÓN GEODÉSICA
+  // Convertir a formato GeoJSON [lng, lat]
+  const coords = latlngs.map(ll => [ll.lng, ll.lat])
+  coords.push(coords[0]) // Cerrar el polígono
+  
+  const polygon = turf.polygon([coords])
+  return turf.area(polygon) // Retorna m² con precisión geodésica
 }
 
 // 🎨 FUNCIÓN PROFESIONAL: Renderizar NDVI con Canvas
@@ -432,11 +425,11 @@ L.control.layers({ 'Satélite': satelitalLayer, 'Mapa': osmLayer }).addTo(map)
       drawnItemsRef.current = drawnItems
 
       const drawControl = new (L.Control as any).Draw({
-        draw: {
-          polygon: {
-            allowIntersection: false,
-            showArea: true,
-            metric: ['ha', 'm'],
+  draw: {
+    polygon: {
+      allowIntersection: false,
+      showArea: false,  // ✅ DESHABILITAR para evitar confusión
+      metric: ['ha', 'm'],
             shapeOptions: { color: '#3b82f6', weight: 3 },
             icon: new (L as any).DivIcon({
               iconSize: new (L as any).Point(8, 8),
