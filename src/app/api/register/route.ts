@@ -76,7 +76,6 @@ export async function POST(request: Request) {
           nombre: cat.nombre,
           color: cat.color,
           campoId: campo.id,
-          onboardingCompletedAt: new Date(), // ← AGREGue etsa linea ver si soluciona lo de usuarios nuevos y cambio potrero desde bot de wsp
           orden: index,
           activo: true,
         })),
