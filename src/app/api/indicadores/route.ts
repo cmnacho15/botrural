@@ -593,7 +593,7 @@ const superficieParaCalculos = usarSPG ? spg : totalHectareas
             equinos: Math.round(produccionCarne.equinos),
           },
           porHa: {
-            global: Math.round(porHa(produccionCarne.global, totalHectareas)),
+            global: Math.round(porHa(produccionCarne.global, superficieParaCalculos)),
             vacunos: Math.round(porHa(produccionCarne.vacunos, hectareasPorEspecie.vacunos)),
             ovinos: Math.round(porHa(produccionCarne.ovinos, hectareasPorEspecie.ovinos)),
             equinos: Math.round(porHa(produccionCarne.equinos, hectareasPorEspecie.equinos)),
@@ -611,7 +611,7 @@ const superficieParaCalculos = usarSPG ? spg : totalHectareas
             equinos: Math.round(productoBruto.equinos),
           },
           porHa: {
-            global: Math.round(porHa(productoBruto.global, totalHectareas)),
+            global: Math.round(porHa(productoBruto.global, superficieParaCalculos)),
             vacunos: Math.round(porHa(productoBruto.vacunos, hectareasPorEspecie.vacunos)),
             ovinos: Math.round(porHa(productoBruto.ovinos, hectareasPorEspecie.ovinos)),
             equinos: Math.round(porHa(productoBruto.equinos, hectareasPorEspecie.equinos)),
@@ -625,7 +625,7 @@ const superficieParaCalculos = usarSPG ? spg : totalHectareas
             equinos: Math.round(ingresoBruto.equinos),
           },
           porHa: {
-            global: Math.round(porHa(ingresoBruto.global, totalHectareas)),
+            global: Math.round(porHa(ingresoBruto.global, superficieParaCalculos)),
             vacunos: Math.round(porHa(ingresoBruto.vacunos, hectareasPorEspecie.vacunos)),
             ovinos: Math.round(porHa(ingresoBruto.ovinos, hectareasPorEspecie.ovinos)),
             equinos: Math.round(porHa(ingresoBruto.equinos, hectareasPorEspecie.equinos)),
@@ -639,7 +639,7 @@ const superficieParaCalculos = usarSPG ? spg : totalHectareas
             equinos: Math.round(costosTotalesPorEspecie.equinos),
           },
           porHa: {
-            global: Math.round(porHa(costosTotalesGeneral, totalHectareas)),
+            global: Math.round(porHa(costosTotalesGeneral, superficieParaCalculos)),
             vacunos: Math.round(porHa(costosTotalesPorEspecie.vacunos, hectareasPorEspecie.vacunos)),
             ovinos: Math.round(porHa(costosTotalesPorEspecie.ovinos, hectareasPorEspecie.ovinos)),
             equinos: Math.round(porHa(costosTotalesPorEspecie.equinos, hectareasPorEspecie.equinos)),
@@ -653,7 +653,7 @@ const superficieParaCalculos = usarSPG ? spg : totalHectareas
             equinos: Math.round(costosFijosPorEspecie.equinos),
           },
           porHa: {
-            global: Math.round(porHa(totalFijos, totalHectareas)),
+            global: Math.round(porHa(totalFijos, superficieParaCalculos)),
             vacunos: Math.round(porHa(costosFijosPorEspecie.vacunos, hectareasPorEspecie.vacunos)),
             ovinos: Math.round(porHa(costosFijosPorEspecie.ovinos, hectareasPorEspecie.ovinos)),
             equinos: Math.round(porHa(costosFijosPorEspecie.equinos, hectareasPorEspecie.equinos)),
@@ -667,7 +667,7 @@ const superficieParaCalculos = usarSPG ? spg : totalHectareas
             equinos: Math.round(costosVariablesPorEspecie.equinos),
           },
           porHa: {
-            global: Math.round(porHa(totalVariables, totalHectareas)),
+            global: Math.round(porHa(totalVariables, superficieParaCalculos)),
             vacunos: Math.round(porHa(costosVariablesPorEspecie.vacunos, hectareasPorEspecie.vacunos)),
             ovinos: Math.round(porHa(costosVariablesPorEspecie.ovinos, hectareasPorEspecie.ovinos)),
             equinos: Math.round(porHa(costosVariablesPorEspecie.equinos, hectareasPorEspecie.equinos)),
@@ -681,7 +681,7 @@ const superficieParaCalculos = usarSPG ? spg : totalHectareas
             equinos: Math.round(costosRentaPorEspecie.equinos),
           },
           porHa: {
-            global: Math.round(porHa(totalRenta, totalHectareas)),
+            global: Math.round(porHa(totalRenta, superficieParaCalculos)),
             vacunos: Math.round(porHa(costosRentaPorEspecie.vacunos, hectareasPorEspecie.vacunos)),
             ovinos: Math.round(porHa(costosRentaPorEspecie.ovinos, hectareasPorEspecie.ovinos)),
             equinos: Math.round(porHa(costosRentaPorEspecie.equinos, hectareasPorEspecie.equinos)),
@@ -695,7 +695,7 @@ const superficieParaCalculos = usarSPG ? spg : totalHectareas
             equinos: Math.round(ik.equinos),
           },
           porHa: {
-            global: Math.round(porHa(ik.global, totalHectareas)),
+            global: Math.round(porHa(ik.global, superficieParaCalculos)),
             vacunos: Math.round(porHa(ik.vacunos, hectareasPorEspecie.vacunos)),
             ovinos: Math.round(porHa(ik.ovinos, hectareasPorEspecie.ovinos)),
             equinos: Math.round(porHa(ik.equinos, hectareasPorEspecie.equinos)),
@@ -709,7 +709,7 @@ const superficieParaCalculos = usarSPG ? spg : totalHectareas
             equinos: Math.round(ikp.equinos),
           },
           porHa: {
-            global: Math.round(porHa(ikp.global, totalHectareas)),
+            global: Math.round(porHa(ikp.global, superficieParaCalculos)),
             vacunos: Math.round(porHa(ikp.vacunos, hectareasPorEspecie.vacunos)),
             ovinos: Math.round(porHa(ikp.ovinos, hectareasPorEspecie.ovinos)),
             equinos: Math.round(porHa(ikp.equinos, hectareasPorEspecie.equinos)),
@@ -723,7 +723,7 @@ const superficieParaCalculos = usarSPG ? spg : totalHectareas
             equinos: Math.round(ingresoEfectivo.equinos),
           },
           porHa: {
-            global: Math.round(porHa(ingresoEfectivo.global, totalHectareas)),
+            global: Math.round(porHa(ingresoEfectivo.global, superficieParaCalculos)),
             vacunos: Math.round(porHa(ingresoEfectivo.vacunos, hectareasPorEspecie.vacunos)),
             ovinos: Math.round(porHa(ingresoEfectivo.ovinos, hectareasPorEspecie.ovinos)),
             equinos: Math.round(porHa(ingresoEfectivo.equinos, hectareasPorEspecie.equinos)),
