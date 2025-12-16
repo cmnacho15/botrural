@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import GastosPreferencias from '@/app/preferencias/components/GastosPreferencias'
 import ModulosPreferencias from '@/app/preferencias/components/ModulosPreferencias'
+import KMZUploader from '@/app/preferencias/components/KMZUploader'
 
 type TipoCultivo = {
   id: string
@@ -63,6 +64,9 @@ const [showModalFirma, setShowModalFirma] = useState(false)
 const [nuevaFirma, setNuevaFirma] = useState({ rut: '', razonSocial: '', esPrincipal: false })
 const [savingFirma, setSavingFirma] = useState(false)
 const [editandoFirma, setEditandoFirma] = useState<{ id: string; rut: string; razonSocial: string; esPrincipal: boolean } | null>(null)
+
+  // Estado para modal KMZ
+  const [showModalKMZ, setShowModalKMZ] = useState(false)
 
   // Cargar nombre del campo
   useEffect(() => {
@@ -498,11 +502,79 @@ async function handleEliminarFirma(id: string) {
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-6xl mx-auto">
+        
+        
+
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-900 mb-1">⚙️ Preferencias</h1>
           <p className="text-gray-600 text-sm">Configurá las opciones de tu campo</p>
         </div>
 
+        {/* 🆕 SECCIÓN DE CARGA DE POTREROS */}
+        <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-xl shadow-sm mb-6 p-8 border border-green-200">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center text-white text-2xl">
+              ✓
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-gray-900">Carga los potreros de tu campo</h2>
+              <p className="text-sm text-gray-600">Elegí cómo querés comenzar</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {/* Ingresar Manualmente */}
+            <button
+              onClick={() => setActiveTab('campo')}
+              className="bg-white p-6 rounded-lg border-2 border-gray-200 hover:border-blue-500 hover:shadow-md transition text-center"
+            >
+              <div className="text-5xl mb-3">📝</div>
+              <h3 className="font-semibold text-gray-900 mb-2">Ingresar Manualmente</h3>
+              <p className="text-sm text-gray-600">Ideal si son pocos potreros</p>
+            </button>
+
+            {/* CSV o Excel */}
+            <button
+              disabled
+              className="bg-white p-6 rounded-lg border-2 border-gray-200 opacity-50 cursor-not-allowed text-center"
+            >
+              <div className="text-5xl mb-3">📊</div>
+              <h3 className="font-semibold text-gray-500 mb-2">CSV o Excel</h3>
+              <p className="text-sm text-gray-400">Carga todos de una vez</p>
+            </button>
+
+            {/* KMZ de Google Earth */}
+            <button
+              onClick={() => setShowModalKMZ(true)}
+              className="bg-white p-6 rounded-lg border-2 border-gray-200 hover:border-blue-500 hover:shadow-md transition text-center"
+            >
+              <div className="text-5xl mb-3">🗺️</div>
+              <h3 className="font-semibold text-gray-900 mb-2">KMZ de Google Earth</h3>
+              <p className="text-sm text-gray-600">Subí tus potreros y tu mapa</p>
+            </button>
+
+            {/* Imagen de un croquis */}
+            <button
+              disabled
+              className="bg-white p-6 rounded-lg border-2 border-gray-200 opacity-50 cursor-not-allowed text-center"
+            >
+              <div className="text-5xl mb-3">👨‍💻</div>
+              <h3 className="font-semibold text-gray-500 mb-2">Imagen de un croquis</h3>
+              <p className="text-sm text-gray-400">Te dibujamos el mapa</p>
+            </button>
+          </div>
+
+          <div className="mt-6 text-center">
+            <a 
+              href="#"
+              className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+            >
+              Ver Video Demo →
+            </a>
+          </div>
+        </div>
+
+        
         {/* TABS */}
         <div className="bg-white rounded-lg shadow-sm mb-6">
           <div className="border-b border-gray-200">
@@ -1428,6 +1500,34 @@ className="text-red-600 hover:text-red-900">
                 >
                   {savingFirma ? 'Guardando...' : editandoFirma ? 'Actualizar' : 'Crear'}
                 </button>
+              </div>
+            </div>
+         </div>
+        )}
+
+        {/* MODAL KMZ */}
+        {showModalKMZ && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+              <div className="p-6 border-b border-gray-200 flex justify-between items-center sticky top-0 bg-white">
+                <h2 className="text-lg font-semibold text-gray-900">
+                  Importar desde Google Earth
+                </h2>
+                <button
+                  onClick={() => setShowModalKMZ(false)}
+                  className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="p-6">
+                <KMZUploader 
+                  onComplete={() => {
+                    setShowModalKMZ(false)
+                    alert('¡Potreros creados exitosamente!')
+                  }} 
+                />
               </div>
             </div>
           </div>
