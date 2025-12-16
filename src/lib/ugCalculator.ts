@@ -54,9 +54,7 @@ export function calcularUGTotales(animales: Animal[]): number {
   if (!animales || animales.length === 0) return 0
 
   // 1️⃣ Contar "Terneros nacidos" y "Vacas"
-  const ternerosNacidos = animales
-  .filter(a => a.categoria === 'Terneros nacidos')
-  .reduce((sum, a) => sum + a.cantidad, 0)
+  const ternerosNacidos = animales.find(a => a.categoria === 'Terneros nacidos')?.cantidad || 0
   const vacasTotal = animales.find(a => a.categoria === 'Vacas')?.cantidad || 0
 
   // 2️⃣ Determinar cuántas vacas valen 1.2 UG (con cría) y cuántas 1.0 UG (sin cría)
@@ -124,21 +122,11 @@ export function calcularEstadisticasLote(lote: Lote) {
     yeguarizos: 0
   }
 
-  animales.forEach(animal => {
-    const equivalencia = EQUIVALENCIAS_UG[animal.categoria] || 0
-    const ugAnimal = animal.cantidad * equivalencia
+ // ⚠️ IMPORTANTE:
+// El cálculo correcto de UG ya está en calcularUGTotales()
+// NO se recalcula acá para evitar romper la lógica vaca + ternero
 
-    if (['Toros', 'Vacas', 'Novillos +3 años', 'Novillos 2–3 años', 
-     'Novillos 1–2 años', 'Vaquillonas +2 años', 'Vaquillonas 1–2 años', 
-     'Terneros/as', 'Terneros nacidos'].includes(animal.categoria)) { // 🆕 AGREGAR
-  desglosePorTipo.vacunos += ugAnimal
-} else if (['Carneros', 'Ovejas', 'Capones', 'Borregas 2–4 dientes', 
-                'Corderas DL', 'Corderos DL', 'Corderos/as Mamones'].includes(animal.categoria)) {
-      desglosePorTipo.ovinos += ugAnimal
-    } else if (['Padrillos', 'Yeguas', 'Caballos', 'Potrillos'].includes(animal.categoria)) {
-      desglosePorTipo.yeguarizos += ugAnimal
-    }
-  })
+desglosePorTipo.vacunos = ugTotales
 
   // Total de animales por categoría
   const totalAnimalesPorCategoria = animales.reduce((acc, animal) => {
@@ -177,21 +165,8 @@ export function calcularEstadisticasCampo(lotes: Lote[]) {
     yeguarizos: 0
   }
 
-  todosLosAnimales.forEach(animal => {
-    const equivalencia = EQUIVALENCIAS_UG[animal.categoria] || 0
-    const ugAnimal = animal.cantidad * equivalencia
-
-    if (['Toros', 'Vacas', 'Novillos +3 años', 'Novillos 2–3 años', 
-         'Novillos 1–2 años', 'Vaquillonas +2 años', 'Vaquillonas 1–2 años', 
-         'Terneros/as', 'Terneros nacidos'].includes(animal.categoria)) {  // ✅ AGREGADO
-      desglosePorTipo.vacunos += ugAnimal
-    } else if (['Carneros', 'Ovejas', 'Capones', 'Borregas 2–4 dientes', 
-                'Corderas DL', 'Corderos DL', 'Corderos/as Mamones'].includes(animal.categoria)) {
-      desglosePorTipo.ovinos += ugAnimal
-    } else if (['Padrillos', 'Yeguas', 'Caballos', 'Potrillos'].includes(animal.categoria)) {
-      desglosePorTipo.yeguarizos += ugAnimal
-    }
-  })
+  // ⚠️ Igual que en el lote: usar SOLO el cálculo centralizado
+desglosePorTipo.vacunos = ugTotalesCampo
 
   return {
     totalHectareas,
