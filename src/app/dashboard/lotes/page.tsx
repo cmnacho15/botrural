@@ -573,29 +573,41 @@ const [acordeonesAbiertos, setAcordeonesAbiertos] = useState<{[key: string]: boo
               </h1>
               
               {/* 🌾 CARGA GLOBAL DEL CAMPO CON TOOLTIP */}
-              {hayLotes && (() => {
+{hayLotes && (() => {
   const totalHectareas = lotes.reduce((sum, l) => sum + l.hectareas, 0)
   const todosAnimales = lotes.flatMap(l => l.animalesLote || [])
 
+  // 🔍 DEBUG - AGREGA ESTAS LÍNEAS
+  console.log('🔍 TODOS LOS ANIMALES:', todosAnimales)
+  console.log('🔍 TOTAL LOTES:', lotes.length)
+  console.log('🔍 ANIMALES POR LOTE:', lotes.map(l => ({ 
+    nombre: l.nombre, 
+    animales: l.animalesLote 
+  })))
+
   const ugTotales = calcularUGTotales(todosAnimales)
+  console.log('🔍 UG TOTALES CALCULADAS:', ugTotales)
+  console.log('🔍 HECTÁREAS TOTALES:', totalHectareas)
+  
   const cargaGlobal = totalHectareas > 0 ? ugTotales / totalHectareas : 0
+  console.log('🔍 CARGA GLOBAL FINAL:', cargaGlobal.toFixed(2), 'UG/ha')
                 
-                if (todosAnimales.length === 0) return null
-                
-                const color = 
-                  cargaGlobal < 0.7 ? 'bg-blue-100 text-blue-700' :
-                  cargaGlobal <= 1.5 ? 'bg-green-100 text-green-700' :
-                  cargaGlobal <= 2.0 ? 'bg-orange-100 text-orange-700' :
-                  'bg-red-100 text-red-700'
-                
-                return (
-                  <Tooltip content={<TooltipCargaGlobal />}>
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${color}`}>
-                      {cargaGlobal.toFixed(2)} UG/ha
-                    </span>
-                  </Tooltip>
-                )
-              })()}
+  if (todosAnimales.length === 0) return null
+  
+  const color = 
+    cargaGlobal < 0.7 ? 'bg-blue-100 text-blue-700' :
+    cargaGlobal <= 1.5 ? 'bg-green-100 text-green-700' :
+    cargaGlobal <= 2.0 ? 'bg-orange-100 text-orange-700' :
+    'bg-red-100 text-red-700'
+  
+  return (
+    <Tooltip content={<TooltipCargaGlobal />}>
+      <span className={`px-3 py-1 rounded-full text-sm font-medium ${color}`}>
+        {cargaGlobal.toFixed(2)} UG/ha
+      </span>
+    </Tooltip>
+  )
+})()}
 
               {/* RELACIÓN LANAR🐑/VACUNO🐄*/}
               {hayLotes && (() => {
