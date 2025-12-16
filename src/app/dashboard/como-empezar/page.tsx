@@ -6,7 +6,7 @@ import { Rocket, ChevronDown, ChevronUp, Check } from 'lucide-react'
 import { useOnboardingProgress } from '@/hooks/useOnboardingProgress'
 import ModalInvitarUsuario from '@/app/components/modales/ModalInvitarUsuario'
 import ModalNuevoDato from '@/app/components/modales/ModalNuevoDato'
-
+import KMZUploader from '@/app/preferencias/components/KMZUploader'
 // ==========================================
 // 📦 COMPONENTE CARD DE OPCIÓN
 // ==========================================
@@ -288,6 +288,7 @@ export default function ComoEmpezar() {
   const [menuEventosOpen, setMenuEventosOpen] = useState(false)
   const [tipoDatoSeleccionado, setTipoDatoSeleccionado] = useState('')
   const [modalEquipoOpen, setModalEquipoOpen] = useState(false)
+   const [showModalKMZ, setShowModalKMZ] = useState(false)
 
   const togglePaso = (paso: 'paso1' | 'paso2' | 'paso3') => {
     setPasosExpandidos(prev => ({
@@ -372,8 +373,7 @@ export default function ComoEmpezar() {
                     icono={iconos.kmz}
                     titulo="KMZ de Google Earth"
                     subtitulo="Subí tus potreros y tu mapa"
-                    disabled
-                    onClick={() => {}}
+                    onClick={() => setShowModalKMZ(true)}
                   />
                   <OpcionCard
                     icono={iconos.croquis}
@@ -503,6 +503,34 @@ export default function ComoEmpezar() {
           window.location.reload()
         }}
       />
+
+      {/* MODAL KMZ */}
+      {showModalKMZ && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[80] flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200 flex justify-between items-center sticky top-0 bg-white">
+              <h2 className="text-lg font-semibold text-gray-900">
+                Importar desde Google Earth
+              </h2>
+              <button
+                onClick={() => setShowModalKMZ(false)}
+                className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-6">
+              <KMZUploader 
+                onComplete={() => {
+                  setShowModalKMZ(false)
+                  window.location.reload()
+                }} 
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }
