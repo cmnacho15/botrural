@@ -415,18 +415,26 @@ const [acordeonesAbiertos, setAcordeonesAbiertos] = useState<{[key: string]: boo
 
   // Calcular totales por módulo
   const calcularTotalesModulo = (lotesDelModulo: Lote[]) => {
-  const totalHectareas = lotesDelModulo.reduce((sum, l) => sum + l.hectareas, 0)
-  const todosAnimales = lotesDelModulo.flatMap(l => l.animalesLote || [])
-  const totalAnimales = todosAnimales.reduce((sum, a) => sum + a.cantidad, 0)
-  
-  // 🔥 NUEVO: Calcular UG totales del módulo
-  const ugTotales = calcularUGTotales(todosAnimales)
-  
-  // 🔥 NUEVO: Calcular UG/ha del módulo
-  const ugPorHa = totalHectareas > 0 ? ugTotales / totalHectareas : 0
-  
-  return { totalHectareas, totalAnimales, ugPorHa }
-}
+    const totalHectareas = lotesDelModulo.reduce((sum, l) => sum + l.hectareas, 0)
+    const todosAnimales = lotesDelModulo.flatMap(l => l.animalesLote || [])
+    
+    // ✅ AGRUPAR animales por categoría antes de calcular UG
+    const animalesAgrupados = todosAnimales.reduce((acc, animal) => {
+      const existing = acc.find(a => a.categoria === animal.categoria)
+      if (existing) {
+        existing.cantidad += animal.cantidad
+      } else {
+        acc.push({ categoria: animal.categoria, cantidad: animal.cantidad })
+      }
+      return acc
+    }, [] as Array<{ categoria: string; cantidad: number }>)
+    
+    const totalAnimales = todosAnimales.reduce((sum, a) => sum + a.cantidad, 0)
+    const ugTotales = calcularUGTotales(animalesAgrupados)
+    const ugPorHa = totalHectareas > 0 ? ugTotales / totalHectareas : 0
+    
+    return { totalHectareas, totalAnimales, ugPorHa }
+  }
 
   // 🎴 COMPONENTE PARA RENDERIZAR UN POTRERO (reutilizable)
   const PotreroCard = ({ lote }: { lote: Lote }) => (
@@ -478,7 +486,18 @@ const [acordeonesAbiertos, setAcordeonesAbiertos] = useState<{[key: string]: boo
               
               {/* CARGA UG/ha DEL POTRERO CON TOOLTIP */}
 {(() => {
-  const ugTotales = calcularUGTotales(lote.animalesLote)
+  // ✅ Agrupar animales por categoría antes de calcular UG
+  const animalesAgrupados = (lote.animalesLote || []).reduce((acc, animal) => {
+    const existing = acc.find(a => a.categoria === animal.categoria)
+    if (existing) {
+      existing.cantidad += animal.cantidad
+    } else {
+      acc.push({ categoria: animal.categoria, cantidad: animal.cantidad })
+    }
+    return acc
+  }, [] as Array<{ categoria: string; cantidad: number }>)
+  
+  const ugTotales = calcularUGTotales(animalesAgrupados)
   const cargaUG = lote.hectareas > 0 ? ugTotales / lote.hectareas : 0
                 
                 const color = 
@@ -577,20 +596,19 @@ const [acordeonesAbiertos, setAcordeonesAbiertos] = useState<{[key: string]: boo
   const totalHectareas = lotes.reduce((sum, l) => sum + l.hectareas, 0)
   const todosAnimales = lotes.flatMap(l => l.animalesLote || [])
 
-  // 🔍 DEBUG - AGREGA ESTAS LÍNEAS
-  console.log('🔍 TODOS LOS ANIMALES:', todosAnimales)
-  console.log('🔍 TOTAL LOTES:', lotes.length)
-  console.log('🔍 ANIMALES POR LOTE:', lotes.map(l => ({ 
-    nombre: l.nombre, 
-    animales: l.animalesLote 
-  })))
+  // ✅ AGRUPAR animales por categoría antes de calcular UG
+  const animalesAgrupados = todosAnimales.reduce((acc, animal) => {
+    const existing = acc.find(a => a.categoria === animal.categoria)
+    if (existing) {
+      existing.cantidad += animal.cantidad
+    } else {
+      acc.push({ categoria: animal.categoria, cantidad: animal.cantidad })
+    }
+    return acc
+  }, [] as Array<{ categoria: string; cantidad: number }>)
 
-  const ugTotales = calcularUGTotales(todosAnimales)
-  console.log('🔍 UG TOTALES CALCULADAS:', ugTotales)
-  console.log('🔍 HECTÁREAS TOTALES:', totalHectareas)
-  
+  const ugTotales = calcularUGTotales(animalesAgrupados)
   const cargaGlobal = totalHectareas > 0 ? ugTotales / totalHectareas : 0
-  console.log('🔍 CARGA GLOBAL FINAL:', cargaGlobal.toFixed(2), 'UG/ha')
                 
   if (todosAnimales.length === 0) return null
   
