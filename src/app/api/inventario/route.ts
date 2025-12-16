@@ -79,16 +79,17 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Crear nuevos registros (incluye precioKgFin)
+   // Crear nuevos registros (incluye precioKgFin)
     const created = await prisma.inventario.createMany({
       data: inventarios.map((inv: any) => ({
         campoId: usuario.campoId,
         fecha: new Date(fecha),
         categoria: inv.categoria,
         cantidad: inv.cantidad,
-        peso: inv.peso || null,
+        pesoInicio: inv.pesoInicio || null,  // 🆕 CAMBIO
+        pesoFin: inv.pesoFin || null,        // 🆕 CAMBIO
         precioKg: inv.precioKg || null,
-        precioKgFin: inv.precioKgFin || null, // ✨ NUEVO CAMPO
+        precioKgFin: inv.precioKgFin || null,
       })),
     });
 

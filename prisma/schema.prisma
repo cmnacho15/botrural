@@ -513,16 +513,17 @@ model CargaHistorica {
 }
 
 model Inventario {
-  id         String   @id @default(cuid())
-  campoId    String
-  fecha      DateTime
-  categoria  String
-  cantidad   Int
-  peso       Float?
-  precioKg   Float?      // ← Este es el precio INICIO
-  precioKgFin Float?     // ← AGREGAR ESTE CAMPO (precio FIN)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id          String   @id @default(cuid())
+  campoId     String
+  fecha       DateTime
+  categoria   String
+  cantidad    Int
+  pesoInicio  Float?   // 🆕 NUEVO
+  pesoFin     Float?   // 🆕 NUEVO
+  precioKg    Float?
+  precioKgFin Float?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
   
   campo Campo @relation(fields: [campoId], references: [id], onDelete: Cascade)
   
