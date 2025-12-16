@@ -31,14 +31,15 @@ export async function GET(req: NextRequest) {
     }
 
     const inventarios = await prisma.inventario.findMany({
-      where: {
-        campoId: usuario.campoId,
-        fecha: new Date(fecha),
-      },
-      orderBy: { categoria: 'asc' },
-    });
+  where: {
+    campoId: usuario.campoId,
+    fecha: new Date(fecha),
+  },
+  orderBy: { categoria: 'asc' },
+});
 
-    return NextResponse.json(inventarios);
+// 🆕 ASEGURAR que siempre devuelve un array
+return NextResponse.json(inventarios || []);
   } catch (error) {
     console.error('Error al obtener inventario:', error);
     return NextResponse.json({ error: 'Error al obtener inventario' }, { status: 500 });
