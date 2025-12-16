@@ -31,15 +31,14 @@ export async function GET(req: NextRequest) {
     }
 
     const inventarios = await prisma.inventario.findMany({
-  where: {
-    campoId: usuario.campoId,
-    fecha: new Date(fecha),
-  },
-  orderBy: { categoria: 'asc' },
-});
+      where: {
+        campoId: usuario.campoId,
+        fecha: new Date(fecha),
+      },
+      orderBy: { categoria: 'asc' },
+    });
 
-// 🆕 ASEGURAR que siempre devuelve un array
-return NextResponse.json(inventarios || []);
+    return NextResponse.json(inventarios);
   } catch (error) {
     console.error('Error al obtener inventario:', error);
     return NextResponse.json({ error: 'Error al obtener inventario' }, { status: 500 });
@@ -80,17 +79,16 @@ export async function POST(req: NextRequest) {
       },
     });
 
-   // Crear nuevos registros (incluye precioKgFin)
+    // Crear nuevos registros (incluye precioKgFin)
     const created = await prisma.inventario.createMany({
       data: inventarios.map((inv: any) => ({
         campoId: usuario.campoId,
         fecha: new Date(fecha),
         categoria: inv.categoria,
         cantidad: inv.cantidad,
-        pesoInicio: inv.pesoInicio || null,  // 🆕 CAMBIO
-        pesoFin: inv.pesoFin || null,        // 🆕 CAMBIO
+        peso: inv.peso || null,
         precioKg: inv.precioKg || null,
-        precioKgFin: inv.precioKgFin || null,
+        precioKgFin: inv.precioKgFin || null, // ✨ NUEVO CAMPO
       })),
     });
 
