@@ -339,12 +339,12 @@ export default function ConsumoPage() {
                   </colgroup>
                   <thead className="bg-yellow-100">
                     <tr>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Categoría</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Nº Animales</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 bg-yellow-200">U$S totales</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 bg-yellow-200">kg totales</th>
-                      <th className="px-4 py-3 text-center text-sm font-semibold text-gray-700" colSpan={2}>Acciones</th>
-                    </tr>
+  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Categoría</th>
+  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Nº Animales</th>
+  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 bg-yellow-200">kg totales</th>
+  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 bg-yellow-200">U$S totales</th>
+  <th className="px-4 py-3 text-center text-sm font-semibold text-gray-700" colSpan={2}>Acciones</th>
+</tr>
                   </thead>
                   <tbody>
                     {categorias.map((categoria) => {
@@ -355,11 +355,11 @@ export default function ConsumoPage() {
                         <>
                           {/* FILA AGRUPADA */}
                           <tr key={categoria.categoria} className="border-b border-gray-200 hover:bg-gray-50">
-                            <td className="px-4 py-3 text-sm font-medium text-gray-900">{categoria.categoria}</td>
-                            <td className="px-4 py-3 text-sm text-gray-900">{categoria.totalAnimales}</td>
-                            <td className="px-4 py-3 text-sm text-gray-900 bg-yellow-50">{categoria.totalUSD.toFixed(2)}</td>
-                            <td className="px-4 py-3 text-sm text-gray-900 bg-yellow-50">{categoria.totalKg.toFixed(2)}</td>
-                            <td className="px-4 py-3 text-center">
+  <td className="px-4 py-3 text-sm font-medium text-gray-900">{categoria.categoria}</td>
+  <td className="px-4 py-3 text-sm text-gray-900">{categoria.totalAnimales}</td>
+  <td className="px-4 py-3 text-sm text-gray-900 bg-yellow-50">{categoria.totalKg.toFixed(2)}</td>
+  <td className="px-4 py-3 text-sm text-gray-900 bg-yellow-50">{categoria.totalUSD.toFixed(2)}</td>
+  <td className="px-4 py-3 text-center">
                               <button
                                 onClick={() => toggleDetalleCategoria(tipoAnimal, categoria.categoria)}
                                 className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 font-medium"
@@ -428,12 +428,12 @@ export default function ConsumoPage() {
 
                     {/* FILA DE TOTALES GENERALES */}
                     <tr className="bg-amber-100 font-bold">
-                      <td className="px-4 py-3 text-sm">TOTAL</td>
-                      <td className="px-4 py-3 text-sm">{totalesGenerales.animales}</td>
-                      <td className="px-4 py-3 text-sm">{totalesGenerales.usd.toFixed(2)}</td>
-                      <td className="px-4 py-3 text-sm">{totalesGenerales.kg.toFixed(2)}</td>
-                      <td className="px-4 py-3 text-sm"></td>
-                    </tr>
+  <td className="px-4 py-3 text-sm">TOTAL</td>
+  <td className="px-4 py-3 text-sm">{totalesGenerales.animales}</td>
+  <td className="px-4 py-3 text-sm">{totalesGenerales.kg.toFixed(2)}</td>
+  <td className="px-4 py-3 text-sm">{totalesGenerales.usd.toFixed(2)}</td>
+  <td className="px-4 py-3 text-sm"></td>
+</tr>
                   </tbody>
                 </table>
               </div>
