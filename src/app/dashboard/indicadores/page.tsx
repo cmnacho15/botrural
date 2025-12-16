@@ -316,7 +316,7 @@ export default function IndicadoresPage() {
               {ganaderiaAbierto && (
                 <>
                   <tr className="hover:bg-gray-50">
-                    <td className="px-4 py-2 font-medium text-gray-900 border-b border-gray-100 sticky left-0 bg-white z-10">Carga</td>
+                    <td className="px-4 py-2 font-medium text-gray-900 border-b border-gray-100 sticky left-0 bg-white z-10">Carga(UG/ha)</td>
                     <td className="px-3 py-2 text-center border-b border-gray-100">{fmtDec(data.ganaderia.carga.global)}</td>
                     <td className="px-3 py-2 text-center border-b border-gray-100 text-gray-400">-</td>
                     <td className="px-3 py-2 text-center border-b border-gray-100">{fmtDec(data.ganaderia.carga.vacunos)}</td>

@@ -14,6 +14,7 @@ const CATEGORIAS_PREDETERMINADAS = {
     { singular: 'Vaquillonas +2 años', plural: 'Vaquillonas +2 años' },
     { singular: 'Vaquillonas 1–2 años', plural: 'Vaquillonas 1–2 años' },
     { singular: 'Terneros/as', plural: 'Terneros/as' },
+    { singular: 'Terneros nacidos', plural: 'Terneros nacidos' }, // 🆕 NUEVA
   ],
   OVINO: [
     { singular: 'Carneros', plural: 'Carneros' },
