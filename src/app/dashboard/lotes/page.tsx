@@ -2,6 +2,7 @@
 export const dynamic = "force-dynamic"
 
 import { useState, useRef } from 'react'
+import KMZUploader from '@/app/preferencias/components/KMZUploader'
 import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import useSWR from 'swr'
@@ -346,6 +347,7 @@ export default function LotesPage() {
   })
 
   const [loadingBorrado, setLoadingBorrado] = useState(false)
+  const [showModalKMZ, setShowModalKMZ] = useState(false)
 
   // Estados para controlar qué acordeones están abiertos (CERRADOS por defecto)
 const [acordeonesAbiertos, setAcordeonesAbiertos] = useState<{[key: string]: boolean}>({})
@@ -697,7 +699,7 @@ const [acordeonesAbiertos, setAcordeonesAbiertos] = useState<{[key: string]: boo
                 Ingresá los potreros de tu campo para empezar a usar la app.
               </p>
 
-              <div className="flex flex-col sm:flex-row justify-center gap-6">
+             <div className="flex flex-col sm:flex-row justify-center gap-6">
                 <Link
                   href="/dashboard/lotes/nuevo"
                   className="flex flex-col items-center justify-center bg-gray-50 border border-gray-200 rounded-lg p-5 hover:bg-gray-100 transition w-52 h-36 mx-auto"
@@ -713,7 +715,25 @@ const [acordeonesAbiertos, setAcordeonesAbiertos] = useState<{[key: string]: boo
                 </Link>
 
                 <button
+                  onClick={() => setShowModalKMZ(true)}
                   className="flex flex-col items-center justify-center bg-gray-50 border border-gray-200 rounded-lg p-5 hover:bg-gray-100 transition w-52 h-36 mx-auto"
+                >
+                  <img
+                    src="https://cdn-icons-png.flaticon.com/512/2875/2875421.png"
+                    alt="Google Earth"
+                    className="w-8 h-8 mb-2 opacity-90"
+                  />
+                  <p className="font-medium text-gray-800 text-sm">
+                    KMZ de Google Earth
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Subí tus potreros y tu mapa
+                  </p>
+                </button>
+
+                <button
+                  className="flex flex-col items-center justify-center bg-gray-50 border border-gray-200 rounded-lg p-5 hover:bg-gray-100 transition w-52 h-36 mx-auto opacity-50 cursor-not-allowed"
+                  disabled
                 >
                   <img
                     src="https://cdn-icons-png.flaticon.com/512/732/732220.png"
@@ -960,6 +980,34 @@ const [acordeonesAbiertos, setAcordeonesAbiertos] = useState<{[key: string]: boo
         })}
         loading={loadingBorrado}
       />
+
+      {/* MODAL KMZ */}
+      {showModalKMZ && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[80] flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200 flex justify-between items-center sticky top-0 bg-white">
+              <h2 className="text-lg font-semibold text-gray-900">
+                Subir KMZ o KML de Google Earth
+              </h2>
+              <button
+                onClick={() => setShowModalKMZ(false)}
+                className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-6">
+              <KMZUploader 
+                onComplete={() => {
+                  setShowModalKMZ(false)
+                  refreshLotes()
+                }} 
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }
