@@ -27,6 +27,7 @@ export default function InventarioPage() {
     const añoInicio = mesActual >= 6 ? añoActual : añoActual - 1;
     const añoFin = añoInicio + 1;
 
+    
     return {
       FECHA_INICIAL: `${añoInicio}-07-01`,
       FECHA_FINAL: `${añoFin}-06-30`,
