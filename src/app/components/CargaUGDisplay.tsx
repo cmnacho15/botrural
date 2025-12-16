@@ -176,9 +176,7 @@ export function CargaGlobalCampo({ lotes }: CargaGlobalCampoProps) {
   }
 
   const totalHectareas = lotes.reduce((sum, l) => sum + l.hectareas, 0)
-  const todosLosAnimales = lotes
-    .flatMap(l => l.animalesLote || [])
-    .filter(a => !['Padrillos', 'Yeguas', 'Caballos', 'Potrillos'].includes(a.categoria))
+  const todosLosAnimales = lotes.flatMap(l => l.animalesLote || [])
   
   if (todosLosAnimales.length === 0) {
     return (
