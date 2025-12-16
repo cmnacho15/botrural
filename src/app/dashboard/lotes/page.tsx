@@ -5,7 +5,7 @@ import { useState, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import useSWR from 'swr'
-import { EQUIVALENCIAS_UG, calcularRelacionLanarVacuno } from '@/lib/ugCalculator'
+import { EQUIVALENCIAS_UG, calcularRelacionLanarVacuno, calcularUGTotales } from '@/lib/ugCalculator'
 
 interface Lote {
   id: string
@@ -420,10 +420,7 @@ const [acordeonesAbiertos, setAcordeonesAbiertos] = useState<{[key: string]: boo
   const totalAnimales = todosAnimales.reduce((sum, a) => sum + a.cantidad, 0)
   
   // 🔥 NUEVO: Calcular UG totales del módulo
-  const ugTotales = todosAnimales.reduce((total, animal) => {
-    const equivalencia = EQUIVALENCIAS_UG[animal.categoria] || 0
-    return total + (animal.cantidad * equivalencia)
-  }, 0)
+  const ugTotales = calcularUGTotales(todosAnimales)
   
   // 🔥 NUEVO: Calcular UG/ha del módulo
   const ugPorHa = totalHectareas > 0 ? ugTotales / totalHectareas : 0
@@ -480,12 +477,9 @@ const [acordeonesAbiertos, setAcordeonesAbiertos] = useState<{[key: string]: boo
               </div>
               
               {/* CARGA UG/ha DEL POTRERO CON TOOLTIP */}
-              {(() => {
-                const ugTotales = lote.animalesLote.reduce((total, animal) => {
-                  const equivalencia = EQUIVALENCIAS_UG[animal.categoria] || 0
-                  return total + (animal.cantidad * equivalencia)
-                }, 0)
-                const cargaUG = lote.hectareas > 0 ? ugTotales / lote.hectareas : 0
+{(() => {
+  const ugTotales = calcularUGTotales(lote.animalesLote)
+  const cargaUG = lote.hectareas > 0 ? ugTotales / lote.hectareas : 0
                 
                 const color = 
                   cargaUG < 0.7 ? 'bg-blue-100 text-blue-700' :
@@ -580,14 +574,11 @@ const [acordeonesAbiertos, setAcordeonesAbiertos] = useState<{[key: string]: boo
               
               {/* 🌾 CARGA GLOBAL DEL CAMPO CON TOOLTIP */}
               {hayLotes && (() => {
-                const totalHectareas = lotes.reduce((sum, l) => sum + l.hectareas, 0)
-                const todosAnimales = lotes.flatMap(l => l.animalesLote || [])
+  const totalHectareas = lotes.reduce((sum, l) => sum + l.hectareas, 0)
+  const todosAnimales = lotes.flatMap(l => l.animalesLote || [])
 
-                const ugTotales = todosAnimales.reduce((total, animal) => {
-                  const equivalencia = EQUIVALENCIAS_UG[animal.categoria] || 0
-                  return total + (animal.cantidad * equivalencia)
-                }, 0)
-                const cargaGlobal = totalHectareas > 0 ? ugTotales / totalHectareas : 0
+  const ugTotales = calcularUGTotales(todosAnimales)
+  const cargaGlobal = totalHectareas > 0 ? ugTotales / totalHectareas : 0
                 
                 if (todosAnimales.length === 0) return null
                 
