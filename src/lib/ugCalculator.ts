@@ -54,7 +54,9 @@ export function calcularUGTotales(animales: Animal[]): number {
   if (!animales || animales.length === 0) return 0
 
   // 1️⃣ Contar "Terneros nacidos" y "Vacas"
-  const ternerosNacidos = animales.find(a => a.categoria === 'Terneros nacidos')?.cantidad || 0
+  const ternerosNacidos = animales
+  .filter(a => a.categoria === 'Terneros nacidos')
+  .reduce((sum, a) => sum + a.cantidad, 0)
   const vacasTotal = animales.find(a => a.categoria === 'Vacas')?.cantidad || 0
 
   // 2️⃣ Determinar cuántas vacas valen 1.2 UG (con cría) y cuántas 1.0 UG (sin cría)
