@@ -309,11 +309,17 @@ export default function InventarioPage() {
       {/* HEADER */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-6 gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">📦 Diferencia de Inventario</h1>
-          <p className="text-gray-600 text-sm mt-1">
-            Ejercicio fiscal: 1/7/{añoInicio} → 30/6/{añoFin}
-          </p>
-        </div>
+  <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">📦 Diferencia de Inventario</h1>
+  <p className="text-gray-600 text-sm mt-1">
+    Ejercicio fiscal: 1/7/{añoInicio} → 30/6/{añoFin}
+  </p>
+  <div className="mt-3 bg-yellow-50 border border-yellow-200 rounded-lg px-4 py-2 flex items-start gap-2">
+    <span className="text-yellow-600 text-lg">⚠️</span>
+    <p className="text-yellow-800 text-sm font-medium">
+      No olvides presionar <strong>Guardar</strong> si hacés algún cambio
+    </p>
+  </div>
+</div>
 
         <div className="flex gap-2 flex-wrap">
           <button
