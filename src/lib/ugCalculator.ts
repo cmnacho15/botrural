@@ -136,18 +136,19 @@ export function calcularEstadisticasLote(lote: Lote) {
   // Calcular UG de vacas con lógica especial
   const ugVacas = calcularUGVacas(animales)
 
-  animales.forEach(animal => {
-    let ugAnimal: number
+  // Agregar vacas al desglose primero
+  desglosePorTipo.vacunos += ugVacas
 
-    // ✅ Caso especial: VACAS (usar cálculo con terneros nacidos - ya incluye todas)
+  animales.forEach(animal => {
+    // ✅ Saltar vacas - ya las contamos arriba
     if (animal.categoria === 'Vacas') {
-      ugAnimal = ugVacas
-    } else {
-      const equivalencia = EQUIVALENCIAS_UG[animal.categoria] || 0
-      ugAnimal = animal.cantidad * equivalencia
+      return
     }
 
-    if (['Toros', 'Vacas', 'Novillos +3 años', 'Novillos 2–3 años', 
+    const equivalencia = EQUIVALENCIAS_UG[animal.categoria] || 0
+    const ugAnimal = animal.cantidad * equivalencia
+
+    if (['Toros', 'Novillos +3 años', 'Novillos 2–3 años', 
          'Novillos 1–2 años', 'Vaquillonas +2 años', 'Vaquillonas 1–2 años', 
          'Terneros/as', 'Terneros nacidos'].includes(animal.categoria)) {
       desglosePorTipo.vacunos += ugAnimal
@@ -199,18 +200,19 @@ export function calcularEstadisticasCampo(lotes: Lote[]) {
   // Calcular UG de vacas con lógica especial
   const ugVacas = calcularUGVacas(todosLosAnimales)
 
-  todosLosAnimales.forEach(animal => {
-    let ugAnimal: number
+  // Agregar vacas al desglose primero
+  desglosePorTipo.vacunos += ugVacas
 
-    // ✅ Caso especial: VACAS (usar cálculo con terneros nacidos - ya incluye todas)
+  todosLosAnimales.forEach(animal => {
+    // ✅ Saltar vacas - ya las contamos arriba
     if (animal.categoria === 'Vacas') {
-      ugAnimal = ugVacas
-    } else {
-      const equivalencia = EQUIVALENCIAS_UG[animal.categoria] || 0
-      ugAnimal = animal.cantidad * equivalencia
+      return
     }
 
-    if (['Toros', 'Vacas', 'Novillos +3 años', 'Novillos 2–3 años', 
+    const equivalencia = EQUIVALENCIAS_UG[animal.categoria] || 0
+    const ugAnimal = animal.cantidad * equivalencia
+
+    if (['Toros', 'Novillos +3 años', 'Novillos 2–3 años', 
          'Novillos 1–2 años', 'Vaquillonas +2 años', 'Vaquillonas 1–2 años', 
          'Terneros/as', 'Terneros nacidos'].includes(animal.categoria)) {
       desglosePorTipo.vacunos += ugAnimal
