@@ -177,8 +177,8 @@ export function CargaGlobalCampo({ lotes }: CargaGlobalCampoProps) {
 
   const totalHectareas = lotes.reduce((sum, l) => sum + l.hectareas, 0)
   const todosLosAnimales = lotes
-  .flatMap(l => l.animalesLote || [])
-  .filter(a => !['Padrillos', 'Yeguas', 'Caballos', 'Potrillos'].includes(a.categoria))
+    .flatMap(l => l.animalesLote || [])
+    .filter(a => !['Padrillos', 'Yeguas', 'Caballos', 'Potrillos'].includes(a.categoria))
   
   if (todosLosAnimales.length === 0) {
     return (
@@ -190,15 +190,26 @@ export function CargaGlobalCampo({ lotes }: CargaGlobalCampoProps) {
     )
   }
 
+  // ✅ AGRUPAR animales por categoría antes de calcular UG
+  const animalesAgrupados = todosLosAnimales.reduce((acc, animal) => {
+    const existing = acc.find(a => a.categoria === animal.categoria)
+    if (existing) {
+      existing.cantidad += animal.cantidad
+    } else {
+      acc.push({ categoria: animal.categoria, cantidad: animal.cantidad })
+    }
+    return acc
+  }, [] as Array<{ categoria: string; cantidad: number }>)
+
   // Calcular totales
-  const ugTotales = calcularUGTotales(todosLosAnimales)
+  const ugTotales = calcularUGTotales(animalesAgrupados)
 
   const cargaGlobal = totalHectareas > 0 ? ugTotales / totalHectareas : 0
   const evaluacion = evaluarCarga(cargaGlobal)
 
   // Desglose por tipo
   const desglose = { vacunos: 0, ovinos: 0, yeguarizos: 0 }
-  todosLosAnimales.forEach(animal => {
+  animalesAgrupados.forEach(animal => {
     const equivalencia = EQUIVALENCIAS_UG[animal.categoria] || 0
     const ug = animal.cantidad * equivalencia
     

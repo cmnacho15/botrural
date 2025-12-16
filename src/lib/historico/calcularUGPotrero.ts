@@ -19,8 +19,19 @@ export async function calcularUGPotrero(loteId: string): Promise<number> {
       return 0
     }
 
+    // ✅ AGRUPAR animales por categoría antes de calcular UG
+    const animalesAgrupados = animales.reduce((acc, animal) => {
+      const existing = acc.find(a => a.categoria === animal.categoria)
+      if (existing) {
+        existing.cantidad += animal.cantidad
+      } else {
+        acc.push({ categoria: animal.categoria, cantidad: animal.cantidad })
+      }
+      return acc
+    }, [] as Array<{ categoria: string; cantidad: number }>)
+
     // Reutilizar tu función existente
-    const ugTotal = calcularUGTotales(animales)
+    const ugTotal = calcularUGTotales(animalesAgrupados)
 
     return Math.round(ugTotal * 100) / 100 // Redondear a 2 decimales
   } catch (error) {
