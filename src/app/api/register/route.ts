@@ -25,6 +25,35 @@ const CATEGORIAS_GASTOS_DEFAULT = [
   { nombre: 'Sueldos', color: '#7c3aed' },
 ]
 
+// 🐄 Categorías de animales predeterminadas
+const CATEGORIAS_ANIMALES_DEFAULT = [
+  // BOVINOS
+  { nombreSingular: 'Toros', nombrePlural: 'Toros', tipoAnimal: 'BOVINO' },
+  { nombreSingular: 'Vacas', nombrePlural: 'Vacas', tipoAnimal: 'BOVINO' },
+  { nombreSingular: 'Novillos +3 años', nombrePlural: 'Novillos +3 años', tipoAnimal: 'BOVINO' },
+  { nombreSingular: 'Novillos 2–3 años', nombrePlural: 'Novillos 2–3 años', tipoAnimal: 'BOVINO' },
+  { nombreSingular: 'Novillos 1–2 años', nombrePlural: 'Novillos 1–2 años', tipoAnimal: 'BOVINO' },
+  { nombreSingular: 'Vaquillonas +2 años', nombrePlural: 'Vaquillonas +2 años', tipoAnimal: 'BOVINO' },
+  { nombreSingular: 'Vaquillonas 1–2 años', nombrePlural: 'Vaquillonas 1–2 años', tipoAnimal: 'BOVINO' },
+  { nombreSingular: 'Terneros/as', nombrePlural: 'Terneros/as', tipoAnimal: 'BOVINO' },
+  { nombreSingular: 'Terneros nacidos', nombrePlural: 'Terneros nacidos', tipoAnimal: 'BOVINO' },
+  
+  // OVINOS
+  { nombreSingular: 'Carneros', nombrePlural: 'Carneros', tipoAnimal: 'OVINO' },
+  { nombreSingular: 'Ovejas', nombrePlural: 'Ovejas', tipoAnimal: 'OVINO' },
+  { nombreSingular: 'Capones', nombrePlural: 'Capones', tipoAnimal: 'OVINO' },
+  { nombreSingular: 'Borregas 2–4 dientes', nombrePlural: 'Borregas 2–4 dientes', tipoAnimal: 'OVINO' },
+  { nombreSingular: 'Corderas DL', nombrePlural: 'Corderas DL', tipoAnimal: 'OVINO' },
+  { nombreSingular: 'Corderos DL', nombrePlural: 'Corderos DL', tipoAnimal: 'OVINO' },
+  { nombreSingular: 'Corderos/as Mamones', nombrePlural: 'Corderos/as Mamones', tipoAnimal: 'OVINO' },
+  
+  // EQUINOS
+  { nombreSingular: 'Padrillos', nombrePlural: 'Padrillos', tipoAnimal: 'EQUINO' },
+  { nombreSingular: 'Yeguas', nombrePlural: 'Yeguas', tipoAnimal: 'EQUINO' },
+  { nombreSingular: 'Caballos', nombrePlural: 'Caballos', tipoAnimal: 'EQUINO' },
+  { nombreSingular: 'Potrillos', nombrePlural: 'Potrillos', tipoAnimal: 'EQUINO' },
+]
+
 export async function POST(request: Request) {
   try {
     const { name, email, password, campoNombre } = await request.json()
@@ -81,10 +110,23 @@ export async function POST(request: Request) {
         })),
       })
 
+      // 🆕 4. Crear categorías de animales predeterminadas
+await tx.categoriaAnimal.createMany({
+  data: CATEGORIAS_ANIMALES_DEFAULT.map(cat => ({
+    nombreSingular: cat.nombreSingular,
+    nombrePlural: cat.nombrePlural,
+    tipoAnimal: cat.tipoAnimal as any, // 👈 Agregá el "as any"
+    campoId: campo.id,
+    activo: true,
+    esPredeterminado: true,
+  })),
+})
       return { user, campo }
     })
 
-    console.log(`✅ Campo creado: ${result.campo.nombre} con ${CATEGORIAS_GASTOS_DEFAULT.length} categorías de gastos`)
+    console.log(`✅ Campo creado: ${result.campo.nombre}`)
+    console.log(`   - ${CATEGORIAS_GASTOS_DEFAULT.length} categorías de gastos`)
+    console.log(`   - ${CATEGORIAS_ANIMALES_DEFAULT.length} categorías de animales`)
 
     return NextResponse.json(
       {
