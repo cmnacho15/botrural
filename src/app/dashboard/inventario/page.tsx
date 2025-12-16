@@ -10,13 +10,20 @@ interface InventarioItem {
   categoria: string;
   cantidadInicial: number;
   cantidadFinal: number;
-  pesoInicio: number | null;    // 🆕 NUEVO: peso al inicio
-  pesoFinal: number | null;      // 🆕 NUEVO: peso al final
-  precioKg: number | null;       // Precio INICIO
-  precioKgFin: number | null;    // Precio FIN
+  pesoInicio: number | null;
+  pesoFinal: number | null;
+  precioKg: number | null;
+  precioKgFin: number | null;
 }
 
 export default function InventarioPage() {
+  // ==========================================
+  // 🔢 FUNCIÓN PARA FORMATEAR NÚMEROS CON PUNTOS
+  // ==========================================
+  const formatearNumero = (numero: number): string => {
+    return Math.round(numero).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  };
+
   // ==========================================
   // 🗓️ CÁLCULO AUTOMÁTICO DEL EJERCICIO FISCAL
   // ==========================================
@@ -27,7 +34,6 @@ export default function InventarioPage() {
     const añoInicio = mesActual >= 6 ? añoActual : añoActual - 1;
     const añoFin = añoInicio + 1;
 
-    
     return {
       FECHA_INICIAL: `${añoInicio}-07-01`,
       FECHA_FINAL: `${añoFin}-06-30`,
@@ -67,10 +73,10 @@ export default function InventarioPage() {
           categoria,
           cantidadInicial: inicial?.cantidad || 0,
           cantidadFinal: final?.cantidad || 0,
-          pesoInicio: inicial?.peso || null,      // peso del inventario inicial
-          pesoFinal: final?.peso || null,          // peso del inventario final
-          precioKg: inicial?.precioKg || null,     // Precio INICIO
-          precioKgFin: final?.precioKgFin || null, // Precio FIN
+          pesoInicio: inicial?.peso || null,
+          pesoFinal: final?.peso || null,
+          precioKg: inicial?.precioKg || null,
+          precioKgFin: final?.precioKgFin || null,
         };
       });
 
@@ -181,13 +187,12 @@ export default function InventarioPage() {
     setGuardando(true);
 
     try {
-      // Guardar inventario INICIAL (con pesoInicio)
       const invInicialData = items
         .filter(item => item.cantidadInicial > 0 || item.cantidadFinal > 0)
         .map(item => ({
           categoria: item.categoria,
           cantidad: item.cantidadInicial,
-          peso: item.pesoInicio,        // 🆕 peso del inicio
+          peso: item.pesoInicio,
           precioKg: item.precioKg,
           precioKgFin: item.precioKgFin,
         }));
@@ -201,13 +206,12 @@ export default function InventarioPage() {
         }),
       });
 
-      // Guardar inventario FINAL (con pesoFinal)
       const invFinalData = items
         .filter(item => item.cantidadInicial > 0 || item.cantidadFinal > 0)
         .map(item => ({
           categoria: item.categoria,
           cantidad: item.cantidadFinal,
-          peso: item.pesoFinal,          // 🆕 peso del final
+          peso: item.pesoFinal,
           precioKg: item.precioKg,
           precioKgFin: item.precioKgFin,
         }));
@@ -253,22 +257,12 @@ export default function InventarioPage() {
   // ==========================================
   function calcularFila(item: InventarioItem) {
     const difAnimales = item.cantidadFinal - item.cantidadInicial;
-    
-    // U$S Inicio = Nº Anim Inicio × Peso Inicio × U$/kg Inicio
     const usdInicio = item.cantidadInicial * (item.pesoInicio || 0) * (item.precioKg || 0);
-    
-    // U$S Final = Nº Anim Final × Peso Final × U$/kg Fin
     const usdFinal = item.cantidadFinal * (item.pesoFinal || 0) * (item.precioKgFin || 0);
-    
-    // U$S Totales = U$S Final - U$S Inicio
     const usdTotales = usdFinal - usdInicio;
-    
-    // kg stock inicio y fin (usando pesos correspondientes)
     const kgStockInicio = item.cantidadInicial * (item.pesoInicio || 0);
     const kgStockFinal = item.cantidadFinal * (item.pesoFinal || 0);
     const difKg = kgStockFinal - kgStockInicio;
-    
-    // Precio/animal = Peso promedio × ((U$/kg Inicio + U$/kg Fin) / 2)
     const pesoPromedio = ((item.pesoInicio || 0) + (item.pesoFinal || 0)) / 2;
     const precioPromedio = ((item.precioKg || 0) + (item.precioKgFin || 0)) / 2;
     const precioAnimal = pesoPromedio * precioPromedio;
@@ -485,19 +479,19 @@ export default function InventarioPage() {
                       />
                     </td>
 
-                    {/* CALCULADOS */}
-                    <td className="px-2 py-2 text-center text-gray-700">{calc.difAnimales}</td>
-                    <td className="px-2 py-2 text-center text-gray-700">{calc.kgStockInicio.toFixed(0)}</td>
-                    <td className="px-2 py-2 text-center text-gray-700">{calc.kgStockFinal.toFixed(0)}</td>
+                    {/* CALCULADOS CON FORMATO */}
+                    <td className="px-2 py-2 text-center text-gray-700">{formatearNumero(calc.difAnimales)}</td>
+                    <td className="px-2 py-2 text-center text-gray-700">{formatearNumero(calc.kgStockInicio)}</td>
+                    <td className="px-2 py-2 text-center text-gray-700">{formatearNumero(calc.kgStockFinal)}</td>
                     <td className={`px-2 py-2 text-center font-medium ${calc.difKg < 0 ? 'text-red-600' : 'text-green-600'}`}>
-                      {calc.difKg.toFixed(0)}
+                      {formatearNumero(calc.difKg)}
                     </td>
-                    <td className="px-2 py-2 text-center text-gray-700">{calc.usdInicio.toFixed(0)}</td>
-                    <td className="px-2 py-2 text-center text-gray-700">{calc.usdFinal.toFixed(0)}</td>
+                    <td className="px-2 py-2 text-center text-gray-700">{formatearNumero(calc.usdInicio)}</td>
+                    <td className="px-2 py-2 text-center text-gray-700">{formatearNumero(calc.usdFinal)}</td>
                     <td className={`px-2 py-2 text-center font-bold ${calc.usdTotales < 0 ? 'text-red-600' : 'text-green-600'}`}>
-                      {calc.usdTotales.toFixed(0)}
+                      {formatearNumero(calc.usdTotales)}
                     </td>
-                    <td className="px-2 py-2 text-center text-gray-700">{calc.precioAnimal.toFixed(0)}</td>
+                    <td className="px-2 py-2 text-center text-gray-700">{formatearNumero(calc.precioAnimal)}</td>
 
                     {/* ELIMINAR */}
                     <td className="px-2 py-2 text-center">
@@ -513,25 +507,25 @@ export default function InventarioPage() {
                 );
               })}
 
-              {/* FILA TOTALES */}
+              {/* FILA TOTALES CON FORMATO */}
               <tr className="bg-green-100 font-bold text-gray-900">
                 <td className="px-3 py-3 sticky left-0 bg-green-100 z-10">TOTALES</td>
-                <td className="px-2 py-3 text-center">{totales.cantidadInicial}</td>
-                <td className="px-2 py-3 text-center">{totales.cantidadFinal}</td>
+                <td className="px-2 py-3 text-center">{formatearNumero(totales.cantidadInicial)}</td>
+                <td className="px-2 py-3 text-center">{formatearNumero(totales.cantidadFinal)}</td>
                 <td className="px-2 py-3"></td>
                 <td className="px-2 py-3"></td>
                 <td className="px-2 py-3"></td>
                 <td className="px-2 py-3"></td>
-                <td className="px-2 py-3 text-center">{totales.difAnimales}</td>
-                <td className="px-2 py-3 text-center">{totales.kgStockInicio.toFixed(0)}</td>
-                <td className="px-2 py-3 text-center">{totales.kgStockFinal.toFixed(0)}</td>
+                <td className="px-2 py-3 text-center">{formatearNumero(totales.difAnimales)}</td>
+                <td className="px-2 py-3 text-center">{formatearNumero(totales.kgStockInicio)}</td>
+                <td className="px-2 py-3 text-center">{formatearNumero(totales.kgStockFinal)}</td>
                 <td className={`px-2 py-3 text-center ${totales.difKg < 0 ? 'text-red-600' : 'text-green-600'}`}>
-                  {totales.difKg.toFixed(0)}
+                  {formatearNumero(totales.difKg)}
                 </td>
-                <td className="px-2 py-3 text-center">{totales.usdInicio.toFixed(0)}</td>
-                <td className="px-2 py-3 text-center">{totales.usdFinal.toFixed(0)}</td>
+                <td className="px-2 py-3 text-center">{formatearNumero(totales.usdInicio)}</td>
+                <td className="px-2 py-3 text-center">{formatearNumero(totales.usdFinal)}</td>
                 <td className={`px-2 py-3 text-center ${totales.usdTotales < 0 ? 'text-red-600' : 'text-green-600'}`}>
-                  {totales.usdTotales.toFixed(0)}
+                  {formatearNumero(totales.usdTotales)}
                 </td>
                 <td className="px-2 py-3"></td>
                 <td className="px-2 py-3"></td>
@@ -541,7 +535,7 @@ export default function InventarioPage() {
         </div>
       </div>
 
-      {/* MODAL REGENERAR */}
+      {/* DESDE ACÁ HASTA EL FINAL TODO IGUAL - NO HAY MÁS CAMBIOS */}
       {modalRegenerar && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl max-w-md w-full p-6">
@@ -578,7 +572,6 @@ export default function InventarioPage() {
         </div>
       )}
 
-      {/* MODAL AGREGAR */}
       {modalAgregar && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl max-w-md w-full p-6">
