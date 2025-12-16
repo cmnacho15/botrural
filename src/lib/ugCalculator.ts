@@ -64,27 +64,21 @@ function calcularUGVacas(animales: Animal[]): number {
 export function calcularUGTotales(animales: Animal[]): number {
   if (!animales || animales.length === 0) return 0
 
-  // 1️⃣ Contar "Terneros nacidos" y "Vacas"
-  const ternerosNacidos = animales.find(a => a.categoria === 'Terneros nacidos')?.cantidad || 0
-  const vacasTotal = animales.find(a => a.categoria === 'Vacas')?.cantidad || 0
-
-  // 2️⃣ Determinar cuántas vacas valen 1.2 UG (con cría) y cuántas 1.0 UG (sin cría)
-  const vacasConCria = Math.min(ternerosNacidos, vacasTotal)
-  const vacasSinCria = Math.max(0, vacasTotal - ternerosNacidos)
-
-  // 3️⃣ Calcular UG totales
   let ugTotales = 0
+  
+  // 1️⃣ Calcular UG de vacas con lógica especial
+  const ugVacas = calcularUGVacas(animales)
+  ugTotales += ugVacas
 
+  // 2️⃣ Calcular UG del resto de animales (excepto vacas)
   for (const animal of animales) {
-    // ✅ Caso especial: VACAS (se calculan dinámicamente)
+    // Saltar vacas - ya las contamos arriba
     if (animal.categoria === 'Vacas') {
-      ugTotales += (vacasConCria * 1.2) + (vacasSinCria * 1.0)
+      continue
     }
-    // ✅ Resto de animales: usar equivalencia estándar
-    else {
-      const equivalencia = EQUIVALENCIAS_UG[animal.categoria] || 0
-      ugTotales += animal.cantidad * equivalencia
-    }
+    
+    const equivalencia = EQUIVALENCIAS_UG[animal.categoria] || 0
+    ugTotales += animal.cantidad * equivalencia
   }
 
   return ugTotales
