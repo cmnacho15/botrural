@@ -1,6 +1,6 @@
 'use client'
 
-import { calcularEstadisticasLote, evaluarCarga, EQUIVALENCIAS_UG } from '@/lib/ugCalculator'
+import { calcularEstadisticasLote, evaluarCarga, EQUIVALENCIAS_UG, calcularUGTotales } from '@/lib/ugCalculator'
 
 interface Animal {
   id: string
@@ -191,10 +191,7 @@ export function CargaGlobalCampo({ lotes }: CargaGlobalCampoProps) {
   }
 
   // Calcular totales
-  const ugTotales = todosLosAnimales.reduce((total, animal) => {
-    const equivalencia = EQUIVALENCIAS_UG[animal.categoria] || 0
-    return total + (animal.cantidad * equivalencia)
-  }, 0)
+  const ugTotales = calcularUGTotales(todosLosAnimales)
 
   const cargaGlobal = totalHectareas > 0 ? ugTotales / totalHectareas : 0
   const evaluacion = evaluarCarga(cargaGlobal)
