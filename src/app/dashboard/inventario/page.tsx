@@ -10,9 +10,10 @@ interface InventarioItem {
   categoria: string;
   cantidadInicial: number;
   cantidadFinal: number;
-  peso: number | null;
-  precioKg: number | null;      // Precio INICIO
-  precioKgFin: number | null;   // Precio FIN
+  pesoInicio: number | null;    // 🆕 NUEVO: peso al inicio
+  pesoFinal: number | null;      // 🆕 NUEVO: peso al final
+  precioKg: number | null;       // Precio INICIO
+  precioKgFin: number | null;    // Precio FIN
 }
 
 export default function InventarioPage() {
@@ -65,9 +66,10 @@ export default function InventarioPage() {
           categoria,
           cantidadInicial: inicial?.cantidad || 0,
           cantidadFinal: final?.cantidad || 0,
-          peso: final?.peso || inicial?.peso || null,
-          precioKg: inicial?.precioKg || null,        // Precio INICIO
-          precioKgFin: final?.precioKgFin || null,    // Precio FIN
+          pesoInicio: inicial?.peso || null,      // peso del inventario inicial
+          pesoFinal: final?.peso || null,          // peso del inventario final
+          precioKg: inicial?.precioKg || null,     // Precio INICIO
+          precioKgFin: final?.precioKgFin || null, // Precio FIN
         };
       });
 
@@ -94,7 +96,8 @@ export default function InventarioPage() {
               categoria: item.categoria,
               cantidadInicial: item.cantidad,
               cantidadFinal: existente?.cantidadFinal || 0,
-              peso: existente?.peso || null,
+              pesoInicio: existente?.pesoInicio || null,
+              pesoFinal: existente?.pesoFinal || null,
               precioKg: existente?.precioKg || null,
               precioKgFin: existente?.precioKgFin || null,
             };
@@ -103,7 +106,8 @@ export default function InventarioPage() {
               categoria: item.categoria,
               cantidadInicial: existente?.cantidadInicial || 0,
               cantidadFinal: item.cantidad,
-              peso: existente?.peso || null,
+              pesoInicio: existente?.pesoInicio || null,
+              pesoFinal: existente?.pesoFinal || null,
               precioKg: existente?.precioKg || null,
               precioKgFin: existente?.precioKgFin || null,
             };
@@ -159,7 +163,8 @@ export default function InventarioPage() {
       categoria: nuevaCategoria.trim(),
       cantidadInicial: 0,
       cantidadFinal: 0,
-      peso: null,
+      pesoInicio: null,
+      pesoFinal: null,
       precioKg: null,
       precioKgFin: null,
     }]);
@@ -175,12 +180,13 @@ export default function InventarioPage() {
     setGuardando(true);
 
     try {
+      // Guardar inventario INICIAL (con pesoInicio)
       const invInicialData = items
         .filter(item => item.cantidadInicial > 0 || item.cantidadFinal > 0)
         .map(item => ({
           categoria: item.categoria,
           cantidad: item.cantidadInicial,
-          peso: item.peso,
+          peso: item.pesoInicio,        // 🆕 peso del inicio
           precioKg: item.precioKg,
           precioKgFin: item.precioKgFin,
         }));
@@ -194,12 +200,13 @@ export default function InventarioPage() {
         }),
       });
 
+      // Guardar inventario FINAL (con pesoFinal)
       const invFinalData = items
         .filter(item => item.cantidadInicial > 0 || item.cantidadFinal > 0)
         .map(item => ({
           categoria: item.categoria,
           cantidad: item.cantidadFinal,
-          peso: item.peso,
+          peso: item.pesoFinal,          // 🆕 peso del final
           precioKg: item.precioKg,
           precioKgFin: item.precioKgFin,
         }));
@@ -241,33 +248,34 @@ export default function InventarioPage() {
   }
 
   // ==========================================
-  // ✨ CÁLCULOS ACTUALIZADOS CON NUEVAS FÓRMULAS
+  // ✨ CÁLCULOS ACTUALIZADOS CON PESOS SEPARADOS
   // ==========================================
   function calcularFila(item: InventarioItem) {
     const difAnimales = item.cantidadFinal - item.cantidadInicial;
     
-    // U$S Inicio = Nº Anim Inicio × Peso × U$/kg Inicio
-    const usdInicio = item.cantidadInicial * (item.peso || 0) * (item.precioKg || 0);
+    // U$S Inicio = Nº Anim Inicio × Peso Inicio × U$/kg Inicio
+    const usdInicio = item.cantidadInicial * (item.pesoInicio || 0) * (item.precioKg || 0);
     
-    // U$S Final = Nº Anim Final × Peso × U$/kg Fin
-    const usdFinal = item.cantidadFinal * (item.peso || 0) * (item.precioKgFin || 0);
+    // U$S Final = Nº Anim Final × Peso Final × U$/kg Fin
+    const usdFinal = item.cantidadFinal * (item.pesoFinal || 0) * (item.precioKgFin || 0);
     
     // U$S Totales = U$S Final - U$S Inicio
     const usdTotales = usdFinal - usdInicio;
     
-    // kg stock inicio y fin
-    const kgStock2024 = item.cantidadInicial * (item.peso || 0);
-    const kgStock2025 = item.cantidadFinal * (item.peso || 0);
-    const difKg = kgStock2025 - kgStock2024;
+    // kg stock inicio y fin (usando pesos correspondientes)
+    const kgStockInicio = item.cantidadInicial * (item.pesoInicio || 0);
+    const kgStockFinal = item.cantidadFinal * (item.pesoFinal || 0);
+    const difKg = kgStockFinal - kgStockInicio;
     
-    // Precio/animal = Peso × ((U$/kg Inicio + U$/kg Fin) / 2)
+    // Precio/animal = Peso promedio × ((U$/kg Inicio + U$/kg Fin) / 2)
+    const pesoPromedio = ((item.pesoInicio || 0) + (item.pesoFinal || 0)) / 2;
     const precioPromedio = ((item.precioKg || 0) + (item.precioKgFin || 0)) / 2;
-    const precioAnimal = (item.peso || 0) * precioPromedio;
+    const precioAnimal = pesoPromedio * precioPromedio;
 
     return {
       difAnimales,
-      kgStock2024,
-      kgStock2025,
+      kgStockInicio,
+      kgStockFinal,
       difKg,
       usdInicio,
       usdFinal,
@@ -282,8 +290,8 @@ export default function InventarioPage() {
       cantidadInicial: acc.cantidadInicial + item.cantidadInicial,
       cantidadFinal: acc.cantidadFinal + item.cantidadFinal,
       difAnimales: acc.difAnimales + calc.difAnimales,
-      kgStock2024: acc.kgStock2024 + calc.kgStock2024,
-      kgStock2025: acc.kgStock2025 + calc.kgStock2025,
+      kgStockInicio: acc.kgStockInicio + calc.kgStockInicio,
+      kgStockFinal: acc.kgStockFinal + calc.kgStockFinal,
       difKg: acc.difKg + calc.difKg,
       usdInicio: acc.usdInicio + calc.usdInicio,
       usdFinal: acc.usdFinal + calc.usdFinal,
@@ -293,8 +301,8 @@ export default function InventarioPage() {
     cantidadInicial: 0,
     cantidadFinal: 0,
     difAnimales: 0,
-    kgStock2024: 0,
-    kgStock2025: 0,
+    kgStockInicio: 0,
+    kgStockFinal: 0,
     difKg: 0,
     usdInicio: 0,
     usdFinal: 0,
@@ -351,7 +359,10 @@ export default function InventarioPage() {
                   Nº Anim<br/>30/6/{añoFin.toString().slice(-2)}
                 </th>
                 <th className="px-2 py-2 text-center font-bold text-gray-700 bg-yellow-50 min-w-[70px]">
-                  Peso
+                  Peso<br/>Inicio
+                </th>
+                <th className="px-2 py-2 text-center font-bold text-gray-700 bg-yellow-50 min-w-[70px]">
+                  Peso<br/>Final
                 </th>
                 <th className="px-2 py-2 text-center font-bold text-gray-700 bg-yellow-50 min-w-[70px]">
                   U$/kg<br/>Inicio
@@ -363,10 +374,10 @@ export default function InventarioPage() {
                   Dif en<br/>animales
                 </th>
                 <th className="px-2 py-2 text-center font-bold text-gray-700 min-w-[80px]">
-                  kg stock<br/>{añoInicio.toString().slice(-2)}
+                  kg stock<br/>Inicio
                 </th>
                 <th className="px-2 py-2 text-center font-bold text-gray-700 min-w-[80px]">
-                  kg stock<br/>{añoFin.toString().slice(-2)}
+                  kg stock<br/>Final
                 </th>
                 <th className="px-2 py-2 text-center font-bold text-gray-700 min-w-[70px]">
                   Dif en kg
@@ -421,13 +432,26 @@ export default function InventarioPage() {
                       />
                     </td>
 
-                    {/* EDITABLE: Peso */}
+                    {/* EDITABLE: Peso Inicio */}
                     <td className="px-2 py-2 bg-yellow-50">
                       <input
                         type="number"
                         step="0.1"
-                        value={item.peso || ''}
-                        onChange={(e) => actualizarItem(index, 'peso', parseFloat(e.target.value) || null)}
+                        value={item.pesoInicio || ''}
+                        onChange={(e) => actualizarItem(index, 'pesoInicio', parseFloat(e.target.value) || null)}
+                        onFocus={(e) => e.target.select()}
+                        placeholder="0"
+                        className="w-full px-2 py-1 border rounded text-center text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </td>
+
+                    {/* EDITABLE: Peso Final */}
+                    <td className="px-2 py-2 bg-yellow-50">
+                      <input
+                        type="number"
+                        step="0.1"
+                        value={item.pesoFinal || ''}
+                        onChange={(e) => actualizarItem(index, 'pesoFinal', parseFloat(e.target.value) || null)}
                         onFocus={(e) => e.target.select()}
                         placeholder="0"
                         className="w-full px-2 py-1 border rounded text-center text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -462,8 +486,8 @@ export default function InventarioPage() {
 
                     {/* CALCULADOS */}
                     <td className="px-2 py-2 text-center text-gray-700">{calc.difAnimales}</td>
-                    <td className="px-2 py-2 text-center text-gray-700">{calc.kgStock2024.toFixed(0)}</td>
-                    <td className="px-2 py-2 text-center text-gray-700">{calc.kgStock2025.toFixed(0)}</td>
+                    <td className="px-2 py-2 text-center text-gray-700">{calc.kgStockInicio.toFixed(0)}</td>
+                    <td className="px-2 py-2 text-center text-gray-700">{calc.kgStockFinal.toFixed(0)}</td>
                     <td className={`px-2 py-2 text-center font-medium ${calc.difKg < 0 ? 'text-red-600' : 'text-green-600'}`}>
                       {calc.difKg.toFixed(0)}
                     </td>
@@ -496,9 +520,10 @@ export default function InventarioPage() {
                 <td className="px-2 py-3"></td>
                 <td className="px-2 py-3"></td>
                 <td className="px-2 py-3"></td>
+                <td className="px-2 py-3"></td>
                 <td className="px-2 py-3 text-center">{totales.difAnimales}</td>
-                <td className="px-2 py-3 text-center">{totales.kgStock2024.toFixed(0)}</td>
-                <td className="px-2 py-3 text-center">{totales.kgStock2025.toFixed(0)}</td>
+                <td className="px-2 py-3 text-center">{totales.kgStockInicio.toFixed(0)}</td>
+                <td className="px-2 py-3 text-center">{totales.kgStockFinal.toFixed(0)}</td>
                 <td className={`px-2 py-3 text-center ${totales.difKg < 0 ? 'text-red-600' : 'text-green-600'}`}>
                   {totales.difKg.toFixed(0)}
                 </td>
