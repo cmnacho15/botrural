@@ -77,8 +77,8 @@ export default function ModalNacimiento({ onClose, onSuccess }: ModalNacimientoP
     try {
       // Convertir a la categoría correcta con "Mamones"
       const categoriaGuardar = tipoAnimal === 'terneros' 
-        ? 'Terneros/as Mamones' 
-        : 'Corderos/as Mamones'
+  ? 'Terneros nacidos'  // ✅ NUEVA CATEGORÍA
+  : 'Corderos/as Mamones'
 
       const potreroNombre = potreros.find(p => p.id === potreroSeleccionado)?.nombre
 
