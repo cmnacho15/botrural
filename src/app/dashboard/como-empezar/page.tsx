@@ -509,9 +509,9 @@ export default function ComoEmpezar() {
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[80] flex items-center justify-center p-4">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-gray-200 flex justify-between items-center sticky top-0 bg-white">
-              <h2 className="text-lg font-semibold text-gray-900">
-                Importar desde Google Earth
-              </h2>
+                <h2 className="text-lg font-semibold text-gray-900">
+                  Subir KMZ o KML de Google Earth
+                </h2>
               <button
                 onClick={() => setShowModalKMZ(false)}
                 className="text-gray-400 hover:text-gray-600 text-2xl leading-none"

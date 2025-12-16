@@ -18,15 +18,21 @@ export default function KMZUploader({ onComplete }: { onComplete: () => void }) 
 
   async function parseKMZ(file: File): Promise<LotePreview[]> {
     try {
-      // 1. Descomprimir KMZ
-      const zip = await JSZip.loadAsync(file)
-      
-      // 2. Buscar archivo KML
       let kmlContent = ''
-      for (const filename in zip.files) {
-        if (filename.endsWith('.kml')) {
-          kmlContent = await zip.files[filename].async('text')
-          break
+
+      // Si es KML directo, leerlo
+      if (file.name.endsWith('.kml')) {
+        kmlContent = await file.text()
+      } 
+      // Si es KMZ, descomprimirlo
+      else {
+        const zip = await JSZip.loadAsync(file)
+        
+        for (const filename in zip.files) {
+          if (filename.endsWith('.kml')) {
+            kmlContent = await zip.files[filename].async('text')
+            break
+          }
         }
       }
 
@@ -97,8 +103,11 @@ export default function KMZUploader({ onComplete }: { onComplete: () => void }) 
     const file = e.target.files?.[0]
     if (!file) return
 
-    if (!file.name.endsWith('.kmz')) {
-      setError('Por favor selecciona un archivo .kmz')
+    const isKMZ = file.name.endsWith('.kmz')
+    const isKML = file.name.endsWith('.kml')
+
+    if (!isKMZ && !isKML) {
+      setError('Por favor selecciona un archivo .kmz o .kml')
       return
     }
 
@@ -161,31 +170,63 @@ export default function KMZUploader({ onComplete }: { onComplete: () => void }) 
     <div className="space-y-6">
       {/* Upload Section */}
       {previews.length === 0 && (
-        <div className="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center hover:border-blue-400 transition">
-          <div className="text-5xl mb-4">🗺️</div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            Subí tu archivo KMZ de Google Earth
-          </h3>
-          <p className="text-sm text-gray-500 mb-4">
-            Los potreros se crearán automáticamente con sus nombres y ubicaciones
-          </p>
-          
-          <label className="inline-block cursor-pointer">
-            <input
-              type="file"
-              accept=".kmz"
-              onChange={handleFileUpload}
-              disabled={uploading}
-              className="hidden"
-            />
-            <span className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium inline-block">
-              {uploading ? 'Procesando...' : 'Seleccionar archivo KMZ'}
-            </span>
-          </label>
+        <div>
+          {/* Instrucciones */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
+            <div className="flex items-start gap-3 mb-4">
+              <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0">
+                ?
+              </div>
+              <div>
+                <h3 className="font-semibold text-blue-900 mb-3">Instrucciones</h3>
+                <ol className="space-y-2 text-sm text-blue-800">
+                  <li className="flex gap-2">
+                    <span className="font-bold">1.</span>
+                    <span>Subí un archivo de Google Earth <strong>(formato .KMZ o .KML)</strong></span>
+                  </li>
+                  <li className="flex gap-2">
+                    <span className="font-bold">2.</span>
+                    <span>Cada potrero de tu campo como un polígono diferente.</span>
+                  </li>
+                  <li className="flex gap-2">
+                    <span className="font-bold">3.</span>
+                    <span>El nombre del potrero debe coincidir con el nombre del polígono.</span>
+                  </li>
+                </ol>
+                <a href="#" className="text-blue-600 hover:underline text-sm font-medium mt-2 inline-block">
+                  Video Demo
+                </a>
+                <span className="text-sm text-blue-700"> que explica cómo exportar un archivo KMZ desde Google Earth.</span>
+              </div>
+            </div>
+          </div>
 
-          <div className="mt-6 text-xs text-gray-400 space-y-1">
-            <p>💡 Abrí Google Earth → Guardá tu campo como KMZ</p>
-            <p>📦 Cada polígono se convertirá en un potrero</p>
+          {/* Zona de carga */}
+          <div className="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center hover:border-blue-400 transition">
+            <div className="text-5xl mb-4">☁️</div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              Subir Archivo
+            </h3>
+            <p className="text-sm text-gray-500 mb-4">
+              Hacé clic arriba o arrastrá el archivo acá
+            </p>
+            
+            <label className="inline-block cursor-pointer">
+              <input
+                type="file"
+                accept=".kmz,.kml"
+                onChange={handleFileUpload}
+                disabled={uploading}
+                className="hidden"
+              />
+              <span className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium inline-block">
+                {uploading ? 'Procesando...' : 'Subir Archivo'}
+              </span>
+            </label>
+
+            <p className="text-xs text-gray-400 mt-4">
+              Permitidos: KMZ o KML
+            </p>
           </div>
         </div>
       )}
