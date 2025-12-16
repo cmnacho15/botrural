@@ -122,11 +122,21 @@ export function calcularEstadisticasLote(lote: Lote) {
     yeguarizos: 0
   }
 
- // ⚠️ IMPORTANTE:
-// El cálculo correcto de UG ya está en calcularUGTotales()
-// NO se recalcula acá para evitar romper la lógica vaca + ternero
+  animales.forEach(animal => {
+    const equivalencia = EQUIVALENCIAS_UG[animal.categoria] || 0
+    const ugAnimal = animal.cantidad * equivalencia
 
-desglosePorTipo.vacunos = ugTotales
+    if (['Toros', 'Vacas', 'Novillos +3 años', 'Novillos 2–3 años', 
+     'Novillos 1–2 años', 'Vaquillonas +2 años', 'Vaquillonas 1–2 años', 
+     'Terneros/as', 'Terneros nacidos'].includes(animal.categoria)) { // 🆕 AGREGAR
+  desglosePorTipo.vacunos += ugAnimal
+} else if (['Carneros', 'Ovejas', 'Capones', 'Borregas 2–4 dientes', 
+                'Corderas DL', 'Corderos DL', 'Corderos/as Mamones'].includes(animal.categoria)) {
+      desglosePorTipo.ovinos += ugAnimal
+    } else if (['Padrillos', 'Yeguas', 'Caballos', 'Potrillos'].includes(animal.categoria)) {
+      desglosePorTipo.yeguarizos += ugAnimal
+    }
+  })
 
   // Total de animales por categoría
   const totalAnimalesPorCategoria = animales.reduce((acc, animal) => {
@@ -165,8 +175,21 @@ export function calcularEstadisticasCampo(lotes: Lote[]) {
     yeguarizos: 0
   }
 
-  // ⚠️ Igual que en el lote: usar SOLO el cálculo centralizado
-desglosePorTipo.vacunos = ugTotalesCampo
+  todosLosAnimales.forEach(animal => {
+    const equivalencia = EQUIVALENCIAS_UG[animal.categoria] || 0
+    const ugAnimal = animal.cantidad * equivalencia
+
+    if (['Toros', 'Vacas', 'Novillos +3 años', 'Novillos 2–3 años', 
+         'Novillos 1–2 años', 'Vaquillonas +2 años', 'Vaquillonas 1–2 años', 
+         'Terneros/as', 'Terneros nacidos'].includes(animal.categoria)) {  // ✅ AGREGADO
+      desglosePorTipo.vacunos += ugAnimal
+    } else if (['Carneros', 'Ovejas', 'Capones', 'Borregas 2–4 dientes', 
+                'Corderas DL', 'Corderos DL', 'Corderos/as Mamones'].includes(animal.categoria)) {
+      desglosePorTipo.ovinos += ugAnimal
+    } else if (['Padrillos', 'Yeguas', 'Caballos', 'Potrillos'].includes(animal.categoria)) {
+      desglosePorTipo.yeguarizos += ugAnimal
+    }
+  })
 
   return {
     totalHectareas,
