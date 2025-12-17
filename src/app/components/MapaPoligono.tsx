@@ -109,18 +109,20 @@ interface MapaPoligonoProps {
   initialCenter?: [number, number]
   initialZoom?: number
   existingPolygons?: Array<{
-    id: string
-    nombre: string
-    coordinates: number[][]
-    color?: string
-    moduloPastoreoId?: string | null
-    info?: {
-      hectareas?: number
-      cultivos?: any[]
-      animales?: any[]
-      ndviMatriz?: any
-    }
-  }>
+  id: string
+  nombre: string
+  coordinates: number[][]
+  color?: string
+  moduloPastoreoId?: string | null
+  isDashed?: boolean      // 🆕 NUEVO
+  isEditing?: boolean     // 🆕 NUEVO
+  info?: {
+    hectareas?: number
+    cultivos?: any[]
+    animales?: any[]
+    ndviMatriz?: any
+  }
+}>
   readOnly?: boolean
   modulosLeyenda?: ModuloLeyenda[]
   mostrarLeyendaModulos?: boolean
@@ -391,27 +393,30 @@ L.control.layers({ 'Satélite': satelitalLayer, 'Mapa': osmLayer }).addTo(map)
     existingLayersRef.current = existingLayers
 
     existingPolygons.forEach((potrero) => {
-      if (!potrero.coordinates?.length) return
+  if (!potrero.coordinates?.length) return
 
-      const polygon = (L as any).polygon(potrero.coordinates, {
-        color: potrero.color || '#10b981',
-        fillColor: potrero.color || '#10b981',
-        fillOpacity: 0.3,
-        weight: 3,
-      })
+  // 🗺️ PRIMERO: Agregar imagen NDVI si hay datos (solo si NO está editando)
+  if (potrero.info?.ndviMatriz?.matriz?.length > 0 && !potrero.isEditing) {
+    const imageOverlay = crearImagenNDVI(
+      potrero.info.ndviMatriz,
+      potrero.coordinates
+    )
+    if (imageOverlay) {
+      existingLayersRef.current.addLayer(imageOverlay)
+    }
+  }
 
-      polygon.bindPopup(`
-        <div style="padding: 8px; min-width: 200px;">
-          <strong style="font-size: 16px; color: ${potrero.color || '#10b981'};">
-            ${potrero.nombre}
-          </strong><br/>
-          <span style="color: #999; font-size: 12px;">
-            ${potrero.info?.hectareas?.toFixed(2) || '0'} ha
-          </span>
-        </div>
-      `)
+  // DESPUÉS: Dibujar el polígono encima (borde visible)
+  const polygon = (L as any).polygon(potrero.coordinates, {
+    color: potrero.isEditing ? '#9ca3af' : (potrero.color || '#10b981'), // 🔥 Gris si está editando
+    fillColor: potrero.isEditing ? '#e5e7eb' : 'transparent', // 🔥 Gris claro si está editando
+    fillOpacity: potrero.isEditing ? 0.15 : 0, // 🔥 Ligeramente visible si está editando
+    weight: potrero.isEditing ? 2 : 3, // 🔥 Más delgado si está editando
+    opacity: potrero.isEditing ? 0.6 : 1, // 🔥 Más transparente si está editando
+    dashArray: potrero.isDashed ? '10, 10' : undefined, // 🔥 LÍNEA PUNTEADA
+  })
 
-      existingLayers.addLayer(polygon)
+  existingLayersRef.current.addLayer(polygon)
     })
 
     if (existingPolygons.length > 0 && existingLayers.getLayers().length > 0) {
@@ -604,48 +609,52 @@ const tooltipContent = `
   </div>
 `
 
-const tooltip = (L as any).tooltip({
-  permanent: true,
-  direction: 'center',
-  className: 'potrero-label-transparent',
-  opacity: 1,
-}).setContent(tooltipContent)
+// 🔥 NO mostrar tooltip si está editando
+if (!potrero.isEditing) {
+  const tooltip = (L as any).tooltip({
+    permanent: true,
+    direction: 'center',
+    className: 'potrero-label-transparent',
+    opacity: 1,
+  }).setContent(tooltipContent)
 
-// Guardar metadata en el tooltip para decisiones de visibilidad
-tooltip._potreroData = {
-  id: potrero.id,
-  hectareas: potrero.info?.hectareas || 0,
-  center: center
-}
+  // Guardar metadata en el tooltip para decisiones de visibilidad
+  tooltip._potreroData = {
+    id: potrero.id,
+    hectareas: potrero.info?.hectareas || 0,
+    center: center
+  }
 
-tooltip.setLatLng(center)
-existingLayersRef.current.addLayer(tooltip)
+  tooltip.setLatLng(center)
+  existingLayersRef.current.addLayer(tooltip)
 
-// 🎯 MAGIA: Ocultar/mostrar tooltips según zoom para evitar superposición
-if (!mapRef.current._tooltipZoomHandler) {
-  mapRef.current._tooltipZoomHandler = true
-  mapRef.current.on('zoomend', () => {
-    const currentZoom = mapRef.current.getZoom()
-    
-    existingLayersRef.current.eachLayer((layer: any) => {
-      if (layer instanceof (L as any).Tooltip) {
-        // Ocultar en zoom bajo, mostrar en zoom medio/alto
-        if (currentZoom < 13) {
-          layer.setOpacity(0) // Invisible en zoom bajo
-        } else {
-          layer.setOpacity(1) // Visible en zoom medio/alto
+  // 🎯 MAGIA: Ocultar/mostrar tooltips según zoom para evitar superposición
+  if (!mapRef.current._tooltipZoomHandler) {
+    mapRef.current._tooltipZoomHandler = true
+    mapRef.current.on('zoomend', () => {
+      const currentZoom = mapRef.current.getZoom()
+      
+      existingLayersRef.current.eachLayer((layer: any) => {
+        if (layer instanceof (L as any).Tooltip) {
+          // Ocultar en zoom bajo, mostrar en zoom medio/alto
+          if (currentZoom < 13) {
+            layer.setOpacity(0) // Invisible en zoom bajo
+          } else {
+            layer.setOpacity(1) // Visible en zoom medio/alto
+          }
         }
-      }
+      })
     })
-  })
-}
+  }
 
-// Aplicar visibilidad inicial según zoom actual
-const initialZoom = mapRef.current?.getZoom() || 14
-if (initialZoom < 13) {
-  tooltip.setOpacity(0)
+  // Aplicar visibilidad inicial según zoom actual
+  const initialZoom = mapRef.current?.getZoom() || 14
+  if (initialZoom < 13) {
+    tooltip.setOpacity(0)
+  }
 }
     })
+    
     // 🎯 SISTEMA INTELIGENTE: Gestionar visibilidad de tooltips según zoom
 const gestionarVisibilidadTooltips = () => {
   if (!mapRef.current) return

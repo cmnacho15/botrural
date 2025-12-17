@@ -353,14 +353,29 @@ export default function EditarLotePage() {
     alert(`¡Potrero dibujado! Área: ${areaHectareas.toFixed(2)} ha`)
   }
 
-  const potrerosParaMapa = lotesExistentes
+  const potrerosParaMapa = [
+  // 🔥 AGREGAR EL POTRERO ACTUAL COMO PUNTEADO
+  ...(poligono ? [{
+    id: loteId,
+    nombre: `${nombre} (editando)`,
+    coordinates: poligono,
+    color: '#9ca3af', // gris
+    isDashed: true, // 🆕 NUEVO
+    isEditing: true, // 🆕 NUEVO
+  }] : []),
+  
+  // Los demás potreros (existentes)
+  ...lotesExistentes
     .filter(l => l.poligono && l.poligono.length > 0)
     .map((l, i) => ({
       id: l.id,
       nombre: l.nombre,
       coordinates: l.poligono,
       color: ['#ef4444', '#84cc16', '#06b6d4', '#8b5cf6'][i % 4],
+      isDashed: false,
+      isEditing: false,
     }))
+]
 
   if (cargando) {
     return (
