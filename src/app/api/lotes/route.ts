@@ -31,18 +31,23 @@ export async function GET(request: Request) {
     })
 
     // Calcular días de pastoreo/descanso
-    const lotesConDias = lotes.map((lote: any) => {
-      const tieneAnimales = lote.animalesLote && lote.animalesLote.length > 0
-      const diasDesdeUltimoCambio = lote.ultimoCambio 
-        ? Math.floor((Date.now() - new Date(lote.ultimoCambio).getTime()) / (1000 * 60 * 60 * 24))
-        : 0
+const lotesConDias = lotes.map((lote: any) => {
+  const tieneAnimales = lote.animalesLote && lote.animalesLote.length > 0
+  const diasDesdeUltimoCambio = lote.ultimoCambio 
+    ? Math.floor((Date.now() - new Date(lote.ultimoCambio).getTime()) / (1000 * 60 * 60 * 24))
+    : 0
 
-      return {
-        ...lote,
-        diasPastoreo: tieneAnimales ? diasDesdeUltimoCambio : 0,
-        diasDescanso: !tieneAnimales ? diasDesdeUltimoCambio : 0,
-      }
-    })
+  return {
+    ...lote,
+    // 🔥 SUMAR EL AJUSTE A LOS DÍAS CALCULADOS
+    diasPastoreo: tieneAnimales 
+      ? diasDesdeUltimoCambio + (lote.diasPastoreoAjuste || 0) 
+      : 0,
+    diasDescanso: !tieneAnimales 
+      ? diasDesdeUltimoCambio + (lote.diasDescansoAjuste || 0) 
+      : 0,
+  }
+})
 
     return NextResponse.json(lotesConDias)
   } catch (error) {
