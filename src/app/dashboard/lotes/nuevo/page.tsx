@@ -61,6 +61,10 @@ export default function NuevoLotePage() {
   const [nuevoModuloNombre, setNuevoModuloNombre] = useState('')
   const [nuevoModuloDescripcion, setNuevoModuloDescripcion] = useState('')
 
+  // 🆕 NUEVOS ESTADOS PARA DÍAS DE AJUSTE
+  const [diasPastoreoAjuste, setDiasPastoreoAjuste] = useState<string>('')
+  const [diasDescansoAjuste, setDiasDescansoAjuste] = useState<string>('')
+
   // Cargar lotes
   useEffect(() => {
     cargarLotesExistentes()
@@ -235,6 +239,8 @@ export default function NuevoLotePage() {
         }))
       const animalesValidos = animales.filter(a => a.categoria && a.cantidad)
 
+      const tieneAnimales = animalesValidos.length > 0;  // 🆕 NUEVO
+
       console.log('📤 ENVIANDO AL BACKEND...')
       console.log('👉 Cultivos válidos:', cultivosValidos)
       console.log('👉 Animales válidos:', animalesValidos)
@@ -244,10 +250,13 @@ export default function NuevoLotePage() {
         nombre,
         hectareas: hectareasFinales,
         poligono,
-        esPastoreable,  // 🆕 NUEVO
+        esPastoreable,
         cultivos: cultivosValidos,
         animales: animalesValidos,
-        moduloPastoreoId: moduloIdFinal, // 🔥 AGREGAR MÓDULO AL PAYLOAD
+        moduloPastoreoId: moduloIdFinal,
+        // 🆕 AGREGAR AJUSTES DE DÍAS AL PAYLOAD
+        diasPastoreoAjuste: tieneAnimales && diasPastoreoAjuste ? parseInt(diasPastoreoAjuste) : undefined,
+        diasDescansoAjuste: !tieneAnimales && diasDescansoAjuste ? parseInt(diasDescansoAjuste) : undefined,
       }
 
       console.log('📦 PAYLOAD COMPLETO:', JSON.stringify(payload, null, 2))
@@ -471,7 +480,48 @@ export default function NuevoLotePage() {
             </button>
           </div>
           
+          {/* 🐄 ANIMALES */}
+          <div className="bg-blue-50 rounded-lg p-4">
+            <h3 className="font-medium text-gray-900 mb-3">🐄 Animales</h3>
+            {/* ... todo el código de animales ... */}
+            <button type="button" onClick={agregarAnimal} className="text-blue-600 text-sm mt-2 hover:underline">
+              + Agregar animales
+            </button>
+          </div>
 
+          {/* 🆕 AJUSTE DE DÍAS DE PASTOREO/DESCANSO */}
+          {esPastoreable && (
+            <div className="bg-amber-50 rounded-lg p-4 border-2 border-amber-200">
+              <h3 className="font-medium text-gray-900 mb-2 flex items-center gap-2">
+                📅 {animales.some(a => a.categoria && a.cantidad) ? 'Días de Pastoreo' : 'Días de Descanso'}
+              </h3>
+              <p className="text-xs text-gray-600 mb-3">
+                {animales.some(a => a.categoria && a.cantidad)
+                  ? '¿Los animales ya estaban aquí antes de hoy? Indicá cuántos días atrás para ajustar el conteo.'
+                  : 'Si este potrero ya estaba en descanso antes de hoy, indicá hace cuántos días atrás comenzó.'
+                }
+              </p>
+              <div className="flex items-center gap-3">
+                <input
+                  type="number"
+                  value={animales.some(a => a.categoria && a.cantidad) ? diasPastoreoAjuste : diasDescansoAjuste}
+                  onChange={(e) => animales.some(a => a.categoria && a.cantidad)
+                    ? setDiasPastoreoAjuste(e.target.value)
+                    : setDiasDescansoAjuste(e.target.value)
+                  }
+                  min="0"
+                  className="flex-1 border border-gray-300 rounded-lg px-4 py-2.5"
+                  placeholder="Ej: 15 días"
+                />
+                <span className="text-sm text-gray-600 whitespace-nowrap">días atrás</span>
+              </div>
+              <p className="text-xs text-gray-500 mt-2 italic">
+                💡 Ejemplo: Si ponés "15", significa que {animales.some(a => a.categoria && a.cantidad) ? 'los animales están aquí' : 'está en descanso'} desde hace 15 días.
+              </p>
+            </div>
+          )}
+
+          
 
           {/* 📦 SELECTOR DE MÓDULO */}
           <div className="bg-purple-50 rounded-lg p-4">
