@@ -6,7 +6,7 @@ export const EQUIVALENCIAS_UG: Record<string, number> = {
   // 🐄 VACUNOS
   'Toros': 1.20,
   'Vacas': 1.00,
-  'Novillos +3 años': 1.00,
+  'Novillos +3 años': 1.20,
   'Novillos 2–3 años': 1.00,
   'Novillos 1–2 años': 0.7,
   'Vaquillonas +2 años': 1.00,
