@@ -19,6 +19,7 @@ export async function PUT(
     const usuario = await prisma.user.findUnique({
       where: { id: session.user.id },
     });
+  
 
     const lote = await prisma.lote.findUnique({
       where: { id },
@@ -148,39 +149,51 @@ console.log('   - diasDescansoAjuste:', diasDescansoAjuste, typeof diasDescansoA
     console.log("🔄 Cambió estado de animales:", cambioEstadoAnimales);
 
     // ========================
-    // 💾 ACTUALIZAR LOTE
-    // ========================
-    console.log('💾 VALORES QUE SE VAN A GUARDAR:');
-console.log('   - diasPastoreoAjuste final:', diasPastoreoAjuste !== undefined ? diasPastoreoAjuste : null);
-console.log('   - diasDescansoAjuste final:', diasDescansoAjuste !== undefined ? diasDescansoAjuste : null);
-    const loteActualizado = await prisma.lote.update({
-      where: { id },
-      data: {
-        nombre,
-        hectareas: parseFloat(hectareas),
-        esPastoreable: esPastoreable ?? true,
-        ...(poligono && { poligono }),
-        ...(cambioEstadoAnimales && { ultimoCambio: new Date() }),
-        moduloPastoreoId: moduloPastoreoId || null,
-        
-        // 🆕 AGREGAR ESTOS CAMPOS
-        diasPastoreoAjuste: diasPastoreoAjuste !== undefined ? diasPastoreoAjuste : null,
-        diasDescansoAjuste: diasDescansoAjuste !== undefined ? diasDescansoAjuste : null,
-        
-        cultivos: {
-          deleteMany: {},
-          create: cultivosValidos,
-        },
-        animalesLote: {
-          deleteMany: {},
-          create: animalesValidos,
-        },
-      },
-      include: {
-        cultivos: true,
-        animalesLote: true,
-      },
-    });
+// 💾 ACTUALIZAR LOTE
+// ========================
+console.log('💾 VALORES QUE SE VAN A GUARDAR:');
+console.log('   - diasPastoreoAjuste final:', diasPastoreoAjuste);
+console.log('   - diasDescansoAjuste final:', diasDescansoAjuste);
+
+const loteActualizado = await prisma.lote.update({
+  where: { id },
+  data: {
+    nombre,
+    hectareas: parseFloat(hectareas),
+    esPastoreable: esPastoreable ?? true,
+    ...(poligono && { poligono }),
+    
+    // 🔥 Calcular ultimoCambio según ajuste de días
+    ultimoCambio: (() => {
+      if (cambioEstadoAnimales) {
+        return new Date(); // Si cambió estado, resetear a hoy
+      }
+      if (diasPastoreoAjuste && tendraAnimales) {
+        // Restar días para que el total sea exactamente diasPastoreoAjuste
+        return new Date(Date.now() - (diasPastoreoAjuste * 24 * 60 * 60 * 1000));
+      }
+      if (diasDescansoAjuste && !tendraAnimales) {
+        return new Date(Date.now() - (diasDescansoAjuste * 24 * 60 * 60 * 1000));
+      }
+      return lote.ultimoCambio; // Mantener la fecha actual
+    })(),
+    
+    moduloPastoreoId: moduloPastoreoId || null,
+    
+    cultivos: {
+      deleteMany: {},
+      create: cultivosValidos,
+    },
+    animalesLote: {
+      deleteMany: {},
+      create: animalesValidos,
+    },
+  },
+  include: {
+    cultivos: true,
+    animalesLote: true,
+  },
+});
 
     // 🔥 CREAR EVENTOS PARA LOS CAMBIOS
 

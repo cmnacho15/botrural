@@ -160,9 +160,9 @@ export default function EditarLotePage() {
           // 🔥 CARGAR MÓDULO ACTUAL
           setModuloSeleccionado(lote.moduloPastoreoId || '')
 
-          // 🆕 CARGAR AJUSTES DE DÍAS
-          setDiasPastoreoAjuste(lote.diasPastoreoAjuste?.toString() || '')
-          setDiasDescansoAjuste(lote.diasDescansoAjuste?.toString() || '')
+          // 🆕 SIEMPRE empezar con campos vacíos
+setDiasPastoreoAjuste('')
+setDiasDescansoAjuste('')
 
           // Cultivos
           console.log("Cultivos del lote:", lote.cultivos);
