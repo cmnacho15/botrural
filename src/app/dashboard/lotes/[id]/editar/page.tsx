@@ -580,7 +580,7 @@ console.log('📅 Días descanso ajuste:', diasDescansoAjuste);
               <p className="text-xs text-gray-600 mb-3">
                 {tieneAnimales 
                   ? '¿Los animales ya estaban aquí antes de hoy? Indicá cuántos días atrás para ajustar el conteo.'
-                  : 'Si este potrero ya estaba en descanso antes de hoy, indicá cuántos días atrás comenzó.'
+                  : 'Si este potrero ya estaba en descanso antes de hoy, indicá hace cuántos días atrás comenzó.'
                 }
               </p>
               <div className="flex items-center gap-3">
@@ -593,7 +593,7 @@ console.log('📅 Días descanso ajuste:', diasDescansoAjuste);
                   }
                   min="0"
                   className="flex-1 border border-gray-300 rounded-lg px-4 py-2.5"
-                  placeholder="Ej: 15 (días adicionales)"
+                  placeholder="Ej: 15 días"
                 />
                 <span className="text-sm text-gray-600 whitespace-nowrap">días atrás</span>
               </div>
