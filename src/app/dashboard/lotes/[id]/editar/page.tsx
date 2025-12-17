@@ -306,6 +306,8 @@ export default function EditarLotePage() {
         }))
       const animalesValidos = animales.filter(a => a.categoria && a.cantidad);
 
+      const tieneAnimales = animalesValidos.length > 0;  // 🆕 AGREGAR ESTA LÍNEA
+
       console.log('📤 ENVIANDO AL BACKEND:');
       console.log('Cultivos válidos:', cultivosValidos);
       console.log('Animales válidos:', animalesValidos);
