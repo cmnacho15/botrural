@@ -183,7 +183,10 @@ model Lote {
   campoId           String
   moduloPastoreoId  String? 
   
-
+  // 🆕 AGREGAR ESTOS DOS CAMPOS
+  diasPastoreoAjuste  Int?             // ajuste manual cuando tiene animales
+  diasDescansoAjuste  Int?             // ajuste manual cuando está vacío
+  
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
   animalesLote      AnimalLote[]

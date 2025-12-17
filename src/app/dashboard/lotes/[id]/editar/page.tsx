@@ -49,11 +49,15 @@ export default function EditarLotePage() {
   const [hectareasCalculadas, setHectareasCalculadas] = useState<number | null>(null)
   const [lotesExistentes, setLotesExistentes] = useState<LoteExistente[]>([])
   const [mapCenter, setMapCenter] = useState<[number, number] | undefined>(undefined)
-  const [esPastoreable, setEsPastoreable] = useState(true)  // 🆕 NUEVO
+  const [esPastoreable, setEsPastoreable] = useState(true)
   const [cultivos, setCultivos] = useState<Cultivo[]>([])
   const [animales, setAnimales] = useState<Animal[]>([])
   const [cultivosDisponibles, setCultivosDisponibles] = useState<string[]>([])
   const [categoriasDisponibles, setCategoriasDisponibles] = useState<Array<{nombre: string, tipo: string}>>([])
+
+  // 🆕 NUEVOS ESTADOS PARA DÍAS DE AJUSTE
+  const [diasPastoreoAjuste, setDiasPastoreoAjuste] = useState<string>('')
+  const [diasDescansoAjuste, setDiasDescansoAjuste] = useState<string>('')
 
   // 📦 Estados para módulos
   const [modulos, setModulos] = useState<Array<{id: string, nombre: string}>>([])
@@ -151,10 +155,14 @@ export default function EditarLotePage() {
           setNombre(lote.nombre);
           setHectareasManual(parseFloat(lote.hectareas).toFixed(2));
           setPoligono(lote.poligono || null);
-          setEsPastoreable(lote.esPastoreable ?? true);  // 🆕 NUEVO
+          setEsPastoreable(lote.esPastoreable ?? true);
           
           // 🔥 CARGAR MÓDULO ACTUAL
           setModuloSeleccionado(lote.moduloPastoreoId || '')
+
+          // 🆕 CARGAR AJUSTES DE DÍAS
+          setDiasPastoreoAjuste(lote.diasPastoreoAjuste?.toString() || '')
+          setDiasDescansoAjuste(lote.diasDescansoAjuste?.toString() || '')
 
           // Cultivos
           console.log("Cultivos del lote:", lote.cultivos);
@@ -285,7 +293,7 @@ export default function EditarLotePage() {
           moduloIdFinal = moduloNuevoId
         } else {
           setLoading(false)
-          return // Falló la creación del módulo
+          return
         }
       }
 
@@ -310,7 +318,10 @@ export default function EditarLotePage() {
         esPastoreable,
         cultivos: cultivosValidos,
         animales: animalesValidos,
-        moduloPastoreoId: moduloIdFinal, // 🔥 AGREGAR MÓDULO AL PAYLOAD
+        moduloPastoreoId: moduloIdFinal,
+        // 🆕 AGREGAR AJUSTES DE DÍAS AL PAYLOAD
+        diasPastoreoAjuste: diasPastoreoAjuste ? parseInt(diasPastoreoAjuste) : null,
+        diasDescansoAjuste: diasDescansoAjuste ? parseInt(diasDescansoAjuste) : null,
       };
 
       console.log('📦 PAYLOAD COMPLETO:', JSON.stringify(payload, null, 2));
@@ -354,28 +365,26 @@ export default function EditarLotePage() {
   }
 
   const potrerosParaMapa = [
-  // 🔥 AGREGAR EL POTRERO ACTUAL COMO PUNTEADO
-  ...(poligono ? [{
-    id: loteId,
-    nombre: `${nombre} (editando)`,
-    coordinates: poligono,
-    color: '#9ca3af', // gris
-    isDashed: true, // 🆕 NUEVO
-    isEditing: true, // 🆕 NUEVO
-  }] : []),
-  
-  // Los demás potreros (existentes)
-  ...lotesExistentes
-    .filter(l => l.poligono && l.poligono.length > 0)
-    .map((l, i) => ({
-      id: l.id,
-      nombre: l.nombre,
-      coordinates: l.poligono,
-      color: ['#ef4444', '#84cc16', '#06b6d4', '#8b5cf6'][i % 4],
-      isDashed: false,
-      isEditing: false,
-    }))
-]
+    ...(poligono ? [{
+      id: loteId,
+      nombre: `${nombre} (editando)`,
+      coordinates: poligono,
+      color: '#9ca3af',
+      isDashed: true,
+      isEditing: true,
+    }] : []),
+    
+    ...lotesExistentes
+      .filter(l => l.poligono && l.poligono.length > 0)
+      .map((l, i) => ({
+        id: l.id,
+        nombre: l.nombre,
+        coordinates: l.poligono,
+        color: ['#ef4444', '#84cc16', '#06b6d4', '#8b5cf6'][i % 4],
+        isDashed: false,
+        isEditing: false,
+      }))
+  ]
 
   if (cargando) {
     return (
@@ -384,6 +393,10 @@ export default function EditarLotePage() {
       </div>
     )
   }
+
+  // 🆕 CALCULAR SI MOSTRAR EL CAMPO DE AJUSTE
+  const tieneAnimales = animales.some(a => a.categoria && a.cantidad)
+  const mostrarAjusteDias = esPastoreable && (tieneAnimales || !tieneAnimales)
 
   return (
     <div className="min-h-screen bg-gray-50 p-6 text-gray-900">
@@ -423,24 +436,23 @@ export default function EditarLotePage() {
             />
           </div>
           
-          {/* 🆕 NUEVO: Checkbox Es Pastoreable */}
-<div className="bg-purple-50 rounded-lg p-4">
-  <label className="flex items-center gap-3 cursor-pointer">
-    <input
-      type="checkbox"
-      checked={esPastoreable}
-      onChange={(e) => setEsPastoreable(e.target.checked)}
-      className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
-    />
-    <div>
-      <span className="text-sm font-medium text-gray-900">Es pastoreable</span>
-      <p className="text-xs text-gray-600 mt-1">
-        Si está marcado, este potrero se incluirá en el cálculo de SPG (Superficie de Pastoreo Ganadero)
-      </p>
-    </div>
-  </label>
-</div>
-          
+          {/* Checkbox Es Pastoreable */}
+          <div className="bg-purple-50 rounded-lg p-4">
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={esPastoreable}
+                onChange={(e) => setEsPastoreable(e.target.checked)}
+                className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+              />
+              <div>
+                <span className="text-sm font-medium text-gray-900">Es pastoreable</span>
+                <p className="text-xs text-gray-600 mt-1">
+                  Si está marcado, este potrero se incluirá en el cálculo de SPG (Superficie de Pastoreo Ganadero)
+                </p>
+              </div>
+            </label>
+          </div>
 
           {/* CULTIVOS */}
           <div className="bg-blue-50 rounded-lg p-4">
@@ -492,7 +504,6 @@ export default function EditarLotePage() {
             <div className="space-y-3">
               {animales.map(a => (
                 <div key={a.id} className="grid grid-cols-[100px_1fr_120px_40px] gap-2 bg-white p-3 rounded-lg items-center">
-                  {/* Cantidad */}
                   <input
                     type="number"
                     value={a.cantidad}
@@ -501,7 +512,6 @@ export default function EditarLotePage() {
                     className="border border-gray-300 rounded px-3 py-2"
                   />
                   
-                  {/* Tipo de animal */}
                   <select
                     value={a.categoria}
                     onChange={e => actualizarAnimal(a.id, 'categoria', e.target.value)}
@@ -530,7 +540,6 @@ export default function EditarLotePage() {
                     })}
                   </select>
 
-                  {/* Peso (Opcional) */}
                   <input
                     type="number"
                     value={a.peso || ''}
@@ -539,7 +548,6 @@ export default function EditarLotePage() {
                     className="border border-gray-300 rounded px-3 py-2 text-sm"
                   />
 
-                  {/* Botón eliminar */}
                   <button 
                     onClick={() => eliminarAnimal(a.id)} 
                     type="button" 
@@ -554,9 +562,40 @@ export default function EditarLotePage() {
               + Agregar animales
             </button>
           </div>
-          
 
-          {/* 📦 SELECTOR DE MÓDULO */}
+          {/* 🆕 AJUSTE DE DÍAS DE PASTOREO/DESCANSO */}
+          {mostrarAjusteDias && (
+            <div className="bg-amber-50 rounded-lg p-4 border-2 border-amber-200">
+              <h3 className="font-medium text-gray-900 mb-2 flex items-center gap-2">
+                📅 {tieneAnimales ? 'Días de Pastoreo' : 'Días de Descanso'}
+              </h3>
+              <p className="text-xs text-gray-600 mb-3">
+                {tieneAnimales 
+                  ? '¿Los animales ya estaban aquí antes de hoy? Indicá cuántos días atrás para ajustar el conteo.'
+                  : 'Si este potrero ya estaba en descanso antes de hoy, indicá cuántos días atrás comenzó.'
+                }
+              </p>
+              <div className="flex items-center gap-3">
+                <input
+                  type="number"
+                  value={tieneAnimales ? diasPastoreoAjuste : diasDescansoAjuste}
+                  onChange={(e) => tieneAnimales 
+                    ? setDiasPastoreoAjuste(e.target.value)
+                    : setDiasDescansoAjuste(e.target.value)
+                  }
+                  min="0"
+                  className="flex-1 border border-gray-300 rounded-lg px-4 py-2.5"
+                  placeholder="Ej: 15 (días adicionales)"
+                />
+                <span className="text-sm text-gray-600 whitespace-nowrap">días atrás</span>
+              </div>
+              <p className="text-xs text-gray-500 mt-2 italic">
+                💡 Ejemplo: Si ponés "15", significa que {tieneAnimales ? 'los animales están aquí' : 'está en descanso'} desde hace 15 días.
+              </p>
+            </div>
+          )}
+
+          {/* SELECTOR DE MÓDULO */}
           <div className="bg-purple-50 rounded-lg p-4">
             <h3 className="font-medium text-gray-900 mb-3">📦 Módulo de Pastoreo</h3>
             
@@ -614,7 +653,6 @@ export default function EditarLotePage() {
             )}
           </div>
 
-          
           {/* MAPA */}
           {poligono && (
             <div className="bg-green-50 border border-green-200 rounded-lg p-4">
