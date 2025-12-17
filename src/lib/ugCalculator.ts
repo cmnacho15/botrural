@@ -6,7 +6,7 @@ export const EQUIVALENCIAS_UG: Record<string, number> = {
   // 🐄 VACUNOS
   'Toros': 1.20,
   'Vacas': 1.00,
-  'Vaca Gorda': 1.20,
+  'Vacas Gordas': 1.20,
   'Novillos +3 años': 1.20,
   'Novillos 2–3 años': 1.00,
   'Novillos 1–2 años': 0.7,
@@ -144,7 +144,7 @@ export function calcularEstadisticasLote(lote: Lote) {
     const equivalencia = EQUIVALENCIAS_UG[animal.categoria] || 0
     const ugAnimal = animal.cantidad * equivalencia
 
-    if (['Toros', 'Vacas', 'Vaca Gorda', 'Novillos +3 años', 'Novillos 2–3 años', 
+    if (['Toros', 'Vacas', 'Vacas Gordas', 'Novillos +3 años', 'Novillos 2–3 años', 
      'Novillos 1–2 años', 'Vaquillonas +2 años', 'Vaquillonas 1–2 años', 
      'Terneros', 'Terneras', 'Terneros nacidos'].includes(animal.categoria)) {
       desglosePorTipo.vacunos += ugAnimal
@@ -208,7 +208,7 @@ export function calcularEstadisticasCampo(lotes: Lote[]) {
     const equivalencia = EQUIVALENCIAS_UG[animal.categoria] || 0
     const ugAnimal = animal.cantidad * equivalencia
 
-    if (['Toros', 'Vacas', 'Vaca Gorda', 'Novillos +3 años', 'Novillos 2–3 años', 
+    if (['Toros', 'Vacas', 'Vacas Gordas', 'Novillos +3 años', 'Novillos 2–3 años', 
      'Novillos 1–2 años', 'Vaquillonas +2 años', 'Vaquillonas 1–2 años', 
      'Terneros', 'Terneras', 'Terneros nacidos'].includes(animal.categoria)) {
       desglosePorTipo.vacunos += ugAnimal
@@ -281,7 +281,7 @@ export function calcularRelacionLanarVacuno(lotes: Lote[]): {
                             'Corderas DL', 'Corderos DL', 'Corderos/as Mamones']
   
   // En calcularRelacionLanarVacuno()
-const categoriasVacunas = ['Toros', 'Vacas', 'Vaca Gorda', 'Novillos +3 años', 'Novillos 2–3 años', 
+const categoriasVacunas = ['Toros', 'Vacas', 'Vacas Gordas', 'Novillos +3 años', 'Novillos 2–3 años', 
                            'Novillos 1–2 años', 'Vaquillonas +2 años', 'Vaquillonas 1–2 años', 
                            'Terneros', 'Terneras', 'Terneros nacidos']
   
