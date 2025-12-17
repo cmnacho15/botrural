@@ -480,14 +480,7 @@ export default function NuevoLotePage() {
             </button>
           </div>
           
-          {/* 🐄 ANIMALES */}
-          <div className="bg-blue-50 rounded-lg p-4">
-            <h3 className="font-medium text-gray-900 mb-3">🐄 Animales</h3>
-            {/* ... todo el código de animales ... */}
-            <button type="button" onClick={agregarAnimal} className="text-blue-600 text-sm mt-2 hover:underline">
-              + Agregar animales
-            </button>
-          </div>
+          
 
           {/* 🆕 AJUSTE DE DÍAS DE PASTOREO/DESCANSO */}
           {esPastoreable && (
