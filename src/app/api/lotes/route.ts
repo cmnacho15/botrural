@@ -33,23 +33,41 @@ export async function GET(request: Request) {
     // Calcular días de pastoreo/descanso
 const lotesConDias = lotes.map((lote: any) => {
   const tieneAnimales = lote.animalesLote && lote.animalesLote.length > 0
-  const diasDesdeUltimoCambio = lote.ultimoCambio 
-    ? Math.floor((Date.now() - new Date(lote.ultimoCambio).getTime()) / (1000 * 60 * 60 * 24))
-    : 0
+  
+  // 🔥 CALCULAR FECHA BASE (teniendo en cuenta el ajuste)
+  let fechaBase = lote.ultimoCambio ? new Date(lote.ultimoCambio) : new Date()
+  
+  // 🔍 DEBUG: Ver valores iniciales
+  console.log(`\n🔍 LOTE: ${lote.nombre}`);
+  console.log(`   - ultimoCambio: ${lote.ultimoCambio}`);
+  console.log(`   - fechaBase INICIAL: ${fechaBase}`);
+  console.log(`   - tieneAnimales: ${tieneAnimales}`);
+  console.log(`   - diasPastoreoAjuste: ${lote.diasPastoreoAjuste}`);
+  console.log(`   - diasDescansoAjuste: ${lote.diasDescansoAjuste}`);
+  
+  // Si hay ajuste, restar esos días a la fecha base
+  if (tieneAnimales && lote.diasPastoreoAjuste) {
+    fechaBase = new Date(fechaBase.getTime() - (lote.diasPastoreoAjuste * 24 * 60 * 60 * 1000))
+    console.log(`   ✅ AJUSTE PASTOREO aplicado: ${lote.diasPastoreoAjuste} días`);
+    console.log(`   - fechaBase AJUSTADA: ${fechaBase}`);
+  } else if (!tieneAnimales && lote.diasDescansoAjuste) {
+    fechaBase = new Date(fechaBase.getTime() - (lote.diasDescansoAjuste * 24 * 60 * 60 * 1000))
+    console.log(`   ✅ AJUSTE DESCANSO aplicado: ${lote.diasDescansoAjuste} días`);
+    console.log(`   - fechaBase AJUSTADA: ${fechaBase}`);
+  }
+  
+  const diasDesdeUltimoCambio = Math.floor((Date.now() - fechaBase.getTime()) / (1000 * 60 * 60 * 24))
+  
+  console.log(`   - diasDesdeUltimoCambio FINAL: ${diasDesdeUltimoCambio}`);
 
   return {
     ...lote,
-    // 🔥 SUMAR EL AJUSTE A LOS DÍAS CALCULADOS
-    diasPastoreo: tieneAnimales 
-      ? diasDesdeUltimoCambio + (lote.diasPastoreoAjuste || 0) 
-      : 0,
-    diasDescanso: !tieneAnimales 
-      ? diasDesdeUltimoCambio + (lote.diasDescansoAjuste || 0) 
-      : 0,
+    diasPastoreo: tieneAnimales ? diasDesdeUltimoCambio : 0,
+    diasDescanso: !tieneAnimales ? diasDesdeUltimoCambio : 0,
   }
 })
 
-    return NextResponse.json(lotesConDias)
+return NextResponse.json(lotesConDias)
   } catch (error) {
     console.error('Error al obtener lotes:', error)
     return NextResponse.json({ error: 'Error al obtener lotes' }, { status: 500 })
