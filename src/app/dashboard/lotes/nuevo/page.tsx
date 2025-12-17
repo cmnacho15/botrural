@@ -509,7 +509,7 @@ export default function NuevoLotePage() {
                 <span className="text-sm text-gray-600 whitespace-nowrap">días atrás</span>
               </div>
               <p className="text-xs text-gray-500 mt-2 italic">
-                💡 Ejemplo: Si ponés "15", significa que {animales.some(a => a.categoria && a.cantidad) ? 'los animales están aquí' : 'está en descanso'} desde hace 15 días.
+                💡 Ejemplo: Si ponés "15", significa que {animales.some(a => a.categoria && a.cantidad) ? 'hay animales presentes en este potrero' : 'está en descanso'} desde hace 15 días.
               </p>
             </div>
           )}
