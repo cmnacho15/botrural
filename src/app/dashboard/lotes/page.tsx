@@ -804,9 +804,7 @@ const [acordeonesAbiertos, setAcordeonesAbiertos] = useState<{[key: string]: boo
 <span className="text-sm text-gray-600 bg-white px-3 py-1 rounded-full">
   {totalHectareas.toFixed(1)} ha
 </span>
-    <span className="text-sm text-gray-600 bg-white px-3 py-1 rounded-full">
-      {totalAnimales} animales
-    </span>
+    
     
     {/* 🐄 CATEGORÍAS PRESENTES */}
     {(() => {
