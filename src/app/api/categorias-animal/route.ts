@@ -13,7 +13,8 @@ const CATEGORIAS_PREDETERMINADAS = {
     { singular: 'Novillos 1–2 años', plural: 'Novillos 1–2 años' },
     { singular: 'Vaquillonas +2 años', plural: 'Vaquillonas +2 años' },
     { singular: 'Vaquillonas 1–2 años', plural: 'Vaquillonas 1–2 años' },
-    { singular: 'Terneros/as', plural: 'Terneros/as' },
+    { singular: 'Terneros', plural: 'Terneros' }, // ✅ CAMBIADO
+    { singular: 'Terneras', plural: 'Terneras' }, // ✅ NUEVO
     { singular: 'Terneros nacidos', plural: 'Terneros nacidos' }, // 🆕 NUEVA
   ],
   OVINO: [
