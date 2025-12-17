@@ -11,7 +11,8 @@ export const EQUIVALENCIAS_UG: Record<string, number> = {
   'Novillos 1–2 años': 0.7,
   'Vaquillonas +2 años': 1.00,
   'Vaquillonas 1–2 años': 0.7,
-  'Terneros/as': 0.40,
+  'Terneros': 0.40, // 🆕 NUEVO
+  'Terneras': 0.40, // 🆕 NUEVO
   'Terneros nacidos': 0, // 🆕 NUEVA (equivalencia = 0)
   
   // 🐑 OVINOS
@@ -144,7 +145,7 @@ export function calcularEstadisticasLote(lote: Lote) {
 
     if (['Toros', 'Novillos +3 años', 'Novillos 2–3 años', 
          'Novillos 1–2 años', 'Vaquillonas +2 años', 'Vaquillonas 1–2 años', 
-         'Terneros/as', 'Terneros nacidos'].includes(animal.categoria)) {
+         'Terneros', 'Terneras', 'Terneros nacidos'].includes(animal.categoria)) {
       desglosePorTipo.vacunos += ugAnimal
     } else if (['Carneros', 'Ovejas', 'Capones', 'Borregas 2–4 dientes', 
                 'Corderas DL', 'Corderos DL', 'Corderos/as Mamones'].includes(animal.categoria)) {
@@ -208,7 +209,7 @@ export function calcularEstadisticasCampo(lotes: Lote[]) {
 
     if (['Toros', 'Novillos +3 años', 'Novillos 2–3 años', 
          'Novillos 1–2 años', 'Vaquillonas +2 años', 'Vaquillonas 1–2 años', 
-         'Terneros/as', 'Terneros nacidos'].includes(animal.categoria)) {
+         'Terneros', 'Terneras', 'Terneros nacidos'].includes(animal.categoria)) {
       desglosePorTipo.vacunos += ugAnimal
     } else if (['Carneros', 'Ovejas', 'Capones', 'Borregas 2–4 dientes', 
                 'Corderas DL', 'Corderos DL', 'Corderos/as Mamones'].includes(animal.categoria)) {
@@ -278,9 +279,10 @@ export function calcularRelacionLanarVacuno(lotes: Lote[]): {
   const categoriasOvinas = ['Carneros', 'Ovejas', 'Capones', 'Borregas 2–4 dientes', 
                             'Corderas DL', 'Corderos DL', 'Corderos/as Mamones']
   
-  const categoriasVacunas = ['Toros', 'Vacas', 'Novillos +3 años', 'Novillos 2–3 años', 
+  // En calcularRelacionLanarVacuno()
+const categoriasVacunas = ['Toros', 'Vacas', 'Novillos +3 años', 'Novillos 2–3 años', 
                            'Novillos 1–2 años', 'Vaquillonas +2 años', 'Vaquillonas 1–2 años', 
-                           'Terneros/as', 'Terneros nacidos'] // 🆕 AGREGAR
+                           'Terneros', 'Terneras', 'Terneros nacidos'] // 🆕 CAMBIO
   
   const totalOvinos = todosAnimales
     .filter(a => categoriasOvinas.includes(a.categoria))

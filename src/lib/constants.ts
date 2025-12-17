@@ -52,7 +52,8 @@ export const CATEGORIAS_ANIMALES_DEFAULT = [
   { nombreSingular: 'Novillos 1–2 años', nombrePlural: 'Novillos 1–2 años', tipoAnimal: TipoAnimal.BOVINO },
   { nombreSingular: 'Vaquillonas +2 años', nombrePlural: 'Vaquillonas +2 años', tipoAnimal: TipoAnimal.BOVINO },
   { nombreSingular: 'Vaquillonas 1–2 años', nombrePlural: 'Vaquillonas 1–2 años', tipoAnimal: TipoAnimal.BOVINO },
-  { nombreSingular: 'Terneros/as', nombrePlural: 'Terneros/as', tipoAnimal: TipoAnimal.BOVINO },
+  { nombreSingular: 'Terneros', nombrePlural: 'Terneros', tipoAnimal: TipoAnimal.BOVINO }, // 🆕 NUEVO
+  { nombreSingular: 'Terneras', nombrePlural: 'Terneras', tipoAnimal: TipoAnimal.BOVINO }, // 🆕 NUEVO
   { nombreSingular: 'Terneros nacidos', nombrePlural: 'Terneros nacidos', tipoAnimal: TipoAnimal.BOVINO },
   
   // OVINOS
