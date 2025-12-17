@@ -46,7 +46,7 @@ import { TipoAnimal } from '@prisma/client'
 export const CATEGORIAS_ANIMALES_DEFAULT = [
   // BOVINOS
   { nombreSingular: 'Toros', nombrePlural: 'Toros', tipoAnimal: TipoAnimal.BOVINO },
-  { nombreSingular: 'Vacas', nombrePlural: 'Vacas', tipoAnimal: TipoAnimal.BOVINO },
+  { nombreSingular: 'Vaca Gorda', nombrePlural: 'Vacas Gordas', tipoAnimal: TipoAnimal.BOVINO },
   { nombreSingular: 'Novillos +3 años', nombrePlural: 'Novillos +3 años', tipoAnimal: TipoAnimal.BOVINO },
   { nombreSingular: 'Novillos 2–3 años', nombrePlural: 'Novillos 2–3 años', tipoAnimal: TipoAnimal.BOVINO },
   { nombreSingular: 'Novillos 1–2 años', nombrePlural: 'Novillos 1–2 años', tipoAnimal: TipoAnimal.BOVINO },

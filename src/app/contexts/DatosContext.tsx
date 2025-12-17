@@ -55,6 +55,7 @@ const AGRUPACION_ANIMALES: Record<string, string[]> = {
   'Corderos/as Mamones': ['Corderos/as Mamones'],  // ✅ AGREGADO
   'Borregas': ['Borregas 2–4 dientes', 'Borregas', 'Borregos'],
   'Vacas': ['Vacas'],
+  'Vaca Gorda': ['Vaca Gorda'],
   'Toros': ['Toros', 'Toritos'],
   'Carneros': ['Carneros'],
   'Ovejas': ['Ovejas'],
