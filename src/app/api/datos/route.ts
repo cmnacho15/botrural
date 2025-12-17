@@ -157,6 +157,7 @@ eventos
       createdAt: evento.createdAt,
       tipo: evento.tipo,
       categoria: categoriaPorTipo[evento.tipo] || 'otros',
+      categoriaAnimal: evento.categoria,  // ✅ AGREGAR ESTA LÍNEA
       descripcion: evento.descripcion,
       icono: iconoPorTipo[evento.tipo] || '📌',
       usuario: evento.usuario?.name || null,

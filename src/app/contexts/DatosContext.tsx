@@ -7,11 +7,13 @@ export type DatoUnificado = {
   fecha: Date;
   tipo: string;
   categoria: 'animales' | 'agricultura' | 'clima' | 'finanzas' | 'insumos';
+  categoriaAnimal?: string;  // ✅ AGREGADO
   descripcion: string;
   icono: string;
   color: string;
   usuario?: string;
   lote?: string;
+  rodeo?: string;  // ✅ AGREGADO
   detalles?: any;
   proveedor?: string;
   comprador?: string;
@@ -27,7 +29,7 @@ type FiltrosType = {
   potreros: string[];
   animales: string[];
   cultivos: string[];
-  rodeos: string[];  // ← NUEVO
+  rodeos: string[];
 };
 
 type DatosContextType = {
@@ -42,14 +44,15 @@ type DatosContextType = {
 // ===============================
 // 🐄 AGRUPACIÓN DE ANIMALES
 // ===============================
-// Nota: Esta agrupación se usa para matching flexible en filtros.
-// Por ejemplo: si un usuario filtra por "Novillos", debe ver eventos que mencionen
-// "Novillos +3 años", "Novillos 2–3 años", etc.
 const AGRUPACION_ANIMALES: Record<string, string[]> = {
   'Novillos': ['Novillos +3 años', 'Novillos 2–3 años', 'Novillos 1–2 años', 'Novillos', 'Novillitos'],
   'Vaquillonas': ['Vaquillonas +2 años', 'Vaquillonas 1–2 años', 'Vaquillonas'],
   'Terneros/as': ['Terneros/as', 'Terneros', 'Terneras', 'Terneros/as Mamones'],
+  'Terneros': ['Terneros'],  // ✅ AGREGADO
+  'Terneras': ['Terneras'],  // ✅ AGREGADO
+  'Terneros nacidos': ['Terneros nacidos'],  // ✅ AGREGADO
   'Corderos': ['Corderos DL', 'Corderas DL', 'Corderos/as Mamones', 'Corderos', 'Corderas'],
+  'Corderos/as Mamones': ['Corderos/as Mamones'],  // ✅ AGREGADO
   'Borregas': ['Borregas 2–4 dientes', 'Borregas', 'Borregos'],
   'Vacas': ['Vacas'],
   'Toros': ['Toros', 'Toritos'],
@@ -63,28 +66,27 @@ const AGRUPACION_ANIMALES: Record<string, string[]> = {
 };
 
 // ===============================
-// 🧠 FUNCIÓN MEJORADA PARA RECATEGORIZACIÓN
+// 🧠 FUNCIÓN MEJORADA PARA MATCHING
 // ===============================
 function coincideConFiltroAnimal(
   descripcion: string | undefined,
+  categoriaAnimal: string | undefined,  // ✅ AGREGADO
   tipo: string,
   filtrosAnimales: string[]
 ): boolean {
-  if (!descripcion || filtrosAnimales.length === 0) return true;
+  if (filtrosAnimales.length === 0) return true;
 
-  const descripcionLower = descripcion.toLowerCase();
+  const descripcionLower = descripcion?.toLowerCase() || '';
+  const categoriaAnimalLower = categoriaAnimal?.toLowerCase() || '';
 
   // ✅ CASO ESPECIAL: RECATEGORIZACIÓN
-  // Debe aparecer si filtras por la categoría origen O por la categoría destino
   if (tipo === 'RECATEGORIZACION') {
-    // Buscar patrón: "Recategorización de X [categoría1] a [categoría2]"
     const match = descripcionLower.match(/de\s+\d+\s+([^a]+?)\s+a\s+([^e]+?)\s+en/);
     
     if (match) {
       const categoriaOrigen = match[1].trim();
       const categoriaDestino = match[2].trim();
       
-      // Verificar si alguno de los filtros coincide con origen o destino
       return filtrosAnimales.some(categoriaFiltro => {
         const subcategorias = AGRUPACION_ANIMALES[categoriaFiltro] || [categoriaFiltro];
         
@@ -99,7 +101,21 @@ function coincideConFiltroAnimal(
     }
   }
 
-  // ✅ CASO NORMAL: Otros eventos
+  // ✅ VERIFICAR PRIMERO SI EL categoriaAnimal COINCIDE EXACTAMENTE
+  if (categoriaAnimal) {
+    const coincideExacto = filtrosAnimales.some(categoriaFiltro => {
+      const subcategorias = AGRUPACION_ANIMALES[categoriaFiltro] || [categoriaFiltro];
+      return subcategorias.some(sub => 
+        sub.toLowerCase() === categoriaAnimalLower ||
+        categoriaAnimalLower.includes(sub.toLowerCase()) ||
+        sub.toLowerCase().includes(categoriaAnimalLower)
+      );
+    });
+    
+    if (coincideExacto) return true;
+  }
+
+  // ✅ CASO NORMAL: Buscar en descripción
   return filtrosAnimales.some(categoriaFiltro => {
     const subcategorias = AGRUPACION_ANIMALES[categoriaFiltro] || [categoriaFiltro];
     return subcategorias.some(sub =>
@@ -130,7 +146,7 @@ export function DatosProvider({ children }: { children: ReactNode }) {
     potreros: [],
     animales: [],
     cultivos: [],
-    rodeos: [],  // ← NUEVO
+    rodeos: [],
   });
 
   // ✅ Cargar categorías y cultivos activos al montar
@@ -192,7 +208,8 @@ export function DatosProvider({ children }: { children: ReactNode }) {
           (d.descripcion ?? '').toLowerCase().includes(b) ||
           d.tipo.toLowerCase().includes(b) ||
           (d.proveedor ?? '').toLowerCase().includes(b) ||
-          (d.comprador ?? '').toLowerCase().includes(b)
+          (d.comprador ?? '').toLowerCase().includes(b) ||
+          (d.categoriaAnimal ?? '').toLowerCase().includes(b)  // ✅ AGREGADO
         );
       }
 
@@ -210,17 +227,18 @@ export function DatosProvider({ children }: { children: ReactNode }) {
       if (filtros.animales.length > 0) {
         filtrados = filtrados.filter((d) => {
           const descripcion = d.descripcion ?? ''
+          const categoriaAnimal = d.categoriaAnimal  // ✅ OBTENER categoriaAnimal
           
-          // Verificar que mencione un animal activo
-          const mencionaAnimalActivo = categoriasActivas.some(cat => 
-            descripcion.toLowerCase().includes(cat.toLowerCase())
-          )
+          // Verificar que mencione un animal activo O tenga categoriaAnimal activa
+          const mencionaAnimalActivo = categoriaAnimal 
+            ? categoriasActivas.some(cat => cat.toLowerCase() === categoriaAnimal.toLowerCase())
+            : categoriasActivas.some(cat => descripcion.toLowerCase().includes(cat.toLowerCase()))
           
           // Si es evento de animales y no menciona ningún animal activo, no mostrar
           if (!mencionaAnimalActivo && d.categoria === 'animales') return false
           
           // Si menciona un animal activo, verificar si coincide con el filtro
-          return coincideConFiltroAnimal(descripcion, d.tipo, filtros.animales)
+          return coincideConFiltroAnimal(descripcion, categoriaAnimal, d.tipo, filtros.animales)  // ✅ PASAR categoriaAnimal
         });
       }
 
@@ -245,11 +263,9 @@ export function DatosProvider({ children }: { children: ReactNode }) {
       // 🐮 RODEOS
       if (filtros.rodeos.length > 0) {
         filtrados = filtrados.filter((d) => {
-          // Primero verificar si el dato tiene la propiedad 'rodeo'
-          const rodeoDelDato = (d as any).rodeo;
+          const rodeoDelDato = d.rodeo;
           if (!rodeoDelDato) return false;
           
-          // Verificar si el rodeo del dato está en los rodeos filtrados
           return filtros.rodeos.includes(rodeoDelDato);
         });
       }
