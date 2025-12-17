@@ -177,8 +177,8 @@ export default function ModalNacimiento({ onClose, onSuccess }: ModalNacimientoP
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white text-sm"
                     required
                   >
-                    <option value="terneros">Terneros/as</option>
-                    <option value="corderos">Corderos/as</option>
+                    <option value="terneros">Terneros nacidos</option>
+                    <option value="corderos">Corderos/as Mamones</option>
                   </select>
                 </div>
 
