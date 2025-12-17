@@ -37,7 +37,22 @@ export async function PUT(
     }
 
     const body = await request.json();
-    const { nombre, hectareas, poligono, cultivos = [], animales = [], moduloPastoreoId, esPastoreable } = body;  // 🆕 AGREGAR esPastoreable
+    const { 
+      nombre, 
+      hectareas, 
+      poligono, 
+      cultivos = [], 
+      animales = [], 
+      moduloPastoreoId, 
+      esPastoreable,
+      diasPastoreoAjuste,  // 🆕 AGREGAR
+      diasDescansoAjuste   // 🆕 AGREGAR
+    } = body;
+    
+    // 🔍 DEBUG: Ver qué llega
+console.log('🔍 VALORES RECIBIDOS EN EL BACKEND:');
+console.log('   - diasPastoreoAjuste:', diasPastoreoAjuste, typeof diasPastoreoAjuste);
+console.log('   - diasDescansoAjuste:', diasDescansoAjuste, typeof diasDescansoAjuste);
 
     if (!nombre || isNaN(parseFloat(hectareas))) {
       return NextResponse.json(
@@ -102,25 +117,25 @@ export async function PUT(
     console.log("🗑️ Cultivos eliminados detectados:", cultivosEliminados);
 
     // 2️⃣ Detectar cambios en animales
-const animalesAnteriores = lote.animalesLote;
+    const animalesAnteriores = lote.animalesLote;
 
-const animalesPorCategoria = animalesValidos.reduce((acc: any, a: any) => {
-  if (!acc[a.categoria]) {
-    acc[a.categoria] = { cantidad: 0, peso: null };
-  }
-  acc[a.categoria].cantidad += a.cantidad;
-  acc[a.categoria].peso = a.peso; // Guardar el peso
-  return acc;
-}, {});
+    const animalesPorCategoria = animalesValidos.reduce((acc: any, a: any) => {
+      if (!acc[a.categoria]) {
+        acc[a.categoria] = { cantidad: 0, peso: null };
+      }
+      acc[a.categoria].cantidad += a.cantidad;
+      acc[a.categoria].peso = a.peso; // Guardar el peso
+      return acc;
+    }, {});
 
-const animalesAnterioresPorCategoria = animalesAnteriores.reduce((acc: any, a: any) => {
-  if (!acc[a.categoria]) {
-    acc[a.categoria] = { cantidad: 0, peso: null };
-  }
-  acc[a.categoria].cantidad += a.cantidad;
-  acc[a.categoria].peso = a.peso;
-  return acc;
-}, {});
+    const animalesAnterioresPorCategoria = animalesAnteriores.reduce((acc: any, a: any) => {
+      if (!acc[a.categoria]) {
+        acc[a.categoria] = { cantidad: 0, peso: null };
+      }
+      acc[a.categoria].cantidad += a.cantidad;
+      acc[a.categoria].peso = a.peso;
+      return acc;
+    }, {});
 
     console.log("📊 Animales antes:", animalesAnterioresPorCategoria);
     console.log("📊 Animales ahora:", animalesPorCategoria);
@@ -135,15 +150,23 @@ const animalesAnterioresPorCategoria = animalesAnteriores.reduce((acc: any, a: a
     // ========================
     // 💾 ACTUALIZAR LOTE
     // ========================
+    console.log('💾 VALORES QUE SE VAN A GUARDAR:');
+console.log('   - diasPastoreoAjuste final:', diasPastoreoAjuste !== undefined ? diasPastoreoAjuste : null);
+console.log('   - diasDescansoAjuste final:', diasDescansoAjuste !== undefined ? diasDescansoAjuste : null);
     const loteActualizado = await prisma.lote.update({
       where: { id },
       data: {
         nombre,
         hectareas: parseFloat(hectareas),
-        esPastoreable: esPastoreable ?? true,  // 🆕 NUEVO
+        esPastoreable: esPastoreable ?? true,
         ...(poligono && { poligono }),
-        ...(cambioEstadoAnimales && { ultimoCambio: new Date() }), // 🔥 AGREGADO: actualizar solo si cambió estado
+        ...(cambioEstadoAnimales && { ultimoCambio: new Date() }),
         moduloPastoreoId: moduloPastoreoId || null,
+        
+        // 🆕 AGREGAR ESTOS CAMPOS
+        diasPastoreoAjuste: diasPastoreoAjuste !== undefined ? diasPastoreoAjuste : null,
+        diasDescansoAjuste: diasDescansoAjuste !== undefined ? diasDescansoAjuste : null,
+        
         cultivos: {
           deleteMany: {},
           create: cultivosValidos,
@@ -166,7 +189,7 @@ const animalesAnterioresPorCategoria = animalesAnteriores.reduce((acc: any, a: a
       await prisma.evento.create({
         data: {
           tipo: 'SIEMBRA',
-          fecha: new Date(),  // ✅ Fecha actual
+          fecha: new Date(),
           descripcion: `Se sembraron ${cultivo.hectareas.toFixed(1)} hectáreas de ${cultivo.tipoCultivo} en el potrero "${nombre}".`,
           campoId: usuario!.campoId!,
           loteId: id,
@@ -194,111 +217,111 @@ const animalesAnterioresPorCategoria = animalesAnteriores.reduce((acc: any, a: a
     }
 
     // 3️⃣ Eventos de cambios en ANIMALES
-for (const categoria in animalesPorCategoria) {
-  const datosNuevos = animalesPorCategoria[categoria];
-  const datosAnteriores = animalesAnterioresPorCategoria[categoria] || { cantidad: 0, peso: null };
+    for (const categoria in animalesPorCategoria) {
+      const datosNuevos = animalesPorCategoria[categoria];
+      const datosAnteriores = animalesAnterioresPorCategoria[categoria] || { cantidad: 0, peso: null };
 
-  const cantidadNueva = datosNuevos.cantidad;
-  const cantidadAnterior = datosAnteriores.cantidad;
-  const diferencia = cantidadNueva - cantidadAnterior;
+      const cantidadNueva = datosNuevos.cantidad;
+      const cantidadAnterior = datosAnteriores.cantidad;
+      const diferencia = cantidadNueva - cantidadAnterior;
 
-  const pesoActual = datosNuevos.peso; // kg promedio
+      const pesoActual = datosNuevos.peso;
 
-  if (diferencia > 0) {
-    // --- AJUSTE POSITIVO ---
-    let descripcion = `Se realizaron los siguientes ajustes en ${nombre}: ${diferencia} ${categoria}`;
+      if (diferencia > 0) {
+        // --- AJUSTE POSITIVO ---
+        let descripcion = `Se realizaron los siguientes ajustes en ${nombre}: ${diferencia} ${categoria}`;
 
-    if (pesoActual) {
-      descripcion += ` (${pesoActual} kg promedio)`;
+        if (pesoActual) {
+          descripcion += ` (${pesoActual} kg promedio)`;
+        }
+
+        descripcion += ` (ajuste positivo)`;
+
+        await prisma.evento.create({
+          data: {
+            tipo: 'AJUSTE',
+            fecha: new Date(),
+            descripcion,
+            campoId: usuario!.campoId!,
+            loteId: id,
+            usuarioId: session.user.id,
+            cantidad: diferencia,
+            categoria,
+          },
+        });
+
+        console.log(`✅ Evento AJUSTE POSITIVO creado: +${diferencia} ${categoria}`);
+
+      } else if (diferencia < 0) {
+        // --- AJUSTE NEGATIVO ---
+        let descripcion = `Se realizaron los siguientes ajustes en ${nombre}: ${Math.abs(diferencia)} ${categoria}`;
+
+        if (pesoActual) {
+          descripcion += ` (${pesoActual} kg promedio)`;
+        }
+
+        descripcion += ` (ajuste negativo)`;
+
+        await prisma.evento.create({
+          data: {
+            tipo: 'AJUSTE',
+            fecha: new Date(),
+            descripcion,
+            campoId: usuario!.campoId!,
+            loteId: id,
+            usuarioId: session.user.id,
+            cantidad: Math.abs(diferencia),
+            categoria,
+          },
+        });
+
+        console.log(`✅ Evento AJUSTE NEGATIVO creado: -${Math.abs(diferencia)} ${categoria}`);
+      }
     }
 
-    descripcion += ` (ajuste positivo)`;
+    // 4️⃣ Detectar categorías completamente eliminadas
+    for (const categoria in animalesAnterioresPorCategoria) {
+      if (!(categoria in animalesPorCategoria)) {
+        const cantidad = animalesAnterioresPorCategoria[categoria].cantidad;
+        const peso = animalesAnterioresPorCategoria[categoria].peso;
 
-    await prisma.evento.create({
-      data: {
-        tipo: 'AJUSTE',
-        fecha: new Date(),
-        descripcion,
-        campoId: usuario!.campoId!,
-        loteId: id,
-        usuarioId: session.user.id,
-        cantidad: diferencia,
-        categoria,
-      },
-    });
+        let descripcion = `Se eliminaron todos los ${cantidad} ${categoria.toLowerCase()}`;
 
-    console.log(`✅ Evento AJUSTE POSITIVO creado: +${diferencia} ${categoria}`);
+        if (peso) {
+          descripcion += ` (${peso} kg promedio)`;
+        }
 
-  } else if (diferencia < 0) {
-    // --- AJUSTE NEGATIVO ---
-    let descripcion = `Se realizaron los siguientes ajustes en ${nombre}: ${Math.abs(diferencia)} ${categoria}`;
+        descripcion += ` del potrero "${nombre}" (borrado manual).`;
 
-    if (pesoActual) {
-      descripcion += ` (${pesoActual} kg promedio)`;
+        await prisma.evento.create({
+          data: {
+            tipo: 'AJUSTE',
+            fecha: new Date(),
+            descripcion,
+            campoId: usuario!.campoId!,
+            loteId: id,
+            usuarioId: session.user.id,
+            cantidad,
+            categoria,
+          },
+        });
+
+        console.log(`✅ Evento AJUSTE NEGATIVO TOTAL creado: -${cantidad} ${categoria}`);
+      }
     }
 
-    descripcion += ` (ajuste negativo)`;
+    return NextResponse.json(loteActualizado, { status: 200 });
 
-    await prisma.evento.create({
-      data: {
-        tipo: 'AJUSTE',
-        fecha: new Date(),
-        descripcion,
-        campoId: usuario!.campoId!,
-        loteId: id,
-        usuarioId: session.user.id,
-        cantidad: Math.abs(diferencia),
-        categoria,
+  } catch (error: any) {
+    console.error("💥 ERROR PUT /api/lotes/[id]:", error);
+    return NextResponse.json(
+      {
+        error: "Error actualizando el lote",
+        message: error.message,
       },
-    });
-
-    console.log(`✅ Evento AJUSTE NEGATIVO creado: -${Math.abs(diferencia)} ${categoria}`);
+      { status: 500 }
+    );
   }
-}
-
-// 4️⃣ Detectar categorías completamente eliminadas
-for (const categoria in animalesAnterioresPorCategoria) {
-  if (!(categoria in animalesPorCategoria)) {
-    const cantidad = animalesAnterioresPorCategoria[categoria].cantidad;
-    const peso = animalesAnterioresPorCategoria[categoria].peso;
-
-    let descripcion = `Se eliminaron todos los ${cantidad} ${categoria.toLowerCase()}`;
-
-    if (peso) {
-      descripcion += ` (${peso} kg promedio)`;
-    }
-
-    descripcion += ` del potrero "${nombre}" (borrado manual).`;
-
-    await prisma.evento.create({
-      data: {
-        tipo: 'AJUSTE',
-        fecha: new Date(),
-        descripcion,
-        campoId: usuario!.campoId!,
-        loteId: id,
-        usuarioId: session.user.id,
-        cantidad,
-        categoria,
-      },
-    });
-
-    console.log(`✅ Evento AJUSTE NEGATIVO TOTAL creado: -${cantidad} ${categoria}`);
-  }
-}
-
-return NextResponse.json(loteActualizado, { status: 200 });
-
-} catch (error: any) {
-  console.error("💥 ERROR PUT /api/lotes/[id]:", error);
-  return NextResponse.json(
-    {
-      error: "Error actualizando el lote",
-      message: error.message,
-    },
-    { status: 500 }
-  );
-}
 }
 
 
