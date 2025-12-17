@@ -149,9 +149,9 @@ function TooltipCargaGlobal() {
         <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-gray-300">
           <div>• Vaca: <strong>1.00 UG</strong></div>
           <div>• Toro: <strong>1.20 UG</strong></div>
-          <div>• Novillo +3a: <strong>1.00 UG</strong></div>
-          <div>• Ternero: <strong>0.50 UG</strong></div>
-          <div>• Oveja: <strong>0.15 UG</strong></div>
+          <div>• Novillo +3a: <strong>1.20 UG</strong></div>
+          <div>• Ternero: <strong>0.40 UG</strong></div>
+          <div>• Oveja: <strong>0.16 UG</strong></div>
           <div>• Cordero: <strong>0.10 UG</strong></div>
         </div>
       </div>
@@ -188,7 +188,7 @@ function TooltipCargaPotrero() {
         <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-gray-300">
           <div>• Vaca: <strong>1.00 UG</strong></div>
           <div>• Toro: <strong>1.20 UG</strong></div>
-          <div>• Novillo +3a: <strong>1.00 UG</strong></div>
+          <div>• Novillo +3a: <strong>1.20 UG</strong></div>
           <div>• Ternero: <strong>0.40 UG</strong></div>
           <div>• Oveja: <strong>0.16 UG</strong></div>
           <div>• Cordero: <strong>0.10 UG</strong></div>
