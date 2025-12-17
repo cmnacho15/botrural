@@ -324,6 +324,12 @@ diasPastoreoAjuste: tieneAnimales && diasPastoreoAjuste ? parseInt(diasPastoreoA
 diasDescansoAjuste: !tieneAnimales && diasDescansoAjuste ? parseInt(diasDescansoAjuste) : undefined,
       };
 
+      // 🔍 LOGS DE DEPURACIÓN - AGREGAR AQUÍ
+console.log('📦 PAYLOAD COMPLETO:', JSON.stringify(payload, null, 2));
+console.log('🐄 Tiene animales:', tieneAnimales);
+console.log('📅 Días pastoreo ajuste:', diasPastoreoAjuste);
+console.log('📅 Días descanso ajuste:', diasDescansoAjuste);
+
       console.log('📦 PAYLOAD COMPLETO:', JSON.stringify(payload, null, 2));
 
       const url = `/api/lotes/${loteId}`;
