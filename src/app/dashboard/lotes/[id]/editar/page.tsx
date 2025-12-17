@@ -319,9 +319,9 @@ export default function EditarLotePage() {
         cultivos: cultivosValidos,
         animales: animalesValidos,
         moduloPastoreoId: moduloIdFinal,
-        // 🆕 AGREGAR AJUSTES DE DÍAS AL PAYLOAD
-        diasPastoreoAjuste: diasPastoreoAjuste ? parseInt(diasPastoreoAjuste) : null,
-        diasDescansoAjuste: diasDescansoAjuste ? parseInt(diasDescansoAjuste) : null,
+        // 🆕 AGREGAR AJUSTES DE DÍAS AL PAYLOAD (solo el que corresponde según estado)
+diasPastoreoAjuste: tieneAnimales && diasPastoreoAjuste ? parseInt(diasPastoreoAjuste) : undefined,
+diasDescansoAjuste: !tieneAnimales && diasDescansoAjuste ? parseInt(diasDescansoAjuste) : undefined,
       };
 
       console.log('📦 PAYLOAD COMPLETO:', JSON.stringify(payload, null, 2));
