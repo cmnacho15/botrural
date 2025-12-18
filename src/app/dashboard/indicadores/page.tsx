@@ -77,6 +77,35 @@ interface IndicadoresData {
     costoPorKgProducido: { global: number; vacunos: number; ovinos: number; equinos: number }
     margenPorKg: { global: number; vacunos: number; ovinos: number; equinos: number }
   }
+_debug?: {
+    ventas: { cantidad: number; pesoTotalKg: number; importeBrutoUSD: number }
+    ventasPorTipo?: {
+      BOVINO?: { cantidad: number; pesoTotalKg: number; importeBrutoUSD: number }
+      OVINO?: { cantidad: number; pesoTotalKg: number; importeBrutoUSD: number }
+      EQUINO?: { cantidad: number; pesoTotalKg: number; importeBrutoUSD: number }
+    }
+    compras: { cantidad: number; pesoTotalKg: number; importeBrutoUSD: number }
+    comprasPorTipo?: {
+      BOVINO?: { cantidad: number; pesoTotalKg: number; importeBrutoUSD: number }
+      OVINO?: { cantidad: number; pesoTotalKg: number; importeBrutoUSD: number }
+      EQUINO?: { cantidad: number; pesoTotalKg: number; importeBrutoUSD: number }
+    }
+    consumos: { cantidad: number; pesoTotalKg: number; valorTotalUSD: number }
+    consumosPorTipo?: {
+      BOVINO?: { cantidad: number; pesoTotalKg: number; valorTotalUSD: number }
+      OVINO?: { cantidad: number; pesoTotalKg: number; valorTotalUSD: number }
+      EQUINO?: { cantidad: number; pesoTotalKg: number; valorTotalUSD: number }
+    }
+    difInventario: { difKg: number; difUSD: number }
+    difInventarioPorTipo?: {
+      BOVINO?: { difKg: number; difUSD: number }
+      OVINO?: { difKg: number; difUSD: number }
+      EQUINO?: { difKg: number; difUSD: number }
+    }
+    costosVariables: number
+    costosFijos: number
+    costosRenta: number
+  }
 }
 
 function generarEjercicios(cantidad: number): Array<{ inicio: number; fin: number; label: string }> {
@@ -103,6 +132,8 @@ export default function IndicadoresPage() {
   const [eficienciaAbierto, setEficienciaAbierto] = useState(false)
   const [ganaderiaAbierto, setGanaderiaAbierto] = useState(false)
   const [economicosAbierto, setEconomicosAbierto] = useState(false)
+  const [produccionCarneAbierto, setProduccionCarneAbierto] = useState(false)  // 🆕 NUEVO
+  
   const [usarSPG, setUsarSPG] = useState(false)  // 🆕 NUEVO
 
   const ejercicios = useMemo(() => generarEjercicios(5), [])
@@ -404,17 +435,76 @@ export default function IndicadoresPage() {
       <td className="px-3 py-2 text-center border-b border-gray-100 text-gray-400">-</td>
       <td className="px-3 py-2 text-center border-b border-gray-100">{fmt(data.ganaderia.precioPromedioVenta.equinos)}</td>
     </tr>
-    <tr className="hover:bg-gray-50 bg-yellow-50">
-      <td className="px-4 py-2 font-semibold text-gray-900 border-b border-gray-200 sticky left-0 bg-yellow-50 z-10">Producción de carne</td>
-      <td className="px-3 py-2 text-center border-b border-gray-200 font-medium">{fmt(data.ganaderia.produccionCarne.total.global)}</td>
-      <td className="px-3 py-2 text-center border-b border-gray-200">{fmt(data.ganaderia.produccionCarne.porHa.global)}</td>
-      <td className="px-3 py-2 text-center border-b border-gray-200 font-medium">{fmt(data.ganaderia.produccionCarne.total.vacunos)}</td>
-      <td className="px-3 py-2 text-center border-b border-gray-200">{fmt(data.ganaderia.produccionCarne.porHa.vacunos)}</td>
-      <td className="px-3 py-2 text-center border-b border-gray-200 font-medium">{fmt(data.ganaderia.produccionCarne.total.ovinos)}</td>
-      <td className="px-3 py-2 text-center border-b border-gray-200">{fmt(data.ganaderia.produccionCarne.porHa.ovinos)}</td>
-      <td className="px-3 py-2 text-center border-b border-gray-200 font-medium">{fmt(data.ganaderia.produccionCarne.total.equinos)}</td>
-      <td className="px-3 py-2 text-center border-b border-gray-200">{fmt(data.ganaderia.produccionCarne.porHa.equinos)}</td>
+    {/* Producción de carne - CLICKEABLE */}
+<tr 
+  className="hover:bg-yellow-100 bg-yellow-50 cursor-pointer"
+  onClick={() => setProduccionCarneAbierto(!produccionCarneAbierto)}
+>
+  <td className="px-4 py-2 font-semibold text-gray-900 border-b border-gray-200 sticky left-0 bg-yellow-50 z-10">
+    <div className="flex items-center gap-2">
+      {produccionCarneAbierto ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+      Producción de carne
+    </div>
+  </td>
+  <td className="px-3 py-2 text-center border-b border-gray-200 font-medium">{fmt(data.ganaderia.produccionCarne.total.global)}</td>
+  <td className="px-3 py-2 text-center border-b border-gray-200">{fmt(data.ganaderia.produccionCarne.porHa.global)}</td>
+  <td className="px-3 py-2 text-center border-b border-gray-200 font-medium">{fmt(data.ganaderia.produccionCarne.total.vacunos)}</td>
+  <td className="px-3 py-2 text-center border-b border-gray-200">{fmt(data.ganaderia.produccionCarne.porHa.vacunos)}</td>
+  <td className="px-3 py-2 text-center border-b border-gray-200 font-medium">{fmt(data.ganaderia.produccionCarne.total.ovinos)}</td>
+  <td className="px-3 py-2 text-center border-b border-gray-200">{fmt(data.ganaderia.produccionCarne.porHa.ovinos)}</td>
+  <td className="px-3 py-2 text-center border-b border-gray-200 font-medium">{fmt(data.ganaderia.produccionCarne.total.equinos)}</td>
+  <td className="px-3 py-2 text-center border-b border-gray-200">{fmt(data.ganaderia.produccionCarne.porHa.equinos)}</td>
+</tr>
+
+{/* Desglose de Producción de carne */}
+{produccionCarneAbierto && (
+  <>
+    <tr className="bg-yellow-25 hover:bg-gray-50">
+      <td className="px-4 py-2 pl-12 text-sm text-gray-700 border-b border-gray-100 sticky left-0 bg-white z-10">Ventas (kg)</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">{fmt(data._debug.ventas.pesoTotalKg)}</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-gray-400">-</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">{fmt(data._debug.ventasPorTipo?.BOVINO?.pesoTotalKg || 0)}</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-gray-400">-</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">{fmt(data._debug.ventasPorTipo?.OVINO?.pesoTotalKg || 0)}</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-gray-400">-</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">{fmt(data._debug.ventasPorTipo?.EQUINO?.pesoTotalKg || 0)}</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-gray-400">-</td>
     </tr>
+    <tr className="bg-yellow-25 hover:bg-gray-50">
+      <td className="px-4 py-2 pl-12 text-sm text-gray-700 border-b border-gray-100 sticky left-0 bg-white z-10">+ Consumo (kg)</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">{fmt(data._debug.consumos.pesoTotalKg)}</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-gray-400">-</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">{fmt(data._debug.consumosPorTipo?.BOVINO?.pesoTotalKg || 0)}</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-gray-400">-</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">{fmt(data._debug.consumosPorTipo?.OVINO?.pesoTotalKg || 0)}</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-gray-400">-</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">{fmt(data._debug.consumosPorTipo?.EQUINO?.pesoTotalKg || 0)}</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-gray-400">-</td>
+    </tr>
+    <tr className="bg-yellow-25 hover:bg-gray-50">
+      <td className="px-4 py-2 pl-12 text-sm text-gray-700 border-b border-gray-100 sticky left-0 bg-white z-10">- Compras (kg)</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">{fmt(data._debug.compras.pesoTotalKg)}</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-gray-400">-</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">{fmt(data._debug.comprasPorTipo?.BOVINO?.pesoTotalKg || 0)}</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-gray-400">-</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">{fmt(data._debug.comprasPorTipo?.OVINO?.pesoTotalKg || 0)}</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-gray-400">-</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">{fmt(data._debug.comprasPorTipo?.EQUINO?.pesoTotalKg || 0)}</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-gray-400">-</td>
+    </tr>
+    <tr className="bg-yellow-25 hover:bg-gray-50">
+      <td className="px-4 py-2 pl-12 text-sm text-gray-700 border-b border-gray-100 sticky left-0 bg-white z-10">+/- Dif. Inventario (kg)</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">{fmt(data._debug.difInventario.difKg)}</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-gray-400">-</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">{fmt(data._debug.difInventarioPorTipo?.BOVINO?.difKg || 0)}</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-gray-400">-</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">{fmt(data._debug.difInventarioPorTipo?.OVINO?.difKg || 0)}</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-gray-400">-</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">{fmt(data._debug.difInventarioPorTipo?.EQUINO?.difKg || 0)}</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-gray-400">-</td>
+    </tr>
+  </>
+)}
   </>
 )}
 

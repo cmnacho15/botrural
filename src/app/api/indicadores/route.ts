@@ -787,10 +787,14 @@ const cargaKgPV = {
 
       // Datos crudos para debugging
       _debug: {
-        ventas: ventasTotales,
-        compras: comprasTotales,
-        consumos: consumosTotales,
-        difInventario: difInventarioTotales,
+  ventas: ventasTotales,
+  ventasPorTipo,  // 🆕 AGREGAR
+  compras: comprasTotales,
+  comprasPorTipo,  // 🆕 AGREGAR
+  consumos: consumosTotales,
+  consumosPorTipo,  // 🆕 AGREGAR
+  difInventario: difInventarioTotales,
+  difInventarioPorTipo,  // 🆕 AGREGAR
         costosVariables: totalVariables,
         costosFijos: totalFijos,
         costosRenta: totalRenta,
