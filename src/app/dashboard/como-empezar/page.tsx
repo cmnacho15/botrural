@@ -355,34 +355,20 @@ export default function ComoEmpezar() {
                 expandido={pasosExpandidos.paso1}
                 onToggle={() => togglePaso('paso1')}
               >
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
-                  <OpcionCard
-                    icono={iconos.formulario}
-                    titulo="Ingresar Manualmente"
-                    subtitulo="Ideal si son pocos potreros"
-                    href="/dashboard/lotes/nuevo"
-                  />
-                  <OpcionCard
-                    icono={iconos.excel}
-                    titulo="CSV o Excel"
-                    subtitulo="Cargá todos de una vez"
-                    disabled
-                    onClick={() => {}}
-                  />
-                  <OpcionCard
-                    icono={iconos.kmz}
-                    titulo="KMZ de Google Earth"
-                    subtitulo="Subí tus potreros y tu mapa"
-                    onClick={() => setShowModalKMZ(true)}
-                  />
-                  <OpcionCard
-                    icono={iconos.croquis}
-                    titulo="Imagen de un croquis"
-                    subtitulo="Te dibujamos el mapa"
-                    disabled
-                    onClick={() => {}}
-                  />
-                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 max-w-2xl mx-auto">
+  <OpcionCard
+    icono={iconos.formulario}
+    titulo="Ingresar Manualmente"
+    subtitulo="Ideal si son pocos potreros"
+    href="/dashboard/lotes/nuevo"
+  />
+  <OpcionCard
+    icono={iconos.kmz}
+    titulo="KMZ de Google Earth"
+    subtitulo="Subí tus potreros y tu mapa"
+    onClick={() => setShowModalKMZ(true)}
+  />
+</div>
                 
                 <div className="text-center mt-6">
                   <a 
