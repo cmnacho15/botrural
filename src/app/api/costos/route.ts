@@ -26,6 +26,7 @@ export async function GET(request: Request) {
     // Parámetros de fecha
     const fechaDesdeParam = searchParams.get("fechaDesde")
     const fechaHastaParam = searchParams.get("fechaHasta")
+    const usarSPG = searchParams.get("usarSPG") === "true"
     
     const now = new Date()
     const inicioAnio = new Date(now.getFullYear(), 0, 1)
@@ -50,10 +51,17 @@ export async function GET(request: Request) {
     })
 
     // ---------------------------------------------------------
-    // 2️⃣ Calcular UG por especie
+    // 2️⃣ Calcular UG por especie y SPG
     // ---------------------------------------------------------
     const estadisticas = calcularEstadisticasCampo(lotes)
     const { ugTotalesCampo, desglosePorTipo, totalHectareas } = estadisticas
+    
+    // Calcular SPG (solo lotes pastoreables)
+    const lotesPastoreables = lotes.filter(l => l.esPastoreable !== false)
+    const spg = lotesPastoreables.reduce((sum, l) => sum + l.hectareas, 0)
+    
+    // Determinar qué superficie usar para los cálculos
+    const superficieParaCalculo = usarSPG ? spg : totalHectareas
 
     // Calcular porcentajes
     let porcentajes = {
@@ -72,10 +80,10 @@ export async function GET(request: Request) {
 
     // Calcular hectáreas por especie (proporcional a % UG)
     const hectareas = {
-      vacunos: (totalHectareas * porcentajes.vacunos) / 100,
-      ovinos: (totalHectareas * porcentajes.ovinos) / 100,
-      equinos: (totalHectareas * porcentajes.equinos) / 100,
-      total: totalHectareas,
+      vacunos: (superficieParaCalculo * porcentajes.vacunos) / 100,
+      ovinos: (superficieParaCalculo * porcentajes.ovinos) / 100,
+      equinos: (superficieParaCalculo * porcentajes.equinos) / 100,
+      total: superficieParaCalculo,
     }
 
     // ---------------------------------------------------------

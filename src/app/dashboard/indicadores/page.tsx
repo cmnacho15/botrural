@@ -134,7 +134,20 @@ export default function IndicadoresPage() {
   const [economicosAbierto, setEconomicosAbierto] = useState(false)
   const [produccionCarneAbierto, setProduccionCarneAbierto] = useState(false)  // 🆕 NUEVO
   
-  const [usarSPG, setUsarSPG] = useState(false)  // 🆕 NUEVO
+  const [usarSPG, setUsarSPG] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('usarSPG')
+      return saved === 'true'
+    }
+    return false
+  })
+
+  // Guardar en localStorage cuando cambie
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('usarSPG', usarSPG.toString())
+    }
+  }, [usarSPG])
 
   const ejercicios = useMemo(() => generarEjercicios(5), [])
 

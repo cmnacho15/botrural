@@ -133,6 +133,27 @@ export default function CostosPage() {
     const actual = calcularEjercicioActual()
     return `${actual.inicio}-${actual.fin}`
   })
+ 
+  const [usarSPG, setUsarSPG] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('usarSPG')
+      return saved === 'true'
+    }
+    return false
+  })
+
+  // Sincronizar con localStorage cuando cambie en otra pestaña
+  useEffect(() => {
+    const handleStorageChange = () => {
+      if (typeof window !== 'undefined') {
+        const saved = localStorage.getItem('usarSPG')
+        setUsarSPG(saved === 'true')
+      }
+    }
+    
+    window.addEventListener('storage', handleStorageChange)
+    return () => window.removeEventListener('storage', handleStorageChange)
+  }, [])
 
   // ✅ Fechas derivadas del ejercicio seleccionado
   const fechas = useMemo(() => {
@@ -142,7 +163,7 @@ export default function CostosPage() {
 
   useEffect(() => {
     fetchCostos()
-  }, [fechas])
+  }, [fechas, usarSPG])
 
   async function fetchCostos() {
     try {
@@ -152,6 +173,7 @@ export default function CostosPage() {
       const params = new URLSearchParams({
         fechaDesde: fechas.desde,
         fechaHasta: fechas.hasta,
+        usarSPG: usarSPG.toString(),
       })
 
       const res = await fetch(`/api/costos?${params}`)
