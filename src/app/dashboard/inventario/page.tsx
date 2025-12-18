@@ -42,7 +42,7 @@ export default function InventarioPage() {
   const [modalAgregar, setModalAgregar] = useState(false);
   const [nuevaCategoria, setNuevaCategoria] = useState('');
 
-  const [valoresLocales, setValoresLocales] = useState<{ [key: string]: any }>({});
+  const valoresLocalesRef = useRef<{ [key: string]: string }>({});
   const timeoutRefs = useRef<{ [key: string]: NodeJS.Timeout }>({});
 
   const { data: invInicial, mutate: mutateInicial } = useSWR(
@@ -242,27 +242,23 @@ export default function InventarioPage() {
   }
 
   function actualizarItemPorCategoria(categoria: string, campo: keyof InventarioItem, valorString: string) {
-    setValoresLocales(prev => ({
-      ...prev,
-      [`${categoria}-${campo}`]: valorString
-    }));
-
-    const timeoutKey = `${categoria}-${campo}`;
-    if (timeoutRefs.current[timeoutKey]) {
-      clearTimeout(timeoutRefs.current[timeoutKey]);
+    const key = `${categoria}-${campo}`;
+    
+    valoresLocalesRef.current[key] = valorString;
+    if (timeoutRefs.current[key]) {
+      clearTimeout(timeoutRefs.current[key]);
     }
-
-    timeoutRefs.current[timeoutKey] = setTimeout(() => {
+    timeoutRefs.current[key] = setTimeout(() => {
       let valorFinal: any;
       
       if (campo === 'cantidadInicial' || campo === 'cantidadFinal') {
         const cleanValue = valorString.replace(/\./g, '');
-        const parsed = parseInt(cleanValue);
-        valorFinal = isNaN(parsed) || valorString === '' ? 0 : parsed;
+        const parsed = parseInt(cleanValue, 10);
+        valorFinal = isNaN(parsed) || valorString.trim() === '' ? 0 : parsed;
       } else {
         const cleanValue = valorString.replace(/\./g, '').replace(',', '.');
         const parsed = parseFloat(cleanValue);
-        valorFinal = isNaN(parsed) || valorString === '' ? null : parsed;
+        valorFinal = isNaN(parsed) || valorString.trim() === '' ? null : parsed;
       }
       
       setItems(prevItems => 
@@ -272,13 +268,8 @@ export default function InventarioPage() {
             : item
         )
       );
-
-      setValoresLocales(prev => {
-        const newState = { ...prev };
-        delete newState[`${categoria}-${campo}`];
-        return newState;
-      });
-    }, 500);
+      delete valoresLocalesRef.current[key];
+    }, 600);
   }
 
   function eliminarFila(categoria: string) {
@@ -433,7 +424,7 @@ export default function InventarioPage() {
                       type="text"
                       inputMode="numeric"
                       pattern="[0-9]*"
-                      value={valoresLocales[`${item.categoria}-cantidadInicial`] ?? item.cantidadInicial}
+                      value={valoresLocalesRef.current[`${item.categoria}-cantidadInicial`] ?? item.cantidadInicial}
                       onChange={(e) => actualizarItemPorCategoria(item.categoria, 'cantidadInicial', e.target.value)}
                       className="w-full px-2 py-1 border rounded text-center text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
@@ -444,7 +435,7 @@ export default function InventarioPage() {
                       type="text"
                       inputMode="numeric"
                       pattern="[0-9]*"
-                      value={valoresLocales[`${item.categoria}-cantidadFinal`] ?? item.cantidadFinal}
+                      value={valoresLocalesRef.current[`${item.categoria}-cantidadFinal`] ?? item.cantidadFinal}
                       onChange={(e) => actualizarItemPorCategoria(item.categoria, 'cantidadFinal', e.target.value)}
                       className="w-full px-2 py-1 border rounded text-center text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
@@ -455,7 +446,7 @@ export default function InventarioPage() {
                       type="text"
                       inputMode="decimal"
                       pattern="[0-9]*[.,]?[0-9]+"
-                      value={valoresLocales[`${item.categoria}-pesoInicio`] ?? (item.pesoInicio ?? '')}
+                      value={valoresLocalesRef.current[`${item.categoria}-pesoInicio`] ?? (item.pesoInicio ?? '')}
                       onChange={(e) => actualizarItemPorCategoria(item.categoria, 'pesoInicio', e.target.value)}
                       placeholder="0"
                       className="w-full px-2 py-1 border rounded text-center text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -467,7 +458,7 @@ export default function InventarioPage() {
                       type="text"
                       inputMode="decimal"
                       pattern="[0-9]*[.,]?[0-9]+"
-                      value={valoresLocales[`${item.categoria}-pesoFinal`] ?? (item.pesoFinal ?? '')}
+                      value={valoresLocalesRef.current[`${item.categoria}-pesoFinal`] ?? (item.pesoFinal ?? '')}
                       onChange={(e) => actualizarItemPorCategoria(item.categoria, 'pesoFinal', e.target.value)}
                       placeholder="0"
                       className="w-full px-2 py-1 border rounded text-center text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -479,7 +470,7 @@ export default function InventarioPage() {
                       type="text"
                       inputMode="decimal"
                       pattern="[0-9]*[.,]?[0-9]+"
-                      value={valoresLocales[`${item.categoria}-precioKg`] ?? (item.precioKg ?? '')}
+                      value={valoresLocalesRef.current[`${item.categoria}-precioKg`] ?? (item.precioKg ?? '')}
                       onChange={(e) => actualizarItemPorCategoria(item.categoria, 'precioKg', e.target.value)}
                       placeholder="0"
                       className="w-full px-2 py-1 border rounded text-center text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -491,7 +482,7 @@ export default function InventarioPage() {
                       type="text"
                       inputMode="decimal"
                       pattern="[0-9]*[.,]?[0-9]+"
-                      value={valoresLocales[`${item.categoria}-precioKgFin`] ?? (item.precioKgFin ?? '')}
+                      value={valoresLocalesRef.current[`${item.categoria}-precioKgFin`] ?? (item.precioKgFin ?? '')}
                       onChange={(e) => actualizarItemPorCategoria(item.categoria, 'precioKgFin', e.target.value)}
                       placeholder="0"
                       className="w-full px-2 py-1 border rounded text-center text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
