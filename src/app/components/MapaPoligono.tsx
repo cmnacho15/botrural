@@ -1105,7 +1105,8 @@ if (esCierre) {
 
     const layer = drawnItemsRef.current.getLayers()[0]
     const latlngs = layer.getLatLngs()[0]
-    const coordinates = latlngs.map((ll: any) => [ll.lat, ll.lng])
+    // ✅ Convertir a [lng, lat] - formato GeoJSON estándar
+    const coordinates = latlngs.map((ll: any) => [ll.lng, ll.lat])
 
     if (areaHectareas && onPolygonComplete) {
       onPolygonComplete(coordinates, areaHectareas)
