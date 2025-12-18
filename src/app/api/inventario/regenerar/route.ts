@@ -40,6 +40,9 @@ export async function POST(req: NextRequest) {
         .filter(cat => cat.tipoAnimal === 'EQUINO')
         .map(cat => cat.nombreSingular)
     );
+    
+    // 🔬 DEBUG 1
+    console.log('🐴 CATEGORÍAS EQUINAS (se filtrarán):', Array.from(categoriasEquinas));
 
     // Obtener todos los potreros con sus animales
     const lotes = await prisma.lote.findMany({
@@ -51,23 +54,54 @@ export async function POST(req: NextRequest) {
       },
     });
 
+     // 🔬 DEBUG 2
+    console.log('🐑 ANIMALES EN POTREROS:', 
+      lotes.flatMap(l => l.animalesLote.map(a => ({
+        categoria: a.categoria,
+        cantidad: a.cantidad,
+        lote: l.nombre
+      })))
+    );
+
     // Agrupar por categoría y sumar cantidades (EXCLUYENDO EQUINOS)
-    const agrupado: { [categoria: string]: number } = {};
+const agrupado: { [categoria: string]: number } = {};
 
-    lotes.forEach(lote => {
-      lote.animalesLote.forEach(animal => {
-        // ✅ FILTRAR: Saltar si es categoría EQUINA
-        if (categoriasEquinas.has(animal.categoria)) {
-          return;
-        }
+// 🔬 DEBUG 1: Ver qué categorías se van a filtrar
+console.log('🐴 CATEGORÍAS EQUINAS (se filtrarán):', Array.from(categoriasEquinas));
 
-        if (agrupado[animal.categoria]) {
-          agrupado[animal.categoria] += animal.cantidad;
-        } else {
-          agrupado[animal.categoria] = animal.cantidad;
-        }
-      });
-    });
+// 🔬 DEBUG 2: Ver todos los animales antes de filtrar
+console.log('🐑 ANIMALES EN POTREROS:', 
+  lotes.flatMap(l => l.animalesLote.map(a => ({
+    categoria: a.categoria,
+    cantidad: a.cantidad,
+    lote: l.nombre
+  })))
+);
+
+lotes.forEach(lote => {
+  lote.animalesLote.forEach(animal => {
+    const esEquino = categoriasEquinas.has(animal.categoria);
+    
+    // 🔬 DEBUG 3: Ver cada decisión de filtrado
+    console.log(`🔍 Procesando: "${animal.categoria}" | ¿Es equino?: ${esEquino} | Cantidad: ${animal.cantidad}`);
+    
+    if (esEquino) {
+      console.log(`   ⛔ FILTRADO: ${animal.categoria}`);
+      return;
+    }
+
+    console.log(`   ✅ INCLUIDO: ${animal.categoria}`);
+
+    if (agrupado[animal.categoria]) {
+      agrupado[animal.categoria] += animal.cantidad;
+    } else {
+      agrupado[animal.categoria] = animal.cantidad;
+    }
+  });
+});
+
+// 🔬 DEBUG 4: Ver resultado final
+console.log('📦 INVENTARIO FINAL AGRUPADO:', agrupado);
 
     // Convertir a array
     const inventarios = Object.entries(agrupado).map(([categoria, cantidad]) => ({
