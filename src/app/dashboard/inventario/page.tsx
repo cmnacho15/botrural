@@ -260,12 +260,13 @@ export default function InventarioPage() {
   // ✅ ACTUALIZAR VALORES POR CATEGORÍA (FIX BUG)
   // ==========================================
   function actualizarItemPorCategoria(categoria: string, campo: keyof InventarioItem, valor: any) {
-    const nuevosItems = items.map(item => 
-      item.categoria === categoria 
-        ? { ...item, [campo]: valor }
-        : item
+    setItems(prevItems => 
+      prevItems.map(item => 
+        item.categoria === categoria 
+          ? { ...item, [campo]: valor }
+          : item
+      )
     );
-    setItems(nuevosItems);
   }
 
   function eliminarFila(categoria: string) {
@@ -416,11 +417,11 @@ export default function InventarioPage() {
           </thead>
 
           <tbody className="divide-y divide-gray-100">
-            {items.map((item, globalIndex) => {
-              const calc = calcularFila(item);
+            {items.map((item) => {
+  const calc = calcularFila(item);
 
-              return (
-                <tr key={globalIndex} className="hover:bg-gray-50">
+  return (
+    <tr key={item.categoria} className="hover:bg-gray-50">
                   <td className="px-3 py-2 font-medium text-gray-900 sticky left-0 bg-white z-10">
                     {item.categoria}
                   </td>
