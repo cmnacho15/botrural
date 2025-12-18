@@ -267,9 +267,16 @@ console.log('🔍 COSTOS - usarSPG desde Context:', usarSPG)
 
       {/* Resumen de Distribución */}
       <Card>
-        <CardHeader>
-          <CardTitle>Distribución por Especie</CardTitle>
-        </CardHeader>
+  <CardHeader>
+    <div className="flex items-center justify-between">
+      <CardTitle>Distribución por Especie</CardTitle>
+      {usarSPG && (
+        <Badge className="bg-blue-100 text-blue-800">
+          Usando SPG para cálculos por ha
+        </Badge>
+      )}
+    </div>
+  </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="bg-blue-50 p-4 rounded-lg">
