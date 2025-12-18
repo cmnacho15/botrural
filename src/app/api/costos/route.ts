@@ -27,6 +27,7 @@ export async function GET(request: Request) {
     const fechaDesdeParam = searchParams.get("fechaDesde")
     const fechaHastaParam = searchParams.get("fechaHasta")
     const usarSPG = searchParams.get("usarSPG") === "true"
+
     
     const now = new Date()
     const inicioAnio = new Date(now.getFullYear(), 0, 1)
@@ -62,6 +63,14 @@ export async function GET(request: Request) {
     
     // Determinar qué superficie usar para los cálculos
     const superficieParaCalculo = usarSPG ? spg : totalHectareas
+
+    
+
+console.log('API COSTOS - usarSPG recibido:', searchParams.get("usarSPG"))
+console.log('API COSTOS - usarSPG parseado:', usarSPG)
+console.log('API COSTOS - totalHectareas:', totalHectareas)
+console.log('API COSTOS - spg:', spg)
+console.log('API COSTOS - superficieParaCalculo:', superficieParaCalculo)
 
     // Calcular porcentajes
     let porcentajes = {
