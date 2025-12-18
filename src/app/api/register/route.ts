@@ -3,7 +3,6 @@ import { prisma } from "@/lib/prisma"
 import bcrypt from "bcryptjs"
 import { CATEGORIAS_ANIMALES_DEFAULT } from "@/lib/constants"
 
-// 🎨 Categorías predeterminadas con colores
 const CATEGORIAS_GASTOS_DEFAULT = [
   { nombre: 'Alimentación', color: '#ef4444' },
   { nombre: 'Otros', color: '#6b7280' },
@@ -28,7 +27,7 @@ const CATEGORIAS_GASTOS_DEFAULT = [
 
 export async function POST(request: Request) {
   try {
-    const { name, email, password, campoNombre } = await request.json()
+    const { name, email, password, campoNombre, telefono } = await request.json()  // 🔥 AGREGAR telefono
 
     if (!name || !email || !password || !campoNombre) {
       return NextResponse.json(
@@ -68,6 +67,8 @@ export async function POST(request: Request) {
           role: "ADMIN_GENERAL",
           accesoFinanzas: true,
           campoId: campo.id,
+          onboardingStartedAt: new Date(),
+          telefono: telefono || null,  // 🔥 AGREGAR ESTA LÍNEA
         },
       })
 
@@ -80,7 +81,7 @@ export async function POST(request: Request) {
           orden: index,
           activo: true,
         })),
-        skipDuplicates: true,  // ✅ TAMBIÉN AGREGAR AQUÍ
+        skipDuplicates: true,
       })
 
       // 4. Crear categorías de animales predeterminadas
@@ -93,7 +94,7 @@ export async function POST(request: Request) {
           activo: true,
           esPredeterminado: true,
         })),
-        skipDuplicates: true,  // 🔥 AGREGAR ESTA LÍNEA
+        skipDuplicates: true,
       })
 
       return { user, campo }
