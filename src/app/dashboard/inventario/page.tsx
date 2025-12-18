@@ -91,7 +91,7 @@ export default function InventarioPage() {
     return items.filter(item => {
       const cat = item.categoria.toLowerCase();
       return cat.includes('oveja') || cat.includes('carnero') || cat.includes('cordero') || 
-             cat.includes('capón') || cat.includes('borrego') || cat.includes('borrega');
+             cat.includes('capon') || cat.includes('borrego') || cat.includes('borrega');
     });
   }, [items]);
 
