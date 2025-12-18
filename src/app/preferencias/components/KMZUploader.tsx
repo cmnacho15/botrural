@@ -136,23 +136,20 @@ export default function KMZUploader({ onComplete }: { onComplete: () => void }) 
 
           console.log(`${nombre}: ${hectareas} ha`)
 
-          // ✅ INVERTIR A [lat, lng] para que coincida con el formato del mapa
-          const coordsLatLng = coords.map(coord => [coord[1], coord[0]])
-          
+          // ✅ Mantener [lng, lat] - formato GeoJSON estándar
           lotes.push({
             nombre,
             hectareas,
-            poligono: coordsLatLng  // Ahora es [lat, lng]
+            poligono: coords  // Mantiene [lng, lat]
           })
         } catch (turfError) {
           console.error(`Error calculando área para ${nombre}:`, turfError)
           // Aún así agregar el lote, pero con área 0
-          // Invertir coordenadas también para casos de error
-          const coordsLatLng = coords.map(coord => [coord[1], coord[0]])
+          // Mantener [lng, lat] también para casos de error
           lotes.push({
             nombre,
             hectareas: 0,
-            poligono: coordsLatLng
+            poligono: coords
           })
         }
       }
@@ -358,7 +355,7 @@ export default function KMZUploader({ onComplete }: { onComplete: () => void }) 
                     </td>
                     <td className="px-6 py-4">
                       <span className="text-xs text-gray-500 font-mono">
-                        [{lote.poligono[0][0].toFixed(6)}, {lote.poligono[0][1].toFixed(6)}] (lat, lng)
+                        [{lote.poligono[0][0].toFixed(6)}, {lote.poligono[0][1].toFixed(6)}] (lng, lat)
                       </span>
                     </td>
                   </tr>
