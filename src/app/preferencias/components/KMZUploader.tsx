@@ -425,13 +425,24 @@ export default function KMZUploader({
               mostrarVertices={true}
               editable={true}
               onPoligonoEditado={(nuevasCoords) => {
-                const nuevasPreviews = [...previews]
-                nuevasPreviews[indiceActual] = {
-                  ...nuevasPreviews[indiceActual],
-                  poligono: nuevasCoords
-                }
-                setPreviews(nuevasPreviews)
-              }}
+  // Recalcular hectáreas con las nuevas coordenadas
+  let nuevasHectareas = previews[indiceActual].hectareas
+  try {
+    const polygon = turf.polygon([nuevasCoords])
+    const areaM2 = turf.area(polygon)
+    nuevasHectareas = parseFloat((areaM2 / 10000).toFixed(2))
+  } catch (e) {
+    console.error('Error recalculando área:', e)
+  }
+  
+  const nuevasPreviews = [...previews]
+  nuevasPreviews[indiceActual] = {
+    ...nuevasPreviews[indiceActual],
+    poligono: nuevasCoords,
+    hectareas: nuevasHectareas
+  }
+  setPreviews(nuevasPreviews)
+}}
             />
           </div>
         </div>
