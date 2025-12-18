@@ -468,15 +468,22 @@ console.log('🔍 INDICADORES - usarSPG desde Context:', usarSPG)
     <tr className="bg-yellow-25 hover:bg-gray-50">
       <td className="px-4 py-2 pl-12 text-sm text-gray-700 border-b border-gray-100 sticky left-0 bg-white z-10">Ventas (kg)</td>
       <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">{fmt(data._debug.ventas.pesoTotalKg)}</td>
-      <td className="px-3 py-2 text-center border-b border-gray-100 text-gray-400">-</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">
+        {fmt(Math.round(data._debug.ventas.pesoTotalKg / (data.superficie.usandoSPG ? data.superficie.spg : data.superficie.total)))}
+      </td>
       <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">{fmt(data._debug.ventasPorTipo?.BOVINO?.pesoTotalKg || 0)}</td>
-      <td className="px-3 py-2 text-center border-b border-gray-100 text-gray-400">-</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">
+        {fmt(Math.round((data._debug.ventasPorTipo?.BOVINO?.pesoTotalKg || 0) / data.eficienciaTecnica.superficieTotal.vacunos))}
+      </td>
       <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">{fmt(data._debug.ventasPorTipo?.OVINO?.pesoTotalKg || 0)}</td>
-      <td className="px-3 py-2 text-center border-b border-gray-100 text-gray-400">-</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">
+        {fmt(Math.round((data._debug.ventasPorTipo?.OVINO?.pesoTotalKg || 0) / data.eficienciaTecnica.superficieTotal.ovinos))}
+      </td>
       <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">{fmt(data._debug.ventasPorTipo?.EQUINO?.pesoTotalKg || 0)}</td>
-      <td className="px-3 py-2 text-center border-b border-gray-100 text-gray-400">-</td>
-    </tr>
-    <tr className="bg-yellow-25 hover:bg-gray-50">
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">
+        {fmt(Math.round((data._debug.ventasPorTipo?.EQUINO?.pesoTotalKg || 0) / data.eficienciaTecnica.superficieTotal.equinos))}
+      </td>
+    </tr>    <tr className="bg-yellow-25 hover:bg-gray-50">
       <td className="px-4 py-2 pl-12 text-sm text-gray-700 border-b border-gray-100 sticky left-0 bg-white z-10">+ Consumo (kg)</td>
       <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">{fmt(data._debug.consumos.pesoTotalKg)}</td>
       <td className="px-3 py-2 text-center border-b border-gray-100 text-gray-400">-</td>
@@ -555,13 +562,21 @@ console.log('🔍 INDICADORES - usarSPG desde Context:', usarSPG)
     <tr className="bg-blue-25 hover:bg-gray-50">
       <td className="px-4 py-2 pl-12 text-sm text-gray-700 border-b border-gray-100 sticky left-0 bg-white z-10">Ventas (U$S)</td>
       <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">{fmt(data._debug?.ventas?.importeBrutoUSD || 0)}</td>
-      <td className="px-3 py-2 text-center border-b border-gray-100 text-gray-400">-</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">
+        {fmt(Math.round((data._debug?.ventas?.importeBrutoUSD || 0) / (data.superficie.usandoSPG ? data.superficie.spg : data.superficie.total)))}
+      </td>
       <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">{fmt(data._debug?.ventasPorTipo?.BOVINO?.importeBrutoUSD || 0)}</td>
-      <td className="px-3 py-2 text-center border-b border-gray-100 text-gray-400">-</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">
+        {fmt(Math.round((data._debug?.ventasPorTipo?.BOVINO?.importeBrutoUSD || 0) / data.eficienciaTecnica.superficieTotal.vacunos))}
+      </td>
       <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">{fmt(data._debug?.ventasPorTipo?.OVINO?.importeBrutoUSD || 0)}</td>
-      <td className="px-3 py-2 text-center border-b border-gray-100 text-gray-400">-</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">
+        {fmt(Math.round((data._debug?.ventasPorTipo?.OVINO?.importeBrutoUSD || 0) / data.eficienciaTecnica.superficieTotal.ovinos))}
+      </td>
       <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">{fmt(data._debug?.ventasPorTipo?.EQUINO?.importeBrutoUSD || 0)}</td>
-      <td className="px-3 py-2 text-center border-b border-gray-100 text-gray-400">-</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">
+        {fmt(Math.round((data._debug?.ventasPorTipo?.EQUINO?.importeBrutoUSD || 0) / data.eficienciaTecnica.superficieTotal.equinos))}
+      </td>
     </tr>
     <tr className="bg-blue-25 hover:bg-gray-50">
       <td className="px-4 py-2 pl-12 text-sm text-gray-700 border-b border-gray-100 sticky left-0 bg-white z-10">+ Consumo (U$S)</td>
@@ -598,17 +613,7 @@ console.log('🔍 INDICADORES - usarSPG desde Context:', usarSPG)
     </tr>
   </>
 )}
-                  <tr className="hover:bg-gray-50">
-                    <td className="px-4 py-2 font-medium text-gray-900 border-b border-gray-100 sticky left-0 bg-white z-10">Ingreso bruto</td>
-                    <td className="px-3 py-2 text-center border-b border-gray-100">{fmt(data.economicos.ingresoBruto.total.global)}</td>
-                    <td className="px-3 py-2 text-center border-b border-gray-100">{fmt(data.economicos.ingresoBruto.porHa.global)}</td>
-                    <td className="px-3 py-2 text-center border-b border-gray-100">{fmt(data.economicos.ingresoBruto.total.vacunos)}</td>
-                    <td className="px-3 py-2 text-center border-b border-gray-100">{fmt(data.economicos.ingresoBruto.porHa.vacunos)}</td>
-                    <td className="px-3 py-2 text-center border-b border-gray-100">{fmt(data.economicos.ingresoBruto.total.ovinos)}</td>
-                    <td className="px-3 py-2 text-center border-b border-gray-100">{fmt(data.economicos.ingresoBruto.porHa.ovinos)}</td>
-                    <td className="px-3 py-2 text-center border-b border-gray-100">{fmt(data.economicos.ingresoBruto.total.equinos)}</td>
-                    <td className="px-3 py-2 text-center border-b border-gray-100">{fmt(data.economicos.ingresoBruto.porHa.equinos)}</td>
-                  </tr>
+                  
                   <tr className="hover:bg-gray-50">
                     <td className="px-4 py-2 font-medium text-gray-900 border-b border-gray-100 sticky left-0 bg-white z-10">Costos Totales</td>
                     <td className="px-3 py-2 text-center border-b border-gray-100">{fmt(data.economicos.costosTotales.total.global)}</td>
@@ -679,17 +684,7 @@ console.log('🔍 INDICADORES - usarSPG desde Context:', usarSPG)
                     <td className="px-3 py-2 text-center border-b border-gray-100">{fmt(data.economicos.ikp.total.equinos)}</td>
                     <td className="px-3 py-2 text-center border-b border-gray-100">{fmt(data.economicos.ikp.porHa.equinos)}</td>
                   </tr>
-                  <tr className="hover:bg-gray-50">
-                    <td className="px-4 py-2 font-medium text-gray-900 border-b border-gray-100 sticky left-0 bg-white z-10">Ingreso efectivo</td>
-                    <td className="px-3 py-2 text-center border-b border-gray-100">{fmt(data.economicos.ingresoEfectivo.total.global)}</td>
-                    <td className="px-3 py-2 text-center border-b border-gray-100">{fmt(data.economicos.ingresoEfectivo.porHa.global)}</td>
-                    <td className="px-3 py-2 text-center border-b border-gray-100">{fmt(data.economicos.ingresoEfectivo.total.vacunos)}</td>
-                    <td className="px-3 py-2 text-center border-b border-gray-100">{fmt(data.economicos.ingresoEfectivo.porHa.vacunos)}</td>
-                    <td className="px-3 py-2 text-center border-b border-gray-100">{fmt(data.economicos.ingresoEfectivo.total.ovinos)}</td>
-                    <td className="px-3 py-2 text-center border-b border-gray-100">{fmt(data.economicos.ingresoEfectivo.porHa.ovinos)}</td>
-                    <td className="px-3 py-2 text-center border-b border-gray-100">{fmt(data.economicos.ingresoEfectivo.total.equinos)}</td>
-                    <td className="px-3 py-2 text-center border-b border-gray-100">{fmt(data.economicos.ingresoEfectivo.porHa.equinos)}</td>
-                  </tr>
+                  
                   <tr className="hover:bg-gray-50">
                     <td className="px-4 py-2 font-medium text-gray-900 border-b border-gray-100 sticky left-0 bg-white z-10">U$S por kg producido</td>
                     <td className="px-3 py-2 text-center border-b border-gray-100">{fmtDec(data.economicos.usdPorKgProducido.global)}</td>
@@ -741,13 +736,13 @@ console.log('🔍 INDICADORES - usarSPG desde Context:', usarSPG)
             <div className="space-y-1">
               <p><span className="font-medium">Producción de carne:</span> Ventas (kg) + Consumo (kg) - Compras (kg) +/- Dif. Inventario (kg)</p>
               <p><span className="font-medium">Producto Bruto:</span> Ventas (U$S) + Consumo (U$S) - Compras (U$S) +/- Dif. Inv (U$S)</p>
-              <p><span className="font-medium">Ingreso Bruto:</span> Ventas totales (U$S)</p>
+              
               <p><span className="font-medium">Costos Totales:</span> Costos Fijos + Costos Variables + Costos Renta</p>
             </div>
             <div className="space-y-1">
               <p><span className="font-medium">IK:</span> Producto Bruto - Costos (sin contar renta)</p>
               <p><span className="font-medium">IKP:</span> Producto Bruto - Costos Totales (con renta)</p>
-              <p><span className="font-medium">Ingreso Efectivo:</span> Ingreso Bruto - Costos Totales</p>
+              
               <p><span className="font-medium">Margen x kg:</span> U$S por kg producido - Costo por kg producido</p>
             </div>
           </div>
