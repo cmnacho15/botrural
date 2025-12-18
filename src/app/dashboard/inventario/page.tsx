@@ -17,16 +17,10 @@ interface InventarioItem {
 }
 
 export default function InventarioPage() {
-  // ==========================================
-  // 🔢 FUNCIÓN PARA FORMATEAR NÚMEROS CON PUNTOS
-  // ==========================================
   const formatearNumero = (numero: number): string => {
     return Math.round(numero).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
   };
 
-  // ==========================================
-  // 🗓️ CÁLCULO AUTOMÁTICO DEL EJERCICIO FISCAL
-  // ==========================================
   const { FECHA_INICIAL, FECHA_FINAL, añoInicio, añoFin } = useMemo(() => {
     const hoy = new Date();
     const mesActual = hoy.getMonth();
@@ -87,9 +81,6 @@ export default function InventarioPage() {
     }
   }, [invInicial, invFinal]);
 
-  // ==========================================
-  // 🐄🐑 SEPARAR ITEMS EN BOVINOS Y OVINOS
-  // ==========================================
   const itemsOvinos = useMemo(() => {
     return items.filter(item => {
       const cat = item.categoria.toLowerCase();
@@ -106,9 +97,6 @@ export default function InventarioPage() {
     });
   }, [items]);
 
-  // ==========================================
-  // REGENERAR DESDE POTREROS
-  // ==========================================
   async function regenerarDesdePotreros(destino: 'INICIO' | 'FIN') {
     try {
       const res = await fetch('/api/inventario/regenerar', { method: 'POST' });
@@ -174,9 +162,6 @@ export default function InventarioPage() {
     }
   }
 
-  // ==========================================
-  // AGREGAR CATEGORÍA MANUAL
-  // ==========================================
   function agregarCategoriaManual() {
     if (!nuevaCategoria.trim()) {
       alert('Ingresa un nombre de categoría');
@@ -202,9 +187,6 @@ export default function InventarioPage() {
     setModalAgregar(false);
   }
 
-  // ==========================================
-  // GUARDAR INVENTARIO
-  // ==========================================
   async function guardarInventario() {
     setGuardando(true);
 
@@ -259,9 +241,6 @@ export default function InventarioPage() {
     }
   }
 
-  // ==========================================
-  // ✅ ACTUALIZAR VALORES POR CATEGORÍA
-  // ==========================================
   function actualizarItemPorCategoria(categoria: string, campo: keyof InventarioItem, valorString: string) {
     setValoresLocales(prev => ({
       ...prev,
@@ -308,9 +287,6 @@ export default function InventarioPage() {
     }
   }
 
-  // ==========================================
-  // ✨ CÁLCULOS ACTUALIZADOS CON PESOS SEPARADOS
-  // ==========================================
   function calcularFila(item: InventarioItem) {
     const difAnimales = item.cantidadFinal - item.cantidadInicial;
     const usdInicio = item.cantidadInicial * (item.pesoInicio || 0) * (item.precioKg || 0);
@@ -335,9 +311,6 @@ export default function InventarioPage() {
     };
   }
 
-  // ==========================================
-  // 📊 CALCULAR TOTALES SEPARADOS
-  // ==========================================
   const totalesOvinos = itemsOvinos.reduce((acc, item) => {
     const calc = calcularFila(item);
     return {
@@ -376,9 +349,6 @@ export default function InventarioPage() {
     usdInicio: 0, usdFinal: 0, usdTotales: 0,
   });
 
-  // ==========================================
-  // 🎨 COMPONENTE TABLA REUTILIZABLE
-  // ==========================================
   const TablaInventario = ({ 
     items, 
     totales, 
@@ -391,7 +361,6 @@ export default function InventarioPage() {
     colorBg: string 
   }) => (
     <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden mb-6">
-      {/* Título de la tabla */}
       <div className={`px-4 py-3 ${colorBg} border-b-2 border-gray-300`}>
         <h2 className="text-lg font-bold text-gray-900">{titulo}</h2>
       </div>
@@ -466,7 +435,6 @@ export default function InventarioPage() {
                       pattern="[0-9]*"
                       value={valoresLocales[`${item.categoria}-cantidadInicial`] ?? item.cantidadInicial}
                       onChange={(e) => actualizarItemPorCategoria(item.categoria, 'cantidadInicial', e.target.value)}
-                      onFocus={(e) => e.target.select()}
                       className="w-full px-2 py-1 border rounded text-center text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </td>
@@ -478,7 +446,6 @@ export default function InventarioPage() {
                       pattern="[0-9]*"
                       value={valoresLocales[`${item.categoria}-cantidadFinal`] ?? item.cantidadFinal}
                       onChange={(e) => actualizarItemPorCategoria(item.categoria, 'cantidadFinal', e.target.value)}
-                      onFocus={(e) => e.target.select()}
                       className="w-full px-2 py-1 border rounded text-center text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </td>
@@ -490,7 +457,6 @@ export default function InventarioPage() {
                       pattern="[0-9]*[.,]?[0-9]+"
                       value={valoresLocales[`${item.categoria}-pesoInicio`] ?? (item.pesoInicio ?? '')}
                       onChange={(e) => actualizarItemPorCategoria(item.categoria, 'pesoInicio', e.target.value)}
-                      onFocus={(e) => e.target.select()}
                       placeholder="0"
                       className="w-full px-2 py-1 border rounded text-center text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
@@ -503,7 +469,6 @@ export default function InventarioPage() {
                       pattern="[0-9]*[.,]?[0-9]+"
                       value={valoresLocales[`${item.categoria}-pesoFinal`] ?? (item.pesoFinal ?? '')}
                       onChange={(e) => actualizarItemPorCategoria(item.categoria, 'pesoFinal', e.target.value)}
-                      onFocus={(e) => e.target.select()}
                       placeholder="0"
                       className="w-full px-2 py-1 border rounded text-center text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
@@ -516,7 +481,6 @@ export default function InventarioPage() {
                       pattern="[0-9]*[.,]?[0-9]+"
                       value={valoresLocales[`${item.categoria}-precioKg`] ?? (item.precioKg ?? '')}
                       onChange={(e) => actualizarItemPorCategoria(item.categoria, 'precioKg', e.target.value)}
-                      onFocus={(e) => e.target.select()}
                       placeholder="0"
                       className="w-full px-2 py-1 border rounded text-center text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
@@ -529,7 +493,6 @@ export default function InventarioPage() {
                       pattern="[0-9]*[.,]?[0-9]+"
                       value={valoresLocales[`${item.categoria}-precioKgFin`] ?? (item.precioKgFin ?? '')}
                       onChange={(e) => actualizarItemPorCategoria(item.categoria, 'precioKgFin', e.target.value)}
-                      onFocus={(e) => e.target.select()}
                       placeholder="0"
                       className="w-full px-2 py-1 border rounded text-center text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
@@ -561,7 +524,6 @@ export default function InventarioPage() {
               );
             })}
 
-            {/* FILA TOTALES */}
             <tr className="bg-green-100 font-bold text-gray-900">
               <td className="px-3 py-3 sticky left-0 bg-green-100 z-10">TOTALES</td>
               <td className="px-2 py-3 text-center">{formatearNumero(totales.cantidadInicial)}</td>
@@ -592,7 +554,6 @@ export default function InventarioPage() {
 
   return (
     <div className="bg-gray-50 min-h-screen p-4 sm:p-6 md:p-8">
-      {/* HEADER */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-6 gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">📦 Diferencia de Inventario</h1>
@@ -630,7 +591,6 @@ export default function InventarioPage() {
         </div>
       </div>
 
-      {/* TABLA BOVINOS */}
       <TablaInventario 
         items={itemsBovinos}
         totales={totalesBovinos}
@@ -638,7 +598,6 @@ export default function InventarioPage() {
         colorBg="bg-orange-100"
       />
 
-      {/* TABLA OVINOS */}
       <TablaInventario 
         items={itemsOvinos}
         totales={totalesOvinos}
@@ -646,7 +605,6 @@ export default function InventarioPage() {
         colorBg="bg-yellow-100"
       />
 
-      {/* MODAL REGENERAR */}
       {modalRegenerar && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl max-w-md w-full p-6">
@@ -683,7 +641,6 @@ export default function InventarioPage() {
         </div>
       )}
 
-      {/* MODAL AGREGAR */}
       {modalAgregar && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl max-w-md w-full p-6">
