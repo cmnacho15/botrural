@@ -524,18 +524,32 @@ export default function KMZUploader({
           </div>
 
           {/* Botones de acción */}
-          <div className="flex gap-3">
+          <div className="flex gap-2">
+            {/* Botón atrás */}
+            <button
+              onClick={() => {
+                if (indiceActual > 0) {
+                  setIndiceActual(indiceActual - 1)
+                }
+              }}
+              disabled={indiceActual === 0}
+              className="px-4 py-3 border border-gray-300 rounded-lg font-medium text-gray-600 hover:bg-gray-50 transition disabled:opacity-30 disabled:cursor-not-allowed"
+              title="Potrero anterior"
+            >
+              ←
+            </button>
+            
             <button
               onClick={noIncluirPotrero}
               className="flex-1 py-3 border border-gray-300 rounded-lg font-medium text-gray-600 hover:bg-gray-50 transition"
             >
-              No Incluir Potrero
+              No Incluir
             </button>
             <button
               onClick={agregarPotrero}
               className="flex-1 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition flex items-center justify-center gap-2"
             >
-              Agregar Potrero
+              Agregar
               <span>→</span>
             </button>
           </div>
