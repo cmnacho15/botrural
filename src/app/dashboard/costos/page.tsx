@@ -134,25 +134,14 @@ export default function CostosPage() {
     return `${actual.inicio}-${actual.fin}`
   })
  
-  const [usarSPG, setUsarSPG] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('usarSPG')
-      return saved === 'true'
-    }
-    return false
-  })
+  const [usarSPG, setUsarSPG] = useState(false)
 
-  // Sincronizar con localStorage cuando cambie en otra pestaña
+  // Leer de localStorage al montar el componente
   useEffect(() => {
-    const handleStorageChange = () => {
-      if (typeof window !== 'undefined') {
-        const saved = localStorage.getItem('usarSPG')
-        setUsarSPG(saved === 'true')
-      }
+    const saved = localStorage.getItem('usarSPG')
+    if (saved !== null) {
+      setUsarSPG(saved === 'true')
     }
-    
-    window.addEventListener('storage', handleStorageChange)
-    return () => window.removeEventListener('storage', handleStorageChange)
   }, [])
 
   // ✅ Fechas derivadas del ejercicio seleccionado
