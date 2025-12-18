@@ -134,6 +134,7 @@ export default function IndicadoresPage() {
   const [ganaderiaAbierto, setGanaderiaAbierto] = useState(false)
   const [economicosAbierto, setEconomicosAbierto] = useState(false)
   const [produccionCarneAbierto, setProduccionCarneAbierto] = useState(false)  // 🆕 NUEVO
+  const [productoBrutoAbierto, setProductoBrutoAbierto] = useState(false)  // 🆕 NUEVO
   
  const { usarSPG, setUsarSPG } = useSuperficie()
 
@@ -527,17 +528,76 @@ console.log('🔍 INDICADORES - usarSPG desde Context:', usarSPG)
               </tr>
               {economicosAbierto && (
                 <>
-                  <tr className="hover:bg-gray-50">
-                    <td className="px-4 py-2 font-medium text-gray-900 border-b border-gray-100 sticky left-0 bg-white z-10">Producto Bruto</td>
-                    <td className="px-3 py-2 text-center border-b border-gray-100">{fmt(data.economicos.productoBruto.total.global)}</td>
-                    <td className="px-3 py-2 text-center border-b border-gray-100">{fmt(data.economicos.productoBruto.porHa.global)}</td>
-                    <td className="px-3 py-2 text-center border-b border-gray-100">{fmt(data.economicos.productoBruto.total.vacunos)}</td>
-                    <td className="px-3 py-2 text-center border-b border-gray-100">{fmt(data.economicos.productoBruto.porHa.vacunos)}</td>
-                    <td className="px-3 py-2 text-center border-b border-gray-100">{fmt(data.economicos.productoBruto.total.ovinos)}</td>
-                    <td className="px-3 py-2 text-center border-b border-gray-100">{fmt(data.economicos.productoBruto.porHa.ovinos)}</td>
-                    <td className="px-3 py-2 text-center border-b border-gray-100">{fmt(data.economicos.productoBruto.total.equinos)}</td>
-                    <td className="px-3 py-2 text-center border-b border-gray-100">{fmt(data.economicos.productoBruto.porHa.equinos)}</td>
-                  </tr>
+                  {/* Producto Bruto - CLICKEABLE */}
+<tr 
+  className="hover:bg-blue-100 bg-blue-50 cursor-pointer"
+  onClick={() => setProductoBrutoAbierto(!productoBrutoAbierto)}
+>
+  <td className="px-4 py-2 font-semibold text-gray-900 border-b border-gray-200 sticky left-0 bg-blue-50 z-10">
+    <div className="flex items-center gap-2">
+      {productoBrutoAbierto ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+      Producto Bruto
+    </div>
+  </td>
+  <td className="px-3 py-2 text-center border-b border-gray-200 font-medium">{fmt(data.economicos.productoBruto.total.global)}</td>
+  <td className="px-3 py-2 text-center border-b border-gray-200">{fmt(data.economicos.productoBruto.porHa.global)}</td>
+  <td className="px-3 py-2 text-center border-b border-gray-200 font-medium">{fmt(data.economicos.productoBruto.total.vacunos)}</td>
+  <td className="px-3 py-2 text-center border-b border-gray-200">{fmt(data.economicos.productoBruto.porHa.vacunos)}</td>
+  <td className="px-3 py-2 text-center border-b border-gray-200 font-medium">{fmt(data.economicos.productoBruto.total.ovinos)}</td>
+  <td className="px-3 py-2 text-center border-b border-gray-200">{fmt(data.economicos.productoBruto.porHa.ovinos)}</td>
+  <td className="px-3 py-2 text-center border-b border-gray-200 font-medium">{fmt(data.economicos.productoBruto.total.equinos)}</td>
+  <td className="px-3 py-2 text-center border-b border-gray-200">{fmt(data.economicos.productoBruto.porHa.equinos)}</td>
+</tr>
+
+{/* Desglose de Producto Bruto */}
+{productoBrutoAbierto && (
+  <>
+    <tr className="bg-blue-25 hover:bg-gray-50">
+      <td className="px-4 py-2 pl-12 text-sm text-gray-700 border-b border-gray-100 sticky left-0 bg-white z-10">Ventas (U$S)</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">{fmt(data._debug?.ventas?.importeBrutoUSD || 0)}</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-gray-400">-</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">{fmt(data._debug?.ventasPorTipo?.BOVINO?.importeBrutoUSD || 0)}</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-gray-400">-</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">{fmt(data._debug?.ventasPorTipo?.OVINO?.importeBrutoUSD || 0)}</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-gray-400">-</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">{fmt(data._debug?.ventasPorTipo?.EQUINO?.importeBrutoUSD || 0)}</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-gray-400">-</td>
+    </tr>
+    <tr className="bg-blue-25 hover:bg-gray-50">
+      <td className="px-4 py-2 pl-12 text-sm text-gray-700 border-b border-gray-100 sticky left-0 bg-white z-10">+ Consumo (U$S)</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">{fmt(data._debug?.consumos?.valorTotalUSD || 0)}</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-gray-400">-</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">{fmt(data._debug?.consumosPorTipo?.BOVINO?.valorTotalUSD || 0)}</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-gray-400">-</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">{fmt(data._debug?.consumosPorTipo?.OVINO?.valorTotalUSD || 0)}</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-gray-400">-</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">{fmt(data._debug?.consumosPorTipo?.EQUINO?.valorTotalUSD || 0)}</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-gray-400">-</td>
+    </tr>
+    <tr className="bg-blue-25 hover:bg-gray-50">
+      <td className="px-4 py-2 pl-12 text-sm text-gray-700 border-b border-gray-100 sticky left-0 bg-white z-10">- Compras (U$S)</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">{fmt(data._debug?.compras?.importeBrutoUSD || 0)}</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-gray-400">-</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">{fmt(data._debug?.comprasPorTipo?.BOVINO?.importeBrutoUSD || 0)}</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-gray-400">-</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">{fmt(data._debug?.comprasPorTipo?.OVINO?.importeBrutoUSD || 0)}</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-gray-400">-</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">{fmt(data._debug?.comprasPorTipo?.EQUINO?.importeBrutoUSD || 0)}</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-gray-400">-</td>
+    </tr>
+    <tr className="bg-blue-25 hover:bg-gray-50">
+      <td className="px-4 py-2 pl-12 text-sm text-gray-700 border-b border-gray-100 sticky left-0 bg-white z-10">+/- Dif. Inventario (U$S)</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">{fmt(data._debug?.difInventario?.difUSD || 0)}</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-gray-400">-</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">{fmt(data._debug?.difInventarioPorTipo?.BOVINO?.difUSD || 0)}</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-gray-400">-</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">{fmt(data._debug?.difInventarioPorTipo?.OVINO?.difUSD || 0)}</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-gray-400">-</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">{fmt(data._debug?.difInventarioPorTipo?.EQUINO?.difUSD || 0)}</td>
+      <td className="px-3 py-2 text-center border-b border-gray-100 text-gray-400">-</td>
+    </tr>
+  </>
+)}
                   <tr className="hover:bg-gray-50">
                     <td className="px-4 py-2 font-medium text-gray-900 border-b border-gray-100 sticky left-0 bg-white z-10">Ingreso bruto</td>
                     <td className="px-3 py-2 text-center border-b border-gray-100">{fmt(data.economicos.ingresoBruto.total.global)}</td>
