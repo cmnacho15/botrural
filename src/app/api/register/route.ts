@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import bcrypt from "bcryptjs"
+import { CATEGORIAS_ANIMALES_DEFAULT } from "@/lib/constants"
 
 // 🎨 Categorías predeterminadas con colores
 const CATEGORIAS_GASTOS_DEFAULT = [
@@ -23,35 +24,6 @@ const CATEGORIAS_GASTOS_DEFAULT = [
   { nombre: 'Seguros', color: '#0ea5e9' },
   { nombre: 'Semillas', color: '#65a30d' },
   { nombre: 'Sueldos', color: '#7c3aed' },
-]
-
-// 🐄 Categorías de animales predeterminadas
-const CATEGORIAS_ANIMALES_DEFAULT = [
-  // BOVINOS
-  { nombreSingular: 'Toros', nombrePlural: 'Toros', tipoAnimal: 'BOVINO' },
-  { nombreSingular: 'Vacas', nombrePlural: 'Vacas', tipoAnimal: 'BOVINO' },
-  { nombreSingular: 'Novillos +3 años', nombrePlural: 'Novillos +3 años', tipoAnimal: 'BOVINO' },
-  { nombreSingular: 'Novillos 2–3 años', nombrePlural: 'Novillos 2–3 años', tipoAnimal: 'BOVINO' },
-  { nombreSingular: 'Novillos 1–2 años', nombrePlural: 'Novillos 1–2 años', tipoAnimal: 'BOVINO' },
-  { nombreSingular: 'Vaquillonas +2 años', nombrePlural: 'Vaquillonas +2 años', tipoAnimal: 'BOVINO' },
-  { nombreSingular: 'Vaquillonas 1–2 años', nombrePlural: 'Vaquillonas 1–2 años', tipoAnimal: 'BOVINO' },
-  { nombreSingular: 'Terneros/as', nombrePlural: 'Terneros/as', tipoAnimal: 'BOVINO' },
-  { nombreSingular: 'Terneros nacidos', nombrePlural: 'Terneros nacidos', tipoAnimal: 'BOVINO' },
-  
-  // OVINOS
-  { nombreSingular: 'Carneros', nombrePlural: 'Carneros', tipoAnimal: 'OVINO' },
-  { nombreSingular: 'Ovejas', nombrePlural: 'Ovejas', tipoAnimal: 'OVINO' },
-  { nombreSingular: 'Capones', nombrePlural: 'Capones', tipoAnimal: 'OVINO' },
-  { nombreSingular: 'Borregas 2–4 dientes', nombrePlural: 'Borregas 2–4 dientes', tipoAnimal: 'OVINO' },
-  { nombreSingular: 'Corderas DL', nombrePlural: 'Corderas DL', tipoAnimal: 'OVINO' },
-  { nombreSingular: 'Corderos DL', nombrePlural: 'Corderos DL', tipoAnimal: 'OVINO' },
-  { nombreSingular: 'Corderos/as Mamones', nombrePlural: 'Corderos/as Mamones', tipoAnimal: 'OVINO' },
-  
-  // EQUINOS
-  { nombreSingular: 'Padrillos', nombrePlural: 'Padrillos', tipoAnimal: 'EQUINO' },
-  { nombreSingular: 'Yeguas', nombrePlural: 'Yeguas', tipoAnimal: 'EQUINO' },
-  { nombreSingular: 'Caballos', nombrePlural: 'Caballos', tipoAnimal: 'EQUINO' },
-  { nombreSingular: 'Potrillos', nombrePlural: 'Potrillos', tipoAnimal: 'EQUINO' },
 ]
 
 export async function POST(request: Request) {
@@ -108,19 +80,22 @@ export async function POST(request: Request) {
           orden: index,
           activo: true,
         })),
+        skipDuplicates: true,  // ✅ TAMBIÉN AGREGAR AQUÍ
       })
 
-      // 🆕 4. Crear categorías de animales predeterminadas
-await tx.categoriaAnimal.createMany({
-  data: CATEGORIAS_ANIMALES_DEFAULT.map(cat => ({
-    nombreSingular: cat.nombreSingular,
-    nombrePlural: cat.nombrePlural,
-    tipoAnimal: cat.tipoAnimal as any, // 👈 Agregá el "as any"
-    campoId: campo.id,
-    activo: true,
-    esPredeterminado: true,
-  })),
-})
+      // 4. Crear categorías de animales predeterminadas
+      await tx.categoriaAnimal.createMany({
+        data: CATEGORIAS_ANIMALES_DEFAULT.map(cat => ({
+          nombreSingular: cat.nombreSingular,
+          nombrePlural: cat.nombrePlural,
+          tipoAnimal: cat.tipoAnimal,
+          campoId: campo.id,
+          activo: true,
+          esPredeterminado: true,
+        })),
+        skipDuplicates: true,  // 🔥 AGREGAR ESTA LÍNEA
+      })
+
       return { user, campo }
     })
 
