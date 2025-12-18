@@ -699,52 +699,38 @@ const [acordeonesAbiertos, setAcordeonesAbiertos] = useState<{[key: string]: boo
                 Ingresá los potreros de tu campo para empezar a usar la app.
               </p>
 
-             <div className="flex flex-col sm:flex-row justify-center gap-6">
-                <Link
-                  href="/dashboard/lotes/nuevo"
-                  className="flex flex-col items-center justify-center bg-gray-50 border border-gray-200 rounded-lg p-5 hover:bg-gray-100 transition w-52 h-36 mx-auto"
-                >
-                  <img
-                    src="https://cdn-icons-png.flaticon.com/512/992/992700.png"
-                    alt="Formulario"
-                    className="w-8 h-8 mb-2 opacity-90"
-                  />
-                  <p className="font-medium text-gray-800 text-sm">
-                    Ingresar manualmente
-                  </p>
-                </Link>
+             <div className="flex flex-col sm:flex-row justify-center gap-6 max-w-3xl mx-auto">
+  <Link
+    href="/dashboard/lotes/nuevo"
+    className="flex flex-col items-center justify-center bg-gray-50 border border-gray-200 rounded-lg p-8 hover:bg-gray-100 transition flex-1"
+  >
+    <img
+      src="https://cdn-icons-png.flaticon.com/512/992/992700.png"
+      alt="Formulario"
+      className="w-12 h-12 mb-3 opacity-90"
+    />
+    <p className="font-medium text-gray-800 text-base">
+      Ingresar manualmente
+    </p>
+  </Link>
 
-                <button
-                  onClick={() => setShowModalKMZ(true)}
-                  className="flex flex-col items-center justify-center bg-gray-50 border border-gray-200 rounded-lg p-5 hover:bg-gray-100 transition w-52 h-36 mx-auto"
-                >
-                  <img
-                    src="https://cdn-icons-png.flaticon.com/512/2875/2875421.png"
-                    alt="Google Earth"
-                    className="w-8 h-8 mb-2 opacity-90"
-                  />
-                  <p className="font-medium text-gray-800 text-sm">
-                    KMZ de Google Earth
-                  </p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Subí tus potreros y tu mapa
-                  </p>
-                </button>
-
-                <button
-                  className="flex flex-col items-center justify-center bg-gray-50 border border-gray-200 rounded-lg p-5 hover:bg-gray-100 transition w-52 h-36 mx-auto opacity-50 cursor-not-allowed"
-                  disabled
-                >
-                  <img
-                    src="https://cdn-icons-png.flaticon.com/512/732/732220.png"
-                    alt="Excel"
-                    className="w-8 h-8 mb-2 opacity-90"
-                  />
-                  <p className="font-medium text-gray-800 text-sm">
-                    Subir Excel o CSV
-                  </p>
-                </button>
-              </div>
+  <button
+    onClick={() => setShowModalKMZ(true)}
+    className="flex flex-col items-center justify-center bg-gray-50 border border-gray-200 rounded-lg p-8 hover:bg-gray-100 transition flex-1"
+  >
+    <img
+      src="https://cdn-icons-png.flaticon.com/512/2875/2875421.png"
+      alt="Google Earth"
+      className="w-12 h-12 mb-3 opacity-90"
+    />
+    <p className="font-medium text-gray-800 text-base">
+      KMZ de Google Earth
+    </p>
+    <p className="text-sm text-gray-500 mt-1">
+      Subí tus potreros y tu mapa
+    </p>
+  </button>
+</div>
             </div>
           ) : (
             <div className="space-y-4 p-6">

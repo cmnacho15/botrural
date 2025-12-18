@@ -262,25 +262,31 @@ const timeoutRefs = useState<{ [key: string]: NodeJS.Timeout }>({})[0]
   // ==========================================
 // ✅ ACTUALIZAR VALORES POR CATEGORÍA (FIX BUG)
 // ==========================================
-function actualizarItemPorCategoria(categoria: string, campo: keyof InventarioItem, valor: any) {
-  // Actualizar valor local inmediatamente
+function actualizarItemPorCategoria(categoria: string, campo: keyof InventarioItem, valorString: string) {
+  // Guardar el STRING sin parsear
   setValoresLocales(prev => ({
     ...prev,
-    [`${categoria}-${campo}`]: valor
+    [`${categoria}-${campo}`]: valorString
   }))
 
-  // Limpiar timeout anterior
   const timeoutKey = `${categoria}-${campo}`
   if (timeoutRefs[timeoutKey]) {
     clearTimeout(timeoutRefs[timeoutKey])
   }
 
-  // Esperar 500ms antes de actualizar el estado real
   timeoutRefs[timeoutKey] = setTimeout(() => {
+    // Parsear según el tipo de campo
+    let valorFinal: any
+    if (campo === 'cantidadInicial' || campo === 'cantidadFinal') {
+      valorFinal = parseInt(valorString) || 0
+    } else {
+      valorFinal = parseFloat(valorString) || null
+    }
+    
     setItems(prevItems => 
       prevItems.map(item => 
         item.categoria === categoria 
-          ? { ...item, [campo]: valor }
+          ? { ...item, [campo]: valorFinal }
           : item
       )
     )
@@ -450,7 +456,7 @@ function actualizarItemPorCategoria(categoria: string, campo: keyof InventarioIt
                       value={valoresLocales[`${item.categoria}-cantidadInicial`] !== undefined 
     ? valoresLocales[`${item.categoria}-cantidadInicial`] 
     : item.cantidadInicial}
-                      onChange={(e) => actualizarItemPorCategoria(item.categoria, 'cantidadInicial', parseInt(e.target.value) || 0)}
+                      onChange={(e) => actualizarItemPorCategoria(item.categoria, 'cantidadInicial', e.target.value)}
                       onFocus={(e) => e.target.select()}
                       className="w-full px-2 py-1 border rounded text-center text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
@@ -462,7 +468,7 @@ function actualizarItemPorCategoria(categoria: string, campo: keyof InventarioIt
                       value={valoresLocales[`${item.categoria}-cantidadFinal`] !== undefined 
   ? valoresLocales[`${item.categoria}-cantidadFinal`] 
   : item.cantidadFinal}
-                      onChange={(e) => actualizarItemPorCategoria(item.categoria, 'cantidadFinal', parseInt(e.target.value) || 0)}
+                      onChange={(e) => actualizarItemPorCategoria(item.categoria, 'cantidadFinal', e.target.value)}
                       onFocus={(e) => e.target.select()}
                       className="w-full px-2 py-1 border rounded text-center text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
@@ -475,7 +481,7 @@ function actualizarItemPorCategoria(categoria: string, campo: keyof InventarioIt
                       value={valoresLocales[`${item.categoria}-pesoInicio`] !== undefined 
   ? valoresLocales[`${item.categoria}-pesoInicio`] 
   : (item.pesoInicio || '')}
-                      onChange={(e) => actualizarItemPorCategoria(item.categoria, 'pesoInicio', parseFloat(e.target.value) || null)}
+                      onChange={(e) => actualizarItemPorCategoria(item.categoria, 'pesoInicio', e.target.value)}
                       onFocus={(e) => e.target.select()}
                       placeholder="0"
                       className="w-full px-2 py-1 border rounded text-center text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -489,7 +495,7 @@ function actualizarItemPorCategoria(categoria: string, campo: keyof InventarioIt
                       value={valoresLocales[`${item.categoria}-pesoFinal`] !== undefined 
   ? valoresLocales[`${item.categoria}-pesoFinal`] 
   : (item.pesoFinal || '')}
-                      onChange={(e) => actualizarItemPorCategoria(item.categoria, 'pesoFinal', parseFloat(e.target.value) || null)}
+                      onChange={(e) => actualizarItemPorCategoria(item.categoria, 'pesoFinal', e.target.value)}
                       onFocus={(e) => e.target.select()}
                       placeholder="0"
                       className="w-full px-2 py-1 border rounded text-center text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -503,7 +509,7 @@ function actualizarItemPorCategoria(categoria: string, campo: keyof InventarioIt
                       value={valoresLocales[`${item.categoria}-precioKg`] !== undefined 
   ? valoresLocales[`${item.categoria}-precioKg`] 
   : (item.precioKg || '')}
-                      onChange={(e) => actualizarItemPorCategoria(item.categoria, 'precioKg', parseFloat(e.target.value) || null)}
+                      onChange={(e) => actualizarItemPorCategoria(item.categoria, 'precioKg', e.target.value)}
                       onFocus={(e) => e.target.select()}
                       placeholder="0"
                       className="w-full px-2 py-1 border rounded text-center text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -517,7 +523,7 @@ function actualizarItemPorCategoria(categoria: string, campo: keyof InventarioIt
                       value={valoresLocales[`${item.categoria}-precioKgFin`] !== undefined 
   ? valoresLocales[`${item.categoria}-precioKgFin`] 
   : (item.precioKgFin || '')}
-                      onChange={(e) => actualizarItemPorCategoria(item.categoria, 'precioKgFin', parseFloat(e.target.value) || null)}
+                      onChange={(e) => actualizarItemPorCategoria(item.categoria, 'precioKgFin', e.target.value)}
                       onFocus={(e) => e.target.select()}
                       placeholder="0"
                       className="w-full px-2 py-1 border rounded text-center text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
