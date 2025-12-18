@@ -81,7 +81,16 @@ export default function MapaPreviewKMZ({
 
     mapRef.current = map
 
+    // Listener para redimensionar el mapa
+    const handleResize = () => {
+      setTimeout(() => {
+        map.invalidateSize()
+      }, 100)
+    }
+    window.addEventListener('resize', handleResize)
+
     return () => {
+      window.removeEventListener('resize', handleResize)
       map.remove()
       mapRef.current = null
     }

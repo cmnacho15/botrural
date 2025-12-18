@@ -65,6 +65,11 @@ export default function KMZUploader({
   useEffect(() => {
     const handleFullscreenChange = () => {
       setIsFullscreen(!!document.fullscreenElement)
+      
+      // Forzar redimensionamiento del mapa después del cambio
+      setTimeout(() => {
+        window.dispatchEvent(new Event('resize'))
+      }, 100)
     }
     document.addEventListener('fullscreenchange', handleFullscreenChange)
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange)
@@ -408,11 +413,11 @@ export default function KMZUploader({
         className={`${isFullscreen ? 'fixed inset-0 z-50 bg-black' : 'space-y-4'}`}
       >
         {/* Mapa */}
-        <div className={`${isFullscreen ? 'h-full w-full' : 'rounded-lg overflow-hidden border border-gray-200'}`}>
+<div className={`${isFullscreen ? 'absolute inset-0 bottom-[280px]' : 'rounded-lg overflow-hidden border border-gray-200'}`}>
           <div className={`${isFullscreen ? 'hidden' : 'text-xs text-gray-500 px-3 py-1 bg-gray-50 border-b'}`}>
             POLÍGONO DEL POTRERO
           </div>
-          <div className={`${isFullscreen ? 'h-full' : 'h-64'}`}>
+          <div className="h-full">
             <MapaPreview 
               poligonos={previews.map((p, idx) => ({
                 coordinates: p.poligono,
