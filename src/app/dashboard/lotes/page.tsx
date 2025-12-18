@@ -691,48 +691,51 @@ const [acordeonesAbiertos, setAcordeonesAbiertos] = useState<{[key: string]: boo
         {/* CONTENIDO */}
         <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
           {!hayLotes ? (
-            <div className="p-10 text-center">
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                {nombreCampo ? `Potreros en ${nombreCampo}` : 'Potreros'}
-              </h3>
-              <p className="text-gray-600 mb-8">
-                Ingresá los potreros de tu campo para empezar a usar la app.
-              </p>
+  <div className="p-10 text-center">
+    <h3 className="text-xl font-semibold text-gray-900 mb-2">
+      {nombreCampo ? `Potreros en ${nombreCampo}` : 'Potreros'}
+    </h3>
+    <p className="text-gray-600 mb-8">
+      Ingresá los potreros de tu campo para empezar a usar la app.
+    </p>
 
-             <div className="flex flex-col sm:flex-row justify-center gap-6 max-w-3xl mx-auto">
-  <Link
-    href="/dashboard/lotes/nuevo"
-    className="flex flex-col items-center justify-center bg-gray-50 border border-gray-200 rounded-lg p-8 hover:bg-gray-100 transition flex-1"
-  >
-    <img
-      src="https://cdn-icons-png.flaticon.com/512/992/992700.png"
-      alt="Formulario"
-      className="w-12 h-12 mb-3 opacity-90"
-    />
-    <p className="font-medium text-gray-800 text-base">
-      Ingresar manualmente
-    </p>
-  </Link>
+    <div className="flex flex-col sm:flex-row justify-center gap-6 max-w-4xl mx-auto">
+      <Link
+        href="/dashboard/lotes/nuevo"
+        className="flex flex-col items-center justify-center bg-white border-2 border-gray-200 rounded-xl p-10 hover:border-gray-300 hover:shadow-md transition flex-1"
+      >
+        <img
+          src="https://cdn-icons-png.flaticon.com/512/3075/3075908.png"
+          alt="Formulario"
+          className="w-16 h-16 mb-4"
+        />
+        <p className="font-semibold text-gray-900 text-lg mb-2">
+          Ingresar Manualmente
+        </p>
+        <p className="text-sm text-gray-500 text-center">
+          Ideal si son pocos potreros
+        </p>
+      </Link>
 
-  <button
-    onClick={() => setShowModalKMZ(true)}
-    className="flex flex-col items-center justify-center bg-gray-50 border border-gray-200 rounded-lg p-8 hover:bg-gray-100 transition flex-1"
-  >
-    <img
-      src="https://cdn-icons-png.flaticon.com/512/2875/2875421.png"
-      alt="Google Earth"
-      className="w-12 h-12 mb-3 opacity-90"
-    />
-    <p className="font-medium text-gray-800 text-base">
-      KMZ de Google Earth
-    </p>
-    <p className="text-sm text-gray-500 mt-1">
-      Subí tus potreros y tu mapa
-    </p>
-  </button>
-</div>
-            </div>
-          ) : (
+      <button
+        onClick={() => setShowModalKMZ(true)}
+        className="flex flex-col items-center justify-center bg-white border-2 border-gray-200 rounded-xl p-10 hover:border-gray-300 hover:shadow-md transition flex-1"
+      >
+        <img
+          src="https://cdn-icons-png.flaticon.com/512/2875/2875421.png"
+          alt="Google Earth"
+          className="w-16 h-16 mb-4"
+        />
+        <p className="font-semibold text-gray-900 text-lg mb-2">
+          KMZ de Google Earth
+        </p>
+        <p className="text-sm text-gray-500 text-center">
+          Subí tus potreros y tu mapa
+        </p>
+      </button>
+    </div>
+  </div>
+) : (
             <div className="space-y-4 p-6">
               
               {/* 📦 MÓDULOS DE PASTOREO */}
