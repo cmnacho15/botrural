@@ -78,7 +78,7 @@ function RegisterFormContent() {
       })
 
       if (loginResult?.ok) {
-        router.push("/dashboard")
+        router.push("/dashboard/como-empezar")  // 🔥 CAMBIO AQUÍ
       } else {
         setError("Cuenta creada pero error al iniciar sesión")
       }
