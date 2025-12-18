@@ -137,6 +137,9 @@ export default function IndicadoresPage() {
   
  const { usarSPG, setUsarSPG } = useSuperficie()
 
+ // 🔥 AGREGAR ESTA LÍNEA  
+console.log('🔍 INDICADORES - usarSPG desde Context:', usarSPG)
+
   const ejercicios = useMemo(() => generarEjercicios(5), [])
 
   const [ejercicioSeleccionado, setEjercicioSeleccionado] = useState(() => {

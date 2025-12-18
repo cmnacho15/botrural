@@ -137,6 +137,9 @@ export default function CostosPage() {
  
   const { usarSPG } = useSuperficie()
 
+  // 🔥 AGREGAR ESTA LÍNEA
+console.log('🔍 COSTOS - usarSPG desde Context:', usarSPG)
+
   // ✅ Fechas derivadas del ejercicio seleccionado
   const fechas = useMemo(() => {
     const [inicio, fin] = ejercicioSeleccionado.split('-').map(Number)
