@@ -75,6 +75,28 @@ export async function GET(request: Request) {
 const lotesPastoreables = lotes.filter(l => l.esPastoreable)
 const spg = lotesPastoreables.reduce((sum, l) => sum + l.hectareas, 0)
 
+// 🆕 CALCULAR SUPERFICIE MEJORADA (pastoreables con cultivos)
+const lotesConCultivos = await prisma.lote.findMany({
+  where: {
+    campoId,
+    esPastoreable: true,
+  },
+  include: {
+    cultivos: {
+      where: {
+        fechaSiembra: {
+          gte: fechaDesde,
+          lte: fechaHasta,
+        }
+      }
+    }
+  }
+})
+
+const superficieMejorada = lotesConCultivos
+  .filter(lote => lote.cultivos.length > 0)
+  .reduce((sum, lote) => sum + lote.hectareas, 0)
+
 // 🆕 DECIDIR QUÉ SUPERFICIE USAR
 const superficieParaCalculos = usarSPG ? spg : totalHectareas
 
@@ -530,10 +552,11 @@ const superficieParaCalculos = usarSPG ? spg : totalHectareas
      
       // 🆕 AGREGAR ESTA SECCIÓN
   superficie: {
-    total: totalHectareas,
-    spg: spg,
-    usandoSPG: usarSPG,
-  },
+  total: totalHectareas,
+  spg: spg,
+  mejorada: superficieMejorada,  // 🆕 AGREGAR ESTA LÍNEA
+  usandoSPG: usarSPG,
+},
       // Indicadores de eficiencia técnica
       eficienciaTecnica: {
         superficieTotal: {

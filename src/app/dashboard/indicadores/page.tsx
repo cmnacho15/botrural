@@ -16,6 +16,7 @@ interface IndicadoresData {
   superficie: {  // 🆕 AGREGAR ESTO
     total: number
     spg: number
+    mejorada: number  // 🆕 AGREGAR
     usandoSPG: boolean
   }
   eficienciaTecnica: {
@@ -292,7 +293,19 @@ export default function IndicadoresPage() {
       <td colSpan={7} className="px-3 py-2 text-center border-b border-gray-200 text-gray-400">-</td>
     </tr>
     
-    {/* ✅ FILA 3: Relación lanar/vacuno */}
+    {/* ✅ FILA 3: Superficie Mejorada */}
+<tr className="bg-gray-50">
+  <td className="px-4 py-2 font-medium text-gray-900 border-b border-gray-200 sticky left-0 bg-gray-50 z-10">
+    Superficie Mejorada (ha)
+    <span className="block text-xs text-gray-500 mt-1">Pastoreable con cultivos activos</span>
+  </td>
+  <td className="px-3 py-2 text-center border-b border-gray-200 font-medium">
+    {fmt(data.superficie.mejorada)}
+  </td>
+  <td colSpan={7} className="px-3 py-2 text-center border-b border-gray-200 text-gray-400">-</td>
+</tr>
+
+    {/* ✅ FILA 4: Relación lanar/vacuno */}
     <tr className="hover:bg-gray-50">
       <td className="px-4 py-2 font-medium text-gray-900 border-b border-gray-100 sticky left-0 bg-white z-10">Relación lanar/vacuno</td>
       <td className="px-3 py-2 text-center border-b border-gray-100">{fmtDec(data.eficienciaTecnica.relacionLanarVacuno)}</td>
