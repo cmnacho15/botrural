@@ -257,17 +257,17 @@ export default function InventarioPage() {
   }
 
   // ==========================================
-  // ✅ ACTUALIZAR VALORES POR CATEGORÍA (FIX BUG)
-  // ==========================================
-  function actualizarItemPorCategoria(categoria: string, campo: keyof InventarioItem, valor: any) {
-    setItems(prevItems => 
-      prevItems.map(item => 
-        item.categoria === categoria 
-          ? { ...item, [campo]: valor }
-          : item
-      )
-    );
-  }
+// ✅ ACTUALIZAR VALORES POR CATEGORÍA (FIX BUG)
+// ==========================================
+function actualizarItemPorCategoria(categoria: string, campo: keyof InventarioItem, valor: any) {
+  setItems(prevItems => 
+    prevItems.map(item => 
+      item.categoria === categoria 
+        ? { ...item, [campo]: valor }
+        : item
+    )
+  );
+}
 
   function eliminarFila(categoria: string) {
     if (confirm(`¿Eliminar ${categoria}?`)) {
