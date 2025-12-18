@@ -125,6 +125,13 @@ const superficieParaCalculos = usarSPG ? spg : totalHectareas
   equinos: superficieParaCalculos > 0 ? desglosePorTipo.yeguarizos / superficieParaCalculos : 0,
 }
 
+// 🆕 Carga en kg de peso vivo (UG × 380)
+const cargaKgPV = {
+  global: carga.global * 380,
+  vacunos: carga.vacunos * 380,
+  ovinos: carga.ovinos * 380,
+  equinos: carga.equinos * 380,
+}
     // ---------------------------------------------------------
     // 2 OBTENER VENTAS DEL EJERCICIO
     // ---------------------------------------------------------
@@ -576,6 +583,12 @@ const superficieParaCalculos = usarSPG ? spg : totalHectareas
           ovinos: Math.round(carga.ovinos * 100) / 100,
           equinos: Math.round(carga.equinos * 100) / 100,
         },
+        cargaKgPV: {
+    global: Math.round(cargaKgPV.global),
+    vacunos: Math.round(cargaKgPV.vacunos),
+    ovinos: Math.round(cargaKgPV.ovinos),
+    equinos: Math.round(cargaKgPV.equinos),
+  },
         mortandad: {
           // TODO: Implementar cuando se conecte con eventos MORTANDAD
           global: 0,
