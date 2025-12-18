@@ -303,12 +303,13 @@ export default function IndicadoresPage() {
 {eficienciaAbierto && (
   <>
     {/* ✅ FILA 1: Superficie Total */}
-    <tr className="bg-gray-50">
-      <td className="px-4 py-2 font-medium text-gray-900 border-b border-gray-200 sticky left-0 bg-gray-50 z-10">
+    <tr className={`${!usarSPG ? 'bg-blue-50 border-l-4 border-l-blue-500' : 'bg-gray-50'}`}>
+      <td className={`px-4 py-2 font-medium border-b border-gray-200 sticky left-0 z-10 ${!usarSPG ? 'bg-blue-50 text-blue-900' : 'bg-gray-50 text-gray-900'}`}>
         Superficie Total (ha)
+        {!usarSPG && <span className="ml-2 text-xs text-blue-600">✔ Usada para cálculos</span>}
       </td>
-      <td className="px-3 py-2 text-center border-b border-gray-200 font-medium">
-        {fmt(data.superficie.total)}
+      <td className={`px-3 py-2 text-center border-b border-gray-200 font-medium ${!usarSPG ? 'text-blue-900' : ''}`}>
+        {fmt(!usarSPG ? data.superficie.spg : data.superficie.total)}
       </td>
       <td colSpan={7} className="px-3 py-2 text-center border-b border-gray-200 text-gray-400">-</td>
     </tr>
