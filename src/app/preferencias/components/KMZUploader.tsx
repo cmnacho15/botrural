@@ -257,6 +257,10 @@ export default function KMZUploader({
     if (indiceActual < previews.length - 1) {
       setIndiceActual(indiceActual + 1)
     } else {
+      // Salir de fullscreen si está activo
+      if (document.fullscreenElement) {
+        document.exitFullscreen()
+      }
       setPaso('completado')
     }
   }
