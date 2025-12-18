@@ -152,7 +152,7 @@ export default function MapaPreviewKMZ({
   return (
     <div 
       ref={containerRef} 
-      className="w-full h-64"
+      className="w-full h-full"
       style={{ minHeight: '250px' }}
     />
   )

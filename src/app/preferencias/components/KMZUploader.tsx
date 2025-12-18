@@ -37,6 +37,7 @@ export default function KMZUploader({
   const [paso, setPaso] = useState<Paso>('upload')
   const [indiceActual, setIndiceActual] = useState(0)
   const [nombreEditado, setNombreEditado] = useState('')
+  const [isFullscreen, setIsFullscreen] = useState(false)
 
   // Potrero actual en revisión
   const potreroActual = previews[indiceActual]
@@ -59,6 +60,26 @@ export default function KMZUploader({
       setNombreEditado(potreroActual.nombre)
     }
   }, [indiceActual, potreroActual])
+
+  // Manejar fullscreen
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement)
+    }
+    document.addEventListener('fullscreenchange', handleFullscreenChange)
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange)
+  }, [])
+
+  const toggleFullscreen = () => {
+    const container = document.getElementById('revision-container')
+    if (!container) return
+    
+    if (!document.fullscreenElement) {
+      container.requestFullscreen()
+    } else {
+      document.exitFullscreen()
+    }
+  }
 
   async function parseKMZ(file: File): Promise<LotePreview[]> {
     try {
@@ -382,42 +403,66 @@ export default function KMZUploader({
     const potrerosRestantes = previews.length - indiceActual - 1
 
     return (
-      <div className="space-y-4">
-        <div className="text-center text-sm text-gray-500">
-          Subir KMZ o KML de Google Earth
-        </div>
-
-        {/* Mapa con potrero actual resaltado */}
-        <div className="rounded-lg overflow-hidden border border-gray-200">
-          <div className="text-xs text-gray-500 px-3 py-1 bg-gray-50 border-b">
+      <div 
+        id="revision-container"
+        className={`${isFullscreen ? 'fixed inset-0 z-50 bg-black' : 'space-y-4'}`}
+      >
+        {/* Mapa */}
+        <div className={`${isFullscreen ? 'h-full w-full' : 'rounded-lg overflow-hidden border border-gray-200'}`}>
+          <div className={`${isFullscreen ? 'hidden' : 'text-xs text-gray-500 px-3 py-1 bg-gray-50 border-b'}`}>
             POLÍGONO DEL POTRERO
           </div>
-          <MapaPreview 
-  poligonos={previews.map((p, idx) => ({
-    coordinates: p.poligono,
-    color: idx === indiceActual ? '#eab308' : '#22c55e',
-    nombre: p.nombre,
-    opacity: idx === indiceActual ? 0.8 : 0.5,
-    weight: idx === indiceActual ? 3 : 1
-  }))}
-  resaltarIndice={indiceActual}
-  mostrarVertices={true}
-  editable={true}
-  onPoligonoEditado={(nuevasCoords) => {
-    const nuevasPreviews = [...previews]
-    nuevasPreviews[indiceActual] = {
-      ...nuevasPreviews[indiceActual],
-      poligono: nuevasCoords
-    }
-    setPreviews(nuevasPreviews)
-  }}
-/>
+          <div className={`${isFullscreen ? 'h-full' : 'h-64'}`}>
+            <MapaPreview 
+              poligonos={previews.map((p, idx) => ({
+                coordinates: p.poligono,
+                color: idx === indiceActual ? '#eab308' : '#22c55e',
+                nombre: p.nombre,
+                opacity: idx === indiceActual ? 0.8 : 0.5,
+                weight: idx === indiceActual ? 3 : 1
+              }))}
+              resaltarIndice={indiceActual}
+              mostrarVertices={true}
+              editable={true}
+              onPoligonoEditado={(nuevasCoords) => {
+                const nuevasPreviews = [...previews]
+                nuevasPreviews[indiceActual] = {
+                  ...nuevasPreviews[indiceActual],
+                  poligono: nuevasCoords
+                }
+                setPreviews(nuevasPreviews)
+              }}
+            />
+          </div>
         </div>
 
-        {/* Info del potrero */}
-        <div className="space-y-3">
-          <div className="text-sm font-medium text-gray-500">
-            POTRERO {indiceActual + 1} DE {previews.length}
+        {/* Panel de controles - flotante en fullscreen */}
+        <div className={`
+          ${isFullscreen 
+            ? 'absolute bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm shadow-2xl rounded-t-2xl p-4 space-y-3' 
+            : 'space-y-3'
+          }
+        `}>
+          {/* Header con contador y botón fullscreen */}
+          <div className="flex items-center justify-between">
+            <div className="text-sm font-medium text-gray-500">
+              POTRERO {indiceActual + 1} DE {previews.length}
+            </div>
+            <button
+              onClick={toggleFullscreen}
+              className="p-2 rounded-lg border border-gray-300 hover:bg-gray-100 transition"
+              title={isFullscreen ? "Salir de pantalla completa" : "Pantalla completa"}
+            >
+              {isFullscreen ? (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3" />
+                </svg>
+              ) : (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+                </svg>
+              )}
+            </button>
           </div>
 
           {/* Input nombre editable */}
@@ -431,19 +476,19 @@ export default function KMZUploader({
             />
           </div>
 
-          {/* Hectáreas */}
-          <div className="text-sm text-gray-600">
-            📐 {potreroActual.hectareas} hectáreas
-          </div>
-
-          {/* Advertencia si nombre ya existe */}
-          {nombreYaExiste && (
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-              <p className="text-sm text-amber-800">
-                ⚠️ Ya existe un potrero con este nombre
-              </p>
+          {/* Info compacta */}
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-gray-600">
+              📐 {potreroActual.hectareas} hectáreas
             </div>
-          )}
+            
+            {/* Advertencia si nombre ya existe */}
+            {nombreYaExiste && (
+              <span className="text-sm text-amber-600">
+                ⚠️ Nombre duplicado
+              </span>
+            )}
+          </div>
 
           {/* Barra de progreso */}
           <div className="space-y-1">
@@ -457,23 +502,23 @@ export default function KMZUploader({
               {potrerosRestantes} potrero{potrerosRestantes !== 1 ? 's' : ''} para revisar
             </p>
           </div>
-        </div>
 
-        {/* Botones de acción */}
-        <div className="flex gap-3 pt-2">
-          <button
-            onClick={noIncluirPotrero}
-            className="flex-1 py-3 border border-gray-300 rounded-lg font-medium text-gray-600 hover:bg-gray-50 transition"
-          >
-            No Incluir Potrero
-          </button>
-          <button
-            onClick={agregarPotrero}
-            className="flex-1 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition flex items-center justify-center gap-2"
-          >
-            Agregar Potrero
-            <span>→</span>
-          </button>
+          {/* Botones de acción */}
+          <div className="flex gap-3">
+            <button
+              onClick={noIncluirPotrero}
+              className="flex-1 py-3 border border-gray-300 rounded-lg font-medium text-gray-600 hover:bg-gray-50 transition"
+            >
+              No Incluir Potrero
+            </button>
+            <button
+              onClick={agregarPotrero}
+              className="flex-1 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition flex items-center justify-center gap-2"
+            >
+              Agregar Potrero
+              <span>→</span>
+            </button>
+          </div>
         </div>
       </div>
     )
