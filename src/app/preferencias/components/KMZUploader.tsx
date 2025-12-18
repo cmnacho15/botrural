@@ -1,4 +1,3 @@
-// src/app/preferencias/components/KMZUploader.tsx
 'use client'
 
 import { useState } from 'react'
@@ -40,13 +39,21 @@ export default function KMZUploader({ onComplete }: { onComplete: () => void }) 
         throw new Error('No se encontró archivo KML dentro del KMZ')
       }
 
-      // 3. Parsear KML a XML
+      // Parsear KML a XML
       const parser = new DOMParser()
       const xmlDoc = parser.parseFromString(kmlContent, 'text/xml')
 
-      // 4. Extraer placemarks (potreros)
+      // Verificar errores de parseo
+      const parseError = xmlDoc.querySelector('parsererror')
+      if (parseError) {
+        throw new Error('Error al parsear el archivo KML')
+      }
+
+      // Extraer placemarks (potreros)
       const placemarks = xmlDoc.getElementsByTagName('Placemark')
       const lotes: LotePreview[] = []
+
+      console.log(`Encontrados ${placemarks.length} placemarks`)
 
       for (let i = 0; i < placemarks.length; i++) {
         const placemark = placemarks[i]
@@ -55,47 +62,100 @@ export default function KMZUploader({ onComplete }: { onComplete: () => void }) 
         const nameElement = placemark.getElementsByTagName('name')[0]
         const nombre = nameElement?.textContent?.trim() || `Potrero ${i + 1}`
 
-        // Extraer coordenadas
-        const coordinatesElement = placemark.getElementsByTagName('coordinates')[0]
+        // Extraer coordenadas - buscar en diferentes posibles ubicaciones
+        let coordinatesElement = placemark.getElementsByTagName('coordinates')[0]
+        
+        // Si no se encuentra directamente, buscar dentro de Polygon o LinearRing
+        if (!coordinatesElement) {
+          const polygon = placemark.getElementsByTagName('Polygon')[0]
+          if (polygon) {
+            coordinatesElement = polygon.getElementsByTagName('coordinates')[0]
+          }
+        }
+
         if (!coordinatesElement) continue
 
         const coordsText = coordinatesElement.textContent?.trim()
         if (!coordsText) continue
 
+        console.log(`Procesando ${nombre}:`, coordsText.substring(0, 100))
+
         // Parsear coordenadas: "lng,lat,alt lng,lat,alt ..."
+        // KML format: longitude,latitude,altitude (separados por espacios o saltos de línea)
         const coords = coordsText
-          .split(/\s+/)
+          .trim()
+          .split(/[\s\n\r]+/) // Dividir por espacios o saltos de línea
+          .map(coord => coord.trim())
+          .filter(coord => coord.length > 0)
           .map(coord => {
-            const [lng, lat] = coord.split(',').map(parseFloat)
+            const parts = coord.split(',').map(s => parseFloat(s.trim()))
+            // KML es: longitud, latitud, altitud (opcional)
+            // GeoJSON necesita: [longitud, latitud]
+            const [lng, lat] = parts
             return [lng, lat]
           })
-          .filter(coord => !isNaN(coord[0]) && !isNaN(coord[1]))
+          .filter(coord => {
+            // Validar que sean coordenadas válidas
+            const [lng, lat] = coord
+            const isValid = !isNaN(lng) && !isNaN(lat) && 
+                           lng >= -180 && lng <= 180 && 
+                           lat >= -90 && lat <= 90
+            
+            if (!isValid) {
+              console.warn(`Coordenada inválida descartada: [${lng}, ${lat}]`)
+            }
+            return isValid
+          })
 
-        if (coords.length < 3) continue
+        if (coords.length < 3) {
+          console.warn(`${nombre}: Muy pocas coordenadas válidas (${coords.length})`)
+          continue
+        }
+
+        console.log(`${nombre}: ${coords.length} coordenadas válidas`)
+        console.log(`Primera coord: [${coords[0][0]}, ${coords[0][1]}]`)
+        console.log(`Última coord: [${coords[coords.length-1][0]}, ${coords[coords.length-1][1]}]`)
 
         // Cerrar polígono si no está cerrado
         const firstCoord = coords[0]
         const lastCoord = coords[coords.length - 1]
-        if (firstCoord[0] !== lastCoord[0] || firstCoord[1] !== lastCoord[1]) {
-          coords.push([...firstCoord])
+        const tolerance = 0.0000001 // Tolerancia para comparación de flotantes
+        
+        if (Math.abs(firstCoord[0] - lastCoord[0]) > tolerance || 
+            Math.abs(firstCoord[1] - lastCoord[1]) > tolerance) {
+          coords.push([firstCoord[0], firstCoord[1]])
+          console.log(`${nombre}: Polígono cerrado automáticamente`)
         }
 
-        // Calcular hectáreas usando turf
-        const polygon = turf.polygon([coords])
-        const areaM2 = turf.area(polygon)
-        const hectareas = parseFloat((areaM2 / 10000).toFixed(2))
+        try {
+          // Calcular hectáreas usando turf
+          const polygon = turf.polygon([coords])
+          const areaM2 = turf.area(polygon)
+          const hectareas = parseFloat((areaM2 / 10000).toFixed(2))
 
-        lotes.push({
-          nombre,
-          hectareas,
-          poligono: coords
-        })
+          console.log(`${nombre}: ${hectareas} ha`)
+
+          lotes.push({
+            nombre,
+            hectareas,
+            poligono: coords
+          })
+        } catch (turfError) {
+          console.error(`Error calculando área para ${nombre}:`, turfError)
+          // Aún así agregar el lote, pero con área 0
+          lotes.push({
+            nombre,
+            hectareas: 0,
+            poligono: coords
+          })
+        }
       }
 
+      console.log(`Total de lotes procesados: ${lotes.length}`)
       return lotes
     } catch (err) {
       console.error('Error parseando KMZ:', err)
-      throw new Error('Error al procesar el archivo KMZ')
+      throw new Error(`Error al procesar el archivo: ${err instanceof Error ? err.message : 'Error desconocido'}`)
     }
   }
 
@@ -119,7 +179,7 @@ export default function KMZUploader({ onComplete }: { onComplete: () => void }) 
       const lotes = await parseKMZ(file)
       
       if (lotes.length === 0) {
-        setError('No se encontraron potreros en el archivo')
+        setError('No se encontraron potreros en el archivo. Revisá la consola para más detalles.')
         return
       }
 
@@ -208,7 +268,7 @@ export default function KMZUploader({ onComplete }: { onComplete: () => void }) 
               Subir Archivo
             </h3>
             <p className="text-sm text-gray-500 mb-4">
-              Hacé clic arriba o arrastrá el archivo acá
+              Hacé clic o arrastrá el archivo acá
             </p>
             
             <label className="inline-block cursor-pointer">
@@ -267,6 +327,9 @@ export default function KMZUploader({ onComplete }: { onComplete: () => void }) 
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                     Coordenadas
                   </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Primera Coord
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
@@ -285,6 +348,11 @@ export default function KMZUploader({ onComplete }: { onComplete: () => void }) 
                     <td className="px-6 py-4">
                       <span className="text-xs text-gray-500 font-mono">
                         {lote.poligono.length} puntos
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="text-xs text-gray-500 font-mono">
+                        [{lote.poligono[0][0].toFixed(6)}, {lote.poligono[0][1].toFixed(6)}]
                       </span>
                     </td>
                   </tr>
