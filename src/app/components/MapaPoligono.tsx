@@ -395,6 +395,9 @@ L.control.layers({ 'Satélite': satelitalLayer, 'Mapa': osmLayer }).addTo(map)
     existingPolygons.forEach((potrero) => {
   if (!potrero.coordinates?.length) return
 
+  // 🔥 CONVERTIR de [lng, lat] a [lat, lng] para Leaflet
+  const coordsParaMapa = potrero.coordinates.map(coord => [coord[1], coord[0]])
+
   // 🗺️ PRIMERO: Agregar imagen NDVI si hay datos (solo si NO está editando)
   if (potrero.info?.ndviMatriz?.matriz?.length > 0 && !potrero.isEditing) {
     const imageOverlay = crearImagenNDVI(
@@ -407,7 +410,7 @@ L.control.layers({ 'Satélite': satelitalLayer, 'Mapa': osmLayer }).addTo(map)
   }
 
   // DESPUÉS: Dibujar el polígono encima (borde visible)
-  const polygon = (L as any).polygon(potrero.coordinates, {
+  const polygon = (L as any).polygon(coordsParaMapa, {
     color: potrero.isEditing ? '#9ca3af' : (potrero.color || '#10b981'), // 🔥 Gris si está editando
     fillColor: potrero.isEditing ? '#e5e7eb' : 'transparent', // 🔥 Gris claro si está editando
     fillOpacity: potrero.isEditing ? 0.15 : 0, // 🔥 Ligeramente visible si está editando
@@ -526,6 +529,8 @@ L.control.layers({ 'Satélite': satelitalLayer, 'Mapa': osmLayer }).addTo(map)
 
     existingPolygons.forEach((potrero) => {
       if (!potrero.coordinates?.length) return
+     // 🔥 CONVERTIR de [lng, lat] a [lat, lng]
+  const coordsParaMapa = potrero.coordinates.map(coord => [coord[1], coord[0]])
 
       // 🗺️ PRIMERO: Agregar imagen NDVI si hay datos
       if (potrero.info?.ndviMatriz?.matriz?.length > 0) {
@@ -539,7 +544,7 @@ L.control.layers({ 'Satélite': satelitalLayer, 'Mapa': osmLayer }).addTo(map)
       }
 
       // DESPUÉS: Dibujar el polígono encima (borde visible)
-      const polygon = (L as any).polygon(potrero.coordinates, {
+      const polygon = (L as any).polygon(coordsParaMapa, {
         color: potrero.color || '#10b981',
         fillColor: 'transparent', // ✅ Totalmente transparente para ver el NDVI
         fillOpacity: 0,
