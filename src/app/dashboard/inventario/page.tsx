@@ -278,10 +278,10 @@ function actualizarItemPorCategoria(categoria: string, campo: keyof InventarioIt
     // Parsear según el tipo de campo
     let valorFinal: any
     if (campo === 'cantidadInicial' || campo === 'cantidadFinal') {
-      valorFinal = parseInt(valorString) || 0
-    } else {
-      valorFinal = parseFloat(valorString) || null
-    }
+  valorFinal = valorString === '' ? 0 : parseInt(valorString)
+} else {
+  valorFinal = valorString === '' ? null : parseFloat(valorString)
+}
     
     setItems(prevItems => 
       prevItems.map(item => 
