@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
+import { useSuperficie } from '@/app/contexts/SuperficieContext'
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card'
 import { Badge } from '@/app/components/ui/badge'
 import { Alert, AlertDescription } from '@/app/components/ui/alert'
@@ -134,15 +135,7 @@ export default function CostosPage() {
     return `${actual.inicio}-${actual.fin}`
   })
  
-  const [usarSPG, setUsarSPG] = useState(false)
-
-  // Leer de localStorage al montar el componente
-  useEffect(() => {
-    const saved = localStorage.getItem('usarSPG')
-    if (saved !== null) {
-      setUsarSPG(saved === 'true')
-    }
-  }, [])
+  const { usarSPG } = useSuperficie()
 
   // ✅ Fechas derivadas del ejercicio seleccionado
   const fechas = useMemo(() => {

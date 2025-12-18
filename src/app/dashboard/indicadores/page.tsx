@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
+import { useSuperficie } from '@/app/contexts/SuperficieContext'
 import { Card, CardContent } from '@/app/components/ui/card'
 import { Badge } from '@/app/components/ui/badge'
 import { Alert, AlertDescription } from '@/app/components/ui/alert'
@@ -134,20 +135,7 @@ export default function IndicadoresPage() {
   const [economicosAbierto, setEconomicosAbierto] = useState(false)
   const [produccionCarneAbierto, setProduccionCarneAbierto] = useState(false)  // 🆕 NUEVO
   
-  const [usarSPG, setUsarSPG] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('usarSPG')
-      return saved === 'true'
-    }
-    return false
-  })
-
-  // Guardar en localStorage cuando cambie
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('usarSPG', usarSPG.toString())
-    }
-  }, [usarSPG])
+ const { usarSPG, setUsarSPG } = useSuperficie()
 
   const ejercicios = useMemo(() => generarEjercicios(5), [])
 

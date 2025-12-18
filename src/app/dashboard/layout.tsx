@@ -13,15 +13,19 @@ import { GastosProvider } from "@/app/contexts/GastosContext";
 import ModalNuevoDato from "@/app/components/modales/ModalNuevoDato";
 import OnboardingIndicator from "@/app/components/OnboardingIndicator";
 
+import { SuperficieProvider } from "@/app/contexts/SuperficieContext";
+
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
-    <DatosProvider>
-      <InsumosProvider>
-        <GastosProvider>
-          <LayoutContent>{children}</LayoutContent>
-        </GastosProvider>
-      </InsumosProvider>
-    </DatosProvider>
+    <SuperficieProvider>
+      <DatosProvider>
+        <InsumosProvider>
+          <GastosProvider>
+            <LayoutContent>{children}</LayoutContent>
+          </GastosProvider>
+        </InsumosProvider>
+      </DatosProvider>
+    </SuperficieProvider>
   );
 }
 
