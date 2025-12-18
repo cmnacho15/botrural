@@ -292,7 +292,7 @@ export default function IndicadoresPage() {
       </td>
       <td colSpan={7} className="px-3 py-2 text-center border-b border-gray-200 text-gray-400">-</td>
     </tr>
-    
+
     {/* ✅ FILA 3: Superficie Mejorada */}
 <tr className="bg-gray-50">
   <td className="px-4 py-2 font-medium text-gray-900 border-b border-gray-200 sticky left-0 bg-gray-50 z-10">
@@ -300,8 +300,13 @@ export default function IndicadoresPage() {
     <span className="block text-xs text-gray-500 mt-1">Pastoreable con cultivos activos</span>
   </td>
   <td className="px-3 py-2 text-center border-b border-gray-200 font-medium">
-    {fmt(data.superficie.mejorada)}
-  </td>
+  {fmt(data.superficie.mejorada)}
+  {data.superficie.spg > 0 && (
+    <span className="block text-xs text-gray-500 mt-1">
+      ({((data.superficie.mejorada / data.superficie.spg) * 100).toFixed(1)}% de SPG)
+    </span>
+  )}
+</td>
   <td colSpan={7} className="px-3 py-2 text-center border-b border-gray-200 text-gray-400">-</td>
 </tr>
 
