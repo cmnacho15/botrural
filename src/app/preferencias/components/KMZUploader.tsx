@@ -129,24 +129,30 @@ export default function KMZUploader({ onComplete }: { onComplete: () => void }) 
 
         try {
           // Calcular hectáreas usando turf
+          // Turf espera [lng, lat], así que usamos coords original
           const polygon = turf.polygon([coords])
           const areaM2 = turf.area(polygon)
           const hectareas = parseFloat((areaM2 / 10000).toFixed(2))
 
           console.log(`${nombre}: ${hectareas} ha`)
 
+          // ✅ INVERTIR A [lat, lng] para que coincida con el formato del mapa
+          const coordsLatLng = coords.map(coord => [coord[1], coord[0]])
+          
           lotes.push({
             nombre,
             hectareas,
-            poligono: coords
+            poligono: coordsLatLng  // Ahora es [lat, lng]
           })
         } catch (turfError) {
           console.error(`Error calculando área para ${nombre}:`, turfError)
           // Aún así agregar el lote, pero con área 0
+          // Invertir coordenadas también para casos de error
+          const coordsLatLng = coords.map(coord => [coord[1], coord[0]])
           lotes.push({
             nombre,
             hectareas: 0,
-            poligono: coords
+            poligono: coordsLatLng
           })
         }
       }
@@ -352,7 +358,7 @@ export default function KMZUploader({ onComplete }: { onComplete: () => void }) 
                     </td>
                     <td className="px-6 py-4">
                       <span className="text-xs text-gray-500 font-mono">
-                        [{lote.poligono[0][0].toFixed(6)}, {lote.poligono[0][1].toFixed(6)}]
+                        [{lote.poligono[0][0].toFixed(6)}, {lote.poligono[0][1].toFixed(6)}] (lat, lng)
                       </span>
                     </td>
                   </tr>
