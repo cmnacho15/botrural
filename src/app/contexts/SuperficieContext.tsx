@@ -10,20 +10,21 @@ interface SuperficieContextType {
 const SuperficieContext = createContext<SuperficieContextType | undefined>(undefined)
 
 export function SuperficieProvider({ children }: { children: ReactNode }) {
-  const [usarSPG, setUsarSPGState] = useState(false)
-
-  // Cargar desde localStorage al montar
-  useEffect(() => {
-    const saved = localStorage.getItem('usarSPG')
-    if (saved !== null) {
-      setUsarSPGState(saved === 'true')
+  // Inicializar desde localStorage inmediatamente
+  const [usarSPG, setUsarSPGState] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('usarSPG')
+      return saved === 'true'
     }
-  }, [])
+    return false
+  })
 
   // Wrapper que guarda en localStorage cuando cambia
   const setUsarSPG = (value: boolean) => {
     setUsarSPGState(value)
-    localStorage.setItem('usarSPG', value.toString())
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('usarSPG', value.toString())
+    }
   }
 
   return (
