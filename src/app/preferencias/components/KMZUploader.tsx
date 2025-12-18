@@ -393,16 +393,25 @@ export default function KMZUploader({
             POLÍGONO DEL POTRERO
           </div>
           <MapaPreview 
-            poligonos={previews.map((p, idx) => ({
-              coordinates: p.poligono,
-              color: idx === indiceActual ? '#eab308' : '#22c55e', // Amarillo el actual, verde los demás
-              nombre: p.nombre,
-              opacity: idx === indiceActual ? 0.8 : 0.5,
-              weight: idx === indiceActual ? 3 : 1
-            }))}
-            resaltarIndice={indiceActual}
-            mostrarVertices={true}
-          />
+  poligonos={previews.map((p, idx) => ({
+    coordinates: p.poligono,
+    color: idx === indiceActual ? '#eab308' : '#22c55e',
+    nombre: p.nombre,
+    opacity: idx === indiceActual ? 0.8 : 0.5,
+    weight: idx === indiceActual ? 3 : 1
+  }))}
+  resaltarIndice={indiceActual}
+  mostrarVertices={true}
+  editable={true}
+  onPoligonoEditado={(nuevasCoords) => {
+    const nuevasPreviews = [...previews]
+    nuevasPreviews[indiceActual] = {
+      ...nuevasPreviews[indiceActual],
+      poligono: nuevasCoords
+    }
+    setPreviews(nuevasPreviews)
+  }}
+/>
         </div>
 
         {/* Info del potrero */}
