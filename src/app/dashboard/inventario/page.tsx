@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import useSWR from 'swr';
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
@@ -48,8 +48,8 @@ export default function InventarioPage() {
   const [modalAgregar, setModalAgregar] = useState(false);
   const [nuevaCategoria, setNuevaCategoria] = useState('');
 
-  const [valoresLocales, setValoresLocales] = useState<{ [key: string]: any }>({})
-const timeoutRefs = useState<{ [key: string]: NodeJS.Timeout }>({})[0]
+  const [valoresLocales, setValoresLocales] = useState<{ [key: string]: any }>({});
+  const timeoutRefs = useRef<{ [key: string]: NodeJS.Timeout }>({});
 
   const { data: invInicial, mutate: mutateInicial } = useSWR(
     `/api/inventario?fecha=${FECHA_INICIAL}`, 
@@ -260,38 +260,47 @@ const timeoutRefs = useState<{ [key: string]: NodeJS.Timeout }>({})[0]
   }
 
   // ==========================================
-// ✅ ACTUALIZAR VALORES POR CATEGORÍA (FIX BUG)
-// ==========================================
-function actualizarItemPorCategoria(categoria: string, campo: keyof InventarioItem, valorString: string) {
-  // Guardar el STRING sin parsear
-  setValoresLocales(prev => ({
-    ...prev,
-    [`${categoria}-${campo}`]: valorString
-  }))
+  // ✅ ACTUALIZAR VALORES POR CATEGORÍA
+  // ==========================================
+  function actualizarItemPorCategoria(categoria: string, campo: keyof InventarioItem, valorString: string) {
+    setValoresLocales(prev => ({
+      ...prev,
+      [`${categoria}-${campo}`]: valorString
+    }));
 
-  const timeoutKey = `${categoria}-${campo}`
-  if (timeoutRefs[timeoutKey]) {
-    clearTimeout(timeoutRefs[timeoutKey])
+    const timeoutKey = `${categoria}-${campo}`;
+    if (timeoutRefs.current[timeoutKey]) {
+      clearTimeout(timeoutRefs.current[timeoutKey]);
+    }
+
+    timeoutRefs.current[timeoutKey] = setTimeout(() => {
+      let valorFinal: any;
+      
+      if (campo === 'cantidadInicial' || campo === 'cantidadFinal') {
+        const cleanValue = valorString.replace(/\./g, '');
+        const parsed = parseInt(cleanValue);
+        valorFinal = isNaN(parsed) || valorString === '' ? 0 : parsed;
+      } else {
+        const cleanValue = valorString.replace(/\./g, '').replace(',', '.');
+        const parsed = parseFloat(cleanValue);
+        valorFinal = isNaN(parsed) || valorString === '' ? null : parsed;
+      }
+      
+      setItems(prevItems => 
+        prevItems.map(item => 
+          item.categoria === categoria 
+            ? { ...item, [campo]: valorFinal }
+            : item
+        )
+      );
+
+      setValoresLocales(prev => {
+        const newState = { ...prev };
+        delete newState[`${categoria}-${campo}`];
+        return newState;
+      });
+    }, 500);
   }
-
-  timeoutRefs[timeoutKey] = setTimeout(() => {
-    // Parsear según el tipo de campo
-    let valorFinal: any
-    if (campo === 'cantidadInicial' || campo === 'cantidadFinal') {
-  valorFinal = valorString === '' ? 0 : parseInt(valorString)
-} else {
-  valorFinal = valorString === '' ? null : parseFloat(valorString)
-}
-    
-    setItems(prevItems => 
-      prevItems.map(item => 
-        item.categoria === categoria 
-          ? { ...item, [campo]: valorFinal }
-          : item
-      )
-    )
-  }, 500)
-}
 
   function eliminarFila(categoria: string) {
     if (confirm(`¿Eliminar ${categoria}?`)) {
@@ -442,20 +451,20 @@ function actualizarItemPorCategoria(categoria: string, campo: keyof InventarioIt
 
           <tbody className="divide-y divide-gray-100">
             {items.map((item) => {
-  const calc = calcularFila(item);
+              const calc = calcularFila(item);
 
-  return (
-    <tr key={item.categoria} className="hover:bg-gray-50">
+              return (
+                <tr key={item.categoria} className="hover:bg-gray-50">
                   <td className="px-3 py-2 font-medium text-gray-900 sticky left-0 bg-white z-10">
                     {item.categoria}
                   </td>
                   
                   <td className="px-2 py-2 bg-yellow-50">
                     <input
-                      type="number"
-                      value={valoresLocales[`${item.categoria}-cantidadInicial`] !== undefined 
-    ? valoresLocales[`${item.categoria}-cantidadInicial`] 
-    : item.cantidadInicial}
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      value={valoresLocales[`${item.categoria}-cantidadInicial`] ?? item.cantidadInicial}
                       onChange={(e) => actualizarItemPorCategoria(item.categoria, 'cantidadInicial', e.target.value)}
                       onFocus={(e) => e.target.select()}
                       className="w-full px-2 py-1 border rounded text-center text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -464,10 +473,10 @@ function actualizarItemPorCategoria(categoria: string, campo: keyof InventarioIt
 
                   <td className="px-2 py-2 bg-yellow-50">
                     <input
-                      type="number"
-                      value={valoresLocales[`${item.categoria}-cantidadFinal`] !== undefined 
-  ? valoresLocales[`${item.categoria}-cantidadFinal`] 
-  : item.cantidadFinal}
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      value={valoresLocales[`${item.categoria}-cantidadFinal`] ?? item.cantidadFinal}
                       onChange={(e) => actualizarItemPorCategoria(item.categoria, 'cantidadFinal', e.target.value)}
                       onFocus={(e) => e.target.select()}
                       className="w-full px-2 py-1 border rounded text-center text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -476,11 +485,10 @@ function actualizarItemPorCategoria(categoria: string, campo: keyof InventarioIt
 
                   <td className="px-2 py-2 bg-yellow-50">
                     <input
-                      type="number"
-                      step="0.1"
-                      value={valoresLocales[`${item.categoria}-pesoInicio`] !== undefined 
-  ? valoresLocales[`${item.categoria}-pesoInicio`] 
-  : (item.pesoInicio || '')}
+                      type="text"
+                      inputMode="decimal"
+                      pattern="[0-9]*[.,]?[0-9]+"
+                      value={valoresLocales[`${item.categoria}-pesoInicio`] ?? (item.pesoInicio ?? '')}
                       onChange={(e) => actualizarItemPorCategoria(item.categoria, 'pesoInicio', e.target.value)}
                       onFocus={(e) => e.target.select()}
                       placeholder="0"
@@ -490,11 +498,10 @@ function actualizarItemPorCategoria(categoria: string, campo: keyof InventarioIt
 
                   <td className="px-2 py-2 bg-yellow-50">
                     <input
-                      type="number"
-                      step="0.1"
-                      value={valoresLocales[`${item.categoria}-pesoFinal`] !== undefined 
-  ? valoresLocales[`${item.categoria}-pesoFinal`] 
-  : (item.pesoFinal || '')}
+                      type="text"
+                      inputMode="decimal"
+                      pattern="[0-9]*[.,]?[0-9]+"
+                      value={valoresLocales[`${item.categoria}-pesoFinal`] ?? (item.pesoFinal ?? '')}
                       onChange={(e) => actualizarItemPorCategoria(item.categoria, 'pesoFinal', e.target.value)}
                       onFocus={(e) => e.target.select()}
                       placeholder="0"
@@ -504,11 +511,10 @@ function actualizarItemPorCategoria(categoria: string, campo: keyof InventarioIt
 
                   <td className="px-2 py-2 bg-yellow-50">
                     <input
-                      type="number"
-                      step="0.01"
-                      value={valoresLocales[`${item.categoria}-precioKg`] !== undefined 
-  ? valoresLocales[`${item.categoria}-precioKg`] 
-  : (item.precioKg || '')}
+                      type="text"
+                      inputMode="decimal"
+                      pattern="[0-9]*[.,]?[0-9]+"
+                      value={valoresLocales[`${item.categoria}-precioKg`] ?? (item.precioKg ?? '')}
                       onChange={(e) => actualizarItemPorCategoria(item.categoria, 'precioKg', e.target.value)}
                       onFocus={(e) => e.target.select()}
                       placeholder="0"
@@ -518,11 +524,10 @@ function actualizarItemPorCategoria(categoria: string, campo: keyof InventarioIt
 
                   <td className="px-2 py-2 bg-yellow-50">
                     <input
-                      type="number"
-                      step="0.01"
-                      value={valoresLocales[`${item.categoria}-precioKgFin`] !== undefined 
-  ? valoresLocales[`${item.categoria}-precioKgFin`] 
-  : (item.precioKgFin || '')}
+                      type="text"
+                      inputMode="decimal"
+                      pattern="[0-9]*[.,]?[0-9]+"
+                      value={valoresLocales[`${item.categoria}-precioKgFin`] ?? (item.precioKgFin ?? '')}
                       onChange={(e) => actualizarItemPorCategoria(item.categoria, 'precioKgFin', e.target.value)}
                       onFocus={(e) => e.target.select()}
                       placeholder="0"
