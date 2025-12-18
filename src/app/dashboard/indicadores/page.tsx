@@ -77,6 +77,7 @@ interface IndicadoresData {
     usdPorKgProducido: { global: number; vacunos: number; ovinos: number; equinos: number }
     costoPorKgProducido: { global: number; vacunos: number; ovinos: number; equinos: number }
     margenPorKg: { global: number; vacunos: number; ovinos: number; equinos: number }
+    relacionInsumoProducto: { global: number; vacunos: number; ovinos: number; equinos: number }
   }
 _debug?: {
     ventas: { cantidad: number; pesoTotalKg: number; importeBrutoUSD: number }
@@ -676,9 +677,16 @@ console.log('🔍 INDICADORES - usarSPG desde Context:', usarSPG)
 )}
                   
                   <tr className="hover:bg-gray-50">
-                    <td className="px-4 py-2 font-medium text-gray-500 border-b border-gray-100 sticky left-0 bg-white z-10">Relación insumo producto</td>
-                    <td colSpan={8} className="px-3 py-2 text-center border-b border-gray-100 text-gray-400">-</td>
-                  </tr>
+  <td className="px-4 py-2 font-medium text-gray-900 border-b border-gray-100 sticky left-0 bg-white z-10">Relación insumo producto</td>
+  <td className="px-3 py-2 text-center border-b border-gray-100">{fmtDec(data.economicos.relacionInsumoProducto.global)}</td>
+  <td className="px-3 py-2 text-center border-b border-gray-100 text-gray-400">-</td>
+  <td className="px-3 py-2 text-center border-b border-gray-100">{fmtDec(data.economicos.relacionInsumoProducto.vacunos)}</td>
+  <td className="px-3 py-2 text-center border-b border-gray-100 text-gray-400">-</td>
+  <td className="px-3 py-2 text-center border-b border-gray-100">{fmtDec(data.economicos.relacionInsumoProducto.ovinos)}</td>
+  <td className="px-3 py-2 text-center border-b border-gray-100 text-gray-400">-</td>
+  <td className="px-3 py-2 text-center border-b border-gray-100">{fmtDec(data.economicos.relacionInsumoProducto.equinos)}</td>
+  <td className="px-3 py-2 text-center border-b border-gray-100 text-gray-400">-</td>
+</tr>
                   <tr className="hover:bg-gray-50">
                     <td className="px-4 py-2 font-medium text-gray-900 border-b border-gray-100 sticky left-0 bg-white z-10">IK</td>
                     <td className="px-3 py-2 text-center border-b border-gray-100">{fmt(data.economicos.ik.total.global)}</td>
@@ -759,7 +767,7 @@ console.log('🔍 INDICADORES - usarSPG desde Context:', usarSPG)
             <div className="space-y-1">
               <p><span className="font-medium">IK:</span> Producto Bruto - Costos (sin contar renta)</p>
               <p><span className="font-medium">IKP:</span> Producto Bruto - Costos Totales (con renta)</p>
-              
+              <p><span className="font-medium">Relación Insumo Producto:</span> Costos (sin renta e intereses) / Producto Bruto</p>
               <p><span className="font-medium">Margen x kg:</span> U$S por kg producido - Costo por kg producido</p>
             </div>
           </div>

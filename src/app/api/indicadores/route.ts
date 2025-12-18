@@ -542,7 +542,15 @@ const cargaKgPV = {
       ovinos: usdPorKgProducido.ovinos - costoPorKgProducido.ovinos,
       equinos: usdPorKgProducido.equinos - costoPorKgProducido.equinos,
     }
-
+    
+    
+// Relación Insumo Producto = Costos (sin renta) / Producto Bruto
+const relacionInsumoProducto = {
+  global: productoBruto.global > 0 ? costosSinRentaGeneral / productoBruto.global : 0,
+  vacunos: productoBruto.vacunos > 0 ? costosSinRentaPorEspecie.vacunos / productoBruto.vacunos : 0,
+  ovinos: productoBruto.ovinos > 0 ? costosSinRentaPorEspecie.ovinos / productoBruto.ovinos : 0,
+  equinos: productoBruto.equinos > 0 ? costosSinRentaPorEspecie.equinos / productoBruto.equinos : 0,
+}
     // ---------------------------------------------------------
     // 8 CALCULAR "POR HA" PARA CADA INDICADOR
     // ---------------------------------------------------------
@@ -785,8 +793,15 @@ const cargaKgPV = {
           ovinos: Math.round(margenPorKg.ovinos * 100) / 100,
           equinos: Math.round(margenPorKg.equinos * 100) / 100,
         },
-      },
 
+        relacionInsumoProducto: {
+  global: Math.round(relacionInsumoProducto.global * 100) / 100,
+  vacunos: Math.round(relacionInsumoProducto.vacunos * 100) / 100,
+  ovinos: Math.round(relacionInsumoProducto.ovinos * 100) / 100,
+  equinos: Math.round(relacionInsumoProducto.equinos * 100) / 100,
+},
+      },
+      
       // Datos crudos para debugging
       _debug: {
   ventas: ventasTotales,
