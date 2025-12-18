@@ -119,11 +119,11 @@ const superficieParaCalculos = usarSPG ? spg : totalHectareas
 
     // Carga (UG/ha)
     const carga = {
-      global: superficieParaCalculos > 0 ? ugTotalesCampo / superficieParaCalculos : 0,  // 🆕 CAMBIO
-      vacunos: hectareasPorEspecie.vacunos > 0 ? desglosePorTipo.vacunos / hectareasPorEspecie.vacunos : 0,
-      ovinos: hectareasPorEspecie.ovinos > 0 ? desglosePorTipo.ovinos / hectareasPorEspecie.ovinos : 0,
-      equinos: hectareasPorEspecie.equinos > 0 ? desglosePorTipo.yeguarizos / hectareasPorEspecie.equinos : 0,
-    }
+  global: superficieParaCalculos > 0 ? ugTotalesCampo / superficieParaCalculos : 0,
+  vacunos: superficieParaCalculos > 0 ? desglosePorTipo.vacunos / superficieParaCalculos : 0,
+  ovinos: superficieParaCalculos > 0 ? desglosePorTipo.ovinos / superficieParaCalculos : 0,
+  equinos: superficieParaCalculos > 0 ? desglosePorTipo.yeguarizos / superficieParaCalculos : 0,
+}
 
     // ---------------------------------------------------------
     // 2 OBTENER VENTAS DEL EJERCICIO
