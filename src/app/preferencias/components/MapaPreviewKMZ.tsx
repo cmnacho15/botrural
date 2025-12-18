@@ -8,6 +8,32 @@ import 'leaflet-draw/dist/leaflet.draw.css'
 // Cargar leaflet-draw solo en cliente
 if (typeof window !== 'undefined') {
   require('leaflet-draw')
+  
+  // Estilos para vértices de edición pequeños y circulares
+  if (!document.getElementById('leaflet-edit-vertex-style')) {
+    const style = document.createElement('style')
+    style.id = 'leaflet-edit-vertex-style'
+    style.innerHTML = `
+      .leaflet-editing-icon {
+        width: 10px !important;
+        height: 10px !important;
+        margin-left: -5px !important;
+        margin-top: -5px !important;
+        border-radius: 50% !important;
+        background: white !important;
+        border: 2px solid #f59e0b !important;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.3) !important;
+      }
+      .leaflet-edit-move {
+        cursor: move !important;
+      }
+      .leaflet-editing-icon:hover {
+        background: #fbbf24 !important;
+        transform: scale(1.2);
+      }
+    `
+    document.head.appendChild(style)
+  }
 }
 
 interface PoligonoPreview {
