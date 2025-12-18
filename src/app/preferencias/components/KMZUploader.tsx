@@ -1,32 +1,73 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import JSZip from 'jszip'
 import * as turf from '@turf/turf'
+import dynamic from 'next/dynamic'
+
+// Importar mapa dinámicamente para evitar SSR issues
+const MapaPreview = dynamic(() => import('./MapaPreviewKMZ'), { 
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-64 bg-gray-100 animate-pulse rounded-lg flex items-center justify-center">
+      <span className="text-gray-400">Cargando mapa...</span>
+    </div>
+  )
+})
 
 type LotePreview = {
   nombre: string
   hectareas: number
   poligono: number[][]
+  incluir: boolean // 🆕 Para trackear si el usuario quiere incluirlo
 }
 
-export default function KMZUploader({ onComplete }: { onComplete: () => void }) {
+type Paso = 'upload' | 'resumen' | 'revision' | 'completado'
+
+export default function KMZUploader({ 
+  onComplete,
+  potrerosExistentes = []
+}: { 
+  onComplete: () => void
+  potrerosExistentes?: Array<{ nombre: string; poligono: number[][] }>
+}) {
   const [uploading, setUploading] = useState(false)
   const [previews, setPreviews] = useState<LotePreview[]>([])
   const [error, setError] = useState<string | null>(null)
+  const [paso, setPaso] = useState<Paso>('upload')
+  const [indiceActual, setIndiceActual] = useState(0)
+  const [nombreEditado, setNombreEditado] = useState('')
+
+  // Potrero actual en revisión
+  const potreroActual = previews[indiceActual]
+  
+  // Contar cuántos se van a incluir
+  const potrerosAIncluir = previews.filter(p => p.incluir)
+  
+  // Detectar si el nombre ya existe
+  const nombreYaExiste = useMemo(() => {
+    if (!potreroActual) return false
+    const nombreBuscar = nombreEditado.toLowerCase().trim()
+    return potrerosExistentes.some(p => 
+      p.nombre.toLowerCase().trim() === nombreBuscar
+    )
+  }, [nombreEditado, potrerosExistentes, potreroActual])
+
+  // Actualizar nombre editado cuando cambia el potrero actual
+  useEffect(() => {
+    if (potreroActual) {
+      setNombreEditado(potreroActual.nombre)
+    }
+  }, [indiceActual, potreroActual])
 
   async function parseKMZ(file: File): Promise<LotePreview[]> {
     try {
       let kmlContent = ''
 
-      // Si es KML directo, leerlo
       if (file.name.endsWith('.kml')) {
         kmlContent = await file.text()
-      } 
-      // Si es KMZ, descomprimirlo
-      else {
+      } else {
         const zip = await JSZip.loadAsync(file)
-        
         for (const filename in zip.files) {
           if (filename.endsWith('.kml')) {
             kmlContent = await zip.files[filename].async('text')
@@ -39,33 +80,25 @@ export default function KMZUploader({ onComplete }: { onComplete: () => void }) 
         throw new Error('No se encontró archivo KML dentro del KMZ')
       }
 
-      // Parsear KML a XML
       const parser = new DOMParser()
       const xmlDoc = parser.parseFromString(kmlContent, 'text/xml')
 
-      // Verificar errores de parseo
       const parseError = xmlDoc.querySelector('parsererror')
       if (parseError) {
         throw new Error('Error al parsear el archivo KML')
       }
 
-      // Extraer placemarks (potreros)
       const placemarks = xmlDoc.getElementsByTagName('Placemark')
       const lotes: LotePreview[] = []
-
-      console.log(`Encontrados ${placemarks.length} placemarks`)
 
       for (let i = 0; i < placemarks.length; i++) {
         const placemark = placemarks[i]
         
-        // Extraer nombre
         const nameElement = placemark.getElementsByTagName('name')[0]
         const nombre = nameElement?.textContent?.trim() || `Potrero ${i + 1}`
 
-        // Extraer coordenadas - buscar en diferentes posibles ubicaciones
         let coordinatesElement = placemark.getElementsByTagName('coordinates')[0]
         
-        // Si no se encuentra directamente, buscar dentro de Polygon o LinearRing
         if (!coordinatesElement) {
           const polygon = placemark.getElementsByTagName('Polygon')[0]
           if (polygon) {
@@ -78,83 +111,55 @@ export default function KMZUploader({ onComplete }: { onComplete: () => void }) 
         const coordsText = coordinatesElement.textContent?.trim()
         if (!coordsText) continue
 
-        console.log(`Procesando ${nombre}:`, coordsText.substring(0, 100))
-
-        // Parsear coordenadas: "lng,lat,alt lng,lat,alt ..."
-        // KML format: longitude,latitude,altitude (separados por espacios o saltos de línea)
         const coords = coordsText
           .trim()
-          .split(/[\s\n\r]+/) // Dividir por espacios o saltos de línea
+          .split(/[\s\n\r]+/)
           .map(coord => coord.trim())
           .filter(coord => coord.length > 0)
           .map(coord => {
             const parts = coord.split(',').map(s => parseFloat(s.trim()))
-            // KML es: longitud, latitud, altitud (opcional)
-            // GeoJSON necesita: [longitud, latitud]
             const [lng, lat] = parts
             return [lng, lat]
           })
           .filter(coord => {
-            // Validar que sean coordenadas válidas
             const [lng, lat] = coord
-            const isValid = !isNaN(lng) && !isNaN(lat) && 
-                           lng >= -180 && lng <= 180 && 
-                           lat >= -90 && lat <= 90
-            
-            if (!isValid) {
-              console.warn(`Coordenada inválida descartada: [${lng}, ${lat}]`)
-            }
-            return isValid
+            return !isNaN(lng) && !isNaN(lat) && 
+                   lng >= -180 && lng <= 180 && 
+                   lat >= -90 && lat <= 90
           })
 
-        if (coords.length < 3) {
-          console.warn(`${nombre}: Muy pocas coordenadas válidas (${coords.length})`)
-          continue
-        }
+        if (coords.length < 3) continue
 
-        console.log(`${nombre}: ${coords.length} coordenadas válidas`)
-        console.log(`Primera coord: [${coords[0][0]}, ${coords[0][1]}]`)
-        console.log(`Última coord: [${coords[coords.length-1][0]}, ${coords[coords.length-1][1]}]`)
-
-        // Cerrar polígono si no está cerrado
         const firstCoord = coords[0]
         const lastCoord = coords[coords.length - 1]
-        const tolerance = 0.0000001 // Tolerancia para comparación de flotantes
+        const tolerance = 0.0000001
         
         if (Math.abs(firstCoord[0] - lastCoord[0]) > tolerance || 
             Math.abs(firstCoord[1] - lastCoord[1]) > tolerance) {
           coords.push([firstCoord[0], firstCoord[1]])
-          console.log(`${nombre}: Polígono cerrado automáticamente`)
         }
 
         try {
-          // Calcular hectáreas usando turf
-          // Turf espera [lng, lat], así que usamos coords original
           const polygon = turf.polygon([coords])
           const areaM2 = turf.area(polygon)
           const hectareas = parseFloat((areaM2 / 10000).toFixed(2))
 
-          console.log(`${nombre}: ${hectareas} ha`)
-
-          // ✅ Mantener [lng, lat] - formato GeoJSON estándar
           lotes.push({
             nombre,
             hectareas,
-            poligono: coords  // Mantiene [lng, lat]
+            poligono: coords,
+            incluir: true // Por defecto incluir
           })
         } catch (turfError) {
-          console.error(`Error calculando área para ${nombre}:`, turfError)
-          // Aún así agregar el lote, pero con área 0
-          // Mantener [lng, lat] también para casos de error
           lotes.push({
             nombre,
             hectareas: 0,
-            poligono: coords
+            poligono: coords,
+            incluir: true
           })
         }
       }
 
-      console.log(`Total de lotes procesados: ${lotes.length}`)
       return lotes
     } catch (err) {
       console.error('Error parseando KMZ:', err)
@@ -182,11 +187,12 @@ export default function KMZUploader({ onComplete }: { onComplete: () => void }) 
       const lotes = await parseKMZ(file)
       
       if (lotes.length === 0) {
-        setError('No se encontraron potreros en el archivo. Revisá la consola para más detalles.')
+        setError('No se encontraron potreros en el archivo.')
         return
       }
 
       setPreviews(lotes)
+      setPaso('resumen')
     } catch (err: any) {
       setError(err.message || 'Error al procesar el archivo')
     } finally {
@@ -194,12 +200,49 @@ export default function KMZUploader({ onComplete }: { onComplete: () => void }) 
     }
   }
 
+  function iniciarRevision() {
+    setIndiceActual(0)
+    setPaso('revision')
+  }
+
+  function agregarPotrero() {
+    // Actualizar nombre si fue editado
+    const nuevasPreviews = [...previews]
+    nuevasPreviews[indiceActual] = {
+      ...nuevasPreviews[indiceActual],
+      nombre: nombreEditado,
+      incluir: true
+    }
+    setPreviews(nuevasPreviews)
+    avanzar()
+  }
+
+  function noIncluirPotrero() {
+    const nuevasPreviews = [...previews]
+    nuevasPreviews[indiceActual] = {
+      ...nuevasPreviews[indiceActual],
+      incluir: false
+    }
+    setPreviews(nuevasPreviews)
+    avanzar()
+  }
+
+  function avanzar() {
+    if (indiceActual < previews.length - 1) {
+      setIndiceActual(indiceActual + 1)
+    } else {
+      setPaso('completado')
+    }
+  }
+
   async function handleConfirm() {
     setUploading(true)
     setError(null)
 
+    const potrerosParaCrear = previews.filter(p => p.incluir)
+
     try {
-      for (const lote of previews) {
+      for (const lote of potrerosParaCrear) {
         const response = await fetch('/api/lotes', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -219,8 +262,9 @@ export default function KMZUploader({ onComplete }: { onComplete: () => void }) 
         }
       }
 
-      alert(`✅ Se crearon ${previews.length} potreros exitosamente`)
+      alert(`✅ Se crearon ${potrerosParaCrear.length} potreros exitosamente`)
       setPreviews([])
+      setPaso('upload')
       onComplete()
     } catch (err: any) {
       setError(err.message || 'Error al guardar los potreros')
@@ -229,161 +273,274 @@ export default function KMZUploader({ onComplete }: { onComplete: () => void }) 
     }
   }
 
-  return (
-    <div className="space-y-6">
-      {/* Upload Section */}
-      {previews.length === 0 && (
-        <div>
-          {/* Instrucciones */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
-            <div className="flex items-start gap-3 mb-4">
-              <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0">
-                ?
-              </div>
-              <div>
-                <h3 className="font-semibold text-blue-900 mb-3">Instrucciones</h3>
-                <ol className="space-y-2 text-sm text-blue-800">
-                  <li className="flex gap-2">
-                    <span className="font-bold">1.</span>
-                    <span>Subí un archivo de Google Earth <strong>(formato .KMZ o .KML)</strong></span>
-                  </li>
-                  <li className="flex gap-2">
-                    <span className="font-bold">2.</span>
-                    <span>Cada potrero de tu campo como un polígono diferente.</span>
-                  </li>
-                  <li className="flex gap-2">
-                    <span className="font-bold">3.</span>
-                    <span>El nombre del potrero debe coincidir con el nombre del polígono.</span>
-                  </li>
-                </ol>
-                <a href="#" className="text-blue-600 hover:underline text-sm font-medium mt-2 inline-block">
-                  Video Demo
-                </a>
-                <span className="text-sm text-blue-700"> que explica cómo exportar un archivo KMZ desde Google Earth.</span>
-              </div>
+  // ==================== RENDER ====================
+
+  // PASO 1: Upload
+  if (paso === 'upload') {
+    return (
+      <div className="space-y-6">
+        {/* Instrucciones */}
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0">
+              ?
+            </div>
+            <div>
+              <h3 className="font-semibold text-blue-900 mb-3">Instrucciones</h3>
+              <ol className="space-y-2 text-sm text-blue-800">
+                <li className="flex gap-2">
+                  <span className="font-bold">1.</span>
+                  <span>Subí un archivo de Google Earth <strong>(formato .KMZ o .KML)</strong></span>
+                </li>
+                <li className="flex gap-2">
+                  <span className="font-bold">2.</span>
+                  <span>Cada potrero debe ser un polígono diferente.</span>
+                </li>
+                <li className="flex gap-2">
+                  <span className="font-bold">3.</span>
+                  <span>El nombre del potrero debe coincidir con el nombre del polígono.</span>
+                </li>
+              </ol>
             </div>
           </div>
+        </div>
 
-          {/* Zona de carga */}
-          <div className="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center hover:border-blue-400 transition">
-            <div className="text-5xl mb-4">☁️</div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              Subir Archivo
-            </h3>
-            <p className="text-sm text-gray-500 mb-4">
-              Hacé clic o arrastrá el archivo acá
-            </p>
-            
-            <label className="inline-block cursor-pointer">
-              <input
-                type="file"
-                accept=".kmz,.kml"
-                onChange={handleFileUpload}
-                disabled={uploading}
-                className="hidden"
+        {/* Zona de carga */}
+        <div className="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center hover:border-blue-400 transition">
+          <div className="text-5xl mb-4">☁️</div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Subir Archivo</h3>
+          <p className="text-sm text-gray-500 mb-4">Hacé clic o arrastrá el archivo acá</p>
+          
+          <label className="inline-block cursor-pointer">
+            <input
+              type="file"
+              accept=".kmz,.kml"
+              onChange={handleFileUpload}
+              disabled={uploading}
+              className="hidden"
+            />
+            <span className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium inline-block">
+              {uploading ? 'Procesando...' : 'Subir Archivo'}
+            </span>
+          </label>
+
+          <p className="text-xs text-gray-400 mt-4">Permitidos: KMZ o KML</p>
+        </div>
+
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
+            <span className="text-2xl">⚠️</span>
+            <div>
+              <p className="font-medium text-red-900">Error</p>
+              <p className="text-sm text-red-700">{error}</p>
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  // PASO 2: Resumen inicial
+  if (paso === 'resumen') {
+    return (
+      <div className="space-y-4">
+        <div className="text-center mb-2">
+          <span className="text-sm text-gray-500">KMZ Analizado</span>
+        </div>
+
+        {/* Mapa con todos los potreros */}
+        <div className="rounded-lg overflow-hidden border border-gray-200">
+          <MapaPreview 
+            poligonos={previews.map(p => ({
+              coordinates: p.poligono,
+              color: '#22c55e',
+              nombre: p.nombre
+            }))}
+          />
+        </div>
+
+        {/* Badges de resumen */}
+        <div className="flex gap-2 justify-center">
+          <span className="px-3 py-1 bg-green-500 text-white rounded-full text-sm font-medium">
+            {previews.length} Potreros Detectados
+          </span>
+        </div>
+
+        {/* Botón para revisar */}
+        <button
+          onClick={iniciarRevision}
+          className="w-full py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition"
+        >
+          Revisar Los {previews.length} Potreros
+        </button>
+      </div>
+    )
+  }
+
+  // PASO 3: Revisión uno por uno
+  if (paso === 'revision' && potreroActual) {
+    const potrerosRestantes = previews.length - indiceActual - 1
+
+    return (
+      <div className="space-y-4">
+        <div className="text-center text-sm text-gray-500">
+          Subir KMZ o KML de Google Earth
+        </div>
+
+        {/* Mapa con potrero actual resaltado */}
+        <div className="rounded-lg overflow-hidden border border-gray-200">
+          <div className="text-xs text-gray-500 px-3 py-1 bg-gray-50 border-b">
+            POLÍGONO DEL POTRERO
+          </div>
+          <MapaPreview 
+            poligonos={previews.map((p, idx) => ({
+              coordinates: p.poligono,
+              color: idx === indiceActual ? '#eab308' : '#22c55e', // Amarillo el actual, verde los demás
+              nombre: p.nombre,
+              opacity: idx === indiceActual ? 0.8 : 0.5,
+              weight: idx === indiceActual ? 3 : 1
+            }))}
+            resaltarIndice={indiceActual}
+            mostrarVertices={true}
+          />
+        </div>
+
+        {/* Info del potrero */}
+        <div className="space-y-3">
+          <div className="text-sm font-medium text-gray-500">
+            POTRERO {indiceActual + 1} DE {previews.length}
+          </div>
+
+          {/* Input nombre editable */}
+          <div>
+            <label className="text-xs text-gray-500">Nombre</label>
+            <input
+              type="text"
+              value={nombreEditado}
+              onChange={(e) => setNombreEditado(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-lg font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+
+          {/* Hectáreas */}
+          <div className="text-sm text-gray-600">
+            📐 {potreroActual.hectareas} hectáreas
+          </div>
+
+          {/* Advertencia si nombre ya existe */}
+          {nombreYaExiste && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+              <p className="text-sm text-amber-800">
+                ⚠️ Ya existe un potrero con este nombre
+              </p>
+            </div>
+          )}
+
+          {/* Barra de progreso */}
+          <div className="space-y-1">
+            <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-green-500 transition-all duration-300"
+                style={{ width: `${((indiceActual + 1) / previews.length) * 100}%` }}
               />
-              <span className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium inline-block">
-                {uploading ? 'Procesando...' : 'Subir Archivo'}
-              </span>
-            </label>
-
-            <p className="text-xs text-gray-400 mt-4">
-              Permitidos: KMZ o KML
+            </div>
+            <p className="text-sm text-gray-500">
+              {potrerosRestantes} potrero{potrerosRestantes !== 1 ? 's' : ''} para revisar
             </p>
           </div>
         </div>
-      )}
 
-      {/* Error */}
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
-          <span className="text-2xl">⚠️</span>
-          <div>
-            <p className="font-medium text-red-900">Error</p>
+        {/* Botones de acción */}
+        <div className="flex gap-3 pt-2">
+          <button
+            onClick={noIncluirPotrero}
+            className="flex-1 py-3 border border-gray-300 rounded-lg font-medium text-gray-600 hover:bg-gray-50 transition"
+          >
+            No Incluir Potrero
+          </button>
+          <button
+            onClick={agregarPotrero}
+            className="flex-1 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition flex items-center justify-center gap-2"
+          >
+            Agregar Potrero
+            <span>→</span>
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // PASO 4: Completado - Resumen final
+  if (paso === 'completado') {
+    const incluidos = previews.filter(p => p.incluir)
+    const excluidos = previews.filter(p => !p.incluir)
+
+    return (
+      <div className="space-y-4">
+        <div className="text-center">
+          <div className="text-4xl mb-2">✅</div>
+          <h3 className="text-lg font-semibold text-gray-900">Revisión Completada</h3>
+        </div>
+
+        {/* Resumen */}
+        <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-600">Potreros a crear:</span>
+            <span className="font-semibold text-green-600">{incluidos.length}</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-600">Potreros excluidos:</span>
+            <span className="font-semibold text-gray-500">{excluidos.length}</span>
+          </div>
+        </div>
+
+        {/* Lista de incluidos */}
+        {incluidos.length > 0 && (
+          <div className="border border-gray-200 rounded-lg overflow-hidden">
+            <div className="bg-green-50 px-4 py-2 border-b border-gray-200">
+              <span className="text-sm font-medium text-green-800">
+                Potreros a crear ({incluidos.length})
+              </span>
+            </div>
+            <div className="max-h-48 overflow-y-auto">
+              {incluidos.map((p, idx) => (
+                <div key={idx} className="px-4 py-2 border-b border-gray-100 last:border-0 flex justify-between">
+                  <span className="text-sm text-gray-900">{p.nombre}</span>
+                  <span className="text-sm text-gray-500">{p.hectareas} ha</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Botones */}
+        <div className="flex gap-3 pt-2">
+          <button
+            onClick={() => {
+              setPaso('upload')
+              setPreviews([])
+            }}
+            className="flex-1 py-3 border border-gray-300 rounded-lg font-medium text-gray-600 hover:bg-gray-50"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={handleConfirm}
+            disabled={uploading || incluidos.length === 0}
+            className="flex-1 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {uploading ? 'Creando...' : `Crear ${incluidos.length} Potreros`}
+          </button>
+        </div>
+
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
             <p className="text-sm text-red-700">{error}</p>
           </div>
-        </div>
-      )}
+        )}
+      </div>
+    )
+  }
 
-      {/* Preview */}
-      {previews.length > 0 && (
-        <div className="space-y-4">
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h3 className="font-semibold text-blue-900 mb-2">
-              ✅ Se encontraron {previews.length} potreros
-            </h3>
-            <p className="text-sm text-blue-700">
-              Revisá los datos antes de confirmar
-            </p>
-          </div>
-
-          <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Nombre
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Hectáreas
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Coordenadas
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Primera Coord
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {previews.map((lote, idx) => (
-                  <tr key={idx} className="hover:bg-gray-50">
-                    <td className="px-6 py-4">
-                      <span className="text-sm font-medium text-gray-900">
-                        {lote.nombre}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="text-sm text-gray-700">
-                        {lote.hectareas} ha
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="text-xs text-gray-500 font-mono">
-                        {lote.poligono.length} puntos
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="text-xs text-gray-500 font-mono">
-                        [{lote.poligono[0][0].toFixed(6)}, {lote.poligono[0][1].toFixed(6)}] (lng, lat)
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="flex gap-3">
-            <button
-              onClick={() => {
-                setPreviews([])
-                setError(null)
-              }}
-              className="flex-1 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium text-gray-700"
-            >
-              Cancelar
-            </button>
-            <button
-              onClick={handleConfirm}
-              disabled={uploading}
-              className="flex-1 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 font-medium"
-            >
-              {uploading ? 'Creando potreros...' : `Crear ${previews.length} potreros`}
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-  )
+  return null
 }
