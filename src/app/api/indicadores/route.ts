@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { requireAuth, canAccessFinanzas } from "@/lib/auth-helpers"
-import { calcularEstadisticasCampo } from "@/lib/ugCalculator"
+import { calcularEstadisticasCampo, calcularRelacionLanarVacuno } from "@/lib/ugCalculator"
 import { CATEGORIAS_VARIABLES } from "@/lib/costos/categoriasCostos"
 
 /**
@@ -70,6 +70,8 @@ export async function GET(request: Request) {
 
     const estadisticas = calcularEstadisticasCampo(lotes)
     const { ugTotalesCampo, desglosePorTipo, totalHectareas } = estadisticas
+    
+    const { relacion: relacionLanarVacuno } = calcularRelacionLanarVacuno(lotes)
     
     // 🆕 CALCULAR SPG (solo potreros pastoreables)
 const lotesPastoreables = lotes.filter(l => l.esPastoreable)
@@ -572,7 +574,7 @@ const cargaKgPV = {
           ovinos: hectareasPorEspecie.ovinos,
           equinos: hectareasPorEspecie.equinos,
         },
-        relacionLanarVacuno: desglosePorTipo.vacunos > 0 ? desglosePorTipo.ovinos / desglosePorTipo.vacunos : 0,
+        relacionLanarVacuno: relacionLanarVacuno || 0,
       },
 
       // Indicadores de la ganadería
