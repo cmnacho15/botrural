@@ -7,6 +7,7 @@ import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import useSWR from 'swr'
 import { EQUIVALENCIAS_UG, calcularRelacionLanarVacuno, calcularUGTotales } from '@/lib/ugCalculator'
+import BotonDescargarCarga from '@/app/dashboard/lotes/components/BotonDescargarCarga'
 
 interface Lote {
   id: string
@@ -658,11 +659,7 @@ const [acordeonesAbiertos, setAcordeonesAbiertos] = useState<{[key: string]: boo
       >
         <span className="text-lg">+</span> Nuevo potrero
       </Link>
-      <button
-        className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 bg-white hover:bg-gray-100 text-gray-800 shadow-sm transition text-sm"
-      >
-        <span className="text-lg">⬆️</span> Importar CSV
-      </button>
+      <BotonDescargarCarga />
     </div>
 
     {/* SEGUNDA FILA: Evolución Carga Animal + (Reporte Pastoreo si hay módulos en uso) */}

@@ -19,7 +19,7 @@
     "date-fns": "^4.1.0",
     "esri-leaflet": "^3.0.19",
     "geotiff": "^2.1.4-beta.0",
-    "jspdf": "^3.0.3",
+    "jspdf": "^3.0.4",
     "jspdf-autotable": "^5.0.2",
     "jszip": "^3.10.1",
     "leaflet": "^1.9.4",

@@ -1,0 +1,230 @@
+'use client'
+
+import { useState } from 'react'
+
+interface Categoria {
+  nombre: string
+  equivalenciaUG: number
+}
+
+interface ReporteCarga {
+  campo: {
+    nombre: string
+    hectareasTotal: number
+  }
+  categorias: {
+    bovinas: Categoria[]
+    ovinas: Categoria[]
+    equinas: Categoria[]
+  }
+  potreros: Array<{
+    nombre: string
+    hectareas: number
+    animalesPorCategoria: Record<string, number>
+    ugPorHa: number
+    vacunosTotales: number
+  }>
+  totales: {
+    hectareas: number
+    porCategoria: Record<string, number>
+    ugTotales: number
+    vacunosTotales: number
+    ugPorHa: number
+  }
+  fecha: string
+}
+
+export default function BotonDescargarCarga() {
+  const [descargando, setDescargando] = useState(false)
+
+  async function descargarPDF() {
+    setDescargando(true)
+
+    try {
+      // 1. Obtener los datos
+      const response = await fetch('/api/reportes/carga-actual')
+      if (!response.ok) {
+        throw new Error('Error obteniendo datos')
+      }
+      const data: ReporteCarga = await response.json()
+
+      // 2. Importar jsPDF dinámicamente
+      const { default: jsPDF } = await import('jspdf')
+      await import('jspdf-autotable')
+
+      // 3. Crear el PDF en landscape para que entre toda la tabla
+      const doc = new jsPDF({
+        orientation: 'landscape',
+        unit: 'mm',
+        format: 'a4'
+      })
+
+      const pageWidth = doc.internal.pageSize.getWidth()
+      const margin = 10
+
+      // Header
+      doc.setFontSize(16)
+      doc.setFont('helvetica', 'bold')
+      doc.text(`Establecimiento: ${data.campo.nombre}`, margin, 15)
+
+      doc.setFontSize(12)
+      doc.setFont('helvetica', 'normal')
+      doc.text(`TOTAL UG/ha: ${data.totales.ugPorHa.toFixed(2)}`, pageWidth - margin - 50, 15)
+
+      // Fecha
+      const fecha = new Date(data.fecha)
+      doc.setFontSize(10)
+      doc.text(
+        `Generado: ${fecha.toLocaleDateString('es-UY', { day: '2-digit', month: '2-digit', year: 'numeric' })}`,
+        pageWidth - margin - 50,
+        22
+      )
+
+      // Construir columnas de la tabla
+      const todasCategorias = [
+        ...data.categorias.bovinas,
+        ...data.categorias.ovinas,
+        ...data.categorias.equinas
+      ]
+
+      // Filtrar solo categorías que tienen al menos 1 animal en algún potrero
+      const categoriasConDatos = todasCategorias.filter(cat => {
+        return data.potreros.some(p => (p.animalesPorCategoria[cat.nombre] || 0) > 0) ||
+               (data.totales.porCategoria[cat.nombre] || 0) > 0
+      })
+
+      // Crear headers de la tabla
+      const headers = [
+        'Potreros',
+        'Ha',
+        ...categoriasConDatos.map(c => c.nombre),
+        'UG/Ha',
+        'Vacunos'
+      ]
+
+      // Crear fila de equivalencias UG
+      const filaEquivalencias = [
+        'UG x Categoría',
+        '',
+        ...categoriasConDatos.map(c => c.equivalenciaUG.toFixed(2)),
+        '',
+        ''
+      ]
+
+      // Crear filas de datos
+      const filasDatos = data.potreros.map(potrero => {
+        return [
+          potrero.nombre,
+          potrero.hectareas.toFixed(0),
+          ...categoriasConDatos.map(c => {
+            const cantidad = potrero.animalesPorCategoria[c.nombre] || 0
+            return cantidad > 0 ? cantidad.toString() : ''
+          }),
+          potrero.ugPorHa.toFixed(2),
+          potrero.vacunosTotales.toFixed(2)
+        ]
+      })
+
+      // Crear fila de totales
+      const filaTotales = [
+        'TOTAL:',
+        data.totales.hectareas.toFixed(0),
+        ...categoriasConDatos.map(c => {
+          const total = data.totales.porCategoria[c.nombre] || 0
+          return total > 0 ? total.toString() : ''
+        }),
+        data.totales.ugPorHa.toFixed(2),
+        data.totales.vacunosTotales.toFixed(2)
+      ]
+
+      // Generar la tabla con autoTable
+      ;(doc as any).autoTable({
+        head: [headers, filaEquivalencias],
+        body: [...filasDatos, filaTotales],
+        startY: 28,
+        theme: 'grid',
+        styles: {
+          fontSize: 7,
+          cellPadding: 1.5,
+          overflow: 'linebreak',
+          halign: 'center',
+          valign: 'middle'
+        },
+        headStyles: {
+          fillColor: [245, 245, 220], // Beige como en la imagen
+          textColor: [0, 0, 0],
+          fontStyle: 'bold',
+          fontSize: 6
+        },
+        columnStyles: {
+          0: { halign: 'left', cellWidth: 25 }, // Potreros
+          1: { cellWidth: 12 } // Ha
+        },
+        didParseCell: function(data: any) {
+          // Fila de equivalencias UG (segunda fila del header)
+          if (data.section === 'head' && data.row.index === 1) {
+            data.cell.styles.fillColor = [255, 255, 200] // Amarillo claro
+            data.cell.styles.fontStyle = 'normal'
+          }
+          
+          // Fila de totales (última fila del body)
+          if (data.section === 'body' && data.row.index === filasDatos.length) {
+            data.cell.styles.fillColor = [200, 255, 200] // Verde claro
+            data.cell.styles.fontStyle = 'bold'
+          }
+          
+          // Columna UG/Ha - colorear según valor
+          if (data.section === 'body' && data.column.index === headers.length - 2) {
+            const valor = parseFloat(data.cell.raw) || 0
+            if (valor === 0) {
+              data.cell.styles.textColor = [150, 150, 150] // Gris
+            } else if (valor < 0.7) {
+              data.cell.styles.textColor = [0, 100, 200] // Azul
+            } else if (valor <= 1.5) {
+              data.cell.styles.textColor = [0, 150, 0] // Verde
+            } else if (valor <= 2.0) {
+              data.cell.styles.textColor = [200, 150, 0] // Naranja
+            } else {
+              data.cell.styles.textColor = [200, 0, 0] // Rojo
+            }
+          }
+        },
+        margin: { left: margin, right: margin }
+      })
+
+      // Footer
+      const finalY = (doc as any).lastAutoTable.finalY + 10
+      doc.setFontSize(8)
+      doc.setTextColor(128, 128, 128)
+      doc.text('Generado por Bot Rural - botrural.vercel.app', margin, finalY)
+
+      // 4. Descargar el PDF
+      const nombreArchivo = `carga_${data.campo.nombre.replace(/\s+/g, '_')}_${fecha.toISOString().split('T')[0]}.pdf`
+      doc.save(nombreArchivo)
+
+    } catch (error) {
+      console.error('Error generando PDF:', error)
+      alert('Error al generar el PDF. Intentá de nuevo.')
+    } finally {
+      setDescargando(false)
+    }
+  }
+
+  return (
+    <button
+      onClick={descargarPDF}
+      disabled={descargando}
+      className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 bg-white hover:bg-gray-100 text-gray-800 shadow-sm transition text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+    >
+      {descargando ? (
+        <>
+          <span className="animate-spin">⏳</span> Generando...
+        </>
+      ) : (
+        <>
+          <span className="text-lg">📥</span> Descargar Carga Actual
+        </>
+      )}
+    </button>
+  )
+}
