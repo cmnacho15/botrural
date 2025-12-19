@@ -113,11 +113,7 @@ async function generarPDFCarga(campoId: string): Promise<Buffer | null> {
     const pageWidth = doc.internal.pageSize.getWidth()
     const margin = 10
 
-    // Marca de agua de texto (centrada, horizontal, arriba de la tabla)
-doc.setFontSize(40)
-doc.setTextColor(240, 240, 240)
-doc.setFont('helvetica', 'bold')
-doc.text('BOTRURAL', pageWidth / 2, 45, { align: 'center' })
+    
 
 // Header
 doc.setFontSize(16)
@@ -237,9 +233,15 @@ doc.text(`Establecimiento: ${campo.nombre}`, margin, 15)
       margin: { left: margin, right: margin }
     })
 
+    // Marca de agua diagonal sobre todo el documento
+    doc.setFontSize(100)
+    doc.setTextColor(250, 250, 250)
+    doc.setFont('helvetica', 'bold')
+    const pageHeight = doc.internal.pageSize.getHeight()
+    doc.text('BOTRURAL', pageWidth / 2, pageHeight / 2, { angle: 45, align: 'center' })
+
     // Footer
-    // Footer
-const finalY = (doc as any).lastAutoTable.finalY + 10
+    const finalY = (doc as any).lastAutoTable.finalY + 10
     doc.setFontSize(8)
     doc.setTextColor(128, 128, 128)
     doc.text('Generado por Bot Rural - botrural.vercel.app', margin, finalY)

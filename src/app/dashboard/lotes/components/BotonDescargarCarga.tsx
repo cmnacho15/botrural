@@ -34,87 +34,10 @@ interface ReporteCarga {
   fecha: string
 }
 
-/**
- * Carga el logo y lo convierte a Base64
- */
-async function cargarLogoBase64(): Promise<string | null> {
-  try {
-    const response = await fetch('/BotRURAL.png')
-    if (!response.ok) {
-      console.warn('⚠️ Logo PNG no encontrado en /public/BotRURAL.png')
-      return null
-    }
+
     
-    const blob = await response.blob()
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader()
-      reader.onloadend = () => resolve(reader.result as string)
-      reader.onerror = reject
-      reader.readAsDataURL(blob)
-    })
-  } catch (error) {
-    console.error('❌ Error cargando logo:', error)
-    return null
-  }
-}
+   
 
-/**
- * Agrega marca de agua al PDF
- */
-function agregarMarcaDeAgua(doc: any, logoBase64: string | null) {
-  try {
-    const pageWidth = doc.internal.pageSize.getWidth()
-    const pageHeight = doc.internal.pageSize.getHeight()
-
-    if (logoBase64) {
-      // Marca de agua con logo (centro de la página, semi-transparente)
-      const logoWidth = 60
-      const logoHeight = 60
-      // AHORA (arriba, centrado horizontalmente):
-const x = (pageWidth - logoWidth) / 2
-const y = 5  // Arriba, cerca del header pero sin tocar el texto
-
-      // Guardar estado gráfico
-      doc.saveGraphicsState()
-      
-      // Aplicar transparencia
-      doc.setGState(new doc.GState({ opacity: 0.1 }))
-      
-      // Agregar imagen
-      doc.addImage(
-        logoBase64,
-        'PNG',
-        x,
-        y,
-        logoWidth,
-        logoHeight
-      )
-      
-      // Restaurar estado gráfico
-      doc.restoreGraphicsState()
-    } else {
-      // Marca de agua de texto alternativa
-      doc.saveGraphicsState()
-      doc.setGState(new doc.GState({ opacity: 0.1 }))
-      doc.setFontSize(50)
-      doc.setTextColor(128, 128, 128)
-      doc.setFont('helvetica', 'bold')
-      
-      const texto = 'BOT RURAL'
-      const textWidth = doc.getTextWidth(texto)
-      doc.text(
-        texto,
-        (pageWidth - textWidth) / 2,
-        pageHeight / 2,
-        { angle: 45 }
-      )
-      
-      doc.restoreGraphicsState()
-    }
-  } catch (error) {
-    console.error('❌ Error agregando marca de agua:', error)
-  }
-}
 
 export default function BotonDescargarCarga() {
   const [descargando, setDescargando] = useState(false)
@@ -150,11 +73,7 @@ export default function BotonDescargarCarga() {
       const pageWidth = doc.internal.pageSize.getWidth()
       const margin = 10
 
-      // Marca de agua de texto (centrada, horizontal, arriba de la tabla)
-doc.setFontSize(40)
-doc.setTextColor(240, 240, 240)
-doc.setFont('helvetica', 'bold')
-doc.text('BOTRURAL', pageWidth / 2, 45, { align: 'center' })
+      
 
 // Header
 doc.setFontSize(16)
@@ -286,6 +205,13 @@ doc.text(`Establecimiento: ${data.campo.nombre}`, margin, 15)
         },
         margin: { left: margin, right: margin }
       })
+
+      // Marca de agua diagonal sobre todo el documento
+      doc.setFontSize(100)
+      doc.setTextColor(250, 250, 250)
+      doc.setFont('helvetica', 'bold')
+      const pageHeight = doc.internal.pageSize.getHeight()
+      doc.text('BOTRURAL', pageWidth / 2, pageHeight / 2, { angle: 45, align: 'center' })
 
       // Footer
       const finalY = (doc as any).lastAutoTable.finalY + 10
