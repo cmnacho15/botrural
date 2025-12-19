@@ -5,11 +5,13 @@ import { sendWhatsAppMessage, sendWhatsAppDocument } from "../sendMessage"
 import { EQUIVALENCIAS_UG } from "@/lib/ugCalculator"
 import { createClient } from "@supabase/supabase-js"
 
-// Inicializar Supabase
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+// Función para obtener cliente Supabase (lazy init)
+function getSupabaseClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+}
 
 // Obtener equivalencia UG de una categoría
 function getEquivalenciaUG(categoria: string): number {
@@ -256,7 +258,8 @@ async function subirPDFaSupabase(pdfBuffer: Buffer, nombreCampo: string): Promis
     const fecha = new Date().toISOString().split('T')[0]
     const nombreArchivo = `reportes/carga_${nombreCampo.replace(/\s+/g, '_')}_${fecha}_${Date.now()}.pdf`
 
-    const { data, error } = await supabase.storage
+    const supabase = getSupabaseClient()
+const { data, error } = await supabase.storage
       .from('invoices') // Usar el mismo bucket que ya tenés
       .upload(nombreArchivo, pdfBuffer, {
         contentType: 'application/pdf',
