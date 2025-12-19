@@ -125,9 +125,11 @@ export default function BotonDescargarCarga() {
     try {
       // 1. Cargar el logo en paralelo con los datos
       const [dataResponse, logoBase64] = await Promise.all([
-        fetch('/api/reportes/carga-actual'),
-        cargarLogoBase64()
-      ])
+  fetch('/api/reportes/carga-actual'),
+  cargarLogoBase64()
+])
+
+console.log('Logo cargado:', logoBase64 ? 'SI (' + logoBase64.substring(0, 50) + '...)' : 'NO')
 
       if (!dataResponse.ok) {
         const errorData = await dataResponse.text()
