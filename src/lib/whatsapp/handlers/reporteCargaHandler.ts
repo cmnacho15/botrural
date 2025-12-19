@@ -113,12 +113,11 @@ async function generarPDFCarga(campoId: string): Promise<Buffer | null> {
     const pageWidth = doc.internal.pageSize.getWidth()
     const margin = 10
 
-    // Marca de agua de texto
-doc.setFontSize(60)
-doc.setTextColor(230, 230, 230)
+    // Marca de agua de texto (centrada, horizontal, arriba de la tabla)
+doc.setFontSize(40)
+doc.setTextColor(240, 240, 240)
 doc.setFont('helvetica', 'bold')
-const pageHeight = doc.internal.pageSize.getHeight()
-doc.text('BOTRURAL', pageWidth / 2, pageHeight / 2, { angle: 45, align: 'center' })
+doc.text('BOTRURAL', pageWidth / 2, 45, { align: 'center' })
 
 // Header
 doc.setFontSize(16)
