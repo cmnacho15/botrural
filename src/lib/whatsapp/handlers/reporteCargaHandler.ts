@@ -235,7 +235,7 @@ async function generarPDFCarga(campoId: string): Promise<Buffer | null> {
     })
 
     // Footer
-    const finalY = (doc as any).previousAutoTable.finalY + 10
+    const finalY = (doc as any).lastAutoTable?.finalY || 200
     doc.setFontSize(8)
     doc.setTextColor(128, 128, 128)
     doc.text('Generado por Bot Rural - botrural.vercel.app', margin, finalY)
