@@ -202,9 +202,21 @@ console.log('Datos recibidos:', data)
       doc.setTextColor(128, 128, 128)
       doc.text('Generado por Bot Rural - botrural.vercel.app', margin, finalY)
 
-      // 4. Descargar el PDF
-      const nombreArchivo = `carga_${data.campo.nombre.replace(/\s+/g, '_')}_${fecha.toISOString().split('T')[0]}.pdf`
-      doc.save(nombreArchivo)
+      // 4. Descargar/Abrir el PDF
+const nombreArchivo = `carga_${data.campo.nombre.replace(/\s+/g, '_')}_${fecha.toISOString().split('T')[0]}.pdf`
+
+// Detectar si es móvil (iOS/Android)
+const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+
+if (isMobile) {
+  // En móviles: abrir en nueva pestaña para que puedan compartir
+  const pdfBlob = doc.output('blob')
+  const pdfUrl = URL.createObjectURL(pdfBlob)
+  window.open(pdfUrl, '_blank')
+} else {
+  // En desktop: descarga directa
+  doc.save(nombreArchivo)
+}
 
     } catch (error: any) {
   console.error('Error generando PDF:', error)
