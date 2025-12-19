@@ -153,14 +153,14 @@ export default function BotonDescargarCarga() {
       const pageWidth = doc.internal.pageSize.getWidth()
       const margin = 10
 
-      // ========== AGREGAR MARCA DE AGUA ==========
-      agregarMarcaDeAgua(doc, logoBase64)
-      // ===========================================
+      // Header con logo como membrete
+if (logoBase64) {
+  doc.addImage(logoBase64, 'PNG', margin, 5, 20, 20)
+}
 
-      // Header
-      doc.setFontSize(16)
-      doc.setFont('helvetica', 'bold')
-      doc.text(`Establecimiento: ${data.campo.nombre}`, margin, 15)
+doc.setFontSize(16)
+doc.setFont('helvetica', 'bold')
+doc.text(`Establecimiento: ${data.campo.nombre}`, margin + 25, 15)
 
       doc.setFontSize(12)
       doc.setFont('helvetica', 'normal')

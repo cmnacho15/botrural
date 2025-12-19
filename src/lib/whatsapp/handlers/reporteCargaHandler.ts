@@ -113,10 +113,22 @@ async function generarPDFCarga(campoId: string): Promise<Buffer | null> {
     const pageWidth = doc.internal.pageSize.getWidth()
     const margin = 10
 
-    // Header
-    doc.setFontSize(16)
-    doc.setFont('helvetica', 'bold')
-    doc.text(`Establecimiento: ${campo.nombre}`, margin, 15)
+    // Header con logo
+const logoUrl = 'https://botrural.vercel.app/BotRURAL.png'
+try {
+  const logoResponse = await fetch(logoUrl)
+  if (logoResponse.ok) {
+    const logoBuffer = await logoResponse.arrayBuffer()
+    const logoBase64 = `data:image/png;base64,${Buffer.from(logoBuffer).toString('base64')}`
+    doc.addImage(logoBase64, 'PNG', margin, 5, 20, 20)
+  }
+} catch (e) {
+  console.log('⚠️ No se pudo cargar el logo')
+}
+
+doc.setFontSize(16)
+doc.setFont('helvetica', 'bold')
+doc.text(`Establecimiento: ${campo.nombre}`, margin + 25, 15)
 
     doc.setFontSize(12)
     doc.setFont('helvetica', 'normal')
