@@ -34,6 +34,87 @@ interface ReporteCarga {
   fecha: string
 }
 
+/**
+ * Carga el logo y lo convierte a Base64
+ */
+async function cargarLogoBase64(): Promise<string | null> {
+  try {
+    const response = await fetch('/BotRURAL.png')
+    if (!response.ok) {
+      console.warn('⚠️ Logo PNG no encontrado en /public/BotRURAL.png')
+      return null
+    }
+    
+    const blob = await response.blob()
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onloadend = () => resolve(reader.result as string)
+      reader.onerror = reject
+      reader.readAsDataURL(blob)
+    })
+  } catch (error) {
+    console.error('❌ Error cargando logo:', error)
+    return null
+  }
+}
+
+/**
+ * Agrega marca de agua al PDF
+ */
+function agregarMarcaDeAgua(doc: any, logoBase64: string | null) {
+  try {
+    const pageWidth = doc.internal.pageSize.getWidth()
+    const pageHeight = doc.internal.pageSize.getHeight()
+
+    if (logoBase64) {
+      // Marca de agua con logo (centro de la página, semi-transparente)
+      const logoWidth = 60
+      const logoHeight = 60
+      const x = (pageWidth - logoWidth) / 2
+      const y = (pageHeight - logoHeight) / 2
+
+      // Guardar estado gráfico
+      doc.saveGraphicsState()
+      
+      // Aplicar transparencia
+      doc.setGState(new doc.GState({ opacity: 0.1 }))
+      
+      // Agregar imagen
+      doc.addImage(
+        logoBase64,
+        'PNG',
+        x,
+        y,
+        logoWidth,
+        logoHeight
+      )
+      
+      // Restaurar estado gráfico
+      doc.restoreGraphicsState()
+    } else {
+      // Marca de agua de texto alternativa
+      doc.saveGraphicsState()
+      doc.setGState(new doc.GState({ opacity: 0.1 }))
+      doc.setFontSize(50)
+      doc.setTextColor(128, 128, 128)
+      doc.setFont('helvetica', 'bold')
+      
+      const texto = 'BOT RURAL'
+      const textWidth = doc.getTextWidth(texto)
+      doc.text(
+        texto,
+        (pageWidth - textWidth) / 2,
+        pageHeight / 2,
+        { angle: 45 }
+      )
+      
+      doc.restoreGraphicsState()
+    }
+  } catch (error) {
+    console.error('❌ Error agregando marca de agua:', error)
+  }
+}
+
 export default function BotonDescargarCarga() {
   const [descargando, setDescargando] = useState(false)
 
@@ -41,15 +122,20 @@ export default function BotonDescargarCarga() {
     setDescargando(true)
 
     try {
-      // 1. Obtener los datos
-const response = await fetch('/api/reportes/carga-actual')
-if (!response.ok) {
-  const errorData = await response.text()
-  console.error('Error API:', response.status, errorData)
-  throw new Error(`Error obteniendo datos: ${response.status}`)
-}
-const data: ReporteCarga = await response.json()
-console.log('Datos recibidos:', data)
+      // 1. Cargar el logo en paralelo con los datos
+      const [dataResponse, logoBase64] = await Promise.all([
+        fetch('/api/reportes/carga-actual'),
+        cargarLogoBase64()
+      ])
+
+      if (!dataResponse.ok) {
+        const errorData = await dataResponse.text()
+        console.error('Error API:', dataResponse.status, errorData)
+        throw new Error(`Error obteniendo datos: ${dataResponse.status}`)
+      }
+      
+      const data: ReporteCarga = await dataResponse.json()
+      console.log('Datos recibidos:', data)
 
       // 2. Importar jsPDF dinámicamente
       const jsPDFModule = await import('jspdf')
@@ -65,6 +151,10 @@ console.log('Datos recibidos:', data)
 
       const pageWidth = doc.internal.pageSize.getWidth()
       const margin = 10
+
+      // ========== AGREGAR MARCA DE AGUA ==========
+      agregarMarcaDeAgua(doc, logoBase64)
+      // ===========================================
 
       // Header
       doc.setFontSize(16)
@@ -203,13 +293,13 @@ console.log('Datos recibidos:', data)
       doc.text('Generado por Bot Rural - botrural.vercel.app', margin, finalY)
 
       // 4. Descargar el PDF
-const nombreArchivo = `carga_${data.campo.nombre.replace(/\s+/g, '_')}_${fecha.toISOString().split('T')[0]}.pdf`
-doc.save(nombreArchivo)
+      const nombreArchivo = `carga_${data.campo.nombre.replace(/\s+/g, '_')}_${fecha.toISOString().split('T')[0]}.pdf`
+      doc.save(nombreArchivo)
 
     } catch (error: any) {
-  console.error('Error generando PDF:', error)
-  alert(`Error al generar el PDF: ${error.message || 'Error desconocido'}`)
-} finally {
+      console.error('Error generando PDF:', error)
+      alert(`Error al generar el PDF: ${error.message || 'Error desconocido'}`)
+    } finally {
       setDescargando(false)
     }
   }
