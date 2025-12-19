@@ -233,12 +233,11 @@ doc.text(`Establecimiento: ${campo.nombre}`, margin, 15)
       margin: { left: margin, right: margin }
     })
 
-    // Marca de agua diagonal sobre todo el documento
-    doc.setFontSize(100)
-    doc.setTextColor(250, 250, 250)
-    doc.setFont('helvetica', 'bold')
-    const pageHeight = doc.internal.pageSize.getHeight()
-    doc.text('BOTRURAL', pageWidth / 2, pageHeight / 2, { angle: 45, align: 'center' })
+    // Marca de agua arriba centrada (como título sutil)
+doc.setFontSize(30)
+doc.setTextColor(235, 235, 235)
+doc.setFont('helvetica', 'bold')
+doc.text('BOTRURAL', pageWidth / 2, 10, { align: 'center' })
 
     // Footer
     const finalY = (doc as any).lastAutoTable.finalY + 10
