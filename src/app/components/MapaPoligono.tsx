@@ -160,12 +160,13 @@ function crearImagenNDVI(
     totalPixels: width * height
   })
 
-  // ✅ Función para verificar si un punto está dentro del polígono
+// ✅ Función para verificar si un punto está dentro del polígono
+  // coords viene en formato [lng, lat]
   function puntoEnPoligono(lat: number, lng: number, coords: number[][]): boolean {
     let dentro = false
     for (let i = 0, j = coords.length - 1; i < coords.length; j = i++) {
-      const xi = coords[i][1], yi = coords[i][0]
-      const xj = coords[j][1], yj = coords[j][0]
+      const xi = coords[i][0], yi = coords[i][1]  // [0] = lng, [1] = lat
+      const xj = coords[j][0], yj = coords[j][1]
       
       const intersecta = ((yi > lat) !== (yj > lat)) &&
         (lng < (xj - xi) * (lat - yi) / (yj - yi) + xi)
