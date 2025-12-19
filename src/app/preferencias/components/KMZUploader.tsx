@@ -257,15 +257,18 @@ export default function KMZUploader({
     if (indiceActual < previews.length - 1) {
       setIndiceActual(indiceActual + 1)
     } else {
-      // Primero cambiar el paso, después salir de fullscreen
-      setPaso('completado')
-      
-      // Salir de fullscreen después de un pequeño delay para que React renderice primero
-      setTimeout(() => {
-        if (document.fullscreenElement) {
-          document.exitFullscreen()
-        }
-      }, 50)
+      // Salir de fullscreen PRIMERO si está activo
+      if (document.fullscreenElement) {
+        document.exitFullscreen().then(() => {
+          // Después de salir de fullscreen, cambiar el paso
+          setPaso('completado')
+        }).catch(() => {
+          // Si falla, cambiar el paso igual
+          setPaso('completado')
+        })
+      } else {
+        setPaso('completado')
+      }
     }
   }
 

@@ -206,8 +206,9 @@ async function buscarMejorImagen(bbox: number[], accessToken: string) {
 // ===============================================
 async function calcularNDVI(coordinates: number[][], accessToken: string) {
   // Calcular bounding box
-  const lats = coordinates.map((c) => c[0])
-  const lngs = coordinates.map((c) => c[1])
+  // Las coordenadas vienen en formato GeoJSON: [lng, lat]
+  const lngs = coordinates.map((c) => c[0])
+  const lats = coordinates.map((c) => c[1])
 
   const bbox = [
     Math.min(...lngs),
