@@ -70,8 +70,9 @@ function agregarMarcaDeAgua(doc: any, logoBase64: string | null) {
       // Marca de agua con logo (centro de la página, semi-transparente)
       const logoWidth = 60
       const logoHeight = 60
-      const x = (pageWidth - logoWidth) / 2
-      const y = (pageHeight - logoHeight) / 2
+      // AHORA (arriba, centrado horizontalmente):
+const x = (pageWidth - logoWidth) / 2
+const y = 5  // Arriba, cerca del header pero sin tocar el texto
 
       // Guardar estado gráfico
       doc.saveGraphicsState()
