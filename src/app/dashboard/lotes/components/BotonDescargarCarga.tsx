@@ -52,8 +52,9 @@ const data: ReporteCarga = await response.json()
 console.log('Datos recibidos:', data)
 
       // 2. Importar jsPDF dinámicamente
-      const { default: jsPDF } = await import('jspdf')
-      await import('jspdf-autotable')
+      const jsPDFModule = await import('jspdf')
+      const jsPDF = jsPDFModule.default
+      const autoTable = (await import('jspdf-autotable')).default
 
       // 3. Crear el PDF en landscape para que entre toda la tabla
       const doc = new jsPDF({
@@ -141,7 +142,7 @@ console.log('Datos recibidos:', data)
       ]
 
       // Generar la tabla con autoTable
-      ;(doc as any).autoTable({
+      autoTable(doc, {
         head: [headers, filaEquivalencias],
         body: [...filasDatos, filaTotales],
         startY: 28,
@@ -196,7 +197,7 @@ console.log('Datos recibidos:', data)
       })
 
       // Footer
-      const finalY = (doc as any).lastAutoTable.finalY + 10
+      const finalY = (doc as any).previousAutoTable.finalY + 10
       doc.setFontSize(8)
       doc.setTextColor(128, 128, 128)
       doc.text('Generado por Bot Rural - botrural.vercel.app', margin, finalY)
