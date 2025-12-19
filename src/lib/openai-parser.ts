@@ -155,6 +155,20 @@ TIPOS DE EVENTOS QUE DEBES DETECTAR:
      "tipo": "CALENDARIO_CONSULTAR"
    }
 
+   10. REPORTE_CARGA:
+   - "pasame el pdf de carga"
+   - "carga actual"
+   - "reporte de carga"
+   - "cuántos animales tengo"
+   - "stock actual"
+   - "resumen de animales"
+   - "pdf carga"
+   - "planilla de carga"
+   Retorna:
+   {
+     "tipo": "REPORTE_CARGA"
+   }
+     
 ⚠️ CRÍTICO: Para CAMBIO_POTRERO usa SIEMPRE "loteOrigen" y "loteDestino", NUNCA "potreroOrigen" ni "potreroDestino"
 
 RESPONDE ÚNICAMENTE CON EL JSON, SIN TEXTO ADICIONAL.

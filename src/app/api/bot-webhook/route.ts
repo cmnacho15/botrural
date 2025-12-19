@@ -23,6 +23,7 @@ import {
   handleCalendarioConsultar,
   handleCalendarioButtonResponse,
   handleMoverPotreroModulo,
+  handleReporteCarga,
 } from "@/lib/whatsapp"
 
 const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || "mi_token_secreto"
@@ -192,10 +193,18 @@ if (usuario?.campoId) {
 const parsedData = await parseMessageWithAI(messageText, potreros, categorias)
 
     if (parsedData) {
-      // ========================================
-      // 📅 CALENDARIO - Crear actividad
-      // ========================================
-      if (parsedData.tipo === "CALENDARIO_CREAR") {
+  // ========================================
+  // 📊 REPORTE DE CARGA (PDF)
+  // ========================================
+  if (parsedData.tipo === "REPORTE_CARGA") {
+    await handleReporteCarga(from)
+    return NextResponse.json({ status: "reporte carga sent" })
+  }
+
+  // ========================================
+  // 📅 CALENDARIO - Crear actividad
+  // ========================================
+  if (parsedData.tipo === "CALENDARIO_CREAR") {
         await handleCalendarioCrear(from, parsedData)
         return NextResponse.json({ status: "calendario created" })
       }

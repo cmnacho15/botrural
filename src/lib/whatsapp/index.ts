@@ -24,3 +24,6 @@ export {
   handleMoverPotreroModulo,
   handleMoverPotreroModuloConfirmacion,
 } from "./handlers/moverPotreroModuloHandler"
+
+export { handleReporteCarga } from "./handlers/reporteCargaHandler"
+export { sendWhatsAppDocument } from "./sendMessage"
