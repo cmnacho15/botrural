@@ -42,11 +42,14 @@ export default function BotonDescargarCarga() {
 
     try {
       // 1. Obtener los datos
-      const response = await fetch('/api/reportes/carga-actual')
-      if (!response.ok) {
-        throw new Error('Error obteniendo datos')
-      }
-      const data: ReporteCarga = await response.json()
+const response = await fetch('/api/reportes/carga-actual')
+if (!response.ok) {
+  const errorData = await response.text()
+  console.error('Error API:', response.status, errorData)
+  throw new Error(`Error obteniendo datos: ${response.status}`)
+}
+const data: ReporteCarga = await response.json()
+console.log('Datos recibidos:', data)
 
       // 2. Importar jsPDF dinámicamente
       const { default: jsPDF } = await import('jspdf')
@@ -202,10 +205,10 @@ export default function BotonDescargarCarga() {
       const nombreArchivo = `carga_${data.campo.nombre.replace(/\s+/g, '_')}_${fecha.toISOString().split('T')[0]}.pdf`
       doc.save(nombreArchivo)
 
-    } catch (error) {
-      console.error('Error generando PDF:', error)
-      alert('Error al generar el PDF. Intentá de nuevo.')
-    } finally {
+    } catch (error: any) {
+  console.error('Error generando PDF:', error)
+  alert(`Error al generar el PDF: ${error.message || 'Error desconocido'}`)
+} finally {
       setDescargando(false)
     }
   }
