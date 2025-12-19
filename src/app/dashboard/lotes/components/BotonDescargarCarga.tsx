@@ -124,12 +124,7 @@ export default function BotonDescargarCarga() {
 
     try {
       // 1. Cargar el logo en paralelo con los datos
-      const [dataResponse, logoBase64] = await Promise.all([
-  fetch('/api/reportes/carga-actual'),
-  cargarLogoBase64()
-])
-
-console.log('Logo cargado:', logoBase64 ? 'SI (' + logoBase64.substring(0, 50) + '...)' : 'NO')
+      const dataResponse = await fetch('/api/reportes/carga-actual')
 
       if (!dataResponse.ok) {
         const errorData = await dataResponse.text()
@@ -155,14 +150,18 @@ console.log('Logo cargado:', logoBase64 ? 'SI (' + logoBase64.substring(0, 50) +
       const pageWidth = doc.internal.pageSize.getWidth()
       const margin = 10
 
-      // Header con logo como membrete
-if (logoBase64) {
-  doc.addImage(logoBase64, 'PNG', margin, 5, 20, 20)
-}
-
-doc.setFontSize(16)
+      // Marca de agua de texto
+doc.setFontSize(60)
+doc.setTextColor(230, 230, 230)
 doc.setFont('helvetica', 'bold')
-doc.text(`Establecimiento: ${data.campo.nombre}`, margin + 25, 15)
+const pageHeight = doc.internal.pageSize.getHeight()
+doc.text('BOTRURAL', pageWidth / 2, pageHeight / 2, { angle: 45, align: 'center' })
+
+// Header
+doc.setFontSize(16)
+doc.setTextColor(0, 0, 0)
+doc.setFont('helvetica', 'bold')
+doc.text(`Establecimiento: ${data.campo.nombre}`, margin, 15)
 
       doc.setFontSize(12)
       doc.setFont('helvetica', 'normal')

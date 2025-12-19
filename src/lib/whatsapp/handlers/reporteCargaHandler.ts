@@ -113,26 +113,18 @@ async function generarPDFCarga(campoId: string): Promise<Buffer | null> {
     const pageWidth = doc.internal.pageSize.getWidth()
     const margin = 10
 
-    // Header con logo
-const logoUrl = 'https://botrural.vercel.app/BotRURAL.png'
-try {
-  const logoResponse = await fetch(logoUrl)
-  if (logoResponse.ok) {
-    const logoBuffer = await logoResponse.arrayBuffer()
-    const logoBase64 = `data:image/png;base64,${Buffer.from(logoBuffer).toString('base64')}`
-    doc.addImage(logoBase64, 'PNG', margin, 5, 20, 20)
-  }
-} catch (e) {
-  console.log('⚠️ No se pudo cargar el logo')
-}
-
-doc.setFontSize(16)
+    // Marca de agua de texto
+doc.setFontSize(60)
+doc.setTextColor(230, 230, 230)
 doc.setFont('helvetica', 'bold')
-doc.text(`Establecimiento: ${campo.nombre}`, margin + 25, 15)
+const pageHeight = doc.internal.pageSize.getHeight()
+doc.text('BOTRURAL', pageWidth / 2, pageHeight / 2, { angle: 45, align: 'center' })
 
-    doc.setFontSize(12)
-    doc.setFont('helvetica', 'normal')
-    doc.text(`TOTAL UG/ha: ${ugPorHaGlobal.toFixed(2)}`, pageWidth - margin - 50, 15)
+// Header
+doc.setFontSize(16)
+doc.setTextColor(0, 0, 0)
+doc.setFont('helvetica', 'bold')
+doc.text(`Establecimiento: ${campo.nombre}`, margin, 15)
 
     // Fecha
     const fecha = new Date()
