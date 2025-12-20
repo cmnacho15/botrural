@@ -43,7 +43,9 @@ export default function ModalTratamiento({ onClose, onSuccess }: ModalTratamient
   const [rodeos, setRodeos] = useState<any[]>([])
   const [modoRodeo, setModoRodeo] = useState<'NO_INCLUIR' | 'OPCIONAL' | 'OBLIGATORIO'>('OPCIONAL')
   
-  const [animalesTratados, setAnimalesTratados] = useState<AnimalTratado[]>([
+  const [showPotreroDropdown, setShowPotreroDropdown] = useState(false)
+
+const [animalesTratados, setAnimalesTratados] = useState<AnimalTratado[]>([
     { id: '1', cantidad: '', tipo: '', peso: '' }
   ])
 
@@ -222,40 +224,57 @@ export default function ModalTratamiento({ onClose, onSuccess }: ModalTratamient
         </div>
 
         {/* POTRERO */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Potrero</label>
-          <select
-            value={potreroSeleccionado}
-            onChange={(e) => {
-              setPotreroSeleccionado(e.target.value)
+<div className="relative">
+  <label className="block text-sm font-medium text-gray-700 mb-2">Potrero</label>
+  
+  <div
+    onClick={() => setShowPotreroDropdown(!showPotreroDropdown)}
+    className={`w-full px-4 py-2 border rounded-lg cursor-pointer bg-white flex justify-between items-center ${
+      errorPotrero ? 'border-red-500' : 'border-gray-300'
+    }`}
+  >
+    <span className={potreroSeleccionado ? 'text-gray-900' : 'text-gray-400'}>
+      {potreroSeleccionado 
+        ? potreros.find(p => p.id === potreroSeleccionado)?.nombre 
+        : 'Seleccionar potrero...'}
+    </span>
+    <span className="text-gray-400">▼</span>
+  </div>
+
+  {showPotreroDropdown && (
+    <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+      {potreros.map((lote: any) => {
+        const resumenAnimales = lote.animalesLote && lote.animalesLote.length > 0
+          ? lote.animalesLote
+              .filter((a: any) => a.cantidad > 0)
+              .map((a: any) => `${a.categoria} (${a.cantidad})`)
+              .join(', ')
+          : 'Sin animales'
+        
+        return (
+          <div
+            key={lote.id}
+            onClick={() => {
+              setPotreroSeleccionado(lote.id)
+              setShowPotreroDropdown(false)
               setErrorPotrero(false)
             }}
-            className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
-              errorPotrero ? 'border-red-500' : 'border-gray-300'
+            className={`px-4 py-2 cursor-pointer hover:bg-blue-50 ${
+              potreroSeleccionado === lote.id ? 'bg-blue-100' : ''
             }`}
-            required
           >
-            <option value="">Seleccionar potrero...</option>
-{potreros.map((lote: any) => {
-  // Armar resumen de animales
-  const resumenAnimales = lote.animalesLote && lote.animalesLote.length > 0
-    ? lote.animalesLote
-        .filter((a: any) => a.cantidad > 0)
-        .map((a: any) => `${a.categoria} (${a.cantidad})`)
-        .join(', ')
-    : 'Sin animales'
-  
-  return (
-    <option key={lote.id} value={lote.id}>
-      {lote.nombre} → {resumenAnimales}
-    </option>
-  )
-})}
-          </select>
-          {errorPotrero && (
-            <p className="text-red-500 text-xs mt-1">El potrero es obligatorio</p>
-          )}
-        </div>
+            <div className="font-medium text-gray-900">{lote.nombre}</div>
+            <div className="text-sm text-gray-500">{resumenAnimales}</div>
+          </div>
+        )
+      })}
+    </div>
+  )}
+
+  {errorPotrero && (
+    <p className="text-red-500 text-xs mt-1">El potrero es obligatorio</p>
+  )}
+</div>
 
         {/* TRATAMIENTO */}
         <div>
