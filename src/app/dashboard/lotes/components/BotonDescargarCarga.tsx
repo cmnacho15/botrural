@@ -196,7 +196,7 @@ export default function BotonDescargarCarga() {
           doc.setFontSize(30)
           doc.setTextColor(235, 235, 235)
           doc.setFont('helvetica', 'bold')
-          doc.text('BOTRURAL', pageWidth / 2, 10, { align: 'center' })
+          doc.text('BOTRURAL', pageWidth / 2, 16, { align: 'center' })
         },
         margin: { left: margin, right: margin }
       })
