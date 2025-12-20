@@ -235,12 +235,22 @@ export default function ModalTratamiento({ onClose, onSuccess }: ModalTratamient
             }`}
             required
           >
-            <option value="">Potrero</option>
-            {potreros.map((lote) => (
-              <option key={lote.id} value={lote.id}>
-                {lote.nombre}
-              </option>
-            ))}
+            <option value="">Seleccionar potrero...</option>
+{potreros.map((lote: any) => {
+  // Armar resumen de animales
+  const resumenAnimales = lote.animalesLote && lote.animalesLote.length > 0
+    ? lote.animalesLote
+        .filter((a: any) => a.cantidad > 0)
+        .map((a: any) => `${a.categoria} (${a.cantidad})`)
+        .join(', ')
+    : 'Sin animales'
+  
+  return (
+    <option key={lote.id} value={lote.id}>
+      {lote.nombre} → {resumenAnimales}
+    </option>
+  )
+})}
           </select>
           {errorPotrero && (
             <p className="text-red-500 text-xs mt-1">El potrero es obligatorio</p>
