@@ -71,7 +71,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { nombre, hectareas, poligono, cultivos = [], animales = [], moduloPastoreoId, esPastoreable } = body;  // 🆕 AGREGAR esPastoreable
+const { nombre, hectareas, poligono, cultivos = [], animales = [], moduloPastoreoId, esPastoreable, diasPastoreoAjuste, diasDescansoAjuste } = body;
 
     if (!nombre || !hectareas) {
       return NextResponse.json(
@@ -96,7 +96,16 @@ export async function POST(request: Request) {
         poligono,
         esPastoreable: esPastoreable ?? true,  // 🆕 NUEVO
         campoId: usuario.campoId,
-        ultimoCambio: new Date(), // 🔥 AGREGADO: registrar fecha de creación
+        ultimoCambio: (() => {
+      const tieneAnimales = animales && animales.length > 0
+      if (diasPastoreoAjuste && tieneAnimales) {
+        return new Date(Date.now() - (diasPastoreoAjuste * 24 * 60 * 60 * 1000))
+      }
+      if (diasDescansoAjuste && !tieneAnimales) {
+        return new Date(Date.now() - (diasDescansoAjuste * 24 * 60 * 60 * 1000))
+      }
+      return new Date()
+    })(),
         moduloPastoreoId: moduloPastoreoId || null,
 
         cultivos: {
