@@ -11,12 +11,11 @@ type Modulo = {
 }
 
 type Registro = {
-  diasDesdeHoy: number
   potrero: string
   fechaEntrada: string
   dias: number
   fechaSalida: string
-  descanso: number
+  diasDescanso: number
   hectareas: number
   comentarios: string
 }
@@ -95,15 +94,14 @@ export default function ReportePastoreoPage() {
     // Tabla
     autoTable(doc, {
       startY: 30,
-      head: [['CANT. DÍAS\nDESDE HOY', 'POTRERO', 'FECHA\nENTRADA', 'DÍAS', 'FECHA\nSALIDA', 'DESCANSO', 'Hectáreas', 'COMENTARIOS']],
+      head: [['POTRERO', 'FECHA\nENTRADA', 'DÍAS', 'FECHA\nSALIDA', 'DÍAS DE\nDESCANSO', 'HECTÁREAS', 'COMENTARIOS']],
       body: registros.map(r => [
-        r.diasDesdeHoy,
         r.potrero,
         r.fechaEntrada,
         r.dias,
         r.fechaSalida,
-        r.descanso,
-        r.hectareas,
+        r.diasDescanso,
+        r.hectareas.toFixed(2),
         r.comentarios,
       ]),
       theme: 'grid',
@@ -118,14 +116,13 @@ export default function ReportePastoreoPage() {
         cellPadding: 3,
       },
       columnStyles: {
-        0: { halign: 'center', fillColor: [255, 192, 203] },
-        1: { halign: 'center', fillColor: [173, 216, 230] },
+        0: { halign: 'center', fillColor: [173, 216, 230] },
+        1: { halign: 'center' },
         2: { halign: 'center' },
         3: { halign: 'center' },
         4: { halign: 'center' },
         5: { halign: 'center' },
-        6: { halign: 'center' },
-        7: { halign: 'left' },
+        6: { halign: 'left' },
       },
     })
 
@@ -133,22 +130,22 @@ export default function ReportePastoreoPage() {
   }
 
   return (
-  <div className="min-h-screen bg-gray-50 p-6">
-    <div className="max-w-6xl mx-auto">
-      {/* 👇 BOTÓN DE VOLVER */}
-      <div className="mb-6">
-        <Link
-          href="/dashboard/lotes"
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 shadow-sm transition text-sm font-medium"
-        >
-          <span className="text-lg">←</span> Volver a Potreros
-        </Link>
-      </div>
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-6xl mx-auto">
+        {/* Botón de volver */}
+        <div className="mb-6">
+          <Link
+            href="/dashboard/lotes"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 shadow-sm transition text-sm font-medium"
+          >
+            <span className="text-lg">←</span> Volver a Potreros
+          </Link>
+        </div>
 
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-1">📊 Reporte de Pastoreo Rotativo</h1>
-        <p className="text-gray-600 text-sm">Genera el historial de movimientos por módulo</p>
-      </div>
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-gray-900 mb-1">📊 Reporte de Pastoreo Rotativo</h1>
+          <p className="text-gray-600 text-sm">Genera el historial de movimientos por módulo</p>
+        </div>
 
         {/* Filtros */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
@@ -228,26 +225,24 @@ export default function ReportePastoreoPage() {
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase text-center">CANT. DÍAS<br/>DESDE HOY</th>
                       <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase text-center">POTRERO</th>
                       <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase text-center">FECHA<br/>ENTRADA</th>
                       <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase text-center">DÍAS</th>
                       <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase text-center">FECHA<br/>SALIDA</th>
-                      <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase text-center">DESCANSO</th>
-                      <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase text-center">Hectáreas</th>
+                      <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase text-center">DÍAS DE<br/>DESCANSO</th>
+                      <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase text-center">HECTÁREAS</th>
                       <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase text-left">COMENTARIOS</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {registros.map((registro, idx) => (
                       <tr key={idx} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 text-sm text-center bg-pink-100">{registro.diasDesdeHoy}</td>
                         <td className="px-4 py-3 text-sm text-center bg-blue-100 font-medium">{registro.potrero}</td>
                         <td className="px-4 py-3 text-sm text-center">{registro.fechaEntrada}</td>
                         <td className="px-4 py-3 text-sm text-center">{registro.dias}</td>
                         <td className="px-4 py-3 text-sm text-center">{registro.fechaSalida}</td>
-                        <td className="px-4 py-3 text-sm text-center">{registro.descanso}</td>
-                        <td className="px-4 py-3 text-sm text-center">{registro.hectareas}</td>
+                        <td className="px-4 py-3 text-sm text-center">{registro.diasDescanso}</td>
+                        <td className="px-4 py-3 text-sm text-center">{registro.hectareas.toFixed(2)}</td>
                         <td className="px-4 py-3 text-sm">{registro.comentarios}</td>
                       </tr>
                     ))}

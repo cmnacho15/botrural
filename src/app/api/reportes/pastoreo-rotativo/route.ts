@@ -75,13 +75,13 @@ export async function GET(request: Request) {
     // Obtener eventos de CAMBIO_POTRERO hacia estos potreros
     const eventos = await prisma.evento.findMany({
       where: {
-        tipo: { in: ['CAMBIO_POTRERO', 'AJUSTE'] }, // 🔥 Solo movimientos y ajustes
+        tipo: { in: ['CAMBIO_POTRERO', 'AJUSTE'] },
         campoId: usuario.campoId,
         loteDestinoId: { in: potrerosIds },
         ...(Object.keys(filtroFechas).length > 0 && { fecha: filtroFechas }),
       },
       include: {
-        lote: { select: { nombre: true } }, // potrero origen
+        lote: { select: { nombre: true } },
       },
       orderBy: [
         { loteDestinoId: 'asc' },
@@ -133,27 +133,30 @@ export async function GET(request: Request) {
         : 0
 
       // Calcular días de descanso
-      const descanso = siguienteGrupo 
-        ? Math.ceil((new Date(siguienteGrupo[1][0].fecha).getTime() - fechaSalida!.getTime()) / (1000 * 60 * 60 * 24))
-        : 0
-
-      // Días desde hoy
-      const diasDesdeHoy = Math.ceil((hoy.getTime() - fechaEntrada.getTime()) / (1000 * 60 * 60 * 24))
+      let diasDescanso = 0
+      if (fechaSalida) {
+        if (siguienteGrupo) {
+          // Hay otra entrada después → días entre salida y nueva entrada
+          diasDescanso = Math.ceil((new Date(siguienteGrupo[1][0].fecha).getTime() - fechaSalida.getTime()) / (1000 * 60 * 60 * 24))
+        } else {
+          // No hay más entradas → días desde salida hasta hoy
+          diasDescanso = Math.ceil((hoy.getTime() - fechaSalida.getTime()) / (1000 * 60 * 60 * 24))
+        }
+      }
 
       registros.push({
-        diasDesdeHoy,
         potrero: potrero?.nombre || 'Desconocido',
         fechaEntrada: fechaEntrada.toISOString().split('T')[0],
         dias,
         fechaSalida: fechaSalida ? fechaSalida.toISOString().split('T')[0] : '-',
-        descanso,
-        hectareas: potrero?.hectareas || 0,
+        diasDescanso,
+        hectareas: Math.round((potrero?.hectareas || 0) * 100) / 100,
         comentarios: categorias,
       })
     })
 
     // Ordenar por fecha de entrada descendente (más recientes primero)
-    registros.sort((a, b) => b.diasDesdeHoy - a.diasDesdeHoy)
+    registros.sort((a, b) => new Date(b.fechaEntrada).getTime() - new Date(a.fechaEntrada).getTime())
 
     return NextResponse.json({
       modulo: modulo.nombre,
