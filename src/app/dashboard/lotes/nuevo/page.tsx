@@ -496,16 +496,16 @@ export default function NuevoLotePage() {
               </p>
               <div className="flex items-center gap-3">
                 <input
-                  type="number"
-                  value={animales.some(a => a.categoria && a.cantidad) ? diasPastoreoAjuste : diasDescansoAjuste}
-                  onChange={(e) => animales.some(a => a.categoria && a.cantidad)
-                    ? setDiasPastoreoAjuste(e.target.value)
-                    : setDiasDescansoAjuste(e.target.value)
-                  }
-                  min="0"
-                  className="flex-1 border border-gray-300 rounded-lg px-4 py-2.5"
-                  placeholder="Ej: 15 días"
-                />
+  type="number"
+  value={diasPastoreoAjuste || diasDescansoAjuste}
+  onChange={(e) => {
+    setDiasPastoreoAjuste(e.target.value)
+    setDiasDescansoAjuste(e.target.value)
+  }}
+  min="0"
+  className="flex-1 border border-gray-300 rounded-lg px-4 py-2.5"
+  placeholder="Ej: 15 días"
+/>
                 <span className="text-sm text-gray-600 whitespace-nowrap">días atrás</span>
               </div>
               <p className="text-xs text-gray-500 mt-2 italic">
