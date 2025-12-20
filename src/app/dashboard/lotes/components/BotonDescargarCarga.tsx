@@ -23,12 +23,14 @@ interface ReporteCarga {
     animalesPorCategoria: Record<string, number>
     ugPorHa: number
     vacunosTotales: number
+    ovinosTotales: number
   }>
   totales: {
     hectareas: number
     porCategoria: Record<string, number>
     ugTotales: number
     vacunosTotales: number
+    ovinosTotales: number
     ugPorHa: number
   }
   fecha: string
@@ -94,68 +96,61 @@ doc.text(`Establecimiento: ${data.campo.nombre}`, margin, 15)
         22
       )
 
-      // Construir columnas de la tabla
-      const todasCategorias = [
-        ...data.categorias.bovinas,
-        ...data.categorias.ovinas,
-        ...data.categorias.equinas
-      ]
-
-      // Filtrar solo categorías que tienen al menos 1 animal en algún potrero
-      const categoriasConDatos = todasCategorias.filter(cat => {
+      // ========== TABLA 1: VACUNOS ==========
+      const categoriasBovinas = data.categorias.bovinas.filter(cat => {
         return data.potreros.some(p => (p.animalesPorCategoria[cat.nombre] || 0) > 0) ||
                (data.totales.porCategoria[cat.nombre] || 0) > 0
       })
 
-      // Crear headers de la tabla
-      const headers = [
+      const headersBovinos = [
         'Potreros',
         'Ha',
-        ...categoriasConDatos.map(c => c.nombre),
+        ...categoriasBovinas.map(c => c.nombre),
         'UG/Ha',
-        'Vacunos'
+        'Total Vacunos'
       ]
 
-      // Crear fila de equivalencias UG
-      const filaEquivalencias = [
+      const filaEquivalenciasBovinos = [
         'UG x Categoría',
         '',
-        ...categoriasConDatos.map(c => c.equivalenciaUG.toFixed(2)),
+        ...categoriasBovinas.map(c => c.equivalenciaUG.toFixed(2)),
         '',
         ''
       ]
 
-      // Crear filas de datos
-      const filasDatos = data.potreros.map(potrero => {
+      const filasDatosBovinos = data.potreros.map(potrero => {
         return [
           potrero.nombre,
           potrero.hectareas.toFixed(0),
-          ...categoriasConDatos.map(c => {
+          ...categoriasBovinas.map(c => {
             const cantidad = potrero.animalesPorCategoria[c.nombre] || 0
             return cantidad > 0 ? cantidad.toString() : ''
           }),
           potrero.ugPorHa.toFixed(2),
-          potrero.vacunosTotales.toFixed(2)
+          potrero.vacunosTotales.toString()
         ]
       })
 
-      // Crear fila de totales
-      const filaTotales = [
+      const filaTotalesBovinos = [
         'TOTAL:',
         data.totales.hectareas.toFixed(0),
-        ...categoriasConDatos.map(c => {
+        ...categoriasBovinas.map(c => {
           const total = data.totales.porCategoria[c.nombre] || 0
           return total > 0 ? total.toString() : ''
         }),
         data.totales.ugPorHa.toFixed(2),
-        data.totales.vacunosTotales.toFixed(2)
+        data.totales.vacunosTotales.toString()
       ]
 
-      // Generar la tabla con autoTable
+      // Generar TABLA VACUNOS
+      doc.setFontSize(12)
+      doc.setFont('helvetica', 'bold')
+      doc.text('VACUNOS', margin, 30)
+
       autoTable(doc, {
-        head: [headers, filaEquivalencias],
-        body: [...filasDatos, filaTotales],
-        startY: 28,
+        head: [headersBovinos, filaEquivalenciasBovinos],
+        body: [...filasDatosBovinos, filaTotalesBovinos],
+        startY: 35,
         theme: 'grid',
         styles: {
           fontSize: 7,
@@ -165,42 +160,123 @@ doc.text(`Establecimiento: ${data.campo.nombre}`, margin, 15)
           valign: 'middle'
         },
         headStyles: {
-          fillColor: [245, 245, 220], // Beige como en la imagen
+          fillColor: [245, 245, 220],
           textColor: [0, 0, 0],
           fontStyle: 'bold',
           fontSize: 6
         },
         columnStyles: {
-          0: { halign: 'left', cellWidth: 25 }, // Potreros
-          1: { cellWidth: 12 } // Ha
+          0: { halign: 'left', cellWidth: 25 },
+          1: { cellWidth: 12 }
         },
         didParseCell: function(data: any) {
-          // Fila de equivalencias UG (segunda fila del header)
           if (data.section === 'head' && data.row.index === 1) {
-            data.cell.styles.fillColor = [255, 255, 200] // Amarillo claro
+            data.cell.styles.fillColor = [255, 255, 200]
             data.cell.styles.fontStyle = 'normal'
           }
           
-          // Fila de totales (última fila del body)
-          if (data.section === 'body' && data.row.index === filasDatos.length) {
-            data.cell.styles.fillColor = [200, 255, 200] // Verde claro
+          if (data.section === 'body' && data.row.index === filasDatosBovinos.length) {
+            data.cell.styles.fillColor = [200, 255, 200]
             data.cell.styles.fontStyle = 'bold'
           }
           
-          // Columna UG/Ha - colorear según valor
-          if (data.section === 'body' && data.column.index === headers.length - 2) {
+          if (data.section === 'body' && data.column.index === headersBovinos.length - 2) {
             const valor = parseFloat(data.cell.raw) || 0
             if (valor === 0) {
-              data.cell.styles.textColor = [150, 150, 150] // Gris
+              data.cell.styles.textColor = [150, 150, 150]
             } else if (valor < 0.7) {
-              data.cell.styles.textColor = [0, 100, 200] // Azul
+              data.cell.styles.textColor = [0, 100, 200]
             } else if (valor <= 1.5) {
-              data.cell.styles.textColor = [0, 150, 0] // Verde
+              data.cell.styles.textColor = [0, 150, 0]
             } else if (valor <= 2.0) {
-              data.cell.styles.textColor = [200, 150, 0] // Naranja
+              data.cell.styles.textColor = [200, 150, 0]
             } else {
-              data.cell.styles.textColor = [200, 0, 0] // Rojo
+              data.cell.styles.textColor = [200, 0, 0]
             }
+          }
+        },
+        margin: { left: margin, right: margin }
+      })
+
+      // ========== TABLA 2: OVINOS ==========
+      const categoriasOvinas = data.categorias.ovinas.filter(cat => {
+        return data.potreros.some(p => (p.animalesPorCategoria[cat.nombre] || 0) > 0) ||
+               (data.totales.porCategoria[cat.nombre] || 0) > 0
+      })
+
+      const headersOvinos = [
+        'Potreros',
+        'Ha',
+        ...categoriasOvinas.map(c => c.nombre),
+        'Total Ovinos'
+      ]
+
+      const filaEquivalenciasOvinos = [
+        'UG x Categoría',
+        '',
+        ...categoriasOvinas.map(c => c.equivalenciaUG.toFixed(2)),
+        ''
+      ]
+
+      const filasDatosOvinos = data.potreros.map(potrero => {
+        return [
+          potrero.nombre,
+          potrero.hectareas.toFixed(0),
+          ...categoriasOvinas.map(c => {
+            const cantidad = potrero.animalesPorCategoria[c.nombre] || 0
+            return cantidad > 0 ? cantidad.toString() : ''
+          }),
+          potrero.ovinosTotales.toString()
+        ]
+      })
+
+      const filaTotalesOvinos = [
+        'TOTAL:',
+        data.totales.hectareas.toFixed(0),
+        ...categoriasOvinas.map(c => {
+          const total = data.totales.porCategoria[c.nombre] || 0
+          return total > 0 ? total.toString() : ''
+        }),
+        data.totales.ovinosTotales.toString()
+      ]
+
+      const startYOvinos = (doc as any).lastAutoTable.finalY + 10
+
+      doc.setFontSize(12)
+      doc.setFont('helvetica', 'bold')
+      doc.text('OVINOS', margin, startYOvinos)
+
+      autoTable(doc, {
+        head: [headersOvinos, filaEquivalenciasOvinos],
+        body: [...filasDatosOvinos, filaTotalesOvinos],
+        startY: startYOvinos + 5,
+        theme: 'grid',
+        styles: {
+          fontSize: 7,
+          cellPadding: 1.5,
+          overflow: 'linebreak',
+          halign: 'center',
+          valign: 'middle'
+        },
+        headStyles: {
+          fillColor: [245, 245, 220],
+          textColor: [0, 0, 0],
+          fontStyle: 'bold',
+          fontSize: 6
+        },
+        columnStyles: {
+          0: { halign: 'left', cellWidth: 25 },
+          1: { cellWidth: 12 }
+        },
+        didParseCell: function(data: any) {
+          if (data.section === 'head' && data.row.index === 1) {
+            data.cell.styles.fillColor = [255, 255, 200]
+            data.cell.styles.fontStyle = 'normal'
+          }
+          
+          if (data.section === 'body' && data.row.index === filasDatosOvinos.length) {
+            data.cell.styles.fillColor = [200, 255, 200]
+            data.cell.styles.fontStyle = 'bold'
           }
         },
         margin: { left: margin, right: margin }
@@ -248,6 +324,3 @@ doc.text('BOTRURAL', pageWidth / 2, 10, { align: 'center' })
     </button>
   )
 }
-
-
-//holaa
