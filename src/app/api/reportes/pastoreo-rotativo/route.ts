@@ -165,9 +165,9 @@ const potreros = await prisma.lote.findMany({
 
       registros.push({
         potrero: potrero.nombre,
-        fechaEntrada: fechaEntrada.toISOString().split('T')[0],
+        fechaEntrada: fechaEntrada.toLocaleDateString('es-UY'),
         dias: diasPastoreo,
-        fechaSalida: fechaSalida ? fechaSalida.toISOString().split('T')[0] : '-',
+        fechaSalida: fechaSalida ? fechaSalida.toLocaleDateString('es-UY') : '-',
         diasDescanso,
         hectareas: Math.round((potrero.hectareas || 0) * 100) / 100,
         comentarios: entrada.categoria || entrada.descripcion || '-',
