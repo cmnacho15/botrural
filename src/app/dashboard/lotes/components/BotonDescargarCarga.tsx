@@ -38,11 +38,6 @@ interface ReporteCarga {
   fecha: string
 }
 
-
-    
-   
-
-
 export default function BotonDescargarCarga() {
   const [descargando, setDescargando] = useState(false)
 
@@ -77,8 +72,6 @@ export default function BotonDescargarCarga() {
       const pageWidth = doc.internal.pageSize.getWidth()
       const margin = 10
 
-      
-
       // Header
       doc.setFontSize(16)
       doc.setTextColor(0, 0, 0)
@@ -109,7 +102,7 @@ export default function BotonDescargarCarga() {
         'Ha',
         ...categoriasBovinas.map(c => c.nombre),
         'Total Vacunos',
-        'UG/Ha (Vac+Lan+Equ)'
+        'UG/Ha (Vac+Ovi+Equ)'
       ]
 
       const filaEquivalenciasBovinos = [
@@ -285,97 +278,6 @@ export default function BotonDescargarCarga() {
           }
           
           if (data.section === 'body' && data.row.index === filasDatosOvinos.length) {
-            data.cell.styles.fillColor = [200, 255, 200]
-            data.cell.styles.fontStyle = 'bold'
-          }
-        },
-        didDrawPage: function(data: any) {
-          // Marca de agua en cada página
-          doc.setFontSize(30)
-          doc.setTextColor(235, 235, 235)
-          doc.setFont('helvetica', 'bold')
-          doc.text('BOTRURAL', pageWidth / 2, 10, { align: 'center' })
-        },
-        margin: { left: margin, right: margin }
-      })
-
-      // ========== TABLA 3: EQUINOS ==========
-      const categoriasEquinas = data.categorias.equinas.filter(cat => {
-        return data.potreros.some(p => (p.animalesPorCategoria[cat.nombre] || 0) > 0) ||
-               (data.totales.porCategoria[cat.nombre] || 0) > 0
-      })
-
-      const headersEquinos = [
-        'Potreros',
-        'Ha',
-        ...categoriasEquinas.map(c => c.nombre),
-        'Total Equinos'
-      ]
-
-      const filaEquivalenciasEquinos = [
-        'UG x Categoría',
-        '',
-        ...categoriasEquinas.map(c => c.equivalenciaUG.toFixed(2)),
-        ''
-      ]
-
-      const filasDatosEquinos = data.potreros.map(potrero => {
-        return [
-          potrero.nombre,
-          potrero.hectareas.toFixed(0),
-          ...categoriasEquinas.map(c => {
-            const cantidad = potrero.animalesPorCategoria[c.nombre] || 0
-            return cantidad > 0 ? cantidad.toString() : ''
-          }),
-          potrero.equinosTotales.toString()
-        ]
-      })
-
-      const filaTotalesEquinos = [
-        'TOTAL:',
-        data.totales.hectareas.toFixed(0),
-        ...categoriasEquinas.map(c => {
-          const total = data.totales.porCategoria[c.nombre] || 0
-          return total > 0 ? total.toString() : ''
-        }),
-        data.totales.equinosTotales.toString()
-      ]
-
-      const startYEquinos = (doc as any).lastAutoTable.finalY + 10
-
-      doc.setFontSize(12)
-      doc.setFont('helvetica', 'bold')
-      doc.text('EQUINOS', margin, startYEquinos)
-
-      autoTable(doc, {
-        head: [headersEquinos, filaEquivalenciasEquinos],
-        body: [...filasDatosEquinos, filaTotalesEquinos],
-        startY: startYEquinos + 5,
-        theme: 'grid',
-        styles: {
-          fontSize: 7,
-          cellPadding: 1.5,
-          overflow: 'linebreak',
-          halign: 'center',
-          valign: 'middle'
-        },
-        headStyles: {
-          fillColor: [245, 245, 220],
-          textColor: [0, 0, 0],
-          fontStyle: 'bold',
-          fontSize: 6
-        },
-        columnStyles: {
-          0: { halign: 'left', cellWidth: 25 },
-          1: { cellWidth: 12 }
-        },
-        didParseCell: function(data: any) {
-          if (data.section === 'head' && data.row.index === 1) {
-            data.cell.styles.fillColor = [255, 255, 200]
-            data.cell.styles.fontStyle = 'normal'
-          }
-          
-          if (data.section === 'body' && data.row.index === filasDatosEquinos.length) {
             data.cell.styles.fillColor = [200, 255, 200]
             data.cell.styles.fontStyle = 'bold'
           }
