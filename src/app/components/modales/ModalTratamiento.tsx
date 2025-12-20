@@ -242,7 +242,7 @@ const [animalesTratados, setAnimalesTratados] = useState<AnimalTratado[]>([
   </div>
 
   {showPotreroDropdown && (
-    <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+    <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg">
       {potreros.map((lote: any) => {
         const resumenAnimales = lote.animalesLote && lote.animalesLote.length > 0
           ? lote.animalesLote
