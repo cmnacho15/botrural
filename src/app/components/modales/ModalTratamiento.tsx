@@ -256,55 +256,6 @@ const [animalesTratados, setAnimalesTratados] = useState<AnimalTratado[]>([
   {errorPotrero && (
     <p className="text-red-500 text-xs mt-1">El potrero es obligatorio</p>
   )}
-
-  
-  <div
-    onClick={() => setShowPotreroDropdown(!showPotreroDropdown)}
-    className={`w-full px-4 py-2 border rounded-lg cursor-pointer bg-white flex justify-between items-center ${
-      errorPotrero ? 'border-red-500' : 'border-gray-300'
-    }`}
-  >
-    <span className={potreroSeleccionado ? 'text-gray-900' : 'text-gray-400'}>
-      {potreroSeleccionado 
-        ? potreros.find(p => p.id === potreroSeleccionado)?.nombre 
-        : 'Seleccionar potrero...'}
-    </span>
-    <span className="text-gray-400">▼</span>
-  </div>
-
-  {showPotreroDropdown && (
-    <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg">
-      {potreros.map((lote: any) => {
-        const resumenAnimales = lote.animalesLote && lote.animalesLote.length > 0
-          ? lote.animalesLote
-              .filter((a: any) => a.cantidad > 0)
-              .map((a: any) => `${a.categoria} (${a.cantidad})`)
-              .join(', ')
-          : 'Sin animales'
-        
-        return (
-          <div
-            key={lote.id}
-            onClick={() => {
-              setPotreroSeleccionado(lote.id)
-              setShowPotreroDropdown(false)
-              setErrorPotrero(false)
-            }}
-            className={`px-4 py-2 cursor-pointer hover:bg-blue-50 ${
-              potreroSeleccionado === lote.id ? 'bg-blue-100' : ''
-            }`}
-          >
-            <div className="font-medium text-gray-900">{lote.nombre}</div>
-            <div className="text-sm text-gray-500">{resumenAnimales}</div>
-          </div>
-        )
-      })}
-    </div>
-  )}
-
-  {errorPotrero && (
-    <p className="text-red-500 text-xs mt-1">El potrero es obligatorio</p>
-  )}
 </div>
 
         {/* TRATAMIENTO */}
