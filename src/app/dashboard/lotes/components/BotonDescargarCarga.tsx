@@ -79,11 +79,11 @@ export default function BotonDescargarCarga() {
 
       
 
-// Header
-doc.setFontSize(16)
-doc.setTextColor(0, 0, 0)
-doc.setFont('helvetica', 'bold')
-doc.text(`Establecimiento: ${data.campo.nombre}`, margin, 15)
+      // Header
+      doc.setFontSize(16)
+      doc.setTextColor(0, 0, 0)
+      doc.setFont('helvetica', 'bold')
+      doc.text(`Establecimiento: ${data.campo.nombre}`, margin, 15)
 
       doc.setFontSize(12)
       doc.setFont('helvetica', 'normal')
@@ -198,6 +198,13 @@ doc.text(`Establecimiento: ${data.campo.nombre}`, margin, 15)
             }
           }
         },
+        didDrawPage: function(data: any) {
+          // Marca de agua en cada página
+          doc.setFontSize(30)
+          doc.setTextColor(235, 235, 235)
+          doc.setFont('helvetica', 'bold')
+          doc.text('BOTRURAL', pageWidth / 2, 10, { align: 'center' })
+        },
         margin: { left: margin, right: margin }
       })
 
@@ -281,6 +288,13 @@ doc.text(`Establecimiento: ${data.campo.nombre}`, margin, 15)
             data.cell.styles.fillColor = [200, 255, 200]
             data.cell.styles.fontStyle = 'bold'
           }
+        },
+        didDrawPage: function(data: any) {
+          // Marca de agua en cada página
+          doc.setFontSize(30)
+          doc.setTextColor(235, 235, 235)
+          doc.setFont('helvetica', 'bold')
+          doc.text('BOTRURAL', pageWidth / 2, 10, { align: 'center' })
         },
         margin: { left: margin, right: margin }
       })
@@ -366,14 +380,15 @@ doc.text(`Establecimiento: ${data.campo.nombre}`, margin, 15)
             data.cell.styles.fontStyle = 'bold'
           }
         },
+        didDrawPage: function(data: any) {
+          // Marca de agua en cada página
+          doc.setFontSize(30)
+          doc.setTextColor(235, 235, 235)
+          doc.setFont('helvetica', 'bold')
+          doc.text('BOTRURAL', pageWidth / 2, 10, { align: 'center' })
+        },
         margin: { left: margin, right: margin }
       })
-
-     // Marca de agua arriba centrada (como título sutil)
-doc.setFontSize(30)
-doc.setTextColor(235, 235, 235)
-doc.setFont('helvetica', 'bold')
-doc.text('BOTRURAL', pageWidth / 2, 10, { align: 'center' })
 
       // Footer
       const finalY = (doc as any).lastAutoTable.finalY + 10
