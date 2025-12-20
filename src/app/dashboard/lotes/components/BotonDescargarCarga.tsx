@@ -24,6 +24,7 @@ interface ReporteCarga {
     ugPorHa: number
     vacunosTotales: number
     ovinosTotales: number
+    equinosTotales: number
   }>
   totales: {
     hectareas: number
@@ -31,6 +32,7 @@ interface ReporteCarga {
     ugTotales: number
     vacunosTotales: number
     ovinosTotales: number
+    equinosTotales: number
     ugPorHa: number
   }
   fecha: string
@@ -106,8 +108,8 @@ doc.text(`Establecimiento: ${data.campo.nombre}`, margin, 15)
         'Potreros',
         'Ha',
         ...categoriasBovinas.map(c => c.nombre),
-        'UG/Ha',
-        'Total Vacunos'
+        'Total Vacunos',
+        'UG/Ha (Vac+Lan+Equ)'
       ]
 
       const filaEquivalenciasBovinos = [
@@ -126,8 +128,8 @@ doc.text(`Establecimiento: ${data.campo.nombre}`, margin, 15)
             const cantidad = potrero.animalesPorCategoria[c.nombre] || 0
             return cantidad > 0 ? cantidad.toString() : ''
           }),
-          potrero.ugPorHa.toFixed(2),
-          potrero.vacunosTotales.toString()
+          potrero.vacunosTotales.toString(),
+          potrero.ugPorHa.toFixed(2)
         ]
       })
 
@@ -138,8 +140,8 @@ doc.text(`Establecimiento: ${data.campo.nombre}`, margin, 15)
           const total = data.totales.porCategoria[c.nombre] || 0
           return total > 0 ? total.toString() : ''
         }),
-        data.totales.ugPorHa.toFixed(2),
-        data.totales.vacunosTotales.toString()
+        data.totales.vacunosTotales.toString(),
+        data.totales.ugPorHa.toFixed(2)
       ]
 
       // Generar TABLA VACUNOS
@@ -180,7 +182,8 @@ doc.text(`Establecimiento: ${data.campo.nombre}`, margin, 15)
             data.cell.styles.fontStyle = 'bold'
           }
           
-          if (data.section === 'body' && data.column.index === headersBovinos.length - 2) {
+          // Columna UG/Ha está ahora al final
+          if (data.section === 'body' && data.column.index === headersBovinos.length - 1) {
             const valor = parseFloat(data.cell.raw) || 0
             if (valor === 0) {
               data.cell.styles.textColor = [150, 150, 150]
@@ -275,6 +278,90 @@ doc.text(`Establecimiento: ${data.campo.nombre}`, margin, 15)
           }
           
           if (data.section === 'body' && data.row.index === filasDatosOvinos.length) {
+            data.cell.styles.fillColor = [200, 255, 200]
+            data.cell.styles.fontStyle = 'bold'
+          }
+        },
+        margin: { left: margin, right: margin }
+      })
+
+      // ========== TABLA 3: EQUINOS ==========
+      const categoriasEquinas = data.categorias.equinas.filter(cat => {
+        return data.potreros.some(p => (p.animalesPorCategoria[cat.nombre] || 0) > 0) ||
+               (data.totales.porCategoria[cat.nombre] || 0) > 0
+      })
+
+      const headersEquinos = [
+        'Potreros',
+        'Ha',
+        ...categoriasEquinas.map(c => c.nombre),
+        'Total Equinos'
+      ]
+
+      const filaEquivalenciasEquinos = [
+        'UG x Categoría',
+        '',
+        ...categoriasEquinas.map(c => c.equivalenciaUG.toFixed(2)),
+        ''
+      ]
+
+      const filasDatosEquinos = data.potreros.map(potrero => {
+        return [
+          potrero.nombre,
+          potrero.hectareas.toFixed(0),
+          ...categoriasEquinas.map(c => {
+            const cantidad = potrero.animalesPorCategoria[c.nombre] || 0
+            return cantidad > 0 ? cantidad.toString() : ''
+          }),
+          potrero.equinosTotales.toString()
+        ]
+      })
+
+      const filaTotalesEquinos = [
+        'TOTAL:',
+        data.totales.hectareas.toFixed(0),
+        ...categoriasEquinas.map(c => {
+          const total = data.totales.porCategoria[c.nombre] || 0
+          return total > 0 ? total.toString() : ''
+        }),
+        data.totales.equinosTotales.toString()
+      ]
+
+      const startYEquinos = (doc as any).lastAutoTable.finalY + 10
+
+      doc.setFontSize(12)
+      doc.setFont('helvetica', 'bold')
+      doc.text('EQUINOS', margin, startYEquinos)
+
+      autoTable(doc, {
+        head: [headersEquinos, filaEquivalenciasEquinos],
+        body: [...filasDatosEquinos, filaTotalesEquinos],
+        startY: startYEquinos + 5,
+        theme: 'grid',
+        styles: {
+          fontSize: 7,
+          cellPadding: 1.5,
+          overflow: 'linebreak',
+          halign: 'center',
+          valign: 'middle'
+        },
+        headStyles: {
+          fillColor: [245, 245, 220],
+          textColor: [0, 0, 0],
+          fontStyle: 'bold',
+          fontSize: 6
+        },
+        columnStyles: {
+          0: { halign: 'left', cellWidth: 25 },
+          1: { cellWidth: 12 }
+        },
+        didParseCell: function(data: any) {
+          if (data.section === 'head' && data.row.index === 1) {
+            data.cell.styles.fillColor = [255, 255, 200]
+            data.cell.styles.fontStyle = 'normal'
+          }
+          
+          if (data.section === 'body' && data.row.index === filasDatosEquinos.length) {
             data.cell.styles.fillColor = [200, 255, 200]
             data.cell.styles.fontStyle = 'bold'
           }

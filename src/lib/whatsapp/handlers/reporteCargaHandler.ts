@@ -62,6 +62,7 @@ async function generarPDFCarga(campoId: string): Promise<Buffer | null> {
     let totalUG = 0
     let totalVacunos = 0
     let totalOvinos = 0
+    let totalEquinos = 0
 
     const potrerosData = lotes.map(lote => {
       totalHectareas += lote.hectareas
@@ -72,6 +73,7 @@ async function generarPDFCarga(campoId: string): Promise<Buffer | null> {
       let ugPotrero = 0
       let vacunosPotrero = 0
       let ovinosPotrero = 0
+      let equinosPotrero = 0
 
       lote.animalesLote.forEach(animal => {
         const eq = getEquivalenciaUG(animal.categoria)
@@ -88,12 +90,15 @@ async function generarPDFCarga(campoId: string): Promise<Buffer | null> {
           vacunosPotrero += animal.cantidad
         } else if (catDB?.tipoAnimal === 'OVINO') {
           ovinosPotrero += animal.cantidad
+        } else if (catDB?.tipoAnimal === 'EQUINO') {
+          equinosPotrero += animal.cantidad
         }
       })
 
       totalUG += ugPotrero
       totalVacunos += vacunosPotrero
       totalOvinos += ovinosPotrero
+      totalEquinos += equinosPotrero
       
       const ugPorHa = lote.hectareas > 0 ? ugPotrero / lote.hectareas : 0
 
@@ -103,7 +108,8 @@ async function generarPDFCarga(campoId: string): Promise<Buffer | null> {
         animalesPorCategoria,
         ugPorHa,
         vacunosPotrero,
-        ovinosPotrero
+        ovinosPotrero,
+        equinosPotrero
       }
     })
 
@@ -147,8 +153,8 @@ async function generarPDFCarga(campoId: string): Promise<Buffer | null> {
       'Potreros',
       'Ha',
       ...categoriasBovinas.map(c => c.nombre),
-      'UG/Ha',
-      'Total Vacunos'
+      'Total Vacunos',
+      'UG/Ha (Vac+Lan+Equ)'
     ]
 
     const filaEquivalenciasBovinos = [
@@ -167,8 +173,8 @@ async function generarPDFCarga(campoId: string): Promise<Buffer | null> {
           const cantidad = potrero.animalesPorCategoria[c.nombre] || 0
           return cantidad > 0 ? cantidad.toString() : ''
         }),
-        potrero.ugPorHa.toFixed(2),
-        potrero.vacunosPotrero.toString()
+        potrero.vacunosPotrero.toString(),
+        potrero.ugPorHa.toFixed(2)
       ]
     })
 
@@ -179,8 +185,8 @@ async function generarPDFCarga(campoId: string): Promise<Buffer | null> {
         const total = totalesPorCategoria[c.nombre] || 0
         return total > 0 ? total.toString() : ''
       }),
-      ugPorHaGlobal.toFixed(2),
-      totalVacunos.toString()
+      totalVacunos.toString(),
+      ugPorHaGlobal.toFixed(2)
     ]
 
     // Generar TABLA VACUNOS
@@ -221,7 +227,8 @@ async function generarPDFCarga(campoId: string): Promise<Buffer | null> {
           data.cell.styles.fontStyle = 'bold'
         }
         
-        if (data.section === 'body' && data.column.index === headersBovinos.length - 2) {
+        // Columna UG/Ha está ahora al final
+        if (data.section === 'body' && data.column.index === headersBovinos.length - 1) {
           const valor = parseFloat(data.cell.raw) || 0
           if (valor === 0) {
             data.cell.styles.textColor = [150, 150, 150]
@@ -322,6 +329,89 @@ async function generarPDFCarga(campoId: string): Promise<Buffer | null> {
       margin: { left: margin, right: margin }
     })
 
+    // ========== TABLA 3: EQUINOS ==========
+    const categoriasEquinas = todasCategorias.filter(c => 
+      c.tipo === 'EQUINO' && totalesPorCategoria[c.nombre] > 0
+    )
+
+    const headersEquinos = [
+      'Potreros',
+      'Ha',
+      ...categoriasEquinas.map(c => c.nombre),
+      'Total Equinos'
+    ]
+
+    const filaEquivalenciasEquinos = [
+      'UG x Categoría',
+      '',
+      ...categoriasEquinas.map(c => c.equivalenciaUG.toFixed(2)),
+      ''
+    ]
+
+    const filasDatosEquinos = potrerosData.map(potrero => {
+      return [
+        potrero.nombre,
+        potrero.hectareas.toFixed(0),
+        ...categoriasEquinas.map(c => {
+          const cantidad = potrero.animalesPorCategoria[c.nombre] || 0
+          return cantidad > 0 ? cantidad.toString() : ''
+        }),
+        potrero.equinosPotrero.toString()
+      ]
+    })
+
+    const filaTotalesEquinos = [
+      'TOTAL:',
+      totalHectareas.toFixed(0),
+      ...categoriasEquinas.map(c => {
+        const total = totalesPorCategoria[c.nombre] || 0
+        return total > 0 ? total.toString() : ''
+      }),
+      totalEquinos.toString()
+    ]
+
+    const startYEquinos = (doc as any).lastAutoTable.finalY + 10
+
+    doc.setFontSize(12)
+    doc.setFont('helvetica', 'bold')
+    doc.text('EQUINOS', margin, startYEquinos)
+
+    autoTable(doc, {
+      head: [headersEquinos, filaEquivalenciasEquinos],
+      body: [...filasDatosEquinos, filaTotalesEquinos],
+      startY: startYEquinos + 5,
+      theme: 'grid',
+      styles: {
+        fontSize: 7,
+        cellPadding: 1.5,
+        overflow: 'linebreak',
+        halign: 'center',
+        valign: 'middle'
+      },
+      headStyles: {
+        fillColor: [245, 245, 220],
+        textColor: [0, 0, 0],
+        fontStyle: 'bold',
+        fontSize: 6
+      },
+      columnStyles: {
+        0: { halign: 'left', cellWidth: 25 },
+        1: { cellWidth: 12 }
+      },
+      didParseCell: function(data: any) {
+        if (data.section === 'head' && data.row.index === 1) {
+          data.cell.styles.fillColor = [255, 255, 200]
+          data.cell.styles.fontStyle = 'normal'
+        }
+        
+        if (data.section === 'body' && data.row.index === filasDatosEquinos.length) {
+          data.cell.styles.fillColor = [200, 255, 200]
+          data.cell.styles.fontStyle = 'bold'
+        }
+      },
+      margin: { left: margin, right: margin }
+    })
+
     // Marca de agua arriba centrada (como título sutil)
     doc.setFontSize(30)
     doc.setTextColor(235, 235, 235)
@@ -354,7 +444,7 @@ async function subirPDFaSupabase(pdfBuffer: Buffer, nombreCampo: string): Promis
 
     const supabase = getSupabaseClient()
     const { data, error } = await supabase.storage
-      .from('invoices') // Usar el mismo bucket que ya tenés
+      .from('invoices')
       .upload(nombreArchivo, pdfBuffer, {
         contentType: 'application/pdf',
         cacheControl: '3600'

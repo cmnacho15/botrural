@@ -103,10 +103,11 @@ export async function GET() {
         }
       })
 
-      // Calcular UG y vacunos/ovinos totales del potrero
+      // Calcular UG y vacunos/ovinos/equinos totales del potrero
       let ugTotales = 0
       let vacunosTotales = 0
       let ovinosTotales = 0
+      let equinosTotales = 0
 
       for (const [categoria, cantidad] of Object.entries(animalesPorCategoria)) {
         const eq = getEquivalenciaUG(categoria)
@@ -118,6 +119,8 @@ export async function GET() {
           vacunosTotales += cantidad
         } else if (catDB?.tipoAnimal === 'OVINO') {
           ovinosTotales += cantidad
+        } else if (catDB?.tipoAnimal === 'EQUINO') {
+          equinosTotales += cantidad
         }
       }
 
@@ -129,7 +132,8 @@ export async function GET() {
         animalesPorCategoria,
         ugPorHa,
         vacunosTotales,
-        ovinosTotales
+        ovinosTotales,
+        equinosTotales
       }
     })
 
@@ -139,7 +143,8 @@ export async function GET() {
       porCategoria: {} as Record<string, number>,
       ugTotales: 0,
       vacunosTotales: 0,
-      ovinosTotales: 0
+      ovinosTotales: 0,
+      equinosTotales: 0
     }
 
     // Inicializar totales por categoría
@@ -157,6 +162,7 @@ export async function GET() {
       totales.ugTotales += p.ugPorHa * p.hectareas
       totales.vacunosTotales += p.vacunosTotales
       totales.ovinosTotales += p.ovinosTotales
+      totales.equinosTotales += p.equinosTotales
     })
 
     const ugPorHaGlobal = totales.hectareas > 0 ? totales.ugTotales / totales.hectareas : 0
