@@ -224,8 +224,39 @@ const [animalesTratados, setAnimalesTratados] = useState<AnimalTratado[]>([
         </div>
 
         {/* POTRERO */}
-<div className="relative">
+<div>
   <label className="block text-sm font-medium text-gray-700 mb-2">Potrero</label>
+  <select
+    value={potreroSeleccionado}
+    onChange={(e) => {
+      setPotreroSeleccionado(e.target.value)
+      setErrorPotrero(false)
+    }}
+    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
+      errorPotrero ? 'border-red-500' : 'border-gray-300'
+    }`}
+    required
+  >
+    <option value="">Seleccionar potrero...</option>
+    {potreros.map((lote: any) => {
+      const resumen = lote.animalesLote && lote.animalesLote.length > 0
+        ? lote.animalesLote
+            .filter((a: any) => a.cantidad > 0)
+            .map((a: any) => `${a.categoria} ${a.cantidad}`)
+            .join(', ')
+        : 'Sin animales'
+      
+      return (
+        <option key={lote.id} value={lote.id}>
+          {lote.nombre} ({resumen})
+        </option>
+      )
+    })}
+  </select>
+  {errorPotrero && (
+    <p className="text-red-500 text-xs mt-1">El potrero es obligatorio</p>
+  )}
+
   
   <div
     onClick={() => setShowPotreroDropdown(!showPotreroDropdown)}
