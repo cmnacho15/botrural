@@ -40,19 +40,25 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Módulo no encontrado' }, { status: 404 })
     }
 
-    // Obtener potreros del módulo
-const potreros = await prisma.lote.findMany({
-  where: {
-    moduloPastoreoId: moduloId,
-    campoId: usuario.campoId,
-  },
-  select: {
-    id: true,
-    nombre: true,
-    hectareas: true,
-    ultimoCambio: true,
-  },
-})
+    // Obtener potreros del módulo CON sus animales actuales
+    const potreros = await prisma.lote.findMany({
+      where: {
+        moduloPastoreoId: moduloId,
+        campoId: usuario.campoId,
+      },
+      select: {
+        id: true,
+        nombre: true,
+        hectareas: true,
+        ultimoCambio: true,
+        animalesLote: {
+          select: {
+            categoria: true,
+            cantidad: true,
+          }
+        }
+      },
+    })
 
     const potrerosIds = potreros.map(p => p.id)
 
@@ -72,7 +78,7 @@ const potreros = await prisma.lote.findMany({
       filtroFechas.lte = new Date(fechaHasta)
     }
 
-    // 🔥 OBTENER ENTRADAS: eventos donde loteDestinoId está en los potreros del módulo
+    // OBTENER ENTRADAS: eventos donde loteDestinoId está en los potreros del módulo
     const entradas = await prisma.evento.findMany({
       where: {
         tipo: 'CAMBIO_POTRERO',
@@ -83,7 +89,7 @@ const potreros = await prisma.lote.findMany({
       orderBy: { fecha: 'asc' },
     })
 
-    // 🔥 OBTENER SALIDAS: eventos donde loteId (origen) está en los potreros del módulo
+    // OBTENER SALIDAS: eventos donde loteId (origen) está en los potreros del módulo
     const salidas = await prisma.evento.findMany({
       where: {
         tipo: 'CAMBIO_POTRERO',
@@ -94,7 +100,7 @@ const potreros = await prisma.lote.findMany({
       orderBy: { fecha: 'asc' },
     })
 
-    // Crear mapa de salidas por potrero (para buscar rápido)
+    // Crear mapa de salidas por potrero
     const salidasPorPotrero = new Map<string, typeof salidas>()
     salidas.forEach(salida => {
       if (!salida.loteId) return
@@ -104,7 +110,7 @@ const potreros = await prisma.lote.findMany({
       salidasPorPotrero.get(salida.loteId)!.push(salida)
     })
 
-    // Crear mapa de entradas por potrero (para calcular descanso)
+    // Crear mapa de entradas por potrero
     const entradasPorPotrero = new Map<string, typeof entradas>()
     entradas.forEach(entrada => {
       if (!entrada.loteDestinoId) return
@@ -115,9 +121,10 @@ const potreros = await prisma.lote.findMany({
     })
 
     const hoy = new Date()
+    const fechaLimite = fechaHasta ? new Date(fechaHasta) : hoy
     const registros: any[] = []
 
-    // Procesar cada entrada
+    // 🔥 PASO 1: Agregar entradas desde eventos CAMBIO_POTRERO
     entradas.forEach(entrada => {
       const potreroId = entrada.loteDestinoId
       if (!potreroId) return
@@ -127,7 +134,7 @@ const potreros = await prisma.lote.findMany({
 
       const fechaEntrada = new Date(entrada.fecha)
 
-      // 🔥 BUSCAR SALIDA: el próximo evento donde salieron de este potrero DESPUÉS de esta entrada
+      // Buscar salida correspondiente
       const salidasDelPotrero = salidasPorPotrero.get(potreroId) || []
       const salidaCorrespondiente = salidasDelPotrero.find(
         s => new Date(s.fecha) > fechaEntrada
@@ -140,14 +147,11 @@ const potreros = await prisma.lote.findMany({
       if (fechaSalida) {
         diasPastoreo = Math.ceil((fechaSalida.getTime() - fechaEntrada.getTime()) / (1000 * 60 * 60 * 24))
       } else {
-        // Sin salida aún → días hasta hoy o hasta fecha filtro
-        const fechaLimite = fechaHasta ? new Date(fechaHasta) : hoy
         diasPastoreo = Math.ceil((fechaLimite.getTime() - fechaEntrada.getTime()) / (1000 * 60 * 60 * 24))
       }
 
-      // 🔥 CALCULAR DÍAS DE DESCANSO
-      // = desde que SALIERON hasta la PRÓXIMA ENTRADA al mismo potrero
-      let diasDescanso = 0
+      // Calcular días de descanso
+      let diasDescanso: number | null = null
       if (fechaSalida) {
         const entradasDelPotrero = entradasPorPotrero.get(potreroId) || []
         const proximaEntrada = entradasDelPotrero.find(
@@ -157,8 +161,6 @@ const potreros = await prisma.lote.findMany({
         if (proximaEntrada) {
           diasDescanso = Math.ceil((new Date(proximaEntrada.fecha).getTime() - fechaSalida.getTime()) / (1000 * 60 * 60 * 24))
         } else {
-          // Sin próxima entrada → días desde salida hasta hoy o fecha filtro
-          const fechaLimite = fechaHasta ? new Date(fechaHasta) : hoy
           diasDescanso = Math.ceil((fechaLimite.getTime() - fechaSalida.getTime()) / (1000 * 60 * 60 * 24))
         }
       }
@@ -168,14 +170,95 @@ const potreros = await prisma.lote.findMany({
         fechaEntrada: fechaEntrada.toLocaleDateString('es-UY'),
         dias: diasPastoreo,
         fechaSalida: fechaSalida ? fechaSalida.toLocaleDateString('es-UY') : '-',
-        diasDescanso,
+        diasDescanso: diasDescanso !== null ? diasDescanso : '-',
         hectareas: Math.round((potrero.hectareas || 0) * 100) / 100,
         comentarios: entrada.categoria || entrada.descripcion || '-',
       })
     })
 
+    // 🔥 PASO 2: Agregar carga inicial desde ultimoCambio para potreros sin eventos de entrada
+    for (const potrero of potreros) {
+      const tieneEntradasRegistradas = entradasPorPotrero.has(potrero.id)
+      const tieneAnimalesActualmente = potrero.animalesLote.length > 0
+
+      // Si NO tiene eventos de entrada pero SÍ tiene animales, usar ultimoCambio como entrada inicial
+      if (!tieneEntradasRegistradas && tieneAnimalesActualmente && potrero.ultimoCambio) {
+        const fechaEntrada = new Date(potrero.ultimoCambio)
+
+        // Verificar que esté dentro del rango de fechas
+        if (fechaDesde && fechaEntrada < new Date(fechaDesde)) continue
+        if (fechaHasta && fechaEntrada > new Date(fechaHasta)) continue
+
+        // Buscar si hay salida registrada
+        const salidasDelPotrero = salidasPorPotrero.get(potrero.id) || []
+        const salidaCorrespondiente = salidasDelPotrero.find(
+          s => new Date(s.fecha) > fechaEntrada
+        )
+
+        const fechaSalida = salidaCorrespondiente ? new Date(salidaCorrespondiente.fecha) : null
+
+        // Calcular días de pastoreo
+        let diasPastoreo = 0
+        if (fechaSalida) {
+          diasPastoreo = Math.ceil((fechaSalida.getTime() - fechaEntrada.getTime()) / (1000 * 60 * 60 * 24))
+        } else {
+          diasPastoreo = Math.ceil((fechaLimite.getTime() - fechaEntrada.getTime()) / (1000 * 60 * 60 * 24))
+        }
+
+        // Armar comentario con las categorías actuales
+        const comentario = potrero.animalesLote
+          .map(a => `${a.cantidad} ${a.categoria}`)
+          .join(', ') || 'Carga inicial'
+
+        registros.push({
+          potrero: potrero.nombre,
+          fechaEntrada: fechaEntrada.toLocaleDateString('es-UY'),
+          dias: diasPastoreo,
+          fechaSalida: fechaSalida ? fechaSalida.toLocaleDateString('es-UY') : '-',
+          diasDescanso: '-',
+          hectareas: Math.round((potrero.hectareas || 0) * 100) / 100,
+          comentarios: comentario,
+        })
+      }
+
+      // Si NO tiene eventos de entrada y NO tiene animales, verificar si está en descanso
+      if (!tieneEntradasRegistradas && !tieneAnimalesActualmente && potrero.ultimoCambio) {
+        const fechaUltimoCambio = new Date(potrero.ultimoCambio)
+
+        // Verificar que esté dentro del rango de fechas
+        if (fechaDesde && fechaUltimoCambio < new Date(fechaDesde)) continue
+        if (fechaHasta && fechaUltimoCambio > new Date(fechaHasta)) continue
+
+        // Calcular días de descanso desde ultimoCambio hasta hoy
+        const diasDescanso = Math.ceil((fechaLimite.getTime() - fechaUltimoCambio.getTime()) / (1000 * 60 * 60 * 24))
+
+        registros.push({
+          potrero: potrero.nombre,
+          fechaEntrada: '-',
+          dias: '-',
+          fechaSalida: fechaUltimoCambio.toLocaleDateString('es-UY'),
+          diasDescanso: diasDescanso,
+          hectareas: Math.round((potrero.hectareas || 0) * 100) / 100,
+          comentarios: 'En descanso (sin historial)',
+        })
+      }
+    }
+
     // Ordenar por fecha de entrada ascendente (más viejos arriba, más recientes abajo)
-registros.sort((a, b) => new Date(a.fechaEntrada).getTime() - new Date(b.fechaEntrada).getTime())
+    registros.sort((a, b) => {
+      // Manejar casos donde fechaEntrada es '-'
+      if (a.fechaEntrada === '-' && b.fechaEntrada === '-') return 0
+      if (a.fechaEntrada === '-') return 1
+      if (b.fechaEntrada === '-') return 1
+      
+      // Parsear fechas en formato dd/mm/yyyy
+      const parseDate = (dateStr: string) => {
+        const parts = dateStr.split('/')
+        return new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]))
+      }
+      
+      return parseDate(a.fechaEntrada).getTime() - parseDate(b.fechaEntrada).getTime()
+    })
 
     return NextResponse.json({
       modulo: modulo.nombre,
