@@ -24,7 +24,6 @@ export async function GET(request: Request) {
     const fechaDesde = searchParams.get('fechaDesde')
     const fechaHasta = searchParams.get('fechaHasta')
 
-    // Validar que se haya seleccionado un módulo
     if (!moduloId) {
       return NextResponse.json({ error: 'Debe seleccionar un módulo' }, { status: 400 })
     }
@@ -42,17 +41,18 @@ export async function GET(request: Request) {
     }
 
     // Obtener potreros del módulo
-    const potreros = await prisma.lote.findMany({
-      where: {
-        moduloPastoreoId: moduloId,
-        campoId: usuario.campoId,
-      },
-      select: {
-        id: true,
-        nombre: true,
-        hectareas: true,
-      },
-    })
+const potreros = await prisma.lote.findMany({
+  where: {
+    moduloPastoreoId: moduloId,
+    campoId: usuario.campoId,
+  },
+  select: {
+    id: true,
+    nombre: true,
+    hectareas: true,
+    ultimoCambio: true,
+  },
+})
 
     const potrerosIds = potreros.map(p => p.id)
 
@@ -72,86 +72,105 @@ export async function GET(request: Request) {
       filtroFechas.lte = new Date(fechaHasta)
     }
 
-    // Obtener eventos de CAMBIO_POTRERO hacia estos potreros
-    const eventos = await prisma.evento.findMany({
+    // 🔥 OBTENER ENTRADAS: eventos donde loteDestinoId está en los potreros del módulo
+    const entradas = await prisma.evento.findMany({
       where: {
-        tipo: { in: ['CAMBIO_POTRERO', 'AJUSTE'] },
+        tipo: 'CAMBIO_POTRERO',
         campoId: usuario.campoId,
         loteDestinoId: { in: potrerosIds },
         ...(Object.keys(filtroFechas).length > 0 && { fecha: filtroFechas }),
       },
-      include: {
-        lote: { select: { nombre: true } },
+      orderBy: { fecha: 'asc' },
+    })
+
+    // 🔥 OBTENER SALIDAS: eventos donde loteId (origen) está en los potreros del módulo
+    const salidas = await prisma.evento.findMany({
+      where: {
+        tipo: 'CAMBIO_POTRERO',
+        campoId: usuario.campoId,
+        loteId: { in: potrerosIds },
+        ...(Object.keys(filtroFechas).length > 0 && { fecha: filtroFechas }),
       },
-      orderBy: [
-        { loteDestinoId: 'asc' },
-        { fecha: 'asc' },
-      ],
+      orderBy: { fecha: 'asc' },
     })
 
-    // Agrupar eventos por potrero + fecha (mismo día, mismo potrero)
-    const eventosPorGrupo = new Map<string, typeof eventos>()
-    
-    eventos.forEach(evento => {
-      const fechaStr = new Date(evento.fecha).toISOString().split('T')[0]
-      const key = `${evento.loteDestinoId}-${fechaStr}`
-      
-      if (!eventosPorGrupo.has(key)) {
-        eventosPorGrupo.set(key, [])
+    // Crear mapa de salidas por potrero (para buscar rápido)
+    const salidasPorPotrero = new Map<string, typeof salidas>()
+    salidas.forEach(salida => {
+      if (!salida.loteId) return
+      if (!salidasPorPotrero.has(salida.loteId)) {
+        salidasPorPotrero.set(salida.loteId, [])
       }
-      eventosPorGrupo.get(key)!.push(evento)
+      salidasPorPotrero.get(salida.loteId)!.push(salida)
     })
 
-    // Procesar cada grupo
-    const registros: any[] = []
+    // Crear mapa de entradas por potrero (para calcular descanso)
+    const entradasPorPotrero = new Map<string, typeof entradas>()
+    entradas.forEach(entrada => {
+      if (!entrada.loteDestinoId) return
+      if (!entradasPorPotrero.has(entrada.loteDestinoId)) {
+        entradasPorPotrero.set(entrada.loteDestinoId, [])
+      }
+      entradasPorPotrero.get(entrada.loteDestinoId)!.push(entrada)
+    })
+
     const hoy = new Date()
-    const gruposArray = Array.from(eventosPorGrupo.entries())
+    const registros: any[] = []
 
-    gruposArray.forEach(([key, grupo], index) => {
-      const primerEvento = grupo[0]
-      
-      // Combinar categorías
-      const categorias = grupo
-        .map(e => e.categoria)
-        .filter(Boolean)
-        .join(', ') || grupo[0].descripcion || '-'
-      
-      // Buscar el siguiente grupo en el MISMO potrero
-      const potreroId = primerEvento.loteDestinoId
-      const siguienteGrupo = gruposArray
-        .slice(index + 1)
-        .find(([k, g]) => g[0].loteDestinoId === potreroId)
-      
+    // Procesar cada entrada
+    entradas.forEach(entrada => {
+      const potreroId = entrada.loteDestinoId
+      if (!potreroId) return
+
       const potrero = potreros.find(p => p.id === potreroId)
-      
-      const fechaEntrada = new Date(primerEvento.fecha)
-      const fechaSalida = siguienteGrupo ? new Date(siguienteGrupo[1][0].fecha) : null
-      
-      // Calcular días en el potrero
-      const dias = fechaSalida 
-        ? Math.ceil((fechaSalida.getTime() - fechaEntrada.getTime()) / (1000 * 60 * 60 * 24))
-        : 0
+      if (!potrero) return
 
-      // Calcular días de descanso
+      const fechaEntrada = new Date(entrada.fecha)
+
+      // 🔥 BUSCAR SALIDA: el próximo evento donde salieron de este potrero DESPUÉS de esta entrada
+      const salidasDelPotrero = salidasPorPotrero.get(potreroId) || []
+      const salidaCorrespondiente = salidasDelPotrero.find(
+        s => new Date(s.fecha) > fechaEntrada
+      )
+
+      const fechaSalida = salidaCorrespondiente ? new Date(salidaCorrespondiente.fecha) : null
+
+      // Calcular días de pastoreo
+      let diasPastoreo = 0
+      if (fechaSalida) {
+        diasPastoreo = Math.ceil((fechaSalida.getTime() - fechaEntrada.getTime()) / (1000 * 60 * 60 * 24))
+      } else {
+        // Sin salida aún → días hasta hoy o hasta fecha filtro
+        const fechaLimite = fechaHasta ? new Date(fechaHasta) : hoy
+        diasPastoreo = Math.ceil((fechaLimite.getTime() - fechaEntrada.getTime()) / (1000 * 60 * 60 * 24))
+      }
+
+      // 🔥 CALCULAR DÍAS DE DESCANSO
+      // = desde que SALIERON hasta la PRÓXIMA ENTRADA al mismo potrero
       let diasDescanso = 0
       if (fechaSalida) {
-        if (siguienteGrupo) {
-          // Hay otra entrada después → días entre salida y nueva entrada
-          diasDescanso = Math.ceil((new Date(siguienteGrupo[1][0].fecha).getTime() - fechaSalida.getTime()) / (1000 * 60 * 60 * 24))
+        const entradasDelPotrero = entradasPorPotrero.get(potreroId) || []
+        const proximaEntrada = entradasDelPotrero.find(
+          e => new Date(e.fecha) > fechaSalida
+        )
+
+        if (proximaEntrada) {
+          diasDescanso = Math.ceil((new Date(proximaEntrada.fecha).getTime() - fechaSalida.getTime()) / (1000 * 60 * 60 * 24))
         } else {
-          // No hay más entradas → días desde salida hasta hoy
-          diasDescanso = Math.ceil((hoy.getTime() - fechaSalida.getTime()) / (1000 * 60 * 60 * 24))
+          // Sin próxima entrada → días desde salida hasta hoy o fecha filtro
+          const fechaLimite = fechaHasta ? new Date(fechaHasta) : hoy
+          diasDescanso = Math.ceil((fechaLimite.getTime() - fechaSalida.getTime()) / (1000 * 60 * 60 * 24))
         }
       }
 
       registros.push({
-        potrero: potrero?.nombre || 'Desconocido',
+        potrero: potrero.nombre,
         fechaEntrada: fechaEntrada.toISOString().split('T')[0],
-        dias,
+        dias: diasPastoreo,
         fechaSalida: fechaSalida ? fechaSalida.toISOString().split('T')[0] : '-',
         diasDescanso,
-        hectareas: Math.round((potrero?.hectareas || 0) * 100) / 100,
-        comentarios: categorias,
+        hectareas: Math.round((potrero.hectareas || 0) * 100) / 100,
+        comentarios: entrada.categoria || entrada.descripcion || '-',
       })
     })
 
