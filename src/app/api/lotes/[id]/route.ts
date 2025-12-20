@@ -165,18 +165,20 @@ const loteActualizado = await prisma.lote.update({
     
     // 🔥 Calcular ultimoCambio según ajuste de días
     ultimoCambio: (() => {
-      if (cambioEstadoAnimales) {
-        return new Date(); // Si cambió estado, resetear a hoy
-      }
-      if (diasPastoreoAjuste && tendraAnimales) {
-        // Restar días para que el total sea exactamente diasPastoreoAjuste
-        return new Date(Date.now() - (diasPastoreoAjuste * 24 * 60 * 60 * 1000));
-      }
-      if (diasDescansoAjuste && !tendraAnimales) {
-        return new Date(Date.now() - (diasDescansoAjuste * 24 * 60 * 60 * 1000));
-      }
-      return lote.ultimoCambio; // Mantener la fecha actual
-    })(),
+  // 🔥 PRIORIZAR ajuste de días si el usuario lo especificó
+  if (diasPastoreoAjuste && tendraAnimales) {
+    return new Date(Date.now() - (diasPastoreoAjuste * 24 * 60 * 60 * 1000));
+  }
+  if (diasDescansoAjuste && !tendraAnimales) {
+    return new Date(Date.now() - (diasDescansoAjuste * 24 * 60 * 60 * 1000));
+  }
+  // Si cambió estado y no hay ajuste, resetear a hoy
+  if (cambioEstadoAnimales) {
+    return new Date();
+  }
+  // Mantener la fecha actual si no hubo cambios
+  return lote.ultimoCambio;
+})(),
     
     moduloPastoreoId: moduloPastoreoId || null,
     
