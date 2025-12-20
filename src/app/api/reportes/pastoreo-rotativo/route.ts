@@ -174,8 +174,8 @@ const potreros = await prisma.lote.findMany({
       })
     })
 
-    // Ordenar por fecha de entrada descendente (más recientes primero)
-    registros.sort((a, b) => new Date(b.fechaEntrada).getTime() - new Date(a.fechaEntrada).getTime())
+    // Ordenar por fecha de entrada ascendente (más viejos arriba, más recientes abajo)
+registros.sort((a, b) => new Date(a.fechaEntrada).getTime() - new Date(b.fechaEntrada).getTime())
 
     return NextResponse.json({
       modulo: modulo.nombre,
