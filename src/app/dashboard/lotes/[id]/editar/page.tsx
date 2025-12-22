@@ -444,23 +444,64 @@ console.log('📅 Días descanso ajuste:', diasDescansoAjuste);
             />
           </div>
           
-          {/* Checkbox Es Pastoreable */}
-          <div className="bg-purple-50 rounded-lg p-4">
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={esPastoreable}
-                onChange={(e) => setEsPastoreable(e.target.checked)}
-                className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
-              />
-              <div>
-                <span className="text-sm font-medium text-gray-900">Es pastoreable</span>
-                <p className="text-xs text-gray-600 mt-1">
-                  Si está marcado, este potrero se incluirá en el cálculo de SPG (Superficie de Pastoreo Ganadero)
-                </p>
-              </div>
-            </label>
+          {/* 🆕 SELECTOR PASTOREABLE / NO PASTOREABLE */}
+<div className="bg-purple-50 rounded-lg p-4">
+  <label className="block text-sm font-medium text-gray-900 mb-3">
+    Tipo de potrero
+  </label>
+  
+  <div className="flex gap-4">
+    {/* OPCIÓN: PASTOREABLE */}
+    <label className="flex-1 cursor-pointer">
+      <div className={`border-2 rounded-lg p-4 transition ${
+        esPastoreable 
+          ? 'border-green-500 bg-green-50' 
+          : 'border-gray-300 bg-white hover:border-gray-400'
+      }`}>
+        <div className="flex items-center gap-3">
+          <input
+            type="radio"
+            name="pastoreable"
+            checked={esPastoreable}
+            onChange={() => setEsPastoreable(true)}
+            className="w-5 h-5 text-green-600"
+          />
+          <div>
+            <div className="font-medium text-gray-900">🌾 Pastoreable</div>
+            <div className="text-xs text-gray-600 mt-1">
+              Se incluye en el cálculo de SPG
+            </div>
           </div>
+        </div>
+      </div>
+    </label>
+
+    {/* OPCIÓN: NO PASTOREABLE */}
+    <label className="flex-1 cursor-pointer">
+      <div className={`border-2 rounded-lg p-4 transition ${
+        !esPastoreable 
+          ? 'border-gray-500 bg-gray-50' 
+          : 'border-gray-300 bg-white hover:border-gray-400'
+      }`}>
+        <div className="flex items-center gap-3">
+          <input
+            type="radio"
+            name="pastoreable"
+            checked={!esPastoreable}
+            onChange={() => setEsPastoreable(false)}
+            className="w-5 h-5 text-gray-600"
+          />
+          <div>
+            <div className="font-medium text-gray-900">🔒 No pastoreable</div>
+            <div className="text-xs text-gray-600 mt-1">
+              No se usa para animales
+            </div>
+          </div>
+        </div>
+      </div>
+    </label>
+  </div>
+</div>
 
           {/* CULTIVOS */}
           <div className="bg-blue-50 rounded-lg p-4">
