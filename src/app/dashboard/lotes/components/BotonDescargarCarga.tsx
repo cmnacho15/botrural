@@ -142,7 +142,7 @@ export default function BotonDescargarCarga() {
           doc.setFontSize(11)
           doc.setFont('helvetica', 'bold')
           doc.setTextColor(0, 0, 0)
-          doc.text(`📦 ${modulo.nombre}`, margin, startY)
+          doc.text(`MODULO: ${modulo.nombre}`, margin, startY)
 
           doc.setFontSize(9)
           doc.setFont('helvetica', 'normal')
