@@ -316,7 +316,7 @@ console.log('🔍 INDICADORES - usarSPG desde Context:', usarSPG)
         {!usarSPG && <span className="ml-2 text-xs text-blue-600">✔ Usada para cálculos</span>}
       </td>
       <td className={`px-3 py-2 text-center border-b border-gray-200 font-medium ${!usarSPG ? 'text-blue-900' : ''}`}>
-        {fmt(!usarSPG ? data.superficie.spg : data.superficie.total)}
+        {fmt(data.superficie.total)}
       </td>
       <td colSpan={7} className="px-3 py-2 text-center border-b border-gray-200 text-gray-400">-</td>
     </tr>
