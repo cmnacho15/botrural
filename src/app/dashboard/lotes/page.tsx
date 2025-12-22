@@ -15,7 +15,8 @@ interface Lote {
   hectareas: number
   diasPastoreo: number
   diasDescanso: number
-  moduloPastoreoId: string | null  // 🔥 AGREGADO
+  esPastoreable: boolean  // 🔥 NUEVO
+  moduloPastoreoId: string | null
   cultivos: Array<{ 
     tipoCultivo: string
     hectareas: number
@@ -533,17 +534,30 @@ const [acordeonesAbiertos, setAcordeonesAbiertos] = useState<{[key: string]: boo
             </div>
           </div>
         ) : (
-          <div className="space-y-2">
-            <div className="relative group">
-              <div className="inline-block px-3 py-1 bg-green-600 text-white rounded-full text-sm font-semibold cursor-pointer">
-                Descanso ({lote.diasDescanso || 0} días)
-              </div>
-              <div className="hidden group-hover:block absolute z-10 px-3 py-2 text-sm text-white bg-gray-900 rounded-lg shadow-lg -top-10 left-0 whitespace-nowrap">
-                Potrero en descanso: {lote.diasDescanso || 0} días
-              </div>
-            </div>
-          </div>
-        )}
+  <div className="space-y-2">
+    {lote.esPastoreable === false ? (
+      // 🔒 POTRERO NO PASTOREABLE
+      <div className="relative group">
+        <div className="inline-block px-3 py-1 bg-gray-400 text-white rounded-full text-sm font-semibold cursor-pointer">
+          No pastoreable
+        </div>
+        <div className="hidden group-hover:block absolute z-10 px-3 py-2 text-sm text-white bg-gray-900 rounded-lg shadow-lg -top-10 left-0 whitespace-nowrap">
+          Este potrero no es apto para pastoreo
+        </div>
+      </div>
+    ) : (
+      // ✅ POTRERO EN DESCANSO
+      <div className="relative group">
+        <div className="inline-block px-3 py-1 bg-green-600 text-white rounded-full text-sm font-semibold cursor-pointer">
+          Descanso ({lote.diasDescanso || 0} días)
+        </div>
+        <div className="hidden group-hover:block absolute z-10 px-3 py-2 text-sm text-white bg-gray-900 rounded-lg shadow-lg -top-10 left-0 whitespace-nowrap">
+          Potrero en descanso: {lote.diasDescanso || 0} días
+        </div>
+      </div>
+    )}
+  </div>
+)}
       </td>
 
       <td className="px-6 py-4 text-right">
