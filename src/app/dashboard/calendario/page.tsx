@@ -37,7 +37,7 @@ const parseFechaLocal = (fechaISO: string): Date => {
 export default function CalendarioPage() {
   const [actividades, setActividades] = useState<Actividad[]>([])
   const [loading, setLoading] = useState(true)
-  const [mostrarRealizadas, setMostrarRealizadas] = useState(false)
+  const [mostrarRealizadas, setMostrarRealizadas] = useState(true)
   const [mesActual, setMesActual] = useState(new Date())
   
   // Modal para nueva actividad
@@ -299,16 +299,16 @@ const getActividadesDia = (fecha: Date) => {
         </div>
       </div>
 
-      {/* Toggle mostrar realizadas */}
+      {/* Toggle ocultar realizadas */}
       <div className="mb-4">
         <label className="flex items-center gap-2 cursor-pointer">
           <input
             type="checkbox"
-            checked={mostrarRealizadas}
-            onChange={(e) => setMostrarRealizadas(e.target.checked)}
+            checked={!mostrarRealizadas}
+            onChange={(e) => setMostrarRealizadas(!e.target.checked)}
             className="w-4 h-4 text-blue-600 rounded"
           />
-          <span className="text-gray-700">Mostrar actividades realizadas</span>
+          <span className="text-gray-700">Ocultar actividades realizadas</span>
         </label>
       </div>
 
