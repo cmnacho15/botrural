@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+// ✅ Marcar como dinámica para evitar ejecución en build time
+export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,20 +18,28 @@ export async function POST(request: NextRequest) {
 
     console.log('🔍 Verificando cache para potrero:', potreroId)
 
-    // 1. Verificar si ya existe en cache
-    const { data: cached, error: cacheError } = await supabase
-      .from('altimetria_cache')
-      .select('*')
-      .eq('potrero_id', potreroId)
-      .single()
+    // ✅ Crear el cliente AQUÍ, no al inicio del archivo
+    const supabaseUrl = process.env.SUPABASE_URL
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
-    if (cached && !cacheError) {
-      console.log('✅ Encontrado en cache:', cached.image_url)
-      return NextResponse.json({
-        status: 'cached',
-        imageUrl: cached.image_url,
-        bbox: cached.bbox
-      })
+    if (supabaseUrl && supabaseKey) {
+      const supabase = createClient(supabaseUrl, supabaseKey)
+
+      // 1. Verificar si ya existe en cache
+      const { data: cached, error: cacheError } = await supabase
+        .from('altimetria_cache')
+        .select('*')
+        .eq('potrero_id', potreroId)
+        .single()
+
+      if (cached && !cacheError) {
+        console.log('✅ Encontrado en cache:', cached.image_url)
+        return NextResponse.json({
+          status: 'cached',
+          imageUrl: cached.image_url,
+          bbox: cached.bbox
+        })
+      }
     }
 
     console.log('❌ No encontrado en cache, iniciando procesamiento...')
@@ -92,6 +98,19 @@ export async function GET(request: NextRequest) {
         { status: 400 }
       )
     }
+
+    // ✅ Crear el cliente AQUÍ
+    const supabaseUrl = process.env.SUPABASE_URL
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+    if (!supabaseUrl || !supabaseKey) {
+      return NextResponse.json({
+        status: 'not_configured',
+        message: 'Supabase no configurado'
+      })
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseKey)
 
     // Verificar cache
     const { data: cached, error } = await supabase
