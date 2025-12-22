@@ -450,6 +450,7 @@ export default function NuevoLotePage() {
           </div>
 
           {/* 🐄 ANIMALES */}
+          {esPastoreable && (
           <div className="bg-blue-50 rounded-lg p-4">
             <h3 className="font-medium text-gray-900 mb-3">🐄 Animales</h3>
             {animales.length === 0 && (
@@ -520,6 +521,7 @@ export default function NuevoLotePage() {
               + Agregar animales
             </button>
           </div>
+          )}
           
           
 
@@ -558,6 +560,7 @@ export default function NuevoLotePage() {
           
 
           {/* 📦 SELECTOR DE MÓDULO */}
+          {esPastoreable && (
           <div className="bg-purple-50 rounded-lg p-4">
             <h3 className="font-medium text-gray-900 mb-3">📦 Módulo de Pastoreo</h3>
             
@@ -614,6 +617,7 @@ export default function NuevoLotePage() {
               </div>
             )}
           </div>
+          )}
 
 
           

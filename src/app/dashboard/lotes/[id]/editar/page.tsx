@@ -545,6 +545,7 @@ console.log('📅 Días descanso ajuste:', diasDescansoAjuste);
           </div>
 
           {/* ANIMALES */}
+          {esPastoreable && (
           <div className="bg-blue-50 rounded-lg p-4">
             <h3 className="font-medium text-gray-900 mb-3">🐄 Animales</h3>
             {animales.length === 0 && (
@@ -611,6 +612,7 @@ console.log('📅 Días descanso ajuste:', diasDescansoAjuste);
               + Agregar animales
             </button>
           </div>
+          )}
 
           {/* 🆕 AJUSTE DE DÍAS DE PASTOREO/DESCANSO */}
           {mostrarAjusteDias && (
@@ -645,6 +647,7 @@ console.log('📅 Días descanso ajuste:', diasDescansoAjuste);
           )}
 
           {/* SELECTOR DE MÓDULO */}
+          {esPastoreable && (
           <div className="bg-purple-50 rounded-lg p-4">
             <h3 className="font-medium text-gray-900 mb-3">📦 Módulo de Pastoreo</h3>
             
@@ -701,6 +704,7 @@ console.log('📅 Días descanso ajuste:', diasDescansoAjuste);
               </div>
             )}
           </div>
+          )}
 
           {/* MAPA */}
           {poligono && (
