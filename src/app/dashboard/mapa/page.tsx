@@ -30,7 +30,7 @@ interface Lote {
   nombre: string
   hectareas: number
   poligono: number[][]
-  moduloPastoreoId: string | null  // 🔥 AGREGADO
+  moduloPastoreoId: string | null
   cultivos: Cultivo[]
   animalesLote: Animal[]
 }
@@ -70,9 +70,9 @@ function getColorModulo(moduloIndex: number): string {
 export default function MapaPage() {
   const [lotes, setLotes] = useState<Lote[]>([])
   const [loading, setLoading] = useState(true)
-  const [vistaActual, setVistaActual] = useState<'indice' | 'cultivo' | 'ndvi' | 'curvas' | 'coneat'>(
-  'indice',
-)
+  const [vistaActual, setVistaActual] = useState<'indice' | 'cultivo' | 'ndvi' | 'curvas' | 'coneat' | 'altimetria'>(
+    'indice',
+  )
   const [mapCenter, setMapCenter] = useState<[number, number]>([
     -32.5228, -55.7658,
   ])
@@ -81,6 +81,7 @@ export default function MapaPage() {
   const [ndviData, setNdviData] = useState<Record<string, any>>({})
   const [modulos, setModulos] = useState<Array<{id: string, nombre: string}>>([])
   const [opacidadCurvas, setOpacidadCurvas] = useState(95)
+  const [opacidadAltimetria, setOpacidadAltimetria] = useState(70)
   
   // Memorizar el key para que no cambie cuando solo cambia opacidad
   const mapaKey = useMemo(() => 
@@ -197,20 +198,20 @@ export default function MapaPage() {
 
   // Cargar NDVI cuando se pasa a vista ndvi
   useEffect(() => {
-  if (vistaActual !== 'ndvi') return; // Solo ejecutar en NDVI
+    if (vistaActual !== 'ndvi') return
 
-  const faltanDatos = lotes.some(
-    (l) =>
-      !ndviData[l.id] ||                        // No existe ese lote
-      !ndviData[l.id].matriz ||                 // No tiene matriz
-      ndviData[l.id].matriz.length === 0 ||     // Matriz vacía
-      ndviData[l.id].validPixels === 0          // Sin pixeles válidos
-  );
+    const faltanDatos = lotes.some(
+      (l) =>
+        !ndviData[l.id] ||
+        !ndviData[l.id].matriz ||
+        ndviData[l.id].matriz.length === 0 ||
+        ndviData[l.id].validPixels === 0
+    )
 
-  if (faltanDatos && !loadingNDVI) {
-    obtenerNDVIPotreros();
-  }
-}, [vistaActual, lotes, ndviData]);
+    if (faltanDatos && !loadingNDVI) {
+      obtenerNDVIPotreros()
+    }
+  }, [vistaActual, lotes, ndviData])
 
   // 🎨 Color según NDVI
   function getColorNDVI(ndvi: number): string {
@@ -411,25 +412,35 @@ export default function MapaPage() {
                 )}
               </button>
               <button
-  onClick={() => setVistaActual('curvas')}
-  className={`px-3 py-2 text-xs sm:text-sm font-medium transition ${
-    vistaActual === 'curvas'
-      ? 'bg-amber-600 text-white'
-      : 'text-gray-700 hover:bg-gray-50'
-  }`}
->
-  📏 Curvas
-</button>
-<button
-  onClick={() => setVistaActual('coneat')}
-  className={`px-3 py-2 text-xs sm:text-sm font-medium transition ${
-    vistaActual === 'coneat'
-      ? 'bg-green-600 text-white'
-      : 'text-gray-700 hover:bg-gray-50'
-  }`}
->
-  🌱 CONEAT
-</button>
+                onClick={() => setVistaActual('curvas')}
+                className={`px-3 py-2 text-xs sm:text-sm font-medium transition ${
+                  vistaActual === 'curvas'
+                    ? 'bg-amber-600 text-white'
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                📏 Curvas
+              </button>
+              <button
+                onClick={() => setVistaActual('coneat')}
+                className={`px-3 py-2 text-xs sm:text-sm font-medium transition ${
+                  vistaActual === 'coneat'
+                    ? 'bg-green-600 text-white'
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                🌱 CONEAT
+              </button>
+              <button
+                onClick={() => setVistaActual('altimetria')}
+                className={`px-3 py-2 text-xs sm:text-sm font-medium transition ${
+                  vistaActual === 'altimetria'
+                    ? 'bg-purple-600 text-white'
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                🏔️ Altimetría
+              </button>
             </div>
           </div>
         </div>
@@ -458,20 +469,22 @@ export default function MapaPage() {
                   </div>
                 </div>
               ) : (
-                
-  <MapaPoligono
-  key={mapaKey}
-  initialCenter={mapCenter}
-  initialZoom={14}
-  existingPolygons={poligonosParaMapa}
-  readOnly={true}
-  modulosLeyenda={modulosLeyendaParaMapa}
-  mostrarLeyendaModulos={vistaActual === 'indice'}
-  mostrarCurvasNivel={vistaActual === 'curvas'}
-  mostrarConeat={vistaActual === 'coneat'}
-  opacidadCurvas={opacidadCurvas}
-  onOpacidadCurvasChange={setOpacidadCurvas}
-/>
+                <MapaPoligono
+                  key={mapaKey}
+                  initialCenter={mapCenter}
+                  initialZoom={14}
+                  existingPolygons={poligonosParaMapa}
+                  readOnly={true}
+                  modulosLeyenda={modulosLeyendaParaMapa}
+                  mostrarLeyendaModulos={vistaActual === 'indice'}
+                  mostrarCurvasNivel={vistaActual === 'curvas'}
+                  mostrarConeat={vistaActual === 'coneat'}
+                  mostrarAltimetria={vistaActual === 'altimetria'}
+                  opacidadCurvas={opacidadCurvas}
+                  opacidadAltimetria={opacidadAltimetria}
+                  onOpacidadCurvasChange={setOpacidadCurvas}
+                  onOpacidadAltimetriaChange={setOpacidadAltimetria}
+                />
               )}
             </div>
           </div>
@@ -481,17 +494,16 @@ export default function MapaPage() {
             {/* Encabezado de panel */}
             <div className="px-4 sm:px-5 py-3 border-b border-gray-200 bg-white">
               <h2 className="text-sm sm:text-base font-semibold text-gray-900">
-  {vistaActual === 'indice' && '🗺️ Vista General'}
-  {vistaActual === 'cultivo' && '🌾 Cultivos por potrero'}
-  {vistaActual === 'ndvi' && '🛰️ Índice de Vegetación (NDVI)'}
-  {vistaActual === 'curvas' && '📏 Curvas de Nivel'}
-  {vistaActual === 'coneat' && '🌱 Grupos CONEAT'}
-</h2>
+                {vistaActual === 'indice' && '🗺️ Vista General'}
+                {vistaActual === 'cultivo' && '🌾 Cultivos por potrero'}
+                {vistaActual === 'ndvi' && '🛰️ Índice de Vegetación (NDVI)'}
+                {vistaActual === 'curvas' && '📏 Curvas de Nivel'}
+                {vistaActual === 'coneat' && '🌱 Grupos CONEAT'}
+                {vistaActual === 'altimetria' && '🏔️ Modelo Digital de Elevación'}
+              </h2>
             </div>
 
-            {/* Contenido del panel:
-                - En móvil: ocupa su altura natural -> la página entera hace scroll
-                - En desktop: scroll interno del panel (max alto) */}
+            {/* Contenido del panel */}
             <div className="flex-1 bg-gray-50 px-4 sm:px-5 py-3 sm:py-4 lg:overflow-y-auto">
               
               {/* VISTA GENERAL (ÍNDICE) - Leyenda de módulos */}
@@ -631,9 +643,9 @@ export default function MapaPage() {
 
                       {/* Escala NDVI */}
                       <div className="mb-5">
-  <h3 className="text-xs sm:text-sm font-semibold text-gray-700 mb-2 sm:mb-3">
-    📊 Escala de Vegetación
-  </h3>
+                        <h3 className="text-xs sm:text-sm font-semibold text-gray-700 mb-2 sm:mb-3">
+                          📊 Escala de Vegetación
+                        </h3>
                         <div className="space-y-1.5 text-[11px] sm:text-xs">
                           {[
                             ['#006400', '0.8 - 1.0: Vegetación muy densa'],
@@ -742,12 +754,10 @@ export default function MapaPage() {
                 </>
               )}
 
-              
               {/* VISTA CURVAS DE NIVEL */}
               {vistaActual === 'curvas' && (
                 <>
-
-                {/* Control de opacidad */}
+                  {/* Control de opacidad */}
                   <div className="mb-4 bg-white border border-gray-200 rounded-lg p-3 sm:p-4">
                     <div className="flex items-center justify-between mb-2">
                       <label className="text-xs sm:text-sm font-medium text-gray-700">
@@ -823,7 +833,6 @@ export default function MapaPage() {
                       </div>
                     </div>
                   </div>
-                  
 
                   {/* Tip de uso */}
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 text-xs sm:text-[13px]">
@@ -859,8 +868,6 @@ export default function MapaPage() {
                     </div>
                   </div>
 
-              
-
                   {/* Usos prácticos */}
                   <div className="mb-5">
                     <h3 className="text-xs sm:text-sm font-semibold text-gray-700 mb-2 sm:mb-3">
@@ -891,6 +898,129 @@ export default function MapaPage() {
                     <p className="font-semibold text-blue-900 mb-1.5">ℹ️ Datos Oficiales</p>
                     <p className="text-blue-800">
                       Los datos CONEAT provienen del MGAP (Ministerio de Ganadería, Agricultura y Pesca) y son los mismos que usa el gobierno uruguayo para políticas agropecuarias.
+                    </p>
+                  </div>
+                </>
+              )}
+
+              {/* VISTA ALTIMETRÍA */}
+              {vistaActual === 'altimetria' && (
+                <>
+                  {/* Control de opacidad */}
+                  <div className="mb-4 bg-white border border-gray-200 rounded-lg p-3 sm:p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-xs sm:text-sm font-medium text-gray-700">
+                        Opacidad del mapa
+                      </label>
+                      <span className="text-xs font-semibold text-purple-600 bg-purple-50 px-2 py-1 rounded">
+                        {opacidadAltimetria}%
+                      </span>
+                    </div>
+                    <input 
+                      type="range" 
+                      min="10" 
+                      max="100" 
+                      value={opacidadAltimetria}
+                      onChange={(e) => setOpacidadAltimetria(Number(e.target.value))}
+                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-600"
+                      style={{
+                        background: `linear-gradient(to right, #9333ea 0%, #9333ea ${opacidadAltimetria}%, #e5e7eb ${opacidadAltimetria}%, #e5e7eb 100%)`
+                      }}
+                    />
+                    <div className="flex justify-between text-[10px] sm:text-xs text-gray-500 mt-1">
+                      <span>Transparente</span>
+                      <span>Opaco</span>
+                    </div>
+                  </div>
+
+                  {/* Información */}
+                  <div className="mb-5 bg-gradient-to-r from-purple-50 to-violet-50 border border-purple-200 rounded-lg p-3 sm:p-4">
+                    <h3 className="text-xs sm:text-sm font-semibold text-gray-800 mb-2">
+                      🏔️ Modelo Digital de Elevación (MDE)
+                    </h3>
+                    <div className="space-y-2 text-xs sm:text-[13px] text-gray-700">
+                      <div className="flex items-start gap-2">
+                        <span>📐</span>
+                        <span><strong>Resolución:</strong> 2.5 metros - la más alta de Uruguay</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <span>🗺️</span>
+                        <span><strong>Fuente:</strong> IDEuy (Infraestructura de Datos Espaciales)</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <span>📅</span>
+                        <span><strong>Año:</strong> Proyecto 2017-2019 (datos más recientes)</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <span>🌍</span>
+                        <span><strong>Cobertura:</strong> Todo el territorio nacional</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <span>💡</span>
+                        <span><strong>Uso:</strong> Muestra la elevación real del terreno en colores</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Escala de colores */}
+                  <div className="mb-5">
+                    <h3 className="text-xs sm:text-sm font-semibold text-gray-700 mb-2 sm:mb-3">
+                      🎨 Escala de Elevación
+                    </h3>
+                    <div className="space-y-2 text-xs sm:text-[13px]">
+                      <div className="p-2.5 bg-white rounded-lg border border-gray-200 flex items-center gap-3">
+                        <div className="w-8 h-6" style={{background: 'linear-gradient(to right, #1a365d, #2563eb)'}}></div>
+                        <span className="text-gray-600">Zonas bajas (0-100m)</span>
+                      </div>
+                      <div className="p-2.5 bg-white rounded-lg border border-gray-200 flex items-center gap-3">
+                        <div className="w-8 h-6" style={{background: 'linear-gradient(to right, #15803d, #22c55e)'}}></div>
+                        <span className="text-gray-600">Llanuras (100-200m)</span>
+                      </div>
+                      <div className="p-2.5 bg-white rounded-lg border border-gray-200 flex items-center gap-3">
+                        <div className="w-8 h-6" style={{background: 'linear-gradient(to right, #ca8a04, #facc15)'}}></div>
+                        <span className="text-gray-600">Lomadas (200-300m)</span>
+                      </div>
+                      <div className="p-2.5 bg-white rounded-lg border border-gray-200 flex items-center gap-3">
+                        <div className="w-8 h-6" style={{background: 'linear-gradient(to right, #c2410c, #f97316)'}}></div>
+                        <span className="text-gray-600">Cerros (300-400m)</span>
+                      </div>
+                      <div className="p-2.5 bg-white rounded-lg border border-gray-200 flex items-center gap-3">
+                        <div className="w-8 h-6" style={{background: 'linear-gradient(to right, #7f1d1d, #dc2626)'}}></div>
+                        <span className="text-gray-600">Alturas (400m+)</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Aplicaciones prácticas */}
+                  <div className="mb-5">
+                    <h3 className="text-xs sm:text-sm font-semibold text-gray-700 mb-2 sm:mb-3">
+                      💡 ¿Para qué sirve?
+                    </h3>
+                    <div className="space-y-2 text-xs sm:text-[13px]">
+                      <div className="p-2.5 bg-white rounded-lg border border-gray-200">
+                        <p className="font-medium text-gray-900 mb-1">💧 Planificación de drenajes</p>
+                        <p className="text-gray-600">Identificar zonas de acumulación de agua</p>
+                      </div>
+                      <div className="p-2.5 bg-white rounded-lg border border-gray-200">
+                        <p className="font-medium text-gray-900 mb-1">🚜 Manejo de maquinaria</p>
+                        <p className="text-gray-600">Detectar pendientes pronunciadas</p>
+                      </div>
+                      <div className="p-2.5 bg-white rounded-lg border border-gray-200">
+                        <p className="font-medium text-gray-900 mb-1">🌾 Zonificación de cultivos</p>
+                        <p className="text-gray-600">Asignar cultivos según altitud y pendiente</p>
+                      </div>
+                      <div className="p-2.5 bg-white rounded-lg border border-gray-200">
+                        <p className="font-medium text-gray-900 mb-1">🐄 Diseño de potreros</p>
+                        <p className="text-gray-600">Optimizar divisiones según topografía</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Nota oficial */}
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs sm:text-[13px]">
+                    <p className="font-semibold text-blue-900 mb-1.5">ℹ️ Datos Oficiales</p>
+                    <p className="text-blue-800">
+                      El Modelo Digital de Elevación proviene de IDEuy (Infraestructura de Datos Espaciales del Uruguay) y es el más preciso disponible con 2.5m de resolución.
                     </p>
                   </div>
                 </>

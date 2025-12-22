@@ -104,32 +104,36 @@ interface ModuloLeyenda {
   animalesPorCategoria?: Record<string, number>
 }
 
+// 🔥 CAMBIO 1: Actualizar la interfaz MapaPoligonoProps
 interface MapaPoligonoProps {
   onPolygonComplete?: (coordinates: number[][], areaHectareas: number) => void
   initialCenter?: [number, number]
   initialZoom?: number
   existingPolygons?: Array<{
-  id: string
-  nombre: string
-  coordinates: number[][]
-  color?: string
-  moduloPastoreoId?: string | null
-  isDashed?: boolean      // 🆕 NUEVO
-  isEditing?: boolean     // 🆕 NUEVO
-  info?: {
-    hectareas?: number
-    cultivos?: any[]
-    animales?: any[]
-    ndviMatriz?: any
-  }
-}>
+    id: string
+    nombre: string
+    coordinates: number[][]
+    color?: string
+    moduloPastoreoId?: string | null
+    isDashed?: boolean
+    isEditing?: boolean
+    info?: {
+      hectareas?: number
+      cultivos?: any[]
+      animales?: any[]
+      ndviMatriz?: any
+    }
+  }>
   readOnly?: boolean
   modulosLeyenda?: ModuloLeyenda[]
   mostrarLeyendaModulos?: boolean
   mostrarCurvasNivel?: boolean
   mostrarConeat?: boolean
+  mostrarAltimetria?: boolean  // 🔥 NUEVO
   opacidadCurvas?: number
+  opacidadAltimetria?: number  // 🔥 NUEVO
   onOpacidadCurvasChange?: (opacity: number) => void
+  onOpacidadAltimetriaChange?: (opacity: number) => void  // 🔥 NUEVO
 }
 
 function calcularAreaPoligono(latlngs: any[]): number {
@@ -255,6 +259,7 @@ function crearImagenNDVI(
   return imageOverlay
 }
 
+// 🔥 CAMBIO 2: Actualizar los parámetros de la función
 export default function MapaPoligono({
   onPolygonComplete,
   initialCenter = [-34.397, -56.165],
@@ -264,17 +269,21 @@ export default function MapaPoligono({
   modulosLeyenda = [],
   mostrarLeyendaModulos = false,
   mostrarCurvasNivel = false,
-  mostrarConeat = false,  // 🔥 NUEVO
+  mostrarConeat = false,
+  mostrarAltimetria = false,  // 🔥 NUEVO
   opacidadCurvas = 95,
+  opacidadAltimetria = 70,  // 🔥 NUEVO
   onOpacidadCurvasChange,
+  onOpacidadAltimetriaChange,  // 🔥 NUEVO
 }: MapaPoligonoProps) {
 
   const mapRef = useRef<any>(null)
   const drawnItemsRef = useRef<any>(null)
   const existingLayersRef = useRef<any>(null)
   const locationLayersRef = useRef<any[]>([])
-  const curvasLayerRef = useRef<any>(null)  // 🔥 NUEVO
-  const coneatLayerRef = useRef<any>(null)  // 🔥 NUEVO
+  const curvasLayerRef = useRef<any>(null)
+  const coneatLayerRef = useRef<any>(null)
+  const altimetriaLayerRef = useRef<any>(null)  // 🔥 CAMBIO 3: Agregar ref para altimetría
 
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<any[]>([])
@@ -332,95 +341,106 @@ export default function MapaPoligono({
     mapRef.current = map
 
     const satelitalLayer = L.tileLayer(
-  'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-  { attribution: '© Esri', maxZoom: 19 }
-)
+      'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      { attribution: '© Esri', maxZoom: 19 }
+    )
 
-const osmLayer = L.tileLayer(
-  'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-  { attribution: '© OpenStreetMap', maxZoom: 19 }
-)
+    const osmLayer = L.tileLayer(
+      'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+      { attribution: '© OpenStreetMap', maxZoom: 19 }
+    )
 
-const curvasLayer = L.tileLayer(
-  'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
-  { 
-    attribution: '© OpenTopoMap', 
-    maxZoom: 17,
-    opacity: opacidadCurvas / 100,
-    zIndex: 1000
-  }
-)
+    const curvasLayer = L.tileLayer(
+      'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+      { 
+        attribution: '© OpenTopoMap', 
+        maxZoom: 17,
+        opacity: opacidadCurvas / 100,
+        zIndex: 1000
+      }
+    )
 
-// 🔥 Capa de CONEAT - ArcGIS Dynamic MapServer del MGAP (sin esri-leaflet)
-const coneatLayer = (L as any).tileLayer('', {
-  opacity: 0.7,
-  zIndex: 1000,
-  attribution: '© MGAP Uruguay'
-})
+    // 🔥 Capa de CONEAT - ArcGIS Dynamic MapServer del MGAP (sin esri-leaflet)
+    const coneatLayer = (L as any).tileLayer('', {
+      opacity: 0.7,
+      zIndex: 1000,
+      attribution: '© MGAP Uruguay'
+    })
 
-// Sobrescribir getTileUrl para generar URLs de ArcGIS Export
-coneatLayer.getTileUrl = function(coords: any) {
-  const map = this._map
-  const bounds = this._tileCoordsToBounds(coords)
-  const sw = map.options.crs.project(bounds.getSouthWest())
-  const ne = map.options.crs.project(bounds.getNorthEast())
-  
-  const url = 'https://dgrn.mgap.gub.uy/arcgis/rest/services/CONEAT/SuelosConeat/MapServer/export'
-  const params = new URLSearchParams({
-    bbox: `${sw.x},${sw.y},${ne.x},${ne.y}`,
-    bboxSR: '3857',
-    imageSR: '3857',
-    size: '256,256',
-    dpi: '96',
-    format: 'png8',
-    transparent: 'true',
-    layers: 'show:1',
-    f: 'image'
-  })
-  
-  return `${url}?${params.toString()}`
-}
+    // Sobrescribir getTileUrl para generar URLs de ArcGIS Export
+    coneatLayer.getTileUrl = function(coords: any) {
+      const map = this._map
+      const bounds = this._tileCoordsToBounds(coords)
+      const sw = map.options.crs.project(bounds.getSouthWest())
+      const ne = map.options.crs.project(bounds.getNorthEast())
+      
+      const url = 'https://dgrn.mgap.gub.uy/arcgis/rest/services/CONEAT/SuelosConeat/MapServer/export'
+      const params = new URLSearchParams({
+        bbox: `${sw.x},${sw.y},${ne.x},${ne.y}`,
+        bboxSR: '3857',
+        imageSR: '3857',
+        size: '256,256',
+        dpi: '96',
+        format: 'png8',
+        transparent: 'true',
+        layers: 'show:1',
+        f: 'image'
+      })
+      
+      return `${url}?${params.toString()}`
+    }
 
-// Agregar capa base por defecto
-satelitalLayer.addTo(map)
+    // 🔥 CAMBIO 4: Capa de Altimetría - IDEuy (Modelo Digital de Elevación 2.5m)
+    const altimetriaLayer = (L as any).tileLayer.wms(
+      'https://mapas.ide.uy/WMS_Uruguay_IDEuy_MDE_CoberturaNacional',
+      { 
+        layers: 'mdt_nacional',
+        format: 'image/png',
+        transparent: true,
+        opacity: opacidadAltimetria / 100,
+        zIndex: 1000,
+        attribution: '© IDEuy - MDE 2.5m'
+      }
+    )
 
-// Control de capas base
-L.control.layers({ 'Satélite': satelitalLayer, 'Mapa': osmLayer }).addTo(map)
+    // Agregar capa base por defecto
+    satelitalLayer.addTo(map)
 
-
+    // Control de capas base
+    L.control.layers({ 'Satélite': satelitalLayer, 'Mapa': osmLayer }).addTo(map)
 
     const existingLayers = new L.FeatureGroup()
     map.addLayer(existingLayers)
     existingLayersRef.current = existingLayers
 
     existingPolygons.forEach((potrero) => {
-  if (!potrero.coordinates?.length) return
+      if (!potrero.coordinates?.length) return
 
-  // 🔥 CONVERTIR de [lng, lat] a [lat, lng] para Leaflet
-  const coordsParaMapa = potrero.coordinates.map(coord => [coord[1], coord[0]])
+      // 🔥 CONVERTIR de [lng, lat] a [lat, lng] para Leaflet
+      const coordsParaMapa = potrero.coordinates.map(coord => [coord[1], coord[0]])
 
-  // 🗺️ PRIMERO: Agregar imagen NDVI si hay datos (solo si NO está editando)
-  if (potrero.info?.ndviMatriz?.matriz?.length > 0 && !potrero.isEditing) {
-    const imageOverlay = crearImagenNDVI(
-      potrero.info.ndviMatriz,
-      potrero.coordinates
-    )
-    if (imageOverlay) {
-      existingLayersRef.current.addLayer(imageOverlay)
-    }
-  }
+      // 🗺️ PRIMERO: Agregar imagen NDVI si hay datos (solo si NO está editando)
+      if (potrero.info?.ndviMatriz?.matriz?.length > 0 && !potrero.isEditing) {
+        const imageOverlay = crearImagenNDVI(
+          potrero.info.ndviMatriz,
+          potrero.coordinates
+        )
+        if (imageOverlay) {
+          existingLayersRef.current.addLayer(imageOverlay)
+        }
+      }
 
-  // DESPUÉS: Dibujar el polígono encima (borde visible)
-  const polygon = (L as any).polygon(coordsParaMapa, {
-    color: potrero.isEditing ? '#9ca3af' : (potrero.color || '#10b981'), // 🔥 Gris si está editando
-    fillColor: potrero.isEditing ? '#e5e7eb' : 'transparent', // 🔥 Gris claro si está editando
-    fillOpacity: potrero.isEditing ? 0.15 : 0, // 🔥 Ligeramente visible si está editando
-    weight: potrero.isEditing ? 2 : 3, // 🔥 Más delgado si está editando
-    opacity: potrero.isEditing ? 0.6 : 1, // 🔥 Más transparente si está editando
-    dashArray: potrero.isDashed ? '10, 10' : undefined, // 🔥 LÍNEA PUNTEADA
-  })
+      // DESPUÉS: Dibujar el polígono encima (borde visible)
+      const polygon = (L as any).polygon(coordsParaMapa, {
+        color: potrero.isEditing ? '#9ca3af' : (potrero.color || '#10b981'),
+        fillColor: potrero.isEditing ? '#e5e7eb' : 'transparent',
+        fillOpacity: potrero.isEditing ? 0.15 : 0,
+        weight: potrero.isEditing ? 2 : 3,
+        opacity: potrero.isEditing ? 0.6 : 1,
+        dashArray: potrero.isDashed ? '10, 10' : undefined,
+      })
 
-  existingLayersRef.current.addLayer(polygon)
+      existingLayersRef.current.addLayer(polygon)
     })
 
     if (existingPolygons.length > 0 && existingLayers.getLayers().length > 0) {
@@ -434,11 +454,11 @@ L.control.layers({ 'Satélite': satelitalLayer, 'Mapa': osmLayer }).addTo(map)
       drawnItemsRef.current = drawnItems
 
       const drawControl = new (L.Control as any).Draw({
-  draw: {
-    polygon: {
-      allowIntersection: false,
-      showArea: false,  // ✅ DESHABILITAR para evitar confusión
-      metric: ['ha', 'm'],
+        draw: {
+          polygon: {
+            allowIntersection: false,
+            showArea: false,
+            metric: ['ha', 'm'],
             shapeOptions: { color: '#3b82f6', weight: 3 },
             icon: new (L as any).DivIcon({
               iconSize: new (L as any).Point(8, 8),
@@ -493,45 +513,48 @@ L.control.layers({ 'Satélite': satelitalLayer, 'Mapa': osmLayer }).addTo(map)
 
       map.on(DrawEvent.DELETED, () => setAreaHectareas(null))
     }
-  // 🔥 Guardar referencias a las capas en refs
+
+    // 🔥 CAMBIO 5: Guardar referencias a las capas en refs
     curvasLayerRef.current = curvasLayer
     coneatLayerRef.current = coneatLayer
+    altimetriaLayerRef.current = altimetriaLayer  // 🔥 NUEVO
     console.log('📦 Referencia de curvas guardada:', curvasLayer)
     console.log('📦 Referencia de CONEAT guardada:', coneatLayer)
+    console.log('📦 Referencia de altimetría guardada:', altimetriaLayer)
 
     return () => {
-  // Limpiar handlers antes de destruir el mapa
-  if (mapRef.current) {
-    mapRef.current.off('zoomend')
-    mapRef.current.off('moveend')
-    mapRef.current._tooltipZoomHandler = false
-  }
-  map.remove()
-  mapRef.current = null
-}
+      // Limpiar handlers antes de destruir el mapa
+      if (mapRef.current) {
+        mapRef.current.off('zoomend')
+        mapRef.current.off('moveend')
+        mapRef.current._tooltipZoomHandler = false
+      }
+      map.remove()
+      mapRef.current = null
+    }
   }, [isReady, initialCenter, initialZoom, readOnly, existingPolygons])
 
   /**
    * 🔄 Redibujar polígonos cuando cambian
    */
   useEffect(() => {
-  if (!mapRef.current || !existingLayersRef.current) return
-  if (!isReady) return
-  
-  // Verificar que el mapa sigue siendo válido
-  try {
-    mapRef.current.getCenter()
-  } catch (e) {
-    console.warn('Mapa no disponible, saltando actualización')
-    return
-  }
+    if (!mapRef.current || !existingLayersRef.current) return
+    if (!isReady) return
+    
+    // Verificar que el mapa sigue siendo válido
+    try {
+      mapRef.current.getCenter()
+    } catch (e) {
+      console.warn('Mapa no disponible, saltando actualización')
+      return
+    }
 
     existingLayersRef.current.clearLayers()
 
     existingPolygons.forEach((potrero) => {
       if (!potrero.coordinates?.length) return
-     // 🔥 CONVERTIR de [lng, lat] a [lat, lng]
-  const coordsParaMapa = potrero.coordinates.map(coord => [coord[1], coord[0]])
+      // 🔥 CONVERTIR de [lng, lat] a [lat, lng]
+      const coordsParaMapa = potrero.coordinates.map(coord => [coord[1], coord[0]])
 
       // 🗺️ PRIMERO: Agregar imagen NDVI si hay datos
       if (potrero.info?.ndviMatriz?.matriz?.length > 0) {
@@ -547,7 +570,7 @@ L.control.layers({ 'Satélite': satelitalLayer, 'Mapa': osmLayer }).addTo(map)
       // DESPUÉS: Dibujar el polígono encima (borde visible)
       const polygon = (L as any).polygon(coordsParaMapa, {
         color: potrero.color || '#10b981',
-        fillColor: 'transparent', // ✅ Totalmente transparente para ver el NDVI
+        fillColor: 'transparent',
         fillOpacity: 0,
         weight: 3,
       })
@@ -555,205 +578,206 @@ L.control.layers({ 'Satélite': satelitalLayer, 'Mapa': osmLayer }).addTo(map)
       existingLayersRef.current.addLayer(polygon)
 
       // 🏷️ Tooltip con nombre Y DETALLE COMPLETO de animales
-const center = polygon.getBounds().getCenter()
+      const center = polygon.getBounds().getCenter()
 
-let animalesText = ''
-if (potrero.info?.animales?.length) {
-  const lineas = potrero.info.animales
-    .map((a: any) => `${a.categoria}: ${a.cantidad}`)
-    .join('<br>')
-  animalesText = lineas
-}
+      let animalesText = ''
+      if (potrero.info?.animales?.length) {
+        const lineas = potrero.info.animales
+          .map((a: any) => `${a.categoria}: ${a.cantidad}`)
+          .join('<br>')
+        animalesText = lineas
+      }
 
-// Función para determinar tamaño según zoom
-const getFontSizes = () => {
-  const currentZoom = mapRef.current?.getZoom() || 14
-  
-  if (currentZoom >= 16) return { nombre: '20px', animales: '18px' }
-  if (currentZoom >= 14) return { nombre: '18px', animales: '16px' }
-  if (currentZoom >= 13) return { nombre: '16px', animales: '14px' }
-  return { nombre: '14px', animales: '12px' }
-}
+      // Función para determinar tamaño según zoom
+      const getFontSizes = () => {
+        const currentZoom = mapRef.current?.getZoom() || 14
+        
+        if (currentZoom >= 16) return { nombre: '20px', animales: '18px' }
+        if (currentZoom >= 14) return { nombre: '18px', animales: '16px' }
+        if (currentZoom >= 13) return { nombre: '16px', animales: '14px' }
+        return { nombre: '14px', animales: '12px' }
+      }
 
-const sizes = getFontSizes()
+      const sizes = getFontSizes()
 
-const tooltipContent = `
-  <div style="
-    font-family: system-ui, -apple-system, sans-serif;
-    text-align: center;
-    white-space: nowrap;
-  ">
-    <div style="
-      font-weight: bold; 
-      font-size: ${sizes.nombre}; 
-      color: black; 
-      text-shadow: 
-        -1px -1px 0 white,
-        1px -1px 0 white,
-        -1px 1px 0 white,
-        1px 1px 0 white,
-        -2px 0 0 white,
-        2px 0 0 white,
-        0 -2px 0 white,
-        0 2px 0 white;
-      margin-bottom: 2px;
-    ">
-      ${potrero.nombre}
-    </div>
-    <div style="
-      font-size: ${sizes.animales}; 
-      color: black; 
-      text-shadow: 
-        -1px -1px 0 white,
-        1px -1px 0 white,
-        -1px 1px 0 white,
-        1px 1px 0 white;
-      line-height: 1.3;
-    ">
-      ${animalesText}
-    </div>
-  </div>
-`
+      const tooltipContent = `
+        <div style="
+          font-family: system-ui, -apple-system, sans-serif;
+          text-align: center;
+          white-space: nowrap;
+        ">
+          <div style="
+            font-weight: bold; 
+            font-size: ${sizes.nombre}; 
+            color: black; 
+            text-shadow: 
+              -1px -1px 0 white,
+              1px -1px 0 white,
+              -1px 1px 0 white,
+              1px 1px 0 white,
+              -2px 0 0 white,
+              2px 0 0 white,
+              0 -2px 0 white,
+              0 2px 0 white;
+            margin-bottom: 2px;
+          ">
+            ${potrero.nombre}
+          </div>
+          <div style="
+            font-size: ${sizes.animales}; 
+            color: black; 
+            text-shadow: 
+              -1px -1px 0 white,
+              1px -1px 0 white,
+              -1px 1px 0 white,
+              1px 1px 0 white;
+            line-height: 1.3;
+          ">
+            ${animalesText}
+          </div>
+        </div>
+      `
 
-// 🔥 NO mostrar tooltip si está editando
-if (!potrero.isEditing) {
-  const tooltip = (L as any).tooltip({
-    permanent: true,
-    direction: 'center',
-    className: 'potrero-label-transparent',
-    opacity: 1,
-  }).setContent(tooltipContent)
+      // 🔥 NO mostrar tooltip si está editando
+      if (!potrero.isEditing) {
+        const tooltip = (L as any).tooltip({
+          permanent: true,
+          direction: 'center',
+          className: 'potrero-label-transparent',
+          opacity: 1,
+        }).setContent(tooltipContent)
 
-  // Guardar metadata en el tooltip para decisiones de visibilidad
-  tooltip._potreroData = {
-    id: potrero.id,
-    hectareas: potrero.info?.hectareas || 0,
-    center: center
-  }
-
-  tooltip.setLatLng(center)
-  existingLayersRef.current.addLayer(tooltip)
-
-  // 🎯 MAGIA: Ocultar/mostrar tooltips según zoom para evitar superposición
-  if (!mapRef.current._tooltipZoomHandler) {
-    mapRef.current._tooltipZoomHandler = true
-    mapRef.current.on('zoomend', () => {
-      const currentZoom = mapRef.current.getZoom()
-      
-      existingLayersRef.current.eachLayer((layer: any) => {
-        if (layer instanceof (L as any).Tooltip) {
-          // Ocultar en zoom bajo, mostrar en zoom medio/alto
-          if (currentZoom < 13) {
-            layer.setOpacity(0) // Invisible en zoom bajo
-          } else {
-            layer.setOpacity(1) // Visible en zoom medio/alto
-          }
+        // Guardar metadata en el tooltip para decisiones de visibilidad
+        tooltip._potreroData = {
+          id: potrero.id,
+          hectareas: potrero.info?.hectareas || 0,
+          center: center
         }
-      })
-    })
-  }
 
-  // Aplicar visibilidad inicial según zoom actual
-  const initialZoom = mapRef.current?.getZoom() || 14
-  if (initialZoom < 13) {
-    tooltip.setOpacity(0)
-  }
-}
+        tooltip.setLatLng(center)
+        existingLayersRef.current.addLayer(tooltip)
+
+        // 🎯 MAGIA: Ocultar/mostrar tooltips según zoom para evitar superposición
+        if (!mapRef.current._tooltipZoomHandler) {
+          mapRef.current._tooltipZoomHandler = true
+          mapRef.current.on('zoomend', () => {
+            const currentZoom = mapRef.current.getZoom()
+            
+            existingLayersRef.current.eachLayer((layer: any) => {
+              if (layer instanceof (L as any).Tooltip) {
+                // Ocultar en zoom bajo, mostrar en zoom medio/alto
+                if (currentZoom < 13) {
+                  layer.setOpacity(0)
+                } else {
+                  layer.setOpacity(1)
+                }
+              }
+            })
+          })
+        }
+
+        // Aplicar visibilidad inicial según zoom actual
+        const initialZoom = mapRef.current?.getZoom() || 14
+        if (initialZoom < 13) {
+          tooltip.setOpacity(0)
+        }
+      }
     })
     
     // 🎯 SISTEMA INTELIGENTE: Gestionar visibilidad de tooltips según zoom
-const gestionarVisibilidadTooltips = () => {
-  if (!mapRef.current) return
-  
-  const currentZoom = mapRef.current.getZoom()
-  const mapCenter = mapRef.current.getCenter()
-  
-  // Recopilar todos los tooltips
-  const tooltips: any[] = []
-  existingLayersRef.current.eachLayer((layer: any) => {
-    if (layer instanceof (L as any).Tooltip && layer._potreroData) {
-      tooltips.push(layer)
-    }
-  })
-  
-  if (tooltips.length === 0) return
-  
-  // 🔍 ZOOM BAJO (< 13): Mostrar solo el potrero MÁS GRANDE
-  if (currentZoom < 13) {
-    // Encontrar el potrero más grande
-    let mayorTooltip = tooltips[0]
-    tooltips.forEach(t => {
-      if (t._potreroData.hectareas > mayorTooltip._potreroData.hectareas) {
-        mayorTooltip = t
-      }
-    })
-    
-    // Ocultar todos excepto el más grande
-    tooltips.forEach(t => {
-      if (t === mayorTooltip) {
-        t.setOpacity(1)
-      } else {
-        t.setOpacity(0)
-      }
-    })
-  }
-  // 🔍 ZOOM MEDIO (13-15): Evitar colisiones
-  else if (currentZoom < 15) {
-    // Ordenar por tamaño (más grandes primero)
-    tooltips.sort((a, b) => b._potreroData.hectareas - a._potreroData.hectareas)
-    
-    const visibles: any[] = []
-    
-    tooltips.forEach(tooltip => {
-      const pos = mapRef.current.latLngToContainerPoint(tooltip._potreroData.center)
+    const gestionarVisibilidadTooltips = () => {
+      if (!mapRef.current) return
       
-      // Verificar si colisiona con algún tooltip ya visible
-      let colisiona = false
-      const margen = 80 // píxeles de separación mínima
+      const currentZoom = mapRef.current.getZoom()
+      const mapCenter = mapRef.current.getCenter()
       
-      for (const visible of visibles) {
-        const visiblePos = mapRef.current.latLngToContainerPoint(visible._potreroData.center)
-        const distancia = Math.sqrt(
-          Math.pow(pos.x - visiblePos.x, 2) + 
-          Math.pow(pos.y - visiblePos.y, 2)
-        )
-        
-        if (distancia < margen) {
-          colisiona = true
-          break
+      // Recopilar todos los tooltips
+      const tooltips: any[] = []
+      existingLayersRef.current.eachLayer((layer: any) => {
+        if (layer instanceof (L as any).Tooltip && layer._potreroData) {
+          tooltips.push(layer)
         }
-      }
+      })
       
-      if (!colisiona) {
-        tooltip.setOpacity(1)
-        visibles.push(tooltip)
-      } else {
-        tooltip.setOpacity(0)
+      if (tooltips.length === 0) return
+      
+      // 🔍 ZOOM BAJO (< 13): Mostrar solo el potrero MÁS GRANDE
+      if (currentZoom < 13) {
+        // Encontrar el potrero más grande
+        let mayorTooltip = tooltips[0]
+        tooltips.forEach(t => {
+          if (t._potreroData.hectareas > mayorTooltip._potreroData.hectareas) {
+            mayorTooltip = t
+          }
+        })
+        
+        // Ocultar todos excepto el más grande
+        tooltips.forEach(t => {
+          if (t === mayorTooltip) {
+            t.setOpacity(1)
+          } else {
+            t.setOpacity(0)
+          }
+        })
+        }
+      // 🔍 ZOOM MEDIO (13-15): Evitar colisiones
+      else if (currentZoom < 15) {
+        // Ordenar por tamaño (más grandes primero)
+        tooltips.sort((a, b) => b._potreroData.hectareas - a._potreroData.hectareas)
+        
+        const visibles: any[] = []
+        
+        tooltips.forEach(tooltip => {
+          const pos = mapRef.current.latLngToContainerPoint(tooltip._potreroData.center)
+          
+          // Verificar si colisiona con algún tooltip ya visible
+          let colisiona = false
+          const margen = 80 // píxeles de separación mínima
+          
+          for (const visible of visibles) {
+            const visiblePos = mapRef.current.latLngToContainerPoint(visible._potreroData.center)
+            const distancia = Math.sqrt(
+              Math.pow(pos.x - visiblePos.x, 2) + 
+              Math.pow(pos.y - visiblePos.y, 2)
+            )
+            
+            if (distancia < margen) {
+              colisiona = true
+              break
+            }
+          }
+          
+          if (!colisiona) {
+            tooltip.setOpacity(1)
+            visibles.push(tooltip)
+          } else {
+            tooltip.setOpacity(0)
+          }
+        })
       }
-    })
-  }
-  // 🔍 ZOOM ALTO (≥ 15): Mostrar TODOS
-  else {
-    tooltips.forEach(t => t.setOpacity(1))
-  }
-}
+      // 🔍 ZOOM ALTO (≥ 15): Mostrar TODOS
+      else {
+        tooltips.forEach(t => t.setOpacity(1))
+      }
+    }
 
-// Aplicar lógica inicial
-gestionarVisibilidadTooltips()
+    // Aplicar lógica inicial
+    gestionarVisibilidadTooltips()
 
-// Actualizar cuando cambia el zoom o se mueve el mapa
-if (!mapRef.current._tooltipZoomHandler) {
-  mapRef.current._tooltipZoomHandler = true
-  mapRef.current.on('zoomend', gestionarVisibilidadTooltips)
-  mapRef.current.on('moveend', gestionarVisibilidadTooltips)
-}
+    // Actualizar cuando cambia el zoom o se mueve el mapa
+    if (!mapRef.current._tooltipZoomHandler) {
+      mapRef.current._tooltipZoomHandler = true
+      mapRef.current.on('zoomend', gestionarVisibilidadTooltips)
+      mapRef.current.on('moveend', gestionarVisibilidadTooltips)
+    }
+
     if (existingPolygons.length > 0 && existingLayersRef.current.getLayers().length > 0) {
       try {
         const bounds = (existingLayersRef.current as any).getBounds()
         mapRef.current.fitBounds(bounds, { padding: [100, 100], maxZoom: 16 })
       } catch {}
     }
-   }, [existingPolygons, isReady])
+  }, [existingPolygons, isReady])
 
   /**
    * 🗺️ Controlar capa de curvas de nivel
@@ -780,8 +804,8 @@ if (!mapRef.current._tooltipZoomHandler) {
         console.log('➕ Agregando capa de curvas al mapa...')
         curvasLayer.addTo(mapRef.current)
         curvasLayer.setZIndex(1000)
-        curvasLayer.setOpacity(opacidadCurvas / 100) // 🔥 AGREGADO
-        console.log('✅ Capa de curvas agregada exitosamente con opacidad:', opacidadCurvas) // 🔥 MODIFICADO
+        curvasLayer.setOpacity(opacidadCurvas / 100)
+        console.log('✅ Capa de curvas agregada exitosamente con opacidad:', opacidadCurvas)
       } else {
         console.log('ℹ️ La capa de curvas ya estaba en el mapa')
       }
@@ -840,6 +864,50 @@ if (!mapRef.current._tooltipZoomHandler) {
     }
   }, [mostrarConeat, isReady])
 
+  // 🔥 CAMBIO 6: Agregar useEffect para controlar la capa de altimetría
+  /**
+   * 🏔️ Controlar capa de Altimetría
+   */
+  useEffect(() => {
+    console.log('🔄 useEffect Altimetría ejecutado. mostrarAltimetria:', mostrarAltimetria, 'isReady:', isReady)
+    
+    if (!isReady || !mapRef.current) {
+      console.log('⚠️ Esperando que el mapa esté listo... isReady:', isReady, 'mapRef:', !!mapRef.current)
+      return
+    }
+    
+    const altimetriaLayer = altimetriaLayerRef.current
+    
+    if (!altimetriaLayer) {
+      console.log('⚠️ No hay capa de altimetría guardada')
+      return
+    }
+    
+    if (mostrarAltimetria) {
+      console.log('🏔️ Intentando mostrar altimetría...')
+      
+      if (!mapRef.current.hasLayer(altimetriaLayer)) {
+        console.log('➕ Agregando capa de altimetría al mapa...')
+        altimetriaLayer.addTo(mapRef.current)
+        altimetriaLayer.setZIndex(1000)
+        altimetriaLayer.setOpacity(opacidadAltimetria / 100)
+        console.log('✅ Capa de altimetría agregada exitosamente con opacidad:', opacidadAltimetria)
+      } else {
+        console.log('ℹ️ La capa de altimetría ya estaba en el mapa')
+      }
+    } else {
+      console.log('🏔️ Ocultando altimetría...')
+      
+      if (mapRef.current.hasLayer(altimetriaLayer)) {
+        console.log('➖ Removiendo capa de altimetría del mapa...')
+        mapRef.current.removeLayer(altimetriaLayer)
+        console.log('✅ Capa de altimetría removida exitosamente')
+      } else {
+        console.log('ℹ️ La capa de altimetría no estaba en el mapa')
+      }
+    }
+  }, [mostrarAltimetria, isReady, opacidadAltimetria])
+
   /**
    * 🎨 Actualizar opacidad de curvas dinámicamente
    */
@@ -847,10 +915,21 @@ if (!mapRef.current._tooltipZoomHandler) {
     const curvasLayer = curvasLayerRef.current
     if (curvasLayer) {
       curvasLayer.setOpacity(opacidadCurvas / 100)
-      console.log('🎨 Opacidad actualizada a:', opacidadCurvas)
+      console.log('🎨 Opacidad de curvas actualizada a:', opacidadCurvas)
     }
   }, [opacidadCurvas])
-  
+
+  // 🔥 CAMBIO 7: Actualizar opacidad de altimetría dinámicamente
+  /**
+   * 🎨 Actualizar opacidad de altimetría dinámicamente
+   */
+  useEffect(() => {
+    const altimetriaLayer = altimetriaLayerRef.current
+    if (altimetriaLayer) {
+      altimetriaLayer.setOpacity(opacidadAltimetria / 100)
+      console.log('🎨 Opacidad de altimetría actualizada a:', opacidadAltimetria)
+    }
+  }, [opacidadAltimetria])
 
   /**
    * 📏 Manejar clicks para medición
@@ -877,37 +956,37 @@ if (!mapRef.current._tooltipZoomHandler) {
       setPuntosMedicion(newPuntos)
       
       if (newPuntos.length > 1) {
-  // Dibujar la línea completa
-  const linea = (L as any).polyline(newPuntos, {
-    color: '#3b82f6',
-    weight: 3,
-    className: 'linea-medicion',
-    fill: esCierre,
-    fillColor: '#3b82f6',
-    fillOpacity: 0.1
-  }).addTo(mapRef.current)
-  
-  // Dibujar tooltips para cada segmento
-  for (let i = 0; i < newPuntos.length - 1; i++) {
-    const p1 = newPuntos[i]
-    const p2 = newPuntos[i + 1]
-    
-    // ✅ Usar Turf.js para distancia geodésica precisa
-    const from = turf.point([p1.lng, p1.lat])
-    const to = turf.point([p2.lng, p2.lat])
-    const distanciaMetros = turf.distance(from, to, { units: 'meters' })
-    
-    const puntoMedio = (L as any).latLng(
-      (p1.lat + p2.lat) / 2,
-      (p1.lng + p2.lng) / 2
-    )
-    
-    let textoDistancia = ""
-    if (distanciaMetros > 1000) {
-      textoDistancia = (distanciaMetros / 1000).toFixed(2) + " km"
-    } else {
-      textoDistancia = Math.round(distanciaMetros) + " m"
-    }
+        // Dibujar la línea completa
+        const linea = (L as any).polyline(newPuntos, {
+          color: '#3b82f6',
+          weight: 3,
+          className: 'linea-medicion',
+          fill: esCierre,
+          fillColor: '#3b82f6',
+          fillOpacity: 0.1
+        }).addTo(mapRef.current)
+        
+        // Dibujar tooltips para cada segmento
+        for (let i = 0; i < newPuntos.length - 1; i++) {
+          const p1 = newPuntos[i]
+          const p2 = newPuntos[i + 1]
+          
+          // ✅ Usar Turf.js para distancia geodésica precisa
+          const from = turf.point([p1.lng, p1.lat])
+          const to = turf.point([p2.lng, p2.lat])
+          const distanciaMetros = turf.distance(from, to, { units: 'meters' })
+          
+          const puntoMedio = (L as any).latLng(
+            (p1.lat + p2.lat) / 2,
+            (p1.lng + p2.lng) / 2
+          )
+          
+          let textoDistancia = ""
+          if (distanciaMetros > 1000) {
+            textoDistancia = (distanciaMetros / 1000).toFixed(2) + " km"
+          } else {
+            textoDistancia = Math.round(distanciaMetros) + " m"
+          }
           
           // Tooltip para cada segmento
           (L as any).marker(puntoMedio, {
@@ -922,14 +1001,14 @@ if (!mapRef.current._tooltipZoomHandler) {
         }
         
         // Si es polígono cerrado, mostrar área
-if (esCierre) {
-  // ✅ Usar Turf.js para consistencia
-  const coords = newPuntos.map((p: any) => [p.lng, p.lat])
-  coords.push(coords[0])
-  const polygon = turf.polygon([coords])
-  const area = turf.area(polygon)
-  const areaHa = area / 10000
-  const centroide = linea.getBounds().getCenter()
+        if (esCierre) {
+          // ✅ Usar Turf.js para consistencia
+          const coords = newPuntos.map((p: any) => [p.lng, p.lat])
+          coords.push(coords[0])
+          const polygon = turf.polygon([coords])
+          const area = turf.area(polygon)
+          const areaHa = area / 10000
+          const centroide = linea.getBounds().getCenter()
           
           const areaNum = Number(area) || 0
           let textoArea = ""
@@ -979,8 +1058,6 @@ if (esCierre) {
       }
     }
   }, [midiendo, puntosMedicion])
-
-  
 
   const buscarUbicacion = async () => {
     if (!searchQuery.trim()) return
@@ -1133,11 +1210,11 @@ if (esCierre) {
     <div id="map-container" className="relative w-full h-full flex flex-col">
       
       {/* 🖥️ BOTÓN DE PANTALLA COMPLETA - Arriba a la izquierda */}
-<button
-  onClick={toggleFullscreen}
-  className="hidden sm:flex absolute top-3 left-3 z-[10] bg-white rounded-lg shadow-lg hover:shadow-xl transition-all w-[34px] h-[34px] sm:w-[36px] sm:h-[36px] items-center justify-center border-2 border-gray-300"
-  title={isFullscreen ? "Salir de pantalla completa" : "Pantalla completa"}
->
+      <button
+        onClick={toggleFullscreen}
+        className="hidden sm:flex absolute top-3 left-3 z-[10] bg-white rounded-lg shadow-lg hover:shadow-xl transition-all w-[34px] h-[34px] sm:w-[36px] sm:h-[36px] items-center justify-center border-2 border-gray-300"
+        title={isFullscreen ? "Salir de pantalla completa" : "Pantalla completa"}
+      >
         {isFullscreen ? (
           // Ícono para SALIR de pantalla completa
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="sm:stroke-current stroke-gray-700">
@@ -1150,21 +1227,22 @@ if (esCierre) {
           </svg>
         )}
       </button>
+
       {/* 📏 BOTÓN DE MEDICIÓN - Solo visible en modo lectura */}
-{readOnly && (
-  <button
-    onClick={toggleMedicion}
-    className={`absolute top-3 left-3 z-[10] rounded-lg shadow-lg hover:shadow-xl transition-all w-[34px] h-[34px] sm:w-[36px] sm:h-[36px] flex items-center justify-center border-2 text-lg ${
-      midiendo 
-        ? 'bg-blue-600 border-blue-600' 
-        : 'bg-white border-gray-300'
-    }`}
-    style={{ marginTop: '124px' }}
-    title={midiendo ? "Terminar medición" : "Medir distancia"}
-  >
-    📏
-  </button>
-)}
+      {readOnly && (
+        <button
+          onClick={toggleMedicion}
+          className={`absolute top-3 left-3 z-[10] rounded-lg shadow-lg hover:shadow-xl transition-all w-[34px] h-[34px] sm:w-[36px] sm:h-[36px] flex items-center justify-center border-2 text-lg ${
+            midiendo 
+              ? 'bg-blue-600 border-blue-600' 
+              : 'bg-white border-gray-300'
+          }`}
+          style={{ marginTop: '124px' }}
+          title={midiendo ? "Terminar medición" : "Medir distancia"}
+        >
+          📏
+        </button>
+      )}
 
       {/* 🎯 BOTÓN DE UBICACIÓN - Debajo del control de capas */}
       <button
@@ -1187,7 +1265,7 @@ if (esCierre) {
         )}
       </button>
 
-      {/* 🎨 CONTROL DE OPACIDAD - Solo en pantalla completa y vista Curvas */}
+      {/* 🎨 CONTROL DE OPACIDAD CURVAS - Solo en pantalla completa y vista Curvas */}
       {isFullscreen && mostrarCurvasNivel && (
         <div className="absolute top-[120px] right-3 z-[10] bg-white/95 backdrop-blur-sm rounded-xl shadow-2xl border border-gray-200 p-4 w-[280px]">
           <div className="flex items-center justify-between mb-3">
@@ -1221,65 +1299,99 @@ if (esCierre) {
         </div>
       )}
 
-      {/* 📦 LEYENDA DE MÓDULOS - Solo visible en PANTALLA COMPLETA */}
-{isFullscreen && mostrarLeyendaModulos && modulosLeyenda.length > 0 && (
-  <div className="absolute top-[120px] right-3 z-[1000] bg-white/95 backdrop-blur-sm rounded-xl shadow-2xl border border-gray-200 p-4 max-w-[320px]">
-    <h3 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
-      <span>📦</span> Módulos de Pastoreo
-    </h3>
-    <div className="space-y-3">
-      {modulosLeyenda.map((modulo) => (
-        <div
-          key={modulo.id}
-          className="p-3 rounded-lg transition-colors"
-          style={{
-            backgroundColor: `${modulo.color}15`,
-          }}
-        >
-          {/* Header del módulo */}
-          <div className="flex items-center gap-3 mb-2">
-            <div
-              className="w-4 h-4 rounded flex-shrink-0"
-              style={{ backgroundColor: modulo.color }}
-            />
-            <span className="font-semibold text-gray-900 text-sm">
-              {modulo.nombre}
+      {/* 🔥 CAMBIO 8: CONTROL DE OPACIDAD ALTIMETRÍA - Solo en pantalla completa y vista Altimetría */}
+      {isFullscreen && mostrarAltimetria && (
+        <div className="absolute top-[120px] right-3 z-[10] bg-white/95 backdrop-blur-sm rounded-xl shadow-2xl border border-gray-200 p-4 w-[280px]">
+          <div className="flex items-center justify-between mb-3">
+            <label className="text-sm font-semibold text-gray-800">
+              🏔️ Opacidad Altimetría
+            </label>
+            <span className="text-sm font-bold text-purple-600 bg-purple-50 px-2.5 py-1 rounded-lg">
+              {opacidadAltimetria}%
             </span>
           </div>
-          
-          {/* Stats en pills */}
-          <div className="flex flex-wrap gap-1.5">
-            <span className="px-2 py-0.5 bg-white/80 rounded-full text-xs text-gray-600">
-              {modulo.cantidadPotreros} potrero{modulo.cantidadPotreros !== 1 ? 's' : ''}
-            </span>
-            <span className="px-2 py-0.5 bg-white/80 rounded-full text-xs text-gray-600">
-              {modulo.hectareas.toFixed(0)} ha
-            </span>
-            {modulo.totalAnimales && modulo.totalAnimales > 0 && (
-              <span className="px-2 py-0.5 bg-white/80 rounded-full text-xs text-gray-600">
-                {modulo.totalAnimales} animales
-              </span>
-            )}
+          <input 
+            type="range" 
+            min="10" 
+            max="100" 
+            value={opacidadAltimetria}
+            onChange={(e) => {
+              const newOpacity = Number(e.target.value)
+              if (onOpacidadAltimetriaChange) {
+                onOpacidadAltimetriaChange(newOpacity)
+              }
+            }}
+            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-600"
+            style={{
+              background: `linear-gradient(to right, #9333ea 0%, #9333ea ${opacidadAltimetria}%, #e5e7eb ${opacidadAltimetria}%, #e5e7eb 100%)`
+            }}
+          />
+          <div className="flex justify-between text-xs text-gray-500 mt-2">
+            <span>Transparente</span>
+            <span>Opaco</span>
           </div>
-          
-          {/* Desglose de animales */}
-          {modulo.animalesPorCategoria && Object.keys(modulo.animalesPorCategoria).length > 0 && (
-            <div className="flex flex-wrap gap-1.5 mt-2">
-              {Object.entries(modulo.animalesPorCategoria).map(([categoria, cantidad]) => (
-                <span 
-                  key={categoria}
-                  className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-medium"
-                >
-                  {cantidad} {categoria}
-                </span>
-              ))}
-            </div>
-          )}
         </div>
-      ))}
-    </div>
-  </div>
-)}
+      )}
+
+      {/* 📦 LEYENDA DE MÓDULOS - Solo visible en PANTALLA COMPLETA */}
+      {isFullscreen && mostrarLeyendaModulos && modulosLeyenda.length > 0 && (
+        <div className="absolute top-[120px] right-3 z-[1000] bg-white/95 backdrop-blur-sm rounded-xl shadow-2xl border border-gray-200 p-4 max-w-[320px]">
+          <h3 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
+            <span>📦</span> Módulos de Pastoreo
+          </h3>
+          <div className="space-y-3">
+            {modulosLeyenda.map((modulo) => (
+              <div
+                key={modulo.id}
+                className="p-3 rounded-lg transition-colors"
+                style={{
+                  backgroundColor: `${modulo.color}15`,
+                }}
+              >
+                {/* Header del módulo */}
+                <div className="flex items-center gap-3 mb-2">
+                  <div
+                    className="w-4 h-4 rounded flex-shrink-0"
+                    style={{ backgroundColor: modulo.color }}
+                  />
+                  <span className="font-semibold text-gray-900 text-sm">
+                    {modulo.nombre}
+                  </span>
+                </div>
+                
+                {/* Stats en pills */}
+                <div className="flex flex-wrap gap-1.5">
+                  <span className="px-2 py-0.5 bg-white/80 rounded-full text-xs text-gray-600">
+                    {modulo.cantidadPotreros} potrero{modulo.cantidadPotreros !== 1 ? 's' : ''}
+                  </span>
+                  <span className="px-2 py-0.5 bg-white/80 rounded-full text-xs text-gray-600">
+                    {modulo.hectareas.toFixed(0)} ha
+                  </span>
+                  {modulo.totalAnimales && modulo.totalAnimales > 0 && (
+                    <span className="px-2 py-0.5 bg-white/80 rounded-full text-xs text-gray-600">
+                      {modulo.totalAnimales} animales
+                    </span>
+                  )}
+                </div>
+                
+                {/* Desglose de animales */}
+                {modulo.animalesPorCategoria && Object.keys(modulo.animalesPorCategoria).length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {Object.entries(modulo.animalesPorCategoria).map(([categoria, cantidad]) => (
+                      <span 
+                        key={categoria}
+                        className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-medium"
+                      >
+                        {cantidad} {categoria}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {!readOnly && (
         <div className="absolute top-4 left-4 right-4 z-[10] md:left-16 md:w-96">
@@ -1319,7 +1431,6 @@ if (esCierre) {
           </div>
         </div>
       )}
-
 
       {!readOnly && areaHectareas !== null && (
         <div className="absolute top-4 right-4 z-[10] bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg">
