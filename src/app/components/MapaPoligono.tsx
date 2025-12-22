@@ -128,6 +128,7 @@ interface MapaPoligonoProps {
   mostrarLeyendaModulos?: boolean
   mostrarCurvasNivel?: boolean
   mostrarConeat?: boolean
+  mostrarAltimetria?: boolean
   opacidadCurvas?: number
   onOpacidadCurvasChange?: (opacity: number) => void
 }
@@ -264,7 +265,8 @@ export default function MapaPoligono({
   modulosLeyenda = [],
   mostrarLeyendaModulos = false,
   mostrarCurvasNivel = false,
-  mostrarConeat = false,  // 🔥 NUEVO
+  mostrarConeat = false,
+  mostrarAltimetria = false,
   opacidadCurvas = 95,
   onOpacidadCurvasChange,
 }: MapaPoligonoProps) {
@@ -275,6 +277,7 @@ export default function MapaPoligono({
   const locationLayersRef = useRef<any[]>([])
   const curvasLayerRef = useRef<any>(null)  // 🔥 NUEVO
   const coneatLayerRef = useRef<any>(null)  // 🔥 NUEVO
+  const altimetriaLayerRef = useRef<any>(null)
 
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<any[]>([])
@@ -380,6 +383,16 @@ coneatLayer.getTileUrl = function(coords: any) {
   
   return `${url}?${params.toString()}`
 }
+
+// 🏔️ Capa de ALTIMETRÍA - WMS de IDE Uruguay
+const altimetriaLayer = (L as any).tileLayer.wms('https://visualizador.ide.uy/geoserver/wms', {
+  layers: 'IDE:CN_Remesa_10_MDT_5m',
+  format: 'image/png',
+  transparent: true,
+  opacity: 0.8,
+  zIndex: 1000,
+  attribution: '© IDE Uruguay'
+})
 
 // Agregar capa base por defecto
 satelitalLayer.addTo(map)
@@ -498,6 +511,9 @@ L.control.layers({ 'Satélite': satelitalLayer, 'Mapa': osmLayer }).addTo(map)
     coneatLayerRef.current = coneatLayer
     console.log('📦 Referencia de curvas guardada:', curvasLayer)
     console.log('📦 Referencia de CONEAT guardada:', coneatLayer)
+
+    altimetriaLayerRef.current = altimetriaLayer
+console.log('📦 Referencia de Altimetría guardada:', altimetriaLayer)
 
     return () => {
   // Limpiar handlers antes de destruir el mapa
@@ -839,6 +855,48 @@ if (!mapRef.current._tooltipZoomHandler) {
       }
     }
   }, [mostrarConeat, isReady])
+
+  /**
+ * 🏔️ Controlar capa de ALTIMETRÍA
+ */
+useEffect(() => {
+  console.log('🔄 useEffect Altimetría ejecutado. mostrarAltimetria:', mostrarAltimetria, 'isReady:', isReady)
+  
+  if (!isReady || !mapRef.current) {
+    console.log('⚠️ Esperando que el mapa esté listo... isReady:', isReady, 'mapRef:', !!mapRef.current)
+    return
+  }
+  
+  const altimetriaLayer = altimetriaLayerRef.current
+  
+  if (!altimetriaLayer) {
+    console.log('⚠️ No hay capa de Altimetría guardada')
+    return
+  }
+  
+  if (mostrarAltimetria) {
+    console.log('🏔️ Intentando mostrar Altimetría...')
+    
+    if (!mapRef.current.hasLayer(altimetriaLayer)) {
+      console.log('➕ Agregando capa Altimetría al mapa...')
+      altimetriaLayer.addTo(mapRef.current)
+      altimetriaLayer.setZIndex(1000)
+      console.log('✅ Capa Altimetría agregada exitosamente')
+    } else {
+      console.log('ℹ️ La capa Altimetría ya estaba en el mapa')
+    }
+  } else {
+    console.log('🏔️ Ocultando Altimetría...')
+    
+    if (mapRef.current.hasLayer(altimetriaLayer)) {
+      console.log('➖ Removiendo capa Altimetría del mapa...')
+      mapRef.current.removeLayer(altimetriaLayer)
+      console.log('✅ Capa Altimetría removida exitosamente')
+    } else {
+      console.log('ℹ️ La capa Altimetría no estaba en el mapa')
+    }
+  }
+}, [mostrarAltimetria, isReady])
 
   /**
    * 🎨 Actualizar opacidad de curvas dinámicamente

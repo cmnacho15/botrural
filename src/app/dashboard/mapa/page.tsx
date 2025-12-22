@@ -70,7 +70,7 @@ function getColorModulo(moduloIndex: number): string {
 export default function MapaPage() {
   const [lotes, setLotes] = useState<Lote[]>([])
   const [loading, setLoading] = useState(true)
-  const [vistaActual, setVistaActual] = useState<'indice' | 'cultivo' | 'ndvi' | 'curvas' | 'coneat'>(
+  const [vistaActual, setVistaActual] = useState<'indice' | 'cultivo' | 'ndvi' | 'curvas' | 'coneat' | 'altimetria'>(
   'indice',
 )
   const [mapCenter, setMapCenter] = useState<[number, number]>([
@@ -430,6 +430,17 @@ export default function MapaPage() {
 >
   🌱 CONEAT
 </button>
+
+<button
+  onClick={() => setVistaActual('altimetria')}
+  className={`px-3 py-2 text-xs sm:text-sm font-medium transition ${
+    vistaActual === 'altimetria'
+      ? 'bg-purple-600 text-white'
+      : 'text-gray-700 hover:bg-gray-50'
+  }`}
+>
+  🏔️ Altimetría
+</button>
             </div>
           </div>
         </div>
@@ -469,6 +480,7 @@ export default function MapaPage() {
   mostrarLeyendaModulos={vistaActual === 'indice'}
   mostrarCurvasNivel={vistaActual === 'curvas'}
   mostrarConeat={vistaActual === 'coneat'}
+  mostrarAltimetria={vistaActual === 'altimetria'}
   opacidadCurvas={opacidadCurvas}
   onOpacidadCurvasChange={setOpacidadCurvas}
 />
@@ -486,6 +498,7 @@ export default function MapaPage() {
   {vistaActual === 'ndvi' && '🛰️ Índice de Vegetación (NDVI)'}
   {vistaActual === 'curvas' && '📏 Curvas de Nivel'}
   {vistaActual === 'coneat' && '🌱 Grupos CONEAT'}
+  {vistaActual === 'altimetria' && '🏔️ Modelo Digital de Terreno'}
 </h2>
             </div>
 
@@ -891,6 +904,114 @@ export default function MapaPage() {
                     <p className="font-semibold text-blue-900 mb-1.5">ℹ️ Datos Oficiales</p>
                     <p className="text-blue-800">
                       Los datos CONEAT provienen del MGAP (Ministerio de Ganadería, Agricultura y Pesca) y son los mismos que usa el gobierno uruguayo para políticas agropecuarias.
+                    </p>
+                  </div>
+                </>
+              )}
+             {/* VISTA ALTIMETRÍA */}
+              {vistaActual === 'altimetria' && (
+                <>
+                  {/* Información */}
+                  <div className="mb-5 bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-lg p-3 sm:p-4">
+                    <h3 className="text-xs sm:text-sm font-semibold text-gray-800 mb-2">
+                      🏔️ ¿Qué es el Modelo Digital de Terreno?
+                    </h3>
+                    <div className="space-y-2 text-xs sm:text-[13px] text-gray-700">
+                      <div className="flex items-start gap-2">
+                        <span>📐</span>
+                        <span><strong>MDT</strong> es un mapa de elevaciones del terreno en alta resolución (5 metros)</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <span>🛰️</span>
+                        <span><strong>Fuente:</strong> LiDAR aerotransportado - IDE Uruguay</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <span>🎨</span>
+                        <span><strong>Visualización:</strong> Relieve sombreado con gradiente de colores según altura</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <span>💡</span>
+                        <span><strong>Uso:</strong> Analizar pendientes, drenaje, erosión y planificar infraestructura</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Escala de colores */}
+                  <div className="mb-5">
+                    <h3 className="text-xs sm:text-sm font-semibold text-gray-700 mb-2 sm:mb-3">
+                      🎨 Escala de Elevación
+                    </h3>
+                    <div className="space-y-1.5 text-xs sm:text-[13px]">
+                      <div className="p-2.5 bg-white rounded-lg border border-gray-200">
+                        <p className="font-medium text-gray-900 mb-1">⚪ Blanco/Gris claro</p>
+                        <p className="text-gray-600">Zonas muy altas (cimas, lomadas)</p>
+                      </div>
+                      <div className="p-2.5 bg-white rounded-lg border border-gray-200">
+                        <p className="font-medium text-gray-900 mb-1">🟢 Verde</p>
+                        <p className="text-gray-600">Zonas de altura media</p>
+                      </div>
+                      <div className="p-2.5 bg-white rounded-lg border border-gray-200">
+                        <p className="font-medium text-gray-900 mb-1">🟡 Amarillo</p>
+                        <p className="text-gray-600">Zonas de altura baja-media</p>
+                      </div>
+                      <div className="p-2.5 bg-white rounded-lg border border-gray-200">
+                        <p className="font-medium text-gray-900 mb-1">🟤 Marrón oscuro</p>
+                        <p className="text-gray-600">Zonas bajas (valles, cañadas)</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Interpretación del relieve sombreado */}
+                  <div className="mb-5">
+                    <h3 className="text-xs sm:text-sm font-semibold text-gray-700 mb-2 sm:mb-3">
+                      🔦 Relieve Sombreado
+                    </h3>
+                    <div className="space-y-2 text-xs sm:text-[13px]">
+                      <div className="p-2.5 bg-white rounded-lg border border-gray-200">
+                        <p className="font-medium text-gray-900 mb-1">☀️ Zonas claras (iluminadas)</p>
+                        <p className="text-gray-600">Laderas orientadas hacia la luz (noroeste)</p>
+                      </div>
+                      <div className="p-2.5 bg-white rounded-lg border border-gray-200">
+                        <p className="font-medium text-gray-900 mb-1">🌑 Zonas oscuras (sombreadas)</p>
+                        <p className="text-gray-600">Laderas en sombra (sureste) o depresiones</p>
+                      </div>
+                      <div className="p-2.5 bg-white rounded-lg border border-gray-200">
+                        <p className="font-medium text-gray-900 mb-1">📊 Contraste marcado</p>
+                        <p className="text-gray-600">Indica pendientes pronunciadas o cambios bruscos</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Usos prácticos */}
+                  <div className="mb-5">
+                    <h3 className="text-xs sm:text-sm font-semibold text-gray-700 mb-2 sm:mb-3">
+                      💡 ¿Para qué sirve?
+                    </h3>
+                    <div className="space-y-2 text-xs sm:text-[13px]">
+                      <div className="p-2.5 bg-white rounded-lg border border-gray-200">
+                        <p className="font-medium text-gray-900 mb-1">💧 Gestión de agua</p>
+                        <p className="text-gray-600">Identificar zonas de escurrimiento y acumulación</p>
+                      </div>
+                      <div className="p-2.5 bg-white rounded-lg border border-gray-200">
+                        <p className="font-medium text-gray-900 mb-1">🚜 Planificación agrícola</p>
+                        <p className="text-gray-600">Diseñar terrazas, caminos y sistemas de riego</p>
+                      </div>
+                      <div className="p-2.5 bg-white rounded-lg border border-gray-200">
+                        <p className="font-medium text-gray-900 mb-1">🌾 Control de erosión</p>
+                        <p className="text-gray-600">Detectar áreas susceptibles a erosión hídrica</p>
+                      </div>
+                      <div className="p-2.5 bg-white rounded-lg border border-gray-200">
+                        <p className="font-medium text-gray-900 mb-1">🏗️ Infraestructura</p>
+                        <p className="text-gray-600">Ubicar corrales, galpones y reservorios óptimamente</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Nota técnica */}
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs sm:text-[13px]">
+                    <p className="font-semibold text-blue-900 mb-1.5">ℹ️ Datos de Alta Precisión</p>
+                    <p className="text-blue-800">
+                      El MDT proviene de relevamientos LiDAR con resolución de 5 metros. Estos datos son mantenidos por la Infraestructura de Datos Espaciales (IDE) de Uruguay.
                     </p>
                   </div>
                 </>
