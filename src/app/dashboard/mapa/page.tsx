@@ -70,7 +70,7 @@ function getColorModulo(moduloIndex: number): string {
 export default function MapaPage() {
   const [lotes, setLotes] = useState<Lote[]>([])
   const [loading, setLoading] = useState(true)
-  const [vistaActual, setVistaActual] = useState<'indice' | 'cultivo' | 'ndvi' | 'curvas' | 'coneat'>(
+  const [vistaActual, setVistaActual] = useState<'indice' | 'cultivo' | 'ndvi' | 'curvas' | 'coneat' | 'altimetria'>(
   'indice',
 )
   const [mapCenter, setMapCenter] = useState<[number, number]>([
@@ -430,6 +430,17 @@ export default function MapaPage() {
 >
   🌱 CONEAT
 </button>
+
+<button
+  onClick={() => setVistaActual('altimetria')}
+  className={`px-3 py-2 text-xs sm:text-sm font-medium transition ${
+    vistaActual === 'altimetria'
+      ? 'bg-purple-600 text-white'
+      : 'text-gray-700 hover:bg-gray-50'
+  }`}
+>
+  🏔️ Altimetría
+</button>
             </div>
           </div>
         </div>
@@ -469,6 +480,7 @@ export default function MapaPage() {
   mostrarLeyendaModulos={vistaActual === 'indice'}
   mostrarCurvasNivel={vistaActual === 'curvas'}
   mostrarConeat={vistaActual === 'coneat'}
+  mostrarAltimetria={vistaActual === 'altimetria'}
   opacidadCurvas={opacidadCurvas}
   onOpacidadCurvasChange={setOpacidadCurvas}
 />
@@ -486,6 +498,7 @@ export default function MapaPage() {
   {vistaActual === 'ndvi' && '🛰️ Índice de Vegetación (NDVI)'}
   {vistaActual === 'curvas' && '📏 Curvas de Nivel'}
   {vistaActual === 'coneat' && '🌱 Grupos CONEAT'}
+  {vistaActual === 'altimetria' && '🏔️ Altimetría 3D'}
 </h2>
             </div>
 
@@ -895,7 +908,95 @@ export default function MapaPage() {
                   </div>
                 </>
               )}
+              
 
+              {/* VISTA ALTIMETRÍA */}
+{vistaActual === 'altimetria' && (
+  <>
+    {/* Información */}
+    <div className="mb-5 bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-lg p-3 sm:p-4">
+      <h3 className="text-xs sm:text-sm font-semibold text-gray-800 mb-2">
+        🏔️ Modelo Digital de Terreno
+      </h3>
+      <div className="space-y-2 text-xs sm:text-[13px] text-gray-700">
+        <div className="flex items-start gap-2">
+          <span>📐</span>
+          <span><strong>Resolución:</strong> 2.5 metros por píxel</span>
+        </div>
+        <div className="flex items-start gap-2">
+          <span>🗺️</span>
+          <span><strong>Fuente:</strong> IDE Uruguay - Infraestructura de Datos Espaciales</span>
+        </div>
+        <div className="flex items-start gap-2">
+          <span>🌍</span>
+          <span><strong>Formato:</strong> Nubes de puntos LAS procesadas con GDAL</span>
+        </div>
+        <div className="flex items-start gap-2">
+          <span>💡</span>
+          <span><strong>Uso:</strong> Visualiza el relieve 3D del terreno con colores según elevación</span>
+        </div>
+      </div>
+    </div>
+
+    {/* Guía de interpretación */}
+    <div className="mb-5">
+      <h3 className="text-xs sm:text-sm font-semibold text-gray-700 mb-2 sm:mb-3">
+        🎨 Escala de Colores
+      </h3>
+      <div className="space-y-2 text-xs sm:text-[13px]">
+        <div className="p-2.5 bg-white rounded-lg border border-gray-200 flex items-center gap-3">
+          <div className="w-8 h-4 rounded" style={{backgroundColor: '#6edc6e'}}></div>
+          <p className="text-gray-900">Zonas bajas (0-50m)</p>
+        </div>
+        <div className="p-2.5 bg-white rounded-lg border border-gray-200 flex items-center gap-3">
+          <div className="w-8 h-4 rounded" style={{backgroundColor: '#f0faaa'}}></div>
+          <p className="text-gray-900">Elevación media (50-100m)</p>
+        </div>
+        <div className="p-2.5 bg-white rounded-lg border border-gray-200 flex items-center gap-3">
+          <div className="w-8 h-4 rounded" style={{backgroundColor: '#e6dcaa'}}></div>
+          <p className="text-gray-900">Zonas altas (100-200m)</p>
+        </div>
+        <div className="p-2.5 bg-white rounded-lg border border-gray-200 flex items-center gap-3">
+          <div className="w-8 h-4 rounded" style={{backgroundColor: '#dcdcdc'}}></div>
+          <p className="text-gray-900">Elevaciones muy altas (200m+)</p>
+        </div>
+      </div>
+    </div>
+
+    {/* Aplicaciones prácticas */}
+    <div className="mb-5">
+      <h3 className="text-xs sm:text-sm font-semibold text-gray-700 mb-2 sm:mb-3">
+        💡 ¿Para qué sirve?
+      </h3>
+      <div className="space-y-2 text-xs sm:text-[13px]">
+        <div className="p-2.5 bg-white rounded-lg border border-gray-200">
+          <p className="font-medium text-gray-900 mb-1">🚜 Planificación de drenajes</p>
+          <p className="text-gray-600">Identifica zonas bajas donde se acumula agua</p>
+        </div>
+        <div className="p-2.5 bg-white rounded-lg border border-gray-200">
+          <p className="font-medium text-gray-900 mb-1">🌊 Gestión de riego</p>
+          <p className="text-gray-600">Visualiza pendientes para sistemas de riego</p>
+        </div>
+        <div className="p-2.5 bg-white rounded-lg border border-gray-200">
+          <p className="font-medium text-gray-900 mb-1">🏗️ Planificación de obras</p>
+          <p className="text-gray-600">Evalúa movimientos de tierra necesarios</p>
+        </div>
+        <div className="p-2.5 bg-white rounded-lg border border-gray-200">
+          <p className="font-medium text-gray-900 mb-1">📊 Análisis de erosión</p>
+          <p className="text-gray-600">Detecta áreas con riesgo de erosión por pendiente</p>
+        </div>
+      </div>
+    </div>
+
+    {/* Nota técnica */}
+    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs sm:text-[13px]">
+      <p className="font-semibold text-blue-900 mb-1.5">ℹ️ Datos Oficiales</p>
+      <p className="text-blue-800">
+        Los datos de altimetría provienen de relevamientos LiDAR del gobierno uruguayo, procesados para obtener un modelo digital del terreno en alta resolución.
+      </p>
+    </div>
+  </>
+)}
               {/* VISTA CULTIVOS */}
               {vistaActual === 'cultivo' && (
                 <>
