@@ -962,34 +962,7 @@ export default function MapaPage() {
                     </div>
                   </div>
 
-                  {/* Escala de colores */}
-                  <div className="mb-5">
-                    <h3 className="text-xs sm:text-sm font-semibold text-gray-700 mb-2 sm:mb-3">
-                      🎨 Escala de Elevación
-                    </h3>
-                    <div className="space-y-2 text-xs sm:text-[13px]">
-                      <div className="p-2.5 bg-white rounded-lg border border-gray-200 flex items-center gap-3">
-                        <div className="w-8 h-6" style={{background: 'linear-gradient(to right, #1a365d, #2563eb)'}}></div>
-                        <span className="text-gray-600">Zonas bajas (0-100m)</span>
-                      </div>
-                      <div className="p-2.5 bg-white rounded-lg border border-gray-200 flex items-center gap-3">
-                        <div className="w-8 h-6" style={{background: 'linear-gradient(to right, #15803d, #22c55e)'}}></div>
-                        <span className="text-gray-600">Llanuras (100-200m)</span>
-                      </div>
-                      <div className="p-2.5 bg-white rounded-lg border border-gray-200 flex items-center gap-3">
-                        <div className="w-8 h-6" style={{background: 'linear-gradient(to right, #ca8a04, #facc15)'}}></div>
-                        <span className="text-gray-600">Lomadas (200-300m)</span>
-                      </div>
-                      <div className="p-2.5 bg-white rounded-lg border border-gray-200 flex items-center gap-3">
-                        <div className="w-8 h-6" style={{background: 'linear-gradient(to right, #c2410c, #f97316)'}}></div>
-                        <span className="text-gray-600">Cerros (300-400m)</span>
-                      </div>
-                      <div className="p-2.5 bg-white rounded-lg border border-gray-200 flex items-center gap-3">
-                        <div className="w-8 h-6" style={{background: 'linear-gradient(to right, #7f1d1d, #dc2626)'}}></div>
-                        <span className="text-gray-600">Alturas (400m+)</span>
-                      </div>
-                    </div>
-                  </div>
+                  
 
                   {/* Aplicaciones prácticas */}
                   <div className="mb-5">
