@@ -141,21 +141,24 @@ export default function BotonDescargarCarga() {
           }
 
           // Título del módulo
-          doc.setFontSize(11)
-          doc.setFont('helvetica', 'bold')
-          doc.setTextColor(0, 0, 0)
-          doc.text(`MODULO: ${modulo.nombre}`, margin, startY)
+doc.setFontSize(11)
+doc.setFont('helvetica', 'bold')
+doc.setTextColor(0, 0, 0)
+const titulo = modulo.nombre === 'Resto del campo' ? modulo.nombre : `MODULO: ${modulo.nombre}`
+doc.text(titulo, margin, startY)
 
-          doc.setFontSize(9)
-          doc.setFont('helvetica', 'normal')
-          doc.setTextColor(100, 100, 100)
-          doc.text(
-            `${modulo.cantidadPotreros} potrero${modulo.cantidadPotreros !== 1 ? 's' : ''} | ${modulo.hectareas.toFixed(0)} ha | ${modulo.ugPorHa.toFixed(2)} UG/ha`,
-            margin + 50,
-            startY
-          )
+startY += 5
 
-          startY += 5
+doc.setFontSize(9)
+doc.setFont('helvetica', 'normal')
+doc.setTextColor(100, 100, 100)
+doc.text(
+  `${modulo.cantidadPotreros} potrero${modulo.cantidadPotreros !== 1 ? 's' : ''} | ${modulo.hectareas.toFixed(0)} ha | ${modulo.ugPorHa.toFixed(2)} UG/ha`,
+  margin,
+  startY
+)
+
+startY += 5
 
           // Filtrar categorías con animales en este módulo
           const categoriasBovinas = data.categorias.bovinas.filter(cat =>
