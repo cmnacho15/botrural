@@ -46,7 +46,7 @@ export async function GET(request: Request) {
     // ===========================
     const lotes = await prisma.lote.findMany({
       where: { campoId: usuario.campoId },
-      select: { id: true, nombre: true, hectareas: true },
+      select: { id: true, nombre: true, hectareas: true, esPastoreable: true },
       orderBy: { nombre: 'asc' },
     })
 
@@ -124,7 +124,9 @@ export async function GET(request: Request) {
       seriesPorLote.reduce((sum, lote) => sum + lote.datos[index], 0)
     )
 
-    const hectareasTotales = lotes.reduce((sum, l) => sum + l.hectareas, 0)
+    const hectareasTotales = lotes
+      .filter(l => l.esPastoreable !== false)
+      .reduce((sum, l) => sum + l.hectareas, 0)
 
     const ugPorHaGlobal = ugGlobalPorDia.map((ug) =>
       hectareasTotales > 0 ? Math.round((ug / hectareasTotales) * 100) / 100 : 0

@@ -418,9 +418,11 @@ const [acordeonesAbiertos, setAcordeonesAbiertos] = useState<{[key: string]: boo
   }
 
   // Calcular totales por módulo
-  const calcularTotalesModulo = (lotesDelModulo: Lote[]) => {
-    const totalHectareas = lotesDelModulo.reduce((sum, l) => sum + l.hectareas, 0)
-    const todosAnimales = lotesDelModulo.flatMap(l => l.animalesLote || [])
+ const calcularTotalesModulo = (lotesDelModulo: Lote[]) => {
+    // 🔥 SOLO CONSIDERAR POTREROS PASTOREABLES
+    const lotesPastoreables = lotesDelModulo.filter(l => l.esPastoreable !== false)
+    const totalHectareas = lotesPastoreables.reduce((sum, l) => sum + l.hectareas, 0)
+    const todosAnimales = lotesPastoreables.flatMap(l => l.animalesLote || [])
     
     // ✅ AGRUPAR animales por categoría antes de calcular UG
     const animalesAgrupados = todosAnimales.reduce((acc, animal) => {
@@ -610,8 +612,10 @@ const [acordeonesAbiertos, setAcordeonesAbiertos] = useState<{[key: string]: boo
               
               {/* 🌾 CARGA GLOBAL DEL CAMPO CON TOOLTIP */}
 {hayLotes && (() => {
-  const totalHectareas = lotes.reduce((sum, l) => sum + l.hectareas, 0)
-  const todosAnimales = lotes.flatMap(l => l.animalesLote || [])
+  // 🔥 SOLO CONSIDERAR POTREROS PASTOREABLES
+  const lotesPastoreables = lotes.filter(l => l.esPastoreable !== false)
+  const totalHectareas = lotesPastoreables.reduce((sum, l) => sum + l.hectareas, 0)
+  const todosAnimales = lotesPastoreables.flatMap(l => l.animalesLote || [])
 
   // ✅ AGRUPAR animales por categoría antes de calcular UG
   const animalesAgrupados = todosAnimales.reduce((acc, animal) => {
