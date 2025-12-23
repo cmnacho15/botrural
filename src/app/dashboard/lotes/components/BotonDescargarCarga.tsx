@@ -185,10 +185,10 @@ export default function BotonDescargarCarga() {
             ])
 
             const totMod = {
-              ha: modulo.potreros.reduce((s, p) => s + p.hectareas, 0),
-              vac: modulo.potreros.reduce((s, p) => s + p.vacunosTotales, 0),
-              cat: {} as Record<string, number>
-            }
+  ha: modulo.hectareas,
+  vac: modulo.potreros.reduce((s, p) => s + p.vacunosTotales, 0),
+  cat: {} as Record<string, number>
+}
             categoriasBovinas.forEach(c => {
               totMod.cat[c.nombre] = modulo.potreros.reduce((s, p) => s + (p.animalesPorCategoria[c.nombre] || 0), 0)
             })
@@ -253,10 +253,10 @@ export default function BotonDescargarCarga() {
             ])
 
             const totMod = {
-              ha: modulo.potreros.reduce((s, p) => s + p.hectareas, 0),
-              ovi: modulo.potreros.reduce((s, p) => s + p.ovinosTotales, 0),
-              cat: {} as Record<string, number>
-            }
+  ha: modulo.hectareas,
+  ovi: modulo.potreros.reduce((s, p) => s + p.ovinosTotales, 0),
+  cat: {} as Record<string, number>
+}
             categoriasOvinas.forEach(c => {
               totMod.cat[c.nombre] = modulo.potreros.reduce((s, p) => s + (p.animalesPorCategoria[c.nombre] || 0), 0)
             })
@@ -318,10 +318,10 @@ export default function BotonDescargarCarga() {
             ])
 
             const totMod = {
-              ha: modulo.potreros.reduce((s, p) => s + p.hectareas, 0),
-              equ: modulo.potreros.reduce((s, p) => s + p.equinosTotales, 0),
-              cat: {} as Record<string, number>
-            }
+  ha: modulo.hectareas,
+  equ: modulo.potreros.reduce((s, p) => s + p.equinosTotales, 0),
+  cat: {} as Record<string, number>
+}
             categoriasEquinas.forEach(c => {
               totMod.cat[c.nombre] = modulo.potreros.reduce((s, p) => s + (p.animalesPorCategoria[c.nombre] || 0), 0)
             })
