@@ -2,9 +2,10 @@
 
 import { prisma } from "@/lib/prisma"
 import { 
-  buscarPotreroEnLista,  // 🆕 Nueva función
+  buscarPotreroEnLista,
   buscarAnimalesEnPotrero, 
-  obtenerNombresPotreros 
+  obtenerNombresPotreros,
+  actualizarUltimoCambioSiVacio  // 🆕 AGREGAR
 } from "@/lib/potrero-helpers"
 import { sendWhatsAppMessage } from "../services/messageService"
 import { sendWhatsAppMessageWithButtons } from "../services/messageService"
@@ -239,15 +240,20 @@ export async function ejecutarCambioPotrero(data: any) {
       })
     }
 
-    await tx.lote.update({
+    // Verificar si el potrero origen quedó vacío después de la transacción
+    const loteOrigenFinal = await tx.lote.findUnique({
       where: { id: data.loteId },
-      data: { ultimoCambio: new Date() },
+      include: { animalesLote: true }
     })
+    
+    if (loteOrigenFinal && (!loteOrigenFinal.animalesLote || loteOrigenFinal.animalesLote.length === 0)) {
+      await tx.lote.update({
+        where: { id: data.loteId },
+        data: { ultimoCambio: new Date() }
+      })
+    }
 
-    await tx.lote.update({
-      where: { id: data.loteDestinoId },
-      data: { ultimoCambio: new Date() },
-    })
+    // ✅ Potrero destino recibe animales → NO resetear días
 
     const descripcion = `Cambio de ${data.cantidad} ${data.categoria} del potrero "${data.loteOrigenNombre}" al potrero "${data.loteDestinoNombre}".`
 

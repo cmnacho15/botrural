@@ -528,3 +528,33 @@ export async function buscarPotrerosConCategoria(
 
   return resultados
 }
+
+/**
+ * 🕒 Actualizar ultimoCambio solo si el potrero quedó vacío
+ * 
+ * Esta función evita resetear los días de pastoreo cuando se mueven
+ * ALGUNOS animales pero el potrero NO queda completamente vacío.
+ * 
+ * REGLA: Solo actualiza ultimoCambio si animalesLote.length === 0
+ */
+export async function actualizarUltimoCambioSiVacio(loteId: string) {
+  const lote = await prisma.lote.findUnique({
+    where: { id: loteId },
+    include: { animalesLote: true }
+  })
+  
+  if (!lote) return
+  
+  const tieneAnimales = lote.animalesLote && lote.animalesLote.length > 0
+  
+  // ✅ SOLO actualizar si el potrero quedó COMPLETAMENTE VACÍO
+  if (!tieneAnimales) {
+    console.log(`🔄 Potrero "${lote.nombre}" quedó VACÍO → reseteando ultimoCambio`)
+    await prisma.lote.update({
+      where: { id: loteId },
+      data: { ultimoCambio: new Date() }
+    })
+  } else {
+    console.log(`✅ Potrero "${lote.nombre}" aún tiene animales → manteniendo ultimoCambio`)
+  }
+}

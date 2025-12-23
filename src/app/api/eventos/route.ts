@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../auth/[...nextauth]/route";
+import { actualizarUltimoCambioSiVacio } from '@/lib/potrero-helpers'
 import { convertirAUYU, obtenerTasaCambio } from '@/lib/currency'
 
 // Función para combinar fecha del usuario con hora actual
@@ -234,10 +235,7 @@ export async function POST(request: Request) {
             }
           }
 
-          await prisma.lote.update({
-            where: { id: loteId },
-            data: { ultimoCambio: new Date() }
-          });
+          await actualizarUltimoCambioSiVacio(loteId);
         }
 
         if (monto && parseFloat(monto) > 0) {
@@ -463,10 +461,7 @@ export async function POST(request: Request) {
             });
           }
 
-          await prisma.lote.update({
-            where: { id: loteId },
-            data: { ultimoCambio: new Date() }
-          });
+          await actualizarUltimoCambioSiVacio(loteId);
         }
         break;
 
@@ -491,10 +486,7 @@ export async function POST(request: Request) {
             }
           }
 
-          await prisma.lote.update({
-            where: { id: loteId },
-            data: { ultimoCambio: new Date() }
-          });
+          await actualizarUltimoCambioSiVacio(loteId);
         }
         break;
 
@@ -519,10 +511,7 @@ export async function POST(request: Request) {
             }
           }
 
-          await prisma.lote.update({
-            where: { id: loteId },
-            data: { ultimoCambio: new Date() }
-          });
+          await actualizarUltimoCambioSiVacio(loteId);
         }
         break;
 
@@ -546,10 +535,7 @@ export async function POST(request: Request) {
             });
           }
 
-          await prisma.lote.update({
-            where: { id: loteId },
-            data: { ultimoCambio: new Date() }
-          });
+          await actualizarUltimoCambioSiVacio(loteId);
         }
 
         if (monto && parseFloat(monto) > 0) {
@@ -573,103 +559,99 @@ export async function POST(request: Request) {
         break;
 
       // ======================================================================
-      // TRASLADO
-      // ======================================================================
-      case "TRASLADO": {
-        if (!loteId || !loteDestinoId || !categoria)
-          return NextResponse.json(
-            { error: "Se requiere potrero origen, destino y categoría" },
-            { status: 400 }
-          );
+// TRASLADO
+// ======================================================================
+case "TRASLADO": {
+  if (!loteId || !loteDestinoId || !categoria)
+    return NextResponse.json(
+      { error: "Se requiere potrero origen, destino y categoría" },
+      { status: 400 }
+    );
 
-        const [potreroOrigen, potreroDestino] = await Promise.all([
-          prisma.lote.findFirst({
-            where: { id: loteId, campoId: usuario.campoId },
-          }),
-          prisma.lote.findFirst({
-            where: { id: loteDestinoId, campoId: usuario.campoId },
-          }),
-        ]);
+  const [potreroOrigen, potreroDestino] = await Promise.all([
+    prisma.lote.findFirst({
+      where: { id: loteId, campoId: usuario.campoId },
+    }),
+    prisma.lote.findFirst({
+      where: { id: loteDestinoId, campoId: usuario.campoId },
+    }),
+  ]);
 
-        if (!potreroOrigen || !potreroDestino)
-          return NextResponse.json(
-            { error: "Potreros no válidos" },
-            { status: 404 }
-          );
+  if (!potreroOrigen || !potreroDestino)
+    return NextResponse.json(
+      { error: "Potreros no válidos" },
+      { status: 404 }
+    );
 
-        const animalesOrigen = await prisma.animalLote.findFirst({
-          where: { loteId, categoria, lote: { campoId: usuario.campoId } },
-        });
+  const animalesOrigen = await prisma.animalLote.findFirst({
+    where: { loteId, categoria, lote: { campoId: usuario.campoId } },
+  });
 
-        if (!animalesOrigen)
-          return NextResponse.json(
-            { error: `No hay animales de ${categoria} en el potrero origen` },
-            { status: 404 }
-          );
+  if (!animalesOrigen)
+    return NextResponse.json(
+      { error: `No hay animales de ${categoria} en el potrero origen` },
+      { status: 404 }
+    );
 
-        const cantidadMover = cantidad ? parseInt(cantidad) : animalesOrigen.cantidad;
+  const cantidadMover = cantidad ? parseInt(cantidad) : animalesOrigen.cantidad;
 
-        if (cantidadMover > animalesOrigen.cantidad)
-          return NextResponse.json(
-            { error: "No hay suficientes animales" },
-            { status: 400 }
-          );
+  if (cantidadMover > animalesOrigen.cantidad)
+    return NextResponse.json(
+      { error: "No hay suficientes animales" },
+      { status: 400 }
+    );
 
-        const nuevaCantidadOrigen = animalesOrigen.cantidad - cantidadMover;
-        if (nuevaCantidadOrigen === 0) {
-          await prisma.animalLote.delete({ where: { id: animalesOrigen.id } });
-        } else {
-          await prisma.animalLote.update({
-            where: { id: animalesOrigen.id },
-            data: { cantidad: nuevaCantidadOrigen },
-          });
-        }
+  const nuevaCantidadOrigen = animalesOrigen.cantidad - cantidadMover;
+  if (nuevaCantidadOrigen === 0) {
+    await prisma.animalLote.delete({ where: { id: animalesOrigen.id } });
+  } else {
+    await prisma.animalLote.update({
+      where: { id: animalesOrigen.id },
+      data: { cantidad: nuevaCantidadOrigen },
+    });
+  }
 
-        const animalesDestino = await prisma.animalLote.findFirst({
-          where: {
-            loteId: loteDestinoId,
-            categoria,
-            lote: { campoId: usuario.campoId },
-          },
-        });
+  const animalesDestino = await prisma.animalLote.findFirst({
+    where: {
+      loteId: loteDestinoId,
+      categoria,
+      lote: { campoId: usuario.campoId },
+    },
+  });
 
-        if (animalesDestino) {
-          await prisma.animalLote.update({
-            where: { id: animalesDestino.id },
-            data: { cantidad: animalesDestino.cantidad + cantidadMover },
-          });
-        } else {
-          await prisma.animalLote.create({
-            data: {
-              categoria,
-              cantidad: cantidadMover,
-              loteId: loteDestinoId,
-            },
-          });
-        }
+  if (animalesDestino) {
+    await prisma.animalLote.update({
+      where: { id: animalesDestino.id },
+      data: { cantidad: animalesDestino.cantidad + cantidadMover },
+    });
+  } else {
+    await prisma.animalLote.create({
+      data: {
+        categoria,
+        cantidad: cantidadMover,
+        loteId: loteDestinoId,
+      },
+    });
+  }
 
-        await prisma.lote.update({
-          where: { id: loteId },
-          data: { ultimoCambio: new Date() }
-        });
-        
-        await prisma.lote.update({
-          where: { id: loteDestinoId },
-          data: { ultimoCambio: new Date() }
-        });
+  // ✅ ACTUALIZADO: Solo resetear origen si quedó vacío
+  await actualizarUltimoCambioSiVacio(loteId);
+  
+  // ✅ ACTUALIZADO: Potrero destino recibe animales → NO resetear días
+  // (El potrero destino NUNCA queda vacío en un traslado, así que no hacemos nada)
 
-        await prisma.evento.update({
-          where: { id: evento.id },
-          data: {
-            loteDestinoId,
-            cantidad: cantidadMover,
-            categoria,
-            notas: notas || null,
-          },
-        });
+  await prisma.evento.update({
+    where: { id: evento.id },
+    data: {
+      loteDestinoId,
+      cantidad: cantidadMover,
+      categoria,
+      notas: notas || null,
+    },
+  });
 
-        break;
-      }
+  break;
+}
 
       // ======================================================================
       // INGRESO (GENÉRICO)
@@ -802,15 +784,9 @@ export async function POST(request: Request) {
   }
 
   // Actualizar timestamps de ambos potreros
-  await prisma.lote.update({
-    where: { id: loteId },
-    data: { ultimoCambio: new Date() }
-  });
+ await actualizarUltimoCambioSiVacio(loteId);
   
-  await prisma.lote.update({
-    where: { id: loteDestinoId },
-    data: { ultimoCambio: new Date() }
-  });
+  // ✅ Potrero destino recibe animales → NO resetear días
 
   // Actualizar evento con resumen
   const resumenAnimales = animalesAProcesar.map(a => `${a.cantidad} ${a.categoria}`).join(', ');
@@ -896,10 +872,8 @@ export async function POST(request: Request) {
           });
         }
 
-        await prisma.lote.update({
-          where: { id: loteId },
-          data: { ultimoCambio: new Date() }
-        });
+        // ✅ Recategorización no vacía el potrero → NO resetear días
+        // (los animales siguen ahí, solo cambian de categoría)
 
         const potrero = await prisma.lote.findUnique({
           where: { id: loteId },
