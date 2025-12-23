@@ -151,16 +151,21 @@ if (potrerosRestoProcesados.length > 0) {
   }
 }
 
-      // Totales globales
-      const todosLosPotreros = [
-        ...modulosData.flatMap(m => m.potreros),
-        ...(restoDelCampo?.potreros || [])
-      ]
+      // Totales globales - 🔥 INCLUIR TODOS LOS POTREROS (no solo los que tienen animales)
+const todosLosPotrerosPastoreables = [
+  ...modulosConPotreros.flatMap(m => m.lotes.map(procesarPotrero)),
+  ...potrerosRestoProcesados
+]
 
-      const totales = {
-        hectareas: todosLosPotreros.reduce((sum, p) => sum + p.hectareas, 0),
-        porCategoria: {} as Record<string, number>,
-        ugTotales: todosLosPotreros.reduce((sum, p) => sum + p.ugTotales, 0),
+const todosLosPotreros = [
+  ...modulosData.flatMap(m => m.potreros),
+  ...(restoDelCampo?.potreros || [])
+]
+
+const totales = {
+  hectareas: todosLosPotrerosPastoreables.reduce((sum, p) => sum + p.hectareas, 0),
+  porCategoria: {} as Record<string, number>,
+  ugTotales: todosLosPotrerosPastoreables.reduce((sum, p) => sum + p.ugTotales, 0),
         vacunosTotales: todosLosPotreros.reduce((sum, p) => sum + p.vacunosTotales, 0),
         ovinosTotales: todosLosPotreros.reduce((sum, p) => sum + p.ovinosTotales, 0),
         equinosTotales: todosLosPotreros.reduce((sum, p) => sum + p.equinosTotales, 0),

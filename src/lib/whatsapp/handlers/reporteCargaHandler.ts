@@ -126,10 +126,15 @@ if (potrerosRestoProcesados.length > 0) {
   }
 }
 
-      const todosLosPotreros = [...modulosData.flatMap(m => m.potreros), ...(restoDelCampo?.potreros || [])]
-      const totalHectareas = todosLosPotreros.reduce((s, p) => s + p.hectareas, 0)
-      const totalUG = todosLosPotreros.reduce((s, p) => s + p.ugTotales, 0)
-      const ugPorHaGlobal = totalHectareas > 0 ? totalUG / totalHectareas : 0
+      // 🔥 Calcular totales sobre TODOS los potreros pastoreables (no solo los que tienen animales)
+const todosLosPotrerosPastoreables = [
+  ...modulosConPotreros.flatMap(m => m.lotes.map(procesarPotrero)),
+  ...potrerosRestoProcesados
+]
+const todosLosPotreros = [...modulosData.flatMap(m => m.potreros), ...(restoDelCampo?.potreros || [])]
+const totalHectareas = todosLosPotrerosPastoreables.reduce((s, p) => s + p.hectareas, 0)
+const totalUG = todosLosPotrerosPastoreables.reduce((s, p) => s + p.ugTotales, 0)
+const ugPorHaGlobal = totalHectareas > 0 ? totalUG / totalHectareas : 0
 
       // Header
       doc.setFontSize(16)
