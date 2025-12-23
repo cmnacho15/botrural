@@ -161,10 +161,10 @@ if (fechaHasta) {
         )
 
         if (proximaEntrada) {
-          diasDescanso = Math.ceil((new Date(proximaEntrada.fecha).getTime() - fechaSalida.getTime()) / (1000 * 60 * 60 * 24))
-        } else {
-          diasDescanso = Math.ceil((fechaLimite.getTime() - fechaSalida.getTime()) / (1000 * 60 * 60 * 24))
-        }
+  diasDescanso = Math.floor((new Date(proximaEntrada.fecha).getTime() - fechaSalida.getTime()) / (1000 * 60 * 60 * 24))
+} else {
+  diasDescanso = Math.floor((fechaLimite.getTime() - fechaSalida.getTime()) / (1000 * 60 * 60 * 24))
+}
       }
 
       registros.push({
@@ -232,7 +232,7 @@ if (fechaHasta) {
         if (fechaHasta && fechaUltimoCambio > new Date(fechaHasta)) continue
 
         // Calcular días de descanso desde ultimoCambio hasta hoy
-        const diasDescanso = Math.ceil((fechaLimite.getTime() - fechaUltimoCambio.getTime()) / (1000 * 60 * 60 * 24))
+        const diasDescanso = Math.floor((fechaLimite.getTime() - fechaUltimoCambio.getTime()) / (1000 * 60 * 60 * 24))
 
         registros.push({
           potrero: potrero.nombre,
