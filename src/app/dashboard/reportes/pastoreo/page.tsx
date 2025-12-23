@@ -94,7 +94,7 @@ export default function ReportePastoreoPage() {
     // Tabla
     autoTable(doc, {
       startY: 30,
-      head: [['POTRERO', 'FECHA\nENTRADA', 'DÍAS', 'FECHA\nSALIDA', 'DÍAS DE\nDESCANSO', 'HECTÁREAS', 'COMENTARIOS']],
+      head: [['POTRERO', 'FECHA\nENTRADA', 'DÍAS DE\nPASTOREO', 'FECHA\nSALIDA', 'DÍAS DE\nDESCANSO', 'HECTÁREAS', 'COMENTARIOS']],
       body: registros.map(r => [
         r.potrero,
         r.fechaEntrada,
@@ -227,7 +227,7 @@ export default function ReportePastoreoPage() {
                     <tr>
                       <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase text-center">POTRERO</th>
                       <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase text-center">FECHA<br/>ENTRADA</th>
-                      <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase text-center">DÍAS</th>
+                      <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase text-center">DÍAS DE<br/>PASTOREO</th>
                       <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase text-center">FECHA<br/>SALIDA</th>
                       <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase text-center">DÍAS DE<br/>DESCANSO</th>
                       <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase text-center">HECTÁREAS</th>
