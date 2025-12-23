@@ -4,6 +4,7 @@ import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/app/api/auth/[...nextauth]/route"
+import { actualizarUltimoCambioSiVacio } from '@/lib/potrero-helpers'
 
 // ====================================================
 // FUNCIÓN AUXILIAR PARA DETERMINAR TIPO DE ANIMAL
@@ -160,11 +161,19 @@ export async function POST(request: Request) {
         })
       }
 
-      // 4. Actualizar ultimoCambio del potrero
-      await tx.lote.update({
+      // 4. Actualizar ultimoCambio SOLO si el potrero quedó vacío
+      // Nota: Como esto está dentro de una transacción, necesitamos usar tx
+      const loteActualizado = await tx.lote.findUnique({
         where: { id: animalLote.loteId },
-        data: { ultimoCambio: new Date() }
+        include: { animalesLote: true }
       })
+      
+      if (loteActualizado && (!loteActualizado.animalesLote || loteActualizado.animalesLote.length === 0)) {
+        await tx.lote.update({
+          where: { id: animalLote.loteId },
+          data: { ultimoCambio: new Date() }
+        })
+      }
 
       return nuevoConsumo
     })
