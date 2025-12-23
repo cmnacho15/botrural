@@ -153,15 +153,20 @@ if (potrerosRestoProcesados.length > 0) {
           startY = 20
         }
 
-        doc.setFontSize(11)
-        doc.setFont('helvetica', 'bold')
-        doc.setTextColor(0, 0, 0)
-        doc.text(`${modulo.nombre}`, margin, startY)
-        doc.setFontSize(9)
-        doc.setFont('helvetica', 'normal')
-        doc.setTextColor(100, 100, 100)
-        doc.text(`${modulo.cantidadPotreros} potrero${modulo.cantidadPotreros !== 1 ? 's' : ''} | ${modulo.hectareas.toFixed(0)} ha | ${modulo.ugPorHa.toFixed(2)} UG/ha`, margin + 45, startY)
-        startY += 5
+       doc.setFontSize(11)
+doc.setFont('helvetica', 'bold')
+doc.setTextColor(0, 0, 0)
+const titulo = modulo.nombre === 'Resto del campo' ? modulo.nombre : `MODULO: ${modulo.nombre}`
+doc.text(titulo, margin, startY)
+
+startY += 5
+
+doc.setFontSize(9)
+doc.setFont('helvetica', 'normal')
+doc.setTextColor(100, 100, 100)
+doc.text(`${modulo.cantidadPotreros} potrero${modulo.cantidadPotreros !== 1 ? 's' : ''} | ${modulo.hectareas.toFixed(0)} ha | ${modulo.ugPorHa.toFixed(2)} UG/ha`, margin, startY)
+
+startY += 5
 
         const catBov = categoriasBovinas.filter(cat => modulo.potreros.some((p: any) => (p.animalesPorCategoria[cat.nombre] || 0) > 0))
         const catOvi = categoriasOvinas.filter(cat => modulo.potreros.some((p: any) => (p.animalesPorCategoria[cat.nombre] || 0) > 0))
