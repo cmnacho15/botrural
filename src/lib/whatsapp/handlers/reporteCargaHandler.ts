@@ -101,31 +101,30 @@ async function generarPDFCarga(campoId: string): Promise<Buffer | null> {
       const modulosData = modulosConPotreros.map(modulo => {
   const potrerosProcesados = modulo.lotes.map(procesarPotrero)
   const potrerosConAnimales = potrerosProcesados.filter(p => p.tieneAnimales)
-  const hectareasModulo = potrerosProcesados.reduce((s, p) => s + p.hectareas, 0) // TODAS las hectáreas
+  const hectareasModulo = potrerosProcesados.reduce((s, p) => s + p.hectareas, 0)
   const ugModulo = potrerosConAnimales.reduce((s, p) => s + p.ugTotales, 0)
   return {
     nombre: modulo.nombre,
     hectareas: hectareasModulo,
-          ugPorHa: hectareasModulo > 0 ? ugModulo / hectareasModulo : 0,
-          cantidadPotreros: potrerosConAnimales.length,
-          potreros: potrerosConAnimales
-        }
-      }).filter(m => m.potreros.length > 0)
+    ugPorHa: hectareasModulo > 0 ? ugModulo / hectareasModulo : 0,
+    cantidadPotreros: modulo.lotes.length, // 👈 TOTAL REAL
+    potreros: potrerosConAnimales
+  }
+}).filter(m => m.potreros.length > 0)
 
       const potrerosRestoProcesados = potrerosSinModulo.map(procesarPotrero)
-      let restoDelCampo = null
+let restoDelCampo = null
 if (potrerosRestoProcesados.length > 0) {
-  const potrerosRestoConAnimales = potrerosRestoProcesados.filter(p => p.tieneAnimales)
-  const hectareasResto = potrerosRestoProcesados.reduce((s, p) => s + p.hectareas, 0) // TODAS las hectáreas
-  const ugResto = potrerosRestoConAnimales.reduce((s, p) => s + p.ugTotales, 0)
+  const hectareasResto = potrerosRestoProcesados.reduce((s, p) => s + p.hectareas, 0)
+  const ugResto = potrerosRestoProcesados.reduce((s, p) => s + p.ugTotales, 0)
   restoDelCampo = {
-          nombre: 'Resto del campo',
-          hectareas: hectareasResto,
-          ugPorHa: hectareasResto > 0 ? ugResto / hectareasResto : 0,
-          cantidadPotreros: potrerosRestoConAnimales.length,
-    potreros: potrerosRestoConAnimales
-        }
-      }
+    nombre: 'Resto del campo',
+    hectareas: hectareasResto,
+    ugPorHa: hectareasResto > 0 ? ugResto / hectareasResto : 0,
+    cantidadPotreros: potrerosSinModulo.length, // 👈 TOTAL REAL
+    potreros: potrerosRestoProcesados // 👈 TODOS LOS POTREROS
+  }
+}
 
       const todosLosPotreros = [...modulosData.flatMap(m => m.potreros), ...(restoDelCampo?.potreros || [])]
       const totalHectareas = todosLosPotreros.reduce((s, p) => s + p.hectareas, 0)

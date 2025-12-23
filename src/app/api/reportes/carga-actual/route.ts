@@ -117,40 +117,39 @@ export async function GET() {
       const modulosData = modulosConPotreros.map(modulo => {
   const potrerosProcesados = modulo.lotes.map(procesarPotrero)
   const potrerosConAnimales = potrerosProcesados.filter(p => p.tieneAnimales)
-  const hectareasModulo = potrerosProcesados.reduce((sum, p) => sum + p.hectareas, 0) // TODAS las hectáreas
+  const hectareasModulo = potrerosProcesados.reduce((sum, p) => sum + p.hectareas, 0)
   const ugModulo = potrerosConAnimales.reduce((sum, p) => sum + p.ugTotales, 0)
-        const ugPorHaModulo = hectareasModulo > 0 ? ugModulo / hectareasModulo : 0
+  const ugPorHaModulo = hectareasModulo > 0 ? ugModulo / hectareasModulo : 0
 
-        return {
-          id: modulo.id,
-          nombre: modulo.nombre,
-          hectareas: hectareasModulo,
-          ugPorHa: ugPorHaModulo,
-          cantidadPotreros: potrerosConAnimales.length,
-          potreros: potrerosConAnimales
-        }
-      }).filter(m => m.potreros.length > 0)
+  return {
+    id: modulo.id,
+    nombre: modulo.nombre,
+    hectareas: hectareasModulo,
+    ugPorHa: ugPorHaModulo,
+    cantidadPotreros: modulo.lotes.length, // 👈 TOTAL REAL DE POTREROS
+    potreros: potrerosConAnimales
+  }
+}).filter(m => m.potreros.length > 0)
 
       // Procesar "Resto del campo"
 const potrerosRestoProcesados = potrerosSinModulo.map(procesarPotrero)
 
 let restoDelCampo = null
 if (potrerosRestoProcesados.length > 0) {
-  const potrerosRestoConAnimales = potrerosRestoProcesados.filter(p => p.tieneAnimales)
-  const hectareasResto = potrerosRestoProcesados.reduce((sum, p) => sum + p.hectareas, 0) // TODAS las hectáreas
-  const ugResto = potrerosRestoConAnimales.reduce((sum, p) => sum + p.ugTotales, 0)
-        const ugPorHaResto = hectareasResto > 0 ? ugResto / hectareasResto : 0
+  const hectareasResto = potrerosRestoProcesados.reduce((sum, p) => sum + p.hectareas, 0)
+  const ugResto = potrerosRestoProcesados.reduce((sum, p) => sum + p.ugTotales, 0)
+  const ugPorHaResto = hectareasResto > 0 ? ugResto / hectareasResto : 0
 
-        restoDelCampo = {
-          id: 'resto-del-campo',
-          nombre: 'Resto del campo',
-          descripcion: 'Potreros sin módulo de pastoreo asignado',
-          hectareas: hectareasResto,
-          ugPorHa: ugPorHaResto,
-          cantidadPotreros: potrerosRestoConAnimales.length,
-          potreros: potrerosRestoConAnimales
-        }
-      }
+  restoDelCampo = {
+    id: 'resto-del-campo',
+    nombre: 'Resto del campo',
+    descripcion: 'Potreros sin módulo de pastoreo asignado',
+    hectareas: hectareasResto,
+    ugPorHa: ugPorHaResto,
+    cantidadPotreros: potrerosSinModulo.length, // 👈 TOTAL REAL DE POTREROS
+    potreros: potrerosRestoProcesados // 👈 TODOS LOS POTREROS (vacíos y con animales)
+  }
+}
 
       // Totales globales
       const todosLosPotreros = [
