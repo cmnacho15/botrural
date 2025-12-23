@@ -128,7 +128,6 @@ interface MapaPoligonoProps {
   mostrarLeyendaModulos?: boolean
   mostrarCurvasNivel?: boolean
   mostrarConeat?: boolean
-  mostrarAltimetria?: boolean
   opacidadCurvas?: number
   onOpacidadCurvasChange?: (opacity: number) => void
 }
@@ -266,7 +265,6 @@ export default function MapaPoligono({
   mostrarLeyendaModulos = false,
   mostrarCurvasNivel = false,
   mostrarConeat = false,  // 🔥 NUEVO
-  mostrarAltimetria = false,
   opacidadCurvas = 95,
   onOpacidadCurvasChange,
 }: MapaPoligonoProps) {
@@ -277,7 +275,6 @@ export default function MapaPoligono({
   const locationLayersRef = useRef<any[]>([])
   const curvasLayerRef = useRef<any>(null)  // 🔥 NUEVO
   const coneatLayerRef = useRef<any>(null)  // 🔥 NUEVO
-  const altimetriaLayersRef = useRef<Map<string, any>>(new Map())
 
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<any[]>([])
@@ -843,139 +840,6 @@ if (!mapRef.current._tooltipZoomHandler) {
     }
   }, [mostrarConeat, isReady])
 
-  /**
- * 🏔️ Controlar capas de altimetría
- */
-useEffect(() => {
-  console.log('🔄 useEffect altimetría ejecutado. mostrarAltimetria:', mostrarAltimetria)
-  
-  if (!isReady || !mapRef.current || !existingPolygons.length) {
-    console.log('⚠️ Esperando que el mapa esté listo...')
-    return
-  }
-  
-  if (mostrarAltimetria) {
-    console.log('🏔️ Mostrando altimetría para', existingPolygons.length, 'potreros')
-    
-    existingPolygons.forEach(async (potrero) => {
-      if (!potrero.coordinates?.length) return
-      
-      // Verificar si ya tiene capa cargada
-      if (altimetriaLayersRef.current.has(potrero.id)) {
-        console.log('ℹ️ Altimetría ya cargada para', potrero.id)
-        return
-      }
-      
-      try {
-        // Calcular bbox del potrero
-        const lngs = potrero.coordinates.map(c => c[0])
-        const lats = potrero.coordinates.map(c => c[1])
-        const bbox = [
-          Math.min(...lngs),
-          Math.min(...lats),
-          Math.max(...lngs),
-          Math.max(...lats)
-        ]
-        
-        console.log('📡 Solicitando altimetría para potrero:', potrero.id)
-        
-        // Llamar a la API
-        const response = await fetch('/api/altimetria', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            potreroId: potrero.id,
-            bbox,
-            coordinates: potrero.coordinates
-          })
-        })
-        
-        const data = await response.json()
-        
-        if (data.status === 'cached' && data.imageUrl) {
-          // Ya existe en cache, mostrar inmediatamente
-          console.log('✅ Imagen en cache:', data.imageUrl)
-          agregarCapaAltimetria(potrero.id, data.imageUrl, data.bbox)
-          
-        } else if (data.status === 'processing') {
-          // Se está procesando, polling cada 3 segundos
-          console.log('⏳ Procesando... haciendo polling')
-          iniciarPolling(potrero.id)
-        }
-        
-      } catch (error) {
-        console.error('❌ Error cargando altimetría:', error)
-      }
-    })
-    
-  } else {
-    console.log('🏔️ Ocultando altimetría')
-    
-    // Remover todas las capas
-    altimetriaLayersRef.current.forEach((layer, potreroId) => {
-      if (mapRef.current && mapRef.current.hasLayer(layer)) {
-        mapRef.current.removeLayer(layer)
-        console.log('➖ Removida capa de', potreroId)
-      }
-    })
-    altimetriaLayersRef.current.clear()
-  }
-}, [mostrarAltimetria, isReady, existingPolygons])
-
-/**
- * Agregar capa de imagen al mapa
- */
-function agregarCapaAltimetria(potreroId: string, imageUrl: string, bbox: number[]) {
-  if (!mapRef.current) return
-  
-  const [west, south, east, north] = bbox
-  
-  const bounds = (L as any).latLngBounds(
-    [south, west],
-    [north, east]
-  )
-  
-  const imageOverlay = (L as any).imageOverlay(imageUrl, bounds, {
-    opacity: 0.7,
-    interactive: false,
-    crossOrigin: 'anonymous'
-  })
-  
-  imageOverlay.addTo(mapRef.current)
-  altimetriaLayersRef.current.set(potreroId, imageOverlay)
-  
-  console.log('✅ Capa de altimetría agregada para', potreroId)
-}
-
-/**
- * Polling para verificar si ya terminó el procesamiento
- */
-function iniciarPolling(potreroId: string) {
-  let intentos = 0
-  const maxIntentos = 20 // 1 minuto máximo
-  
-  const interval = setInterval(async () => {
-    intentos++
-    
-    try {
-      const response = await fetch(`/api/altimetria?potreroId=${potreroId}`)
-      const data = await response.json()
-      
-      if (data.status === 'ready' && data.imageUrl) {
-        console.log('✅ Procesamiento completado para', potreroId)
-        clearInterval(interval)
-        agregarCapaAltimetria(potreroId, data.imageUrl, data.bbox)
-      } else if (intentos >= maxIntentos) {
-        console.log('⏱️ Timeout esperando procesamiento de', potreroId)
-        clearInterval(interval)
-      }
-      
-    } catch (error) {
-      console.error('❌ Error en polling:', error)
-      clearInterval(interval)
-    }
-  }, 3000) // Cada 3 segundos
-}
   /**
    * 🎨 Actualizar opacidad de curvas dinámicamente
    */
