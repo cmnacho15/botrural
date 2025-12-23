@@ -147,9 +147,9 @@ if (fechaHasta) {
       // Calcular días de pastoreo
       let diasPastoreo = 0
       if (fechaSalida) {
-        diasPastoreo = Math.ceil((fechaSalida.getTime() - fechaEntrada.getTime()) / (1000 * 60 * 60 * 24))
+        diasPastoreo = Math.floor((fechaSalida.getTime() - fechaEntrada.getTime()) / (1000 * 60 * 60 * 24))
       } else {
-        diasPastoreo = Math.ceil((fechaLimite.getTime() - fechaEntrada.getTime()) / (1000 * 60 * 60 * 24))
+        diasPastoreo = Math.floor((fechaLimite.getTime() - fechaEntrada.getTime()) / (1000 * 60 * 60 * 24))
       }
 
       // Calcular días de descanso
@@ -202,9 +202,9 @@ if (fechaHasta) {
         // Calcular días de pastoreo
         let diasPastoreo = 0
         if (fechaSalida) {
-          diasPastoreo = Math.ceil((fechaSalida.getTime() - fechaEntrada.getTime()) / (1000 * 60 * 60 * 24))
+          diasPastoreo = Math.floor((fechaSalida.getTime() - fechaEntrada.getTime()) / (1000 * 60 * 60 * 24))
         } else {
-          diasPastoreo = Math.ceil((fechaLimite.getTime() - fechaEntrada.getTime()) / (1000 * 60 * 60 * 24))
+          diasPastoreo = Math.floor((fechaLimite.getTime() - fechaEntrada.getTime()) / (1000 * 60 * 60 * 24))
         }
 
         // Armar comentario con las categorías actuales
