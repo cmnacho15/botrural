@@ -70,13 +70,15 @@ export async function GET(request: Request) {
     }
 
     // Construir filtro de fechas
-    const filtroFechas: any = {}
-    if (fechaDesde) {
-      filtroFechas.gte = new Date(fechaDesde)
-    }
-    if (fechaHasta) {
-      filtroFechas.lte = new Date(fechaHasta)
-    }
+const filtroFechas: any = {}
+if (fechaDesde) {
+  filtroFechas.gte = new Date(fechaDesde)
+}
+if (fechaHasta) {
+  const fecha = new Date(fechaHasta)
+  fecha.setHours(23, 59, 59, 999)
+  filtroFechas.lte = fecha
+}
 
     // OBTENER ENTRADAS: eventos donde loteDestinoId está en los potreros del módulo
     const entradas = await prisma.evento.findMany({
