@@ -102,7 +102,7 @@ async function generarPDFCarga(campoId: string): Promise<Buffer | null> {
   const potrerosProcesados = modulo.lotes.map(procesarPotrero)
   const potrerosConAnimales = potrerosProcesados.filter(p => p.tieneAnimales)
   const hectareasModulo = potrerosProcesados.reduce((s, p) => s + p.hectareas, 0)
-  const ugModulo = potrerosConAnimales.reduce((s, p) => s + p.ugTotales, 0)
+  const ugModulo = potrerosProcesados.reduce((s, p) => s + p.ugTotales, 0)
   return {
     nombre: modulo.nombre,
     hectareas: hectareasModulo,

@@ -118,7 +118,7 @@ export async function GET() {
   const potrerosProcesados = modulo.lotes.map(procesarPotrero)
   const potrerosConAnimales = potrerosProcesados.filter(p => p.tieneAnimales)
   const hectareasModulo = potrerosProcesados.reduce((sum, p) => sum + p.hectareas, 0)
-  const ugModulo = potrerosConAnimales.reduce((sum, p) => sum + p.ugTotales, 0)
+  const ugModulo = potrerosProcesados.reduce((sum, p) => sum + p.ugTotales, 0)
   const ugPorHaModulo = hectareasModulo > 0 ? ugModulo / hectareasModulo : 0
 
   return {
