@@ -262,7 +262,7 @@ if (potrerosRestoProcesados.length > 0) {
 
     } else {
       // ========== FORMATO ORIGINAL SIN MÓDULOS ==========
-      const lotes = await prisma.lote.findMany({ where: { campoId }, include: { animalesLote: true }, orderBy: { nombre: 'asc' } })
+      const lotes = await prisma.lote.findMany({ where: { campoId, esPastoreable: true }, include: { animalesLote: true }, orderBy: { nombre: 'asc' } })
       const potrerosData = lotes.map(procesarPotrero)
 
       const totalesPorCategoria: Record<string, number> = {}

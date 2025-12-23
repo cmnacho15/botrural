@@ -190,11 +190,13 @@ if (potrerosRestoProcesados.length > 0) {
     } else {
       // ========== FORMATO ORIGINAL: SIN MÓDULOS ==========
       
-      const lotes = await prisma.lote.findMany({
-        where: { campoId: usuario.campoId },
-        include: { animalesLote: true },
-        orderBy: { nombre: 'asc' }
-      })
+      
+
+const lotes = await prisma.lote.findMany({
+  where: { campoId: usuario.campoId, esPastoreable: true },
+  include: { animalesLote: true },
+  orderBy: { nombre: 'asc' }
+})
 
       const potreros = lotes.map(procesarPotrero)
 
