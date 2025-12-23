@@ -99,13 +99,13 @@ async function generarPDFCarga(campoId: string): Promise<Buffer | null> {
       })
 
       const modulosData = modulosConPotreros.map(modulo => {
-        const potrerosProcesados = modulo.lotes.map(procesarPotrero)
-        const potrerosConAnimales = potrerosProcesados.filter(p => p.tieneAnimales)
-        const hectareasModulo = potrerosConAnimales.reduce((s, p) => s + p.hectareas, 0)
-        const ugModulo = potrerosConAnimales.reduce((s, p) => s + p.ugTotales, 0)
-        return {
-          nombre: modulo.nombre,
-          hectareas: hectareasModulo,
+  const potrerosProcesados = modulo.lotes.map(procesarPotrero)
+  const potrerosConAnimales = potrerosProcesados.filter(p => p.tieneAnimales)
+  const hectareasModulo = potrerosProcesados.reduce((s, p) => s + p.hectareas, 0) // TODAS las hectáreas
+  const ugModulo = potrerosConAnimales.reduce((s, p) => s + p.ugTotales, 0)
+  return {
+    nombre: modulo.nombre,
+    hectareas: hectareasModulo,
           ugPorHa: hectareasModulo > 0 ? ugModulo / hectareasModulo : 0,
           cantidadPotreros: potrerosConAnimales.length,
           potreros: potrerosConAnimales
@@ -114,15 +114,16 @@ async function generarPDFCarga(campoId: string): Promise<Buffer | null> {
 
       const potrerosRestoProcesados = potrerosSinModulo.map(procesarPotrero)
       let restoDelCampo = null
-      if (potrerosRestoProcesados.length > 0) {
-        const hectareasResto = potrerosRestoProcesados.reduce((s, p) => s + p.hectareas, 0)
-        const ugResto = potrerosRestoProcesados.reduce((s, p) => s + p.ugTotales, 0)
-        restoDelCampo = {
+if (potrerosRestoProcesados.length > 0) {
+  const potrerosRestoConAnimales = potrerosRestoProcesados.filter(p => p.tieneAnimales)
+  const hectareasResto = potrerosRestoProcesados.reduce((s, p) => s + p.hectareas, 0) // TODAS las hectáreas
+  const ugResto = potrerosRestoConAnimales.reduce((s, p) => s + p.ugTotales, 0)
+  restoDelCampo = {
           nombre: 'Resto del campo',
           hectareas: hectareasResto,
           ugPorHa: hectareasResto > 0 ? ugResto / hectareasResto : 0,
-          cantidadPotreros: potrerosRestoProcesados.length,
-          potreros: potrerosRestoProcesados
+          cantidadPotreros: potrerosRestoConAnimales.length,
+    potreros: potrerosRestoConAnimales
         }
       }
 

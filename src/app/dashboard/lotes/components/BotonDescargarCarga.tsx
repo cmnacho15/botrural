@@ -1,3 +1,5 @@
+//src/app/dashboard/lotes/components/BotonDescargarCarga.tsx
+
 'use client'
 
 import { useState } from 'react'
