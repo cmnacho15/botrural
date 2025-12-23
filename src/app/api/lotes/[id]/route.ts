@@ -147,6 +147,8 @@ console.log('   - diasDescansoAjuste:', diasDescansoAjuste, typeof diasDescansoA
     const cambioEstadoAnimales = teniaAnimales !== tendraAnimales;
 
     console.log("🔄 Cambió estado de animales:", cambioEstadoAnimales);
+    console.log("   - Tenía animales:", teniaAnimales);
+    console.log("   - Tendrá animales:", tendraAnimales);
 
     // ========================
 // 💾 ACTUALIZAR LOTE
@@ -163,20 +165,24 @@ const loteActualizado = await prisma.lote.update({
     esPastoreable: esPastoreable ?? true,
     ...(poligono && { poligono }),
     
-    // 🔥 Calcular ultimoCambio según ajuste de días
+    // 🔥 LÓGICA CORREGIDA: Solo resetear si cambió el estado (vacío ↔ con animales)
     ultimoCambio: (() => {
-  // 🔥 PRIORIZAR ajuste de días si el usuario lo especificó
-  if (diasPastoreoAjuste && tendraAnimales) {
+  // 1️⃣ Si el usuario ajustó días manualmente, usar eso
+  if (diasPastoreoAjuste !== undefined && diasPastoreoAjuste !== null && tendraAnimales) {
     return new Date(Date.now() - (diasPastoreoAjuste * 24 * 60 * 60 * 1000));
   }
-  if (diasDescansoAjuste && !tendraAnimales) {
+  if (diasDescansoAjuste !== undefined && diasDescansoAjuste !== null && !tendraAnimales) {
     return new Date(Date.now() - (diasDescansoAjuste * 24 * 60 * 60 * 1000));
   }
-  // Si cambió estado y no hay ajuste, resetear a hoy
+  
+  // 2️⃣ Si cambió el ESTADO (vacío → con animales o viceversa), resetear a AHORA
   if (cambioEstadoAnimales) {
+    console.log("✅ RESETEAR ultimoCambio porque cambió estado de animales");
     return new Date();
   }
-  // Mantener la fecha actual si no hubo cambios
+  
+  // 3️⃣ Si NO cambió estado (solo modificaste cantidades/categorías), MANTENER fecha anterior
+  console.log("✅ MANTENER ultimoCambio anterior (solo cambio de composición)");
   return lote.ultimoCambio;
 })(),
     
