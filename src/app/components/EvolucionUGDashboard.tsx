@@ -408,7 +408,7 @@ export default function EvolucionUGDashboard() {
           </div>
 
           <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-            <p className="text-sm text-orange-700 mb-1">Superficie</p>
+            <p className="text-sm text-orange-700 mb-1">Superficie de Pastoreo Ganadero</p>
             <p className="text-2xl font-bold text-orange-900">
               {loteSeleccionado 
   ? datos.lotes.find(l => l.loteId === loteSeleccionado)?.hectareas.toFixed(2)
