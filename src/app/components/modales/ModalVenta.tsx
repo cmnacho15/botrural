@@ -53,6 +53,14 @@ export default function ModalVenta({ onClose, onSuccess }: ModalVentaProps) {
     },
   ])
 
+  // Estado para trackear qué modo de cálculo usa cada renglón
+  const [modoCalculo, setModoCalculo] = useState<{[key: string]: 'PIE' | 'CUARTA'}>({})
+  const [datosTemporales, setDatosTemporales] = useState<{[key: string]: {
+    pesoTotal4ta: number
+    pesoTotalPie: number
+    precio4ta: number
+  }}>({})
+
   // Cargar categorías de animales
   const [categoriasBovinas, setCategoriasBovinas] = useState<string[]>([])
   const [categoriasOvinas, setCategoriasOvinas] = useState<string[]>([])
@@ -160,6 +168,39 @@ export default function ModalVenta({ onClose, onSuccess }: ModalVentaProps) {
   const eliminarRenglon = (id: string) => {
     if (renglones.length === 1) return
     setRenglones(prev => prev.filter(r => r.id !== id))
+  }
+
+  // Calcular precio y peso en pie desde datos de 4ta balanza
+  const calcularDesdeCuarta = (renglonId: string) => {
+    const datos = datosTemporales[renglonId]
+    const renglon = renglones.find(r => r.id === renglonId)
+    
+    if (!datos || !renglon || renglon.cantidad === 0) return
+    
+    const { pesoTotal4ta, pesoTotalPie, precio4ta } = datos
+    
+    if (pesoTotal4ta > 0 && pesoTotalPie > 0 && precio4ta > 0) {
+      // Calcular precio en pie
+      const importeTotal = pesoTotal4ta * precio4ta
+      const precioEnPie = importeTotal / pesoTotalPie
+      
+      // Calcular peso promedio en pie
+      const pesoPromedioEnPie = pesoTotalPie / renglon.cantidad
+      
+      // Actualizar el renglón
+      handleRenglonChange(renglonId, 'precioKg', precioEnPie)
+      handleRenglonChange(renglonId, 'pesoPromedio', pesoPromedioEnPie)
+    }
+  }
+
+  const handleDatosTemporalesChange = (renglonId: string, field: string, value: number) => {
+    setDatosTemporales(prev => ({
+      ...prev,
+      [renglonId]: {
+        ...prev[renglonId],
+        [field]: value
+      }
+    }))
   }
 
   const calcularTotales = () => {
@@ -563,42 +604,163 @@ export default function ModalVenta({ onClose, onSuccess }: ModalVentaProps) {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-3 mb-3">
-                    <div>
-                      <label className="block text-xs text-gray-600 mb-1">Cantidad</label>
-                      <input
-                        type="number"
-                        min={1}
-                        value={renglon.cantidad || ''}
-                        onChange={(e) => handleRenglonChange(renglon.id, 'cantidad', parseInt(e.target.value) || 0)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
+                 {/* CANTIDAD */}
+                  <div className="mb-3">
+                    <label className="block text-xs text-gray-600 mb-1">Cantidad de animales *</label>
+                    <input
+                      type="number"
+                      min={1}
+                      value={renglon.cantidad || ''}
+                      onChange={(e) => handleRenglonChange(renglon.id, 'cantidad', parseInt(e.target.value) || 0)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
 
-                    <div>
-                      <label className="block text-xs text-gray-600 mb-1">Precio/kg (USD)</label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        min={0}
-                        value={renglon.precioKg || ''}
-                        onChange={(e) => handleRenglonChange(renglon.id, 'precioKg', parseFloat(e.target.value) || 0)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs text-gray-600 mb-1">Peso/animal (kg)</label>
-                      <input
-                        type="number"
-                        step="0.1"
-                        min={0}
-                        value={renglon.pesoPromedio || ''}
-                        onChange={(e) => handleRenglonChange(renglon.id, 'pesoPromedio', parseFloat(e.target.value) || 0)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                      />
+                  {/* SELECTOR DE MODO */}
+                  <div className="mb-3 bg-blue-50 rounded-lg p-3 border border-blue-200">
+                    <label className="block text-xs font-medium text-gray-700 mb-2">
+                      ¿Cómo querés ingresar los datos?
+                    </label>
+                    <div className="flex gap-3">
+                      <label className="flex items-center gap-2 text-sm cursor-pointer">
+                        <input
+                          type="radio"
+                          checked={modoCalculo[renglon.id] !== 'CUARTA'}
+                          onChange={() => setModoCalculo(prev => ({ ...prev, [renglon.id]: 'PIE' }))}
+                          className="text-blue-600"
+                        />
+                        📊 Datos en PIE (directo)
+                      </label>
+                      <label className="flex items-center gap-2 text-sm cursor-pointer">
+                        <input
+                          type="radio"
+                          checked={modoCalculo[renglon.id] === 'CUARTA'}
+                          onChange={() => setModoCalculo(prev => ({ ...prev, [renglon.id]: 'CUARTA' }))}
+                          className="text-blue-600"
+                        />
+                        🏭 Datos de 4ta balanza
+                      </label>
                     </div>
                   </div>
+
+                  {/* OPCIÓN A: DATOS EN PIE (DIRECTO) */}
+                  {modoCalculo[renglon.id] !== 'CUARTA' && (
+                    <div className="grid grid-cols-2 gap-3 mb-3">
+                      <div>
+                        <label className="block text-xs text-gray-600 mb-1">
+                          Peso/animal EN PIE (kg) *
+                        </label>
+                        <input
+                          type="number"
+                          step="0.1"
+                          min={0}
+                          value={renglon.pesoPromedio || ''}
+                          onChange={(e) => handleRenglonChange(renglon.id, 'pesoPromedio', parseFloat(e.target.value) || 0)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                          placeholder="ej: 502"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs text-gray-600 mb-1">
+                          Precio/kg EN PIE (USD) *
+                        </label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min={0}
+                          value={renglon.precioKg || ''}
+                          onChange={(e) => handleRenglonChange(renglon.id, 'precioKg', parseFloat(e.target.value) || 0)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                          placeholder="ej: 2.80"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* OPCIÓN B: DATOS DE 4TA BALANZA */}
+                  {modoCalculo[renglon.id] === 'CUARTA' && (
+                    <div className="space-y-3 mb-3">
+                      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                        <p className="text-xs text-yellow-800 mb-3">
+                          💡 Ingresá los datos de la boleta del frigorífico y calculamos automáticamente
+                        </p>
+                        
+                        <div className="grid grid-cols-2 gap-3 mb-3">
+                          <div>
+                            <label className="block text-xs text-gray-600 mb-1">
+                              Peso total EN PIE (kg)
+                            </label>
+                            <input
+                              type="number"
+                              step="0.1"
+                              min={0}
+                              value={datosTemporales[renglon.id]?.pesoTotalPie || ''}
+                              onChange={(e) => {
+                                handleDatosTemporalesChange(renglon.id, 'pesoTotalPie', parseFloat(e.target.value) || 0)
+                                calcularDesdeCuarta(renglon.id)
+                              }}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500"
+                              placeholder="ej: 4520"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-xs text-gray-600 mb-1">
+                              Peso total 4TA BALANZA (kg)
+                            </label>
+                            <input
+                              type="number"
+                              step="0.1"
+                              min={0}
+                              value={datosTemporales[renglon.id]?.pesoTotal4ta || ''}
+                              onChange={(e) => {
+                                handleDatosTemporalesChange(renglon.id, 'pesoTotal4ta', parseFloat(e.target.value) || 0)
+                                calcularDesdeCuarta(renglon.id)
+                              }}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500"
+                              placeholder="ej: 2409.70"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-xs text-gray-600 mb-1">
+                            Precio/kg EN 4TA BALANZA (USD)
+                          </label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            min={0}
+                            value={datosTemporales[renglon.id]?.precio4ta || ''}
+                            onChange={(e) => {
+                              handleDatosTemporalesChange(renglon.id, 'precio4ta', parseFloat(e.target.value) || 0)
+                              calcularDesdeCuarta(renglon.id)
+                            }}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500"
+                            placeholder="ej: 5.25"
+                          />
+                        </div>
+                      </div>
+
+                      {/* RESULTADO CALCULADO */}
+                      {renglon.pesoPromedio > 0 && renglon.precioKg > 0 && (
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                          <p className="text-xs font-medium text-green-800 mb-2">✅ Calculado automáticamente:</p>
+                          <div className="grid grid-cols-2 gap-2 text-sm">
+                            <div>
+                              <span className="text-gray-600">Peso/animal en pie:</span>
+                              <p className="font-semibold text-green-900">{renglon.pesoPromedio.toFixed(2)} kg</p>
+                            </div>
+                            <div>
+                              <span className="text-gray-600">Precio/kg en pie:</span>
+                              <p className="font-semibold text-green-900">{renglon.precioKg.toFixed(2)} USD/kg</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {/* CÁLCULOS AUTOMÁTICOS */}
                   {renglon.cantidad > 0 && renglon.precioKg > 0 && renglon.pesoPromedio > 0 && (

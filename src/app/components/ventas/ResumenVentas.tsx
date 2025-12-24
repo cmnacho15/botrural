@@ -76,10 +76,10 @@ export default function ResumenVentas({ resumen }: ResumenVentasProps) {
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase">Categoría</th>
                   <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase">Nº Animales</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase">US$/kg</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase">Peso (kg)</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase">US$ x cabeza</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase">kg TOTALES</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase">US$/kg en pie</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase">kg/anim en pie</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase">US$/anim en pie</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase">kg totales en pie</th>
                   <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase">US$ totales bruto</th>
                 </tr>
               </thead>
@@ -123,10 +123,10 @@ export default function ResumenVentas({ resumen }: ResumenVentasProps) {
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase">Categoría</th>
                   <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase">Nº Animales</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase">US$/kg</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase">Peso (kg)</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase">US$ x cabeza</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase">kg TOTALES</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase">US$/kg en pie</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase">kg/anim en pie</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase">US$/anim en pie</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase">kg totales en pie</th>
                   <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase">US$ totales bruto</th>
                 </tr>
               </thead>
@@ -169,10 +169,10 @@ export default function ResumenVentas({ resumen }: ResumenVentasProps) {
               <thead className="bg-gray-100 border-b border-gray-200">
                 <tr>
                   <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase">Nº Animales</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase">US$/kg</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase">Peso (kg)</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase">US$ x cabeza</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase">kg TOTALES</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase">US$/kg lana</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase">kg/animal</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase">US$/animal</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase">kg totales</th>
                   <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase">US$ totales bruto</th>
                 </tr>
               </thead>

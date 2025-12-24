@@ -134,10 +134,10 @@ export default function TablaVentas({ ventas, onRefresh }: TablaVentasProps) {
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase whitespace-nowrap">Fecha Vencimiento</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase whitespace-nowrap">Categoría</th>
                 <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase whitespace-nowrap">nº anim</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase whitespace-nowrap">Precio</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase whitespace-nowrap">Peso/animal</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase whitespace-nowrap">Precio/animal</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase whitespace-nowrap">Peso lote</th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase whitespace-nowrap">US$/kg en pie</th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase whitespace-nowrap">kg/anim en pie</th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase whitespace-nowrap">US$/anim en pie</th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase whitespace-nowrap">kg totales en pie</th>
                 <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase whitespace-nowrap">US$ Bruto</th>
                 <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase whitespace-nowrap">US$ Neto</th>
                 <th className="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase whitespace-nowrap">Factura</th>
