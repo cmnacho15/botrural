@@ -63,46 +63,78 @@ export default function EvolucionUGDashboard() {
   }
 
   const exportarCSV = () => {
-    if (!datos) return
+  if (!datos) return
 
-    let csv = ''
-    let nombreArchivo = ''
+  let csv = ''
+  let nombreArchivo = ''
+  const fechaExportacion = new Date().toLocaleDateString('es-UY', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  })
+  const periodoTexto = periodo === 'mensual' ? 'Últimos 12 meses' : 'Ejercicio actual (1 Jul - 30 Jun)'
 
-    if (loteSeleccionado) {
-      const lote = datos.lotes.find(l => l.loteId === loteSeleccionado)
-      if (!lote) return
+  if (loteSeleccionado) {
+    const lote = datos.lotes.find(l => l.loteId === loteSeleccionado)
+    if (!lote) return
 
-      csv = `Fecha,${lote.nombre} (UG),${lote.nombre} (UG/ha)\n`
-      nombreArchivo = `evolucion-${lote.nombre.replace(/\s+/g, '-')}-${periodo}`
+    // ENCABEZADO para potrero específico
+    csv = `EVOLUCIÓN DE CARGA ANIMAL - ${lote.nombre.toUpperCase()}\n`
+    csv += `Período:,${periodoTexto}\n`
+    csv += `Exportado:,${fechaExportacion}\n`
+    csv += `Superficie del potrero:,${lote.hectareas.toFixed(2)} ha\n`
+    csv += `\n`
+    csv += `Fecha,UG Totales,UG/ha\n`
 
-      datos.dias.forEach((dia, index) => {
-        const fecha = new Date(dia).toLocaleDateString('es-UY')
-        const ug = lote.datos[index].toFixed(2)
-        const ugHa = lote.cargaPorHectarea[index].toFixed(2)
-        csv += `${fecha},${ug},${ugHa}\n`
+    nombreArchivo = `evolucion-${lote.nombre.replace(/\s+/g, '-')}-${periodo}`
+
+    datos.dias.forEach((dia, index) => {
+      const fecha = new Date(dia).toLocaleDateString('es-UY', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
       })
-    } else {
-      csv = 'Fecha,Todo el Campo (UG),Todo el Campo (UG/ha)\n'
-      nombreArchivo = `evolucion-campo-completo-${periodo}`
+      const ug = lote.datos[index].toFixed(2)
+      const ugHa = lote.cargaPorHectarea[index].toFixed(2)
+      csv += `${fecha},${ug},${ugHa}\n`
+    })
+  } else {
+    // ENCABEZADO para campo completo
+    csv = `EVOLUCIÓN DE CARGA ANIMAL - CAMPO COMPLETO (SPG)\n`
+    csv += `Período:,${periodoTexto}\n`
+    csv += `Exportado:,${fechaExportacion}\n`
+    csv += `SPG (Superficie de Pastoreo Ganadero):,${datos.global.hectareasTotales.toFixed(2)} ha\n`
+    csv += `Hectáreas totales del predio:,${datos.global.hectareasTodasPredio?.toFixed(2) ?? '0.00'} ha\n`
+    csv += `Cantidad de potreros:,${datos.lotes.length}\n`
+    csv += `\n`
+    csv += `Fecha,UG Totales,UG/ha\n`
 
-      datos.dias.forEach((dia, index) => {
-        const fecha = new Date(dia).toLocaleDateString('es-UY')
-        const ugTotal = datos.global?.ug?.[index]?.toFixed(2) ?? '0.00'
-        const ugPorHa = datos.global?.ugPorHectarea?.[index]?.toFixed(2) ?? '0.00'
-        csv += `${fecha},${ugTotal},${ugPorHa}\n`
+    nombreArchivo = `evolucion-campo-completo-${periodo}`
+
+    datos.dias.forEach((dia, index) => {
+      const fecha = new Date(dia).toLocaleDateString('es-UY', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
       })
-    }
-
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `${nombreArchivo}-${new Date().toISOString().slice(0, 10)}.csv`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    window.URL.revokeObjectURL(url)
+      const ugTotal = datos.global?.ug?.[index]?.toFixed(2) ?? '0.00'
+      const ugPorHa = datos.global?.ugPorHectarea?.[index]?.toFixed(2) ?? '0.00'
+      csv += `${fecha},${ugTotal},${ugPorHa}\n`
+    })
   }
+
+  // Generar archivo con BOM para que Excel reconozca UTF-8
+  const BOM = '\uFEFF'
+  const blob = new Blob([BOM + csv], { type: 'text/csv;charset=utf-8;' })
+  const url = window.URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `${nombreArchivo}-${new Date().toISOString().slice(0, 10)}.csv`
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  window.URL.revokeObjectURL(url)
+}
 
   if (loading) {
     return (
