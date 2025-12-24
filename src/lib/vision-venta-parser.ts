@@ -358,12 +358,30 @@ PARA TIPO A (FRIGORÍFICO) - MUY IMPORTANTE:
    
    - pesoTotal2da4ta: peso TOTAL en SEGUNDA o CUARTA BALANZA
      Columna: "Kgs. 4ta balanza", "Segunda Balanza", "Kilos" (en sección 2da/4ta)
+     
+     Este número suele ser aproximadamente 45-55% del peso en pie
+     Ejemplo:
+     • Si peso en pie = 4.520 kg, entonces 4ta balanza ≈ 2.409 kg (53%)
+     • Si peso en pie = 26.370 kg, entonces 4ta balanza ≈ 12.716 kg (48%)
+     
+     ⚠️ NO confundir con peso promedio (números pequeños como 231, 268)
    
    - rendimiento: % de rendimiento
      Columna: "Rend", "Rendimiento", "%"
    
-   - precio2da4ta: precio por kg en balanza post-faena
-     Columna: "Precio", "En PIE" (es engañoso, realmente es en 4ta), "En 2ª", "Prom. 4ta"
+  - precio2da4ta: precio por kg en balanza post-faena
+     IMPORTANTE: Buscar en la tabla la columna con header "Precio" o "En PIE" o similar
+     Este precio suele estar entre 4.00 y 6.00 USD/kg para bovinos
+     
+     ⚠️ NO CONFUNDIR CON:
+     - Promedio de 4ta balanza (números como 231, 268, 214)
+     - Rendimiento % (números como 48.22%, 53.31%)
+     - Precio promedio por animal (números grandes como 1.200, 1.400)
+     
+     Ejemplo Marfrig:
+     • NOVILLO → Precio: 5.25 USD/kg (NO tomar 268 ni 53.31)
+     • VACA → Precio: 5.00 USD/kg (NO tomar 231 ni 48.22)
+     • VAQUILLONA → Precio: 5.18 USD/kg (NO tomar 214 ni 49.82)
    
    - importeBrutoUSD: importe del renglón SIN bonificaciones
      Columna: "Importe" o "Total" (última columna de números grandes)
