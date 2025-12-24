@@ -21,7 +21,9 @@ export async function parseMessageWithAI(
       .join(", ")
 
     console.log(`📋 Potreros del campo: ${nombresPotreros}`)
-
+    
+    // Obtener fecha actual para el cálculo de días
+const fechaActual = new Date().toISOString().split('T')[0]
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
@@ -35,6 +37,9 @@ ${nombresPotreros || "No hay potreros creados aún"}
 
 🐄 CATEGORÍAS DE ANIMALES DISPONIBLES:
 ${nombresCategorias || "No hay categorías definidas"}
+
+
+📅 FECHA ACTUAL: ${fechaActual}
 
 IMPORTANTE PARA CAMBIOS DE POTRERO:
 - El usuario SOLO puede mover animales entre los potreros listados arriba
@@ -138,12 +143,24 @@ TIPOS DE EVENTOS QUE DEBES DETECTAR:
    - "en 14 días sacar tablilla"
    - "el martes vacunar"
    - "mañana revisar alambrado"
+   - "pasado mañana fumigar"
+   
+   IMPORTANTE: Debes calcular "diasDesdeHoy" a partir de HOY (${fechaActual}).
+   
+   Ejemplos de cálculo:
+   - "mañana" → diasDesdeHoy: 1
+   - "pasado mañana" → diasDesdeHoy: 2
+   - "en 5 días" → diasDesdeHoy: 5
+   - "en 14 días" → diasDesdeHoy: 14
+   - "en 2 semanas" → diasDesdeHoy: 14
+   
    Retorna:
    {
      "tipo": "CALENDARIO_CREAR",
-     "descripcion": "sacar tablilla",
-     "fecha": "2025-12-28" (calcular fecha correcta),
-     "prioridad": "media"
+     "titulo": "sacar tablilla",
+     "diasDesdeHoy": 14,
+     "fechaRelativa": "en 14 días",
+     "descripcion": "sacar tablilla"
    }
 
 9. CALENDARIO_CONSULTAR:
