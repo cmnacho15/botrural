@@ -187,11 +187,26 @@ try {
   throw error
 }
 
+// ✅ Calcular peso total para precio efectivo
+    const pesoTotalVendido = ventaData.renglones.reduce((sum, r) => sum + r.pesoTotalKg, 0)
+    const precioEfectivoKg = ventaData.totalNetoUSD / pesoTotalVendido
+    
+    console.log("📊 Cálculo precio efectivo:", {
+      totalNeto: ventaData.totalNetoUSD,
+      pesoTotal: pesoTotalVendido,
+      precioEfectivo: precioEfectivoKg.toFixed(4) + ' USD/kg'
+    })
+
+
     // Crear renglones
     const renglonesCreados: Array<{ id: string; categoria: string; cantidad: number }> = []
     
     for (const r of ventaData.renglones) {
       const mapped = mapearCategoriaVenta(r.categoria)
+      // Calcular precio animal proporcional al total neto
+      const pesoProporcion = r.pesoTotalKg / pesoTotalVendido
+      const importeNetoRenglon = ventaData.totalNetoUSD * pesoProporcion
+      
       const renglon = await prisma.ventaRenglon.create({
         data: {
           ventaId: venta.id,
@@ -201,12 +216,21 @@ try {
           raza: r.raza || null,
           cantidad: r.cantidad,
           pesoPromedio: r.pesoPromedio,
-          precioKgUSD: r.precioKgUSD,
-          precioAnimalUSD: r.importeBrutoUSD / r.cantidad,  // ✅ Usar importe real de boleta
+          precioKgUSD: precioEfectivoKg,  // ✅ Precio efectivo (total neto / kg totales)
+          precioAnimalUSD: importeNetoRenglon / r.cantidad,  // ✅ Precio animal proporcional
           pesoTotalKg: r.pesoTotalKg,
-          importeBrutoUSD: r.importeBrutoUSD,
+          importeBrutoUSD: r.importeBrutoUSD,  // ✅ Importe SIN bonificaciones
           descontadoDeStock: false,
         },
+      })
+      
+      console.log(`  ✅ Renglón guardado:`, {
+        categoria: mapped.categoria,
+        cantidad: r.cantidad,
+        pesoKg: r.pesoTotalKg,
+        precioKg: precioEfectivoKg.toFixed(4),
+        precioAnimal: (importeNetoRenglon / r.cantidad).toFixed(2),
+        importeBruto: r.importeBrutoUSD.toFixed(2)
       })
       renglonesCreados.push({ 
         id: renglon.id, 

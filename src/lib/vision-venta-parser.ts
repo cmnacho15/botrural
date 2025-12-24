@@ -319,9 +319,9 @@ ESTRUCTURA TÍPICA:
 - Fecha
 - PRODUCTOR: nombre del que vende, DICOSE, RUT
 - Consignatario: intermediario (opcional)
-- Tabla de animales: CATEGORÍA, Raza, Cantidad, Kilos, Precio/kg, Importe
-- Totales: Subtotal, Impuestos (MEVIR, INIA, IMEBA, etc.), Total Neto
-- Condiciones de pago: Contado/Plazo, Vencimiento, T/C
+- Tabla de animales con múltiples columnas
+- Totales: Subtotal, Impuestos, Total Neto
+- Condiciones de pago
 
 ====== DETECCIÓN DE TIPO DE VENTA ======
 CRÍTICO: Hay 2 tipos de venta diferentes:
@@ -330,7 +330,7 @@ TIPO A - VENTA A FRIGORÍFICO:
 - Indicadores: Tiene impuestos MEVIR, INIA, IMEBA
 - Tiene columnas de balanzas: "Primera Balanza", "Segunda Balanza" (ovinos) o "4ta Balanza" (bovinos)
 - Tiene columna "Rendimiento" o "Rend"
-- El PRECIO viene expresado en kg de balanza POST-FAENA (2da o 4ta)
+- El PRECIO viene en kg de balanza POST-FAENA (2da o 4ta)
 
 TIPO B - VENTA CAMPO A CAMPO:
 - NO tiene impuestos frigoríficos
@@ -339,28 +339,40 @@ TIPO B - VENTA CAMPO A CAMPO:
 
 ====== EXTRACCIÓN SEGÚN TIPO ======
 
-PARA TIPO A (FRIGORÍFICO):
-Debes extraer para cada renglón estos campos EXACTOS:
-- categoria: nombre del animal (ej: "OVEJAS", "CORDEROS DL", "NOVILLOS")
-- tipoAnimal: "OVINO" o "BOVINO" o "EQUINO"
-- raza: raza si está especificada, sino null
-- cantidad: número de animales (CUIDADO: revisa bien si es 4, 9, 6, etc. Son números pequeños generalmente)
-- pesoTotalPie: peso TOTAL en PRIMERA BALANZA (columna "Cant" o "Kilos" en sección Primera Balanza)
-- pesoTotal2da4ta: peso TOTAL en SEGUNDA o CUARTA BALANZA (columna "Kilos" en Segunda/4ta Balanza)
-- rendimiento: % de rendimiento (columna "Rend" o "Rendimiento")
-- precio2da4ta: precio por kg en balanza post-faena (columna "Precio", "En PIE", "En 2ª", "En 4ta")
-- importeBrutoUSD: importe total del renglón (última columna "IMPORTE" o "TOTAL")
+PARA TIPO A (FRIGORÍFICO) - MUY IMPORTANTE:
 
-BONIFICACIONES:
-Si hay renglones de "BONIFICACIÓN" que aplican a una categoría específica:
-- Súmalos al importeBrutoUSD de esa categoría
-- NO los extraigas como renglón separado
-Ejemplo: "BONIFICACIÓN VACA ECO" con importe 381,50 → sumar al importe de VACAS
+1. IGNORAR completamente las filas de "BONIFICACIÓN":
+   - NO extraigas renglones de BONIFICACIÓN VACA ECO, BONIFICACIÓN NOVILLO ECO, etc.
+   - Solo extrae las categorías principales: NOVILLOS, VACAS, VAQUILLONAS, OVEJAS, CORDEROS
 
-IMPORTANTE - NO calcules nada, solo extrae los valores de la tabla:
-- pesoPromedio: dejalo en null (lo calcularemos después)
-- precioKgUSD: dejalo en null (lo calcularemos después)
-- pesoTotalKg: dejalo en null (lo calcularemos después)
+2. Para cada categoría PRINCIPAL extraer:
+   - categoria: nombre del animal (SOLO principales, NO bonificaciones)
+   - tipoAnimal: "OVINO" o "BOVINO" o "EQUINO"
+   - raza: raza si está especificada, sino null
+   - cantidad: número de animales de la columna "Cantidad" o "Cant"
+     ⚠️ CRÍTICO: Lee con cuidado si es 4, 9, 7, 1, 5, etc. Números de 1 dígito generalmente.
+     Si ves algo borroso, intenta reconocer por contexto (ej: si peso total es 4520 kg y promedio 502, entonces cantidad = 9)
+   
+   - pesoTotalPie: peso TOTAL en PRIMERA BALANZA
+     Columna: "Kgs. en pie", "Kilos", "Cant" (en sección Primera Balanza)
+   
+   - pesoTotal2da4ta: peso TOTAL en SEGUNDA o CUARTA BALANZA
+     Columna: "Kgs. 4ta balanza", "Segunda Balanza", "Kilos" (en sección 2da/4ta)
+   
+   - rendimiento: % de rendimiento
+     Columna: "Rend", "Rendimiento", "%"
+   
+   - precio2da4ta: precio por kg en balanza post-faena
+     Columna: "Precio", "En PIE" (es engañoso, realmente es en 4ta), "En 2ª", "Prom. 4ta"
+   
+   - importeBrutoUSD: importe del renglón SIN bonificaciones
+     Columna: "Importe", "Total" - SOLO de la fila principal (NO sumar bonificaciones)
+     Ejemplo: Novillo → 12.650,95 (NO sumar 192,78 de bonificación)
+
+3. NO calcular nada, dejar en null:
+   - pesoPromedio: null
+   - precioKgUSD: null
+   - pesoTotalKg: null
 
 PARA TIPO B (CAMPO A CAMPO):
 Extraer directamente de la tabla:
@@ -369,21 +381,25 @@ Extraer directamente de la tabla:
 - cantidad: número de animales
 - pesoTotalKg: peso total (columna "PESO")
 - pesoPromedio: peso por animal (columna "PESO PROMEDIO")
-- precioKgUSD: si hay precio/kg úsalo, sino dejá null
+- precioKgUSD: si hay precio/kg úsalo, sino null
 - importeBrutoUSD: importe total (columna "TOTAL")
-- rendimiento: null (no aplica)
-- pesoTotal2da4ta: null (no aplica)
-- pesoTotalPie: null (no aplica)
-- precio2da4ta: null (no aplica)
+- rendimiento: null
+- pesoTotal2da4ta: null
+- pesoTotalPie: null
+- precio2da4ta: null
+
+====== TOTALES DE LA BOLETA ======
+EXTRAER siempre:
+- subtotalUSD: buscar "SUB TOTAL", "Subtotal", "TOTAL" antes de impuestos
+- totalImpuestosUSD: suma de MEVIR + INIA + IMEBA + otros descuentos
+- totalNetoUSD: buscar "TOTAL U$S", "TOTAL", "Total Neto" (después de impuestos)
 
 ====== CATEGORÍAS COMUNES ======
-(mapear a tipoAnimal):
 - OVEJAS, CORDEROS, CAPONES, CARNEROS, BORREGOS → OVINO
 - NOVILLOS, VACAS, VAQUILLONAS, TERNEROS, TOROS → BOVINO
 - YEGUAS, POTROS, CABALLOS → EQUINO
 
 ====== IMPUESTOS TÍPICOS ======
-(son DESCUENTOS del subtotal):
 - MEVIR: 0.20%
 - INIA: 0.40%
 - IMEBA: 2.00%
@@ -393,8 +409,8 @@ Extraer directamente de la tabla:
 
 IMPORTANTE:
 - Los precios están en USD (U$S o US$)
-- Si es FRIGORÍFICO → SIEMPRE calcular precio en pie
-- Si es CAMPO → usar precios directos
+- IGNORAR totalmente las bonificaciones en renglones
+- Las bonificaciones se reflejan en el subtotal/total general
 
 REGLAS ESTRICTAS DE FORMATO:
 1. NUNCA respondas con texto explicativo como "Lo siento" o "No puedo"
@@ -420,10 +436,13 @@ RESPONDE EN JSON (sin markdown):
       "tipoAnimal": "OVINO",
       "raza": "GEN S/Clasif",
       "cantidad": 130,
-      "pesoTotalKg": 2191.0,
-      "pesoPromedio": 16.85,
+      "pesoTotalPie": 5190.0,
+      "pesoTotal2da4ta": 2191.0,
       "rendimiento": 42.22,
-      "precioKgUSD": 4.70,
+      "precio2da4ta": 4.70,
+      "pesoPromedio": null,
+      "precioKgUSD": null,
+      "pesoTotalKg": null,
       "importeBrutoUSD": 10297.70
     }
   ],
@@ -497,17 +516,20 @@ RESPONDE EN JSON (sin markdown):
         // Importe bruto (ya está calculado)
         r.importeBrutoUSD = importeTotal;
         
-        console.log(`  ✅ Convertido:`, {
+        console.log(`  ✅ Convertido renglón ${i+1}:`, {
           categoria: r.categoria,
           cantidad: r.cantidad,
+          '--- PESOS ---': '',
           peso2da4ta: r.pesoTotal2da4ta,
           pesoPie: r.pesoTotalPie,
-          rendimiento: r.rendimiento,
-          precio2da4ta: r.precio2da4ta,
-          precioEnPie: r.precioKgUSD.toFixed(4),
-          pesoPromedio: r.pesoPromedio.toFixed(2),
-          importeBruto: r.importeBrutoUSD.toFixed(2),
-          precioAnimal: (r.importeBrutoUSD / r.cantidad).toFixed(2)
+          pesoPromedio: r.pesoPromedio.toFixed(2) + ' kg',
+          '--- PRECIOS ---': '',
+          precio2da4ta: r.precio2da4ta + ' USD/kg (4ta)',
+          precioEnPie: r.precioKgUSD.toFixed(4) + ' USD/kg (pie)',
+          '--- IMPORTES ---': '',
+          importeBruto: r.importeBrutoUSD.toFixed(2) + ' USD',
+          precioAnimal: (r.importeBrutoUSD / r.cantidad).toFixed(2) + ' USD/animal',
+          rendimiento: r.rendimiento + '%'
         });
         
         // Limpiar campos temporales
