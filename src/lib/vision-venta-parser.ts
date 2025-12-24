@@ -8,15 +8,20 @@ const openai = new OpenAI({
 });
 
 export interface VentaRenglonParsed {
-  categoria: string;        // "OVEJAS", "CORDEROS DL", "NOVILLOS", etc.
-  tipoAnimal: string;       // "OVINO" | "BOVINO" | "EQUINO"
-  raza: string | null;      // "GEN S/Clasif", "HEREFORD", etc.
-  cantidad: number;         // 130, 300
-  pesoTotalKg: number;      // Peso en segunda balanza (2191.0, 4140.5)
-  pesoPromedio: number;     // kg por animal
-  rendimiento: number | null; // % de rendimiento (42.22%, 40.24%)
-  precioKgUSD: number;      // precio por kg (4.7000, 5.5600)
-  importeBrutoUSD: number;  // importe del renglón (10297.70, 23021.18)
+  categoria: string;
+  tipoAnimal: string;
+  raza: string | null;
+  cantidad: number;
+  pesoTotalKg: number;      // Siempre en PIE (después de conversión)
+  pesoPromedio: number;     // Siempre en PIE (después de conversión)
+  rendimiento: number | null;
+  precioKgUSD: number;      // Siempre en PIE (después de conversión)
+  importeBrutoUSD: number;
+  
+  // Campos temporales solo para frigorífico (se borran después de conversión)
+  pesoTotal2da4ta?: number;  // Peso en 2da/4ta balanza
+  pesoTotalPie?: number;     // Peso en 1ra balanza
+  precio2da4ta?: number;     // Precio en 2da/4ta balanza
 }
 
 export interface ImpuestosVenta {
@@ -318,12 +323,61 @@ ESTRUCTURA TÍPICA:
 - Totales: Subtotal, Impuestos (MEVIR, INIA, IMEBA, etc.), Total Neto
 - Condiciones de pago: Contado/Plazo, Vencimiento, T/C
 
-CATEGORÍAS COMUNES (mapear a tipoAnimal):
+====== DETECCIÓN DE TIPO DE VENTA ======
+CRÍTICO: Hay 2 tipos de venta diferentes:
+
+TIPO A - VENTA A FRIGORÍFICO:
+- Indicadores: Tiene impuestos MEVIR, INIA, IMEBA
+- Tiene columnas de balanzas: "Primera Balanza", "Segunda Balanza" (ovinos) o "4ta Balanza" (bovinos)
+- Tiene columna "Rendimiento" o "Rend"
+- El PRECIO viene expresado en kg de balanza POST-FAENA (2da o 4ta)
+
+TIPO B - VENTA CAMPO A CAMPO:
+- NO tiene impuestos frigoríficos
+- NO tiene columnas de balanzas
+- El PRECIO ya viene en kg EN PIE
+
+====== EXTRACCIÓN SEGÚN TIPO ======
+
+PARA TIPO A (FRIGORÍFICO):
+Debes extraer para cada renglón estos campos EXACTOS:
+- categoria: nombre del animal (ej: "OVEJAS", "CORDEROS DL", "NOVILLOS")
+- tipoAnimal: "OVINO" o "BOVINO" o "EQUINO"
+- raza: raza si está especificada, sino null
+- cantidad: número de animales
+- pesoTotalPie: peso TOTAL en PRIMERA BALANZA (columna "Cant" o "Kilos" en sección Primera Balanza)
+- pesoTotal2da4ta: peso TOTAL en SEGUNDA o CUARTA BALANZA (columna "Kilos" en Segunda/4ta Balanza)
+- rendimiento: % de rendimiento (columna "Rend" o "Rendimiento")
+- precio2da4ta: precio por kg en balanza post-faena (columna "Precio", "En PIE", "En 2ª", "En 4ta")
+- importeBrutoUSD: importe total del renglón (última columna "IMPORTE" o "TOTAL")
+
+IMPORTANTE - NO calcules nada, solo extrae los valores de la tabla:
+- pesoPromedio: dejalo en null (lo calcularemos después)
+- precioKgUSD: dejalo en null (lo calcularemos después)
+- pesoTotalKg: dejalo en null (lo calcularemos después)
+
+PARA TIPO B (CAMPO A CAMPO):
+Extraer directamente de la tabla:
+- categoria: nombre del animal
+- tipoAnimal: "OVINO" o "BOVINO" o "EQUINO"
+- cantidad: número de animales
+- pesoTotalKg: peso total (columna "PESO")
+- pesoPromedio: peso por animal (columna "PESO PROMEDIO")
+- precioKgUSD: si hay precio/kg úsalo, sino dejá null
+- importeBrutoUSD: importe total (columna "TOTAL")
+- rendimiento: null (no aplica)
+- pesoTotal2da4ta: null (no aplica)
+- pesoTotalPie: null (no aplica)
+- precio2da4ta: null (no aplica)
+
+====== CATEGORÍAS COMUNES ======
+(mapear a tipoAnimal):
 - OVEJAS, CORDEROS, CAPONES, CARNEROS, BORREGOS → OVINO
 - NOVILLOS, VACAS, VAQUILLONAS, TERNEROS, TOROS → BOVINO
 - YEGUAS, POTROS, CABALLOS → EQUINO
 
-IMPUESTOS TÍPICOS (son DESCUENTOS del subtotal):
+====== IMPUESTOS TÍPICOS ======
+(son DESCUENTOS del subtotal):
 - MEVIR: 0.20%
 - INIA: 0.40%
 - IMEBA: 2.00%
@@ -333,8 +387,8 @@ IMPUESTOS TÍPICOS (son DESCUENTOS del subtotal):
 
 IMPORTANTE:
 - Los precios están en USD (U$S o US$)
-- El peso puede estar en "Segunda Balanza" o "Primera Balanza"
-- Calcular pesoPromedio = pesoTotalKg / cantidad
+- Si es FRIGORÍFICO → SIEMPRE calcular precio en pie
+- Si es CAMPO → usar precios directos
 
 REGLAS ESTRICTAS DE FORMATO:
 1. NUNCA respondas con texto explicativo como "Lo siento" o "No puedo"
@@ -413,6 +467,59 @@ RESPONDE EN JSON (sin markdown):
       .trim();
 
     const data = JSON.parse(jsonStr) as ParsedVenta;
+
+    // ✅ CONVERSIÓN AUTOMÁTICA: 2da/4ta balanza → PIE
+    console.log("🔄 Procesando renglones para conversión a datos EN PIE...")
+    
+    for (let i = 0; i < data.renglones.length; i++) {
+      const r = data.renglones[i];
+      
+      // Si tiene datos de frigorífico (balanza post-faena)
+      if (r.pesoTotal2da4ta && r.pesoTotalPie && r.precio2da4ta) {
+        console.log(`🏭 Renglón ${i+1}: FRIGORÍFICO detectado (${r.categoria})`)
+        
+        // Calcular precio EN PIE
+        const importeTotal = r.pesoTotal2da4ta * r.precio2da4ta;
+        r.precioKgUSD = importeTotal / r.pesoTotalPie;
+        
+        // Peso total EN PIE
+        r.pesoTotalKg = r.pesoTotalPie;
+        
+        // Peso promedio EN PIE
+        r.pesoPromedio = r.pesoTotalPie / r.cantidad;
+        
+        // Importe bruto (ya está calculado)
+        r.importeBrutoUSD = importeTotal;
+        
+        console.log(`  ✅ Convertido:`, {
+          peso2da4ta: r.pesoTotal2da4ta,
+          pesoPie: r.pesoTotalPie,
+          rendimiento: r.rendimiento,
+          precio2da4ta: r.precio2da4ta,
+          precioEnPie: r.precioKgUSD.toFixed(4),
+          pesoPromedio: r.pesoPromedio.toFixed(2)
+        });
+        
+        // Limpiar campos temporales
+        delete (r as any).pesoTotal2da4ta;
+        delete (r as any).pesoTotalPie;
+        delete (r as any).precio2da4ta;
+      }
+      // Si es venta campo a campo (ya viene en pie)
+      else {
+        console.log(`🚜 Renglón ${i+1}: CAMPO A CAMPO (${r.categoria}) - ya en PIE`)
+        
+        // Si falta pesoTotalKg, calcularlo
+        if (!r.pesoTotalKg && r.pesoPromedio && r.cantidad) {
+          r.pesoTotalKg = r.pesoPromedio * r.cantidad;
+        }
+        
+        // Si falta precioKgUSD pero hay precio total, calcularlo
+        if (!r.precioKgUSD && r.importeBrutoUSD && r.pesoTotalKg) {
+          r.precioKgUSD = r.importeBrutoUSD / r.pesoTotalKg;
+        }
+      }
+    }
 
     // Validaciones
     if (!data.renglones?.length) {
