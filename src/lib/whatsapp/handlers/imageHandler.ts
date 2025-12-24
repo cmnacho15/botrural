@@ -20,6 +20,41 @@ export async function handleImageMessage(message: any, phoneNumber: string) {
     const mediaId = message.image.id
     const caption = message.image.caption || ""
 
+    // ✅ NUEVO: Verificar si hay operación pendiente
+    const pending = await prisma.pendingConfirmation.findUnique({
+      where: { telefono: phoneNumber },
+    })
+
+    if (pending) {
+      const data = JSON.parse(pending.data)
+      
+      // Si está en descuento de stock, ignorar imagen (WhatsApp retry)
+      if (data.tipo === "DESCUENTO_STOCK") {
+        console.log("⚠️ Imagen ignorada: usuario está eligiendo potrero para descuento")
+        return  // Silenciosamente ignorar
+      }
+      
+      // Si está esperando tipo de factura, ignorar (ya procesó una)
+      if (data.tipo === "AWAITING_INVOICE_TYPE") {
+        console.log("⚠️ Imagen ignorada: usuario debe responder tipo de factura")
+        return
+      }
+      
+      // Si hay confirmación de venta/gasto pendiente, ignorar
+      if (data.tipo === "VENTA" || data.tipo === "GASTO") {
+        console.log("⚠️ Imagen ignorada: usuario debe confirmar factura anterior")
+        return
+      }
+      
+      // Cualquier otro tipo pendiente
+      console.log("⚠️ Hay operación pendiente tipo:", data.tipo)
+      await sendWhatsAppMessage(
+        phoneNumber,
+        "Ya tenés una operación pendiente. Confirmala o cancelala primero."
+      )
+      return
+    }
+
     const user = await prisma.user.findUnique({
       where: { telefono: phoneNumber },
       include: { campo: true },
