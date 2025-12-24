@@ -27,6 +27,7 @@ interface DatosEvolucion {
     ug: number[]
     ugPorHectarea: number[]
     hectareasTotales: number
+    hectareasTodasPredio: number  // 👈 AGREGAR ESTA LÍNEA
   }
 }
 
@@ -338,7 +339,7 @@ export default function EvolucionUGDashboard() {
               }}
               className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
-              <option value="">Campo completo</option>
+              <option value="">Campo completo (SPG)</option>
               {datos.lotes.map((lote) => (
                 <option key={lote.loteId} value={lote.loteId}>
                   {lote.nombre} ({lote.hectareas} ha)
@@ -571,38 +572,45 @@ export default function EvolucionUGDashboard() {
       )}
 
       {/* RESUMEN GLOBAL */}
-      {!loteSeleccionado && (
-        <div className="bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 rounded-lg p-6">
-          <h3 className="font-semibold text-blue-900 mb-4 text-lg">Resumen del Campo</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="text-center">
-              <p className="text-3xl font-bold text-blue-600">{datos.lotes.length}</p>
-              <p className="text-sm text-blue-700 mt-1">Potreros</p>
-            </div>
+{!loteSeleccionado && (
+  <div className="bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 rounded-lg p-6">
+    <h3 className="font-semibold text-blue-900 mb-4 text-lg">Resumen del Campo</h3>
+    <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div className="text-center">
+        <p className="text-3xl font-bold text-blue-600">{datos.lotes.length}</p>
+        <p className="text-sm text-blue-700 mt-1">Potreros</p>
+      </div>
 
-            <div className="text-center">
-              <p className="text-3xl font-bold text-blue-600">
-                {datos.global?.hectareasTotales?.toFixed(2) ?? '0.00'}
-              </p>
-              <p className="text-sm text-blue-700 mt-1">Hectáreas totales</p>
-            </div>
+      <div className="text-center">
+        <p className="text-3xl font-bold text-blue-600">
+          {datos.global?.hectareasTodasPredio?.toFixed(2) ?? '0.00'}
+        </p>
+        <p className="text-sm text-blue-700 mt-1">Hectáreas totales del predio</p>
+      </div>
 
-            <div className="text-center">
-              <p className="text-3xl font-bold text-blue-600">
-                {datos.global?.ug?.[datos.global.ug.length - 1]?.toFixed(2) ?? '0.00'}
-              </p>
-              <p className="text-sm text-blue-700 mt-1">UG Totales hoy</p>
-            </div>
+      <div className="text-center">
+        <p className="text-3xl font-bold text-blue-600">
+          {datos.global?.hectareasTotales?.toFixed(2) ?? '0.00'}
+        </p>
+        <p className="text-sm text-blue-700 mt-1">SPG (ha pastoreables)</p>
+      </div>
 
-            <div className="text-center">
-              <p className="text-3xl font-bold text-blue-600">
-                {datos.global?.ugPorHectarea?.[datos.global.ugPorHectarea.length - 1]?.toFixed(2) ?? '0.00'}
-              </p>
-              <p className="text-sm text-blue-700 mt-1">UG/ha promedio hoy</p>
-            </div>
-          </div>
-        </div>
-      )}
+      <div className="text-center">
+        <p className="text-3xl font-bold text-blue-600">
+          {datos.global?.ug?.[datos.global.ug.length - 1]?.toFixed(2) ?? '0.00'}
+        </p>
+        <p className="text-sm text-blue-700 mt-1">UG Totales hoy</p>
+      </div>
+
+      <div className="text-center">
+        <p className="text-3xl font-bold text-blue-600">
+          {datos.global?.ugPorHectarea?.[datos.global.ugPorHectarea.length - 1]?.toFixed(2) ?? '0.00'}
+        </p>
+        <p className="text-sm text-blue-700 mt-1">UG/ha promedio hoy</p>
+      </div>
+    </div>
+  </div>
+)}
 
       {/* LEYENDA */}
       <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">

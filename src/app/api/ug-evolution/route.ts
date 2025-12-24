@@ -138,11 +138,20 @@ export async function GET(request: Request) {
       hectareasTotales > 0 ? Math.round((ug / hectareasTotales) * 100) / 100 : 0
     )
 
-    const global = {
-      ug: ugGlobalPorDia,
-      ugPorHectarea: ugPorHaGlobal,
-      hectareasTotales,
-    }
+    // Obtener hectáreas TOTALES del predio (incluyendo no pastoreables)
+const todosLotesPredio = await prisma.lote.findMany({
+  where: { campoId: usuario.campoId },
+  select: { hectareas: true },
+})
+
+const hectareasTodasPredio = todosLotesPredio.reduce((sum, l) => sum + l.hectareas, 0)
+
+const global = {
+  ug: ugGlobalPorDia,
+  ugPorHectarea: ugPorHaGlobal,
+  hectareasTotales, // SPG (solo pastoreables)
+  hectareasTodasPredio, // TODAS (incluyendo no pastoreables)
+}
 
     // ===============================
     // 📤 RESPUESTA FINAL
