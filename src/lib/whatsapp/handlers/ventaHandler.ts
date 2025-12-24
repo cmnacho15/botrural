@@ -253,7 +253,8 @@ try {
       },
     })
 
-    await prisma.pendingConfirmation.delete({ where: { telefono: phoneNumber } })
+    // ✅ NO borrar pending aquí - preguntarDescuentoStock hará upsert
+    // await prisma.pendingConfirmation.delete({ where: { telefono: phoneNumber } })
 
     await sendWhatsAppMessage(
       phoneNumber,
@@ -261,6 +262,7 @@ try {
     )
 
     // Preguntar por descuento de stock para cada categoría
+    // Esta función hará upsert, reemplazando el pending tipo "VENTA" por "DESCUENTO_STOCK"
     await preguntarDescuentoStock(phoneNumber, campoId, renglonesCreados, venta.id)
 
   } catch (error) {
