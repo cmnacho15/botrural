@@ -202,7 +202,7 @@ try {
           cantidad: r.cantidad,
           pesoPromedio: r.pesoPromedio,
           precioKgUSD: r.precioKgUSD,
-          precioAnimalUSD: r.pesoPromedio * r.precioKgUSD,
+          precioAnimalUSD: r.importeBrutoUSD / r.cantidad,  // ✅ Usar importe real de boleta
           pesoTotalKg: r.pesoTotalKg,
           importeBrutoUSD: r.importeBrutoUSD,
           descontadoDeStock: false,

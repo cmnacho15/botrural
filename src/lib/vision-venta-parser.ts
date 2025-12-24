@@ -344,12 +344,18 @@ Debes extraer para cada renglón estos campos EXACTOS:
 - categoria: nombre del animal (ej: "OVEJAS", "CORDEROS DL", "NOVILLOS")
 - tipoAnimal: "OVINO" o "BOVINO" o "EQUINO"
 - raza: raza si está especificada, sino null
-- cantidad: número de animales
+- cantidad: número de animales (CUIDADO: revisa bien si es 4, 9, 6, etc. Son números pequeños generalmente)
 - pesoTotalPie: peso TOTAL en PRIMERA BALANZA (columna "Cant" o "Kilos" en sección Primera Balanza)
 - pesoTotal2da4ta: peso TOTAL en SEGUNDA o CUARTA BALANZA (columna "Kilos" en Segunda/4ta Balanza)
 - rendimiento: % de rendimiento (columna "Rend" o "Rendimiento")
 - precio2da4ta: precio por kg en balanza post-faena (columna "Precio", "En PIE", "En 2ª", "En 4ta")
 - importeBrutoUSD: importe total del renglón (última columna "IMPORTE" o "TOTAL")
+
+BONIFICACIONES:
+Si hay renglones de "BONIFICACIÓN" que aplican a una categoría específica:
+- Súmalos al importeBrutoUSD de esa categoría
+- NO los extraigas como renglón separado
+Ejemplo: "BONIFICACIÓN VACA ECO" con importe 381,50 → sumar al importe de VACAS
 
 IMPORTANTE - NO calcules nada, solo extrae los valores de la tabla:
 - pesoPromedio: dejalo en null (lo calcularemos después)
@@ -492,12 +498,16 @@ RESPONDE EN JSON (sin markdown):
         r.importeBrutoUSD = importeTotal;
         
         console.log(`  ✅ Convertido:`, {
+          categoria: r.categoria,
+          cantidad: r.cantidad,
           peso2da4ta: r.pesoTotal2da4ta,
           pesoPie: r.pesoTotalPie,
           rendimiento: r.rendimiento,
           precio2da4ta: r.precio2da4ta,
           precioEnPie: r.precioKgUSD.toFixed(4),
-          pesoPromedio: r.pesoPromedio.toFixed(2)
+          pesoPromedio: r.pesoPromedio.toFixed(2),
+          importeBruto: r.importeBrutoUSD.toFixed(2),
+          precioAnimal: (r.importeBrutoUSD / r.cantidad).toFixed(2)
         });
         
         // Limpiar campos temporales
