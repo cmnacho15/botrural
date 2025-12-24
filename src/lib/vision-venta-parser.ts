@@ -503,9 +503,9 @@ RESPONDE EN JSON (sin markdown):
       if (r.pesoTotal2da4ta && r.pesoTotalPie && r.precio2da4ta) {
         console.log(`🏭 Renglón ${i+1}: FRIGORÍFICO detectado (${r.categoria})`)
         
-        // Calcular precio EN PIE
-        const importeTotal = r.pesoTotal2da4ta * r.precio2da4ta;
-        r.precioKgUSD = importeTotal / r.pesoTotalPie;
+        // Calcular precio EN PIE desde el importe bruto y peso en pie
+        // Fórmula: precioKgEnPie = importeBrutoUSD / pesoTotalPie
+        r.precioKgUSD = r.importeBrutoUSD / r.pesoTotalPie;
         
         // Peso total EN PIE
         r.pesoTotalKg = r.pesoTotalPie;
@@ -513,8 +513,7 @@ RESPONDE EN JSON (sin markdown):
         // Peso promedio EN PIE
         r.pesoPromedio = r.pesoTotalPie / r.cantidad;
         
-        // Importe bruto (ya está calculado)
-        r.importeBrutoUSD = importeTotal;
+        // importeBrutoUSD ya viene del JSON parseado (no recalcular)
         
         console.log(`  ✅ Convertido renglón ${i+1}:`, {
           categoria: r.categoria,
