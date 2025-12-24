@@ -62,7 +62,7 @@ export default function EvolucionUGDashboard() {
     }
   }
 
-  const exportarCSV = () => {
+ const exportarCSV = () => {
   if (!datos) return
 
   let csv = ''
@@ -80,11 +80,11 @@ export default function EvolucionUGDashboard() {
 
     // ENCABEZADO para potrero específico
     csv = `EVOLUCIÓN DE CARGA ANIMAL - ${lote.nombre.toUpperCase()}\n`
-    csv += `Período:,${periodoTexto}\n`
-    csv += `Exportado:,${fechaExportacion}\n`
-    csv += `Superficie del potrero:,${lote.hectareas.toFixed(2)} ha\n`
+    csv += `Período:;${periodoTexto}\n`
+    csv += `Exportado:;${fechaExportacion}\n`
+    csv += `Superficie del potrero:;${lote.hectareas.toFixed(2)} ha\n`
     csv += `\n`
-    csv += `Fecha,UG Totales,UG/ha\n`
+    csv += `Fecha;UG Totales;UG/ha\n`
 
     nombreArchivo = `evolucion-${lote.nombre.replace(/\s+/g, '-')}-${periodo}`
 
@@ -96,18 +96,18 @@ export default function EvolucionUGDashboard() {
       })
       const ug = lote.datos[index].toFixed(2)
       const ugHa = lote.cargaPorHectarea[index].toFixed(2)
-      csv += `${fecha},${ug},${ugHa}\n`
+      csv += `${fecha};${ug};${ugHa}\n`
     })
   } else {
     // ENCABEZADO para campo completo
     csv = `EVOLUCIÓN DE CARGA ANIMAL - CAMPO COMPLETO (SPG)\n`
-    csv += `Período:,${periodoTexto}\n`
-    csv += `Exportado:,${fechaExportacion}\n`
-    csv += `SPG (Superficie de Pastoreo Ganadero):,${datos.global.hectareasTotales.toFixed(2)} ha\n`
-    csv += `Hectáreas totales del predio:,${datos.global.hectareasTodasPredio?.toFixed(2) ?? '0.00'} ha\n`
-    csv += `Cantidad de potreros:,${datos.lotes.length}\n`
+    csv += `Período:;${periodoTexto}\n`
+    csv += `Exportado:;${fechaExportacion}\n`
+    csv += `SPG (Superficie de Pastoreo Ganadero):;${datos.global.hectareasTotales.toFixed(2)} ha\n`
+    csv += `Hectáreas totales del predio:;${datos.global.hectareasTodasPredio?.toFixed(2) ?? '0.00'} ha\n`
+    csv += `Cantidad de potreros:;${datos.lotes.length}\n`
     csv += `\n`
-    csv += `Fecha,UG Totales,UG/ha\n`
+    csv += `Fecha;UG Totales;UG/ha\n`
 
     nombreArchivo = `evolucion-campo-completo-${periodo}`
 
@@ -119,7 +119,7 @@ export default function EvolucionUGDashboard() {
       })
       const ugTotal = datos.global?.ug?.[index]?.toFixed(2) ?? '0.00'
       const ugPorHa = datos.global?.ugPorHectarea?.[index]?.toFixed(2) ?? '0.00'
-      csv += `${fecha},${ugTotal},${ugPorHa}\n`
+      csv += `${fecha};${ugTotal};${ugPorHa}\n`
     })
   }
 
