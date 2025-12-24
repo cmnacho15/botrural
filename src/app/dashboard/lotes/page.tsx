@@ -1,3 +1,4 @@
+//src/app/dashboard/lotes/page.tsx
 'use client';
 export const dynamic = "force-dynamic"
 
@@ -131,7 +132,7 @@ function TooltipCargaGlobal() {
       <div>
         <p className="font-semibold mb-1">🌍 Carga Global (UG/ha)</p>
         <p className="text-gray-300 text-xs leading-relaxed">
-          Promedio de UG por hectárea considerando todos los potreros del campo.
+          Promedio de UG por hectárea considerando superficie de pastoreo ganadero.
         </p>
       </div>
       
