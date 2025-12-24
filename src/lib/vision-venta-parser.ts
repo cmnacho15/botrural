@@ -522,6 +522,13 @@ RESPONDE EN JSON (sin markdown):
         // ✅ CALCULAR importeBruto desde datos de 4ta balanza (más confiable que OCR)
         const importeCalculado = r.pesoTotal2da4ta * r.precio2da4ta;
         
+
+        console.log(`📊 ${r.categoria} - Validación de importe:`, {
+          pesoTotal2da4ta: r.pesoTotal2da4ta,
+          precio2da4ta: r.precio2da4ta,
+          importeCalculado: importeCalculado.toFixed(2),
+          importeParseado: r.importeBrutoUSD.toFixed(2),
+        });
         // Comparar con el importeBrutoUSD que GPT parseó
         const diferencia = Math.abs(r.importeBrutoUSD - importeCalculado);
         const porcentajeDif = (diferencia / importeCalculado) * 100;
