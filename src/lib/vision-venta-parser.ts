@@ -366,8 +366,15 @@ PARA TIPO A (FRIGORÍFICO) - MUY IMPORTANTE:
      Columna: "Precio", "En PIE" (es engañoso, realmente es en 4ta), "En 2ª", "Prom. 4ta"
    
    - importeBrutoUSD: importe del renglón SIN bonificaciones
-     Columna: "Importe", "Total" - SOLO de la fila principal (NO sumar bonificaciones)
-     Ejemplo: Novillo → 12.650,95 (NO sumar 192,78 de bonificación)
+     Columna: "Importe" o "Total" (última columna de números grandes)
+     IMPORTANTE: Lee el importe COMPLETO de cada categoría
+     Ejemplo Marfrig:
+       • NOVILLO GORDO HEREFORD → Importe: 12.650,95 (NO 12.650)
+       • VACA GORDA HEREFORD → Importe: 63.584,00 (NO 31.782 ni otro número)
+       • VAQUILLONA GORDA HEREFORD → Importe: 7.742,03 (NO 6.769)
+     
+     ⚠️ CRÍTICO: El importe debe ser un número grande (miles o decenas de miles de USD)
+     Si ves un número pequeño (<1000), probablemente estés leyendo la columna incorrecta
 
 3. NO calcular nada, dejar en null:
    - pesoPromedio: null
@@ -493,6 +500,15 @@ RESPONDE EN JSON (sin markdown):
 
     const data = JSON.parse(jsonStr) as ParsedVenta;
 
+    // ✅ Validación de importes
+    console.log("🔍 Validando importes extraídos...")
+    for (const r of data.renglones) {
+      if (r.importeBrutoUSD < 100 && r.cantidad > 1) {
+        console.warn(`⚠️ ADVERTENCIA: ${r.categoria} tiene importe muy bajo: ${r.importeBrutoUSD} para ${r.cantidad} animales`)
+        console.warn(`   Esto probablemente sea un error de lectura`)
+      }
+    }
+
     // ✅ CONVERSIÓN AUTOMÁTICA: 2da/4ta balanza → PIE
     console.log("🔄 Procesando renglones para conversión a datos EN PIE...")
     
@@ -503,9 +519,18 @@ RESPONDE EN JSON (sin markdown):
       if (r.pesoTotal2da4ta && r.pesoTotalPie && r.precio2da4ta) {
         console.log(`🏭 Renglón ${i+1}: FRIGORÍFICO detectado (${r.categoria})`)
         
-        // Calcular precio EN PIE desde el importe bruto y peso en pie
-        // Fórmula: precioKgEnPie = importeBrutoUSD / pesoTotalPie
-        r.precioKgUSD = r.importeBrutoUSD / r.pesoTotalPie;
+        // ✅ CALCULAR importeBruto desde datos de 4ta balanza (más confiable que OCR)
+        const importeCalculado = r.pesoTotal2da4ta * r.precio2da4ta;
+        
+        // Comparar con el importeBrutoUSD que GPT parseó
+        const diferencia = Math.abs(r.importeBrutoUSD - importeCalculado);
+        const porcentajeDif = (diferencia / importeCalculado) * 100;
+        
+        if (porcentajeDif > 5) {
+          console.warn(`⚠️ ${r.categoria}: Importe parseado (${r.importeBrutoUSD}) difiere del calculado (${importeCalculado.toFixed(2)}) en ${porcentajeDif.toFixed(1)}%`);
+          console.warn(`   Usando importe CALCULADO`);
+          r.importeBrutoUSD = importeCalculado;
+        }
         
         // Peso total EN PIE
         r.pesoTotalKg = r.pesoTotalPie;
@@ -513,7 +538,8 @@ RESPONDE EN JSON (sin markdown):
         // Peso promedio EN PIE
         r.pesoPromedio = r.pesoTotalPie / r.cantidad;
         
-        // importeBrutoUSD ya viene del JSON parseado (no recalcular)
+        // Calcular precio EN PIE desde el importe (ya corregido si era necesario) y peso en pie
+        r.precioKgUSD = r.importeBrutoUSD / r.pesoTotalPie;
         
         console.log(`  ✅ Convertido renglón ${i+1}:`, {
           categoria: r.categoria,
