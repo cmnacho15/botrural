@@ -42,20 +42,27 @@ export async function GET(request: Request) {
     }
 
     // ===========================
-    // LOTES (SIEMPRE TODOS)
+    // LOTES - SOLO PASTOREABLES
     // ===========================
     const lotes = await prisma.lote.findMany({
-      where: { campoId: usuario.campoId },
+      where: { 
+        campoId: usuario.campoId,
+        esPastoreable: { not: false } // Incluye true y null
+      },
       select: { id: true, nombre: true, hectareas: true, esPastoreable: true },
       orderBy: { nombre: 'asc' },
     })
 
+    // IDs de lotes pastoreables para filtrar snapshots
+    const lotesPastoreablesIds = lotes.map(l => l.id)
+
     // ===========================
-    // SNAPSHOTS (SIEMPRE TODOS)
+    // SNAPSHOTS - SOLO DE LOTES PASTOREABLES
     // ===========================
     const snapshots = await prisma.cargaHistorica.findMany({
       where: {
         campoId: usuario.campoId,
+        loteId: { in: lotesPastoreablesIds },
         fecha: { gte: fechaInicio, lte: hoy },
       },
       orderBy: [{ loteId: 'asc' }, { fecha: 'asc' }],
@@ -118,15 +125,14 @@ export async function GET(request: Request) {
     })
 
     // ===============================
-    // 🌍 UG GLOBAL diaria (SIEMPRE)
+    // 🌍 UG GLOBAL diaria
     // ===============================
     const ugGlobalPorDia = dias.map((_, index) =>
       seriesPorLote.reduce((sum, lote) => sum + lote.datos[index], 0)
     )
 
-    const hectareasTotales = lotes
-      .filter(l => l.esPastoreable !== false)
-      .reduce((sum, l) => sum + l.hectareas, 0)
+    // Solo hectáreas pastoreables (ya filtradas)
+    const hectareasTotales = lotes.reduce((sum, l) => sum + l.hectareas, 0)
 
     const ugPorHaGlobal = ugGlobalPorDia.map((ug) =>
       hectareasTotales > 0 ? Math.round((ug / hectareasTotales) * 100) / 100 : 0
@@ -144,7 +150,7 @@ export async function GET(request: Request) {
     return NextResponse.json({
       dias,
       lotes: seriesPorLote,
-      global, // SIEMPRE EXISTE
+      global,
     })
 
   } catch (error) {
