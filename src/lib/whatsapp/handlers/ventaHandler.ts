@@ -193,9 +193,11 @@ try {
     for (const r of ventaData.renglones) {
       const mapped = mapearCategoriaVenta(r.categoria)
       
-      // ✅ El precioKgUSD ya viene calculado desde vision-venta-parser
-      // Fórmula: importeBrutoUSD / pesoTotalKg (ambos en PIE)
-      const precioAnimalUSD = r.pesoPromedio * r.precioKgUSD
+      // Calcular peso promedio si falta (ventas campo a campo)
+      const pesoPromedio = r.pesoPromedio || (r.pesoTotalKg / r.cantidad);
+      
+      // Calcular precio por animal
+      const precioAnimalUSD = pesoPromedio * r.precioKgUSD;
       
       const renglon = await prisma.ventaRenglon.create({
         data: {
@@ -205,11 +207,11 @@ try {
           categoria: mapped.categoria,
           raza: r.raza || null,
           cantidad: r.cantidad,
-          pesoPromedio: r.pesoPromedio,
-          precioKgUSD: r.precioKgUSD,  // ✅ Ya calculado: importeBruto / pesoTotalPie
-          precioAnimalUSD: precioAnimalUSD,  // ✅ pesoPromedio × precioKgUSD
+          pesoPromedio: pesoPromedio,  // ✅ Calculado si era null
+          precioKgUSD: r.precioKgUSD,
+          precioAnimalUSD: precioAnimalUSD,
           pesoTotalKg: r.pesoTotalKg,
-          importeBrutoUSD: r.importeBrutoUSD,  // ✅ Importe SIN bonificaciones
+          importeBrutoUSD: r.importeBrutoUSD,
           descontadoDeStock: false,
         },
       })
@@ -217,22 +219,13 @@ try {
       console.log(`  ✅ Renglón guardado:`, {
         categoria: mapped.categoria,
         cantidad: r.cantidad,
-        pesoPromedio: r.pesoPromedio.toFixed(2) + ' kg',
+        pesoPromedio: pesoPromedio.toFixed(2) + ' kg',
         precioKg: r.precioKgUSD.toFixed(4) + ' USD/kg',
         precioAnimal: precioAnimalUSD.toFixed(2) + ' USD',
         pesoTotal: r.pesoTotalKg + ' kg',
         importeBruto: r.importeBrutoUSD.toFixed(2) + ' USD'
       })
       
-      console.log(`  ✅ Renglón guardado:`, {
-        categoria: mapped.categoria,
-        cantidad: r.cantidad,
-        pesoPromedio: r.pesoPromedio.toFixed(2) + ' kg',
-        precioKg: r.precioKgUSD.toFixed(4) + ' USD/kg',
-        precioAnimal: precioAnimalUSD.toFixed(2) + ' USD',
-        pesoTotal: r.pesoTotalKg + ' kg',
-        importeBruto: r.importeBrutoUSD.toFixed(2) + ' USD'
-      })
       renglonesCreados.push({ 
         id: renglon.id, 
         categoria: mapped.categoria, 
