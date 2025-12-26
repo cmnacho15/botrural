@@ -19,9 +19,9 @@ export async function solicitarConfirmacion(phone: string, data: any) {
       mensaje += `*Lluvia*\n• Cantidad: ${mm}mm`
       break
     case "NACIMIENTO":
-      mensaje += `*Nacimiento*\n• Cantidad: ${data.cantidad} ${data.categoria}`
-      if (data.lote) mensaje += `\n• Potrero: ${data.lote}`
-      break
+  mensaje += `*Nacimiento*\n• Cantidad: ${data.cantidad} ${data.categoria}`
+  if (data.potrero) mensaje += `\n• Potrero: ${data.potrero}`
+  break
     case "MORTANDAD":
       mensaje += `*Mortandad*\n• Cantidad: ${data.cantidad} ${data.categoria}`
       if (data.lote) mensaje += `\n• Potrero: ${data.lote}`
@@ -192,11 +192,12 @@ async function handleDataEntry(data: any) {
   }
 
   let loteId: string | null = null
-  if (data.lote) {
+  const potreroNombre = data.potrero || data.lote
+  if (potreroNombre) {
     const lote = await prisma.lote.findFirst({
       where: {
         campoId: user.campoId,
-        nombre: { contains: data.lote, mode: "insensitive" },
+        nombre: { contains: potreroNombre, mode: "insensitive" },
       },
       select: { id: true },
     })
