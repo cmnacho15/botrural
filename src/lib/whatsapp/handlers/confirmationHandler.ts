@@ -273,6 +273,27 @@ async function handleDataEntry(data: any) {
         campoId: user.campoId,
       },
     })
+  } else if (data.tipo === "NACIMIENTO") {
+    // Convertir categoría a formato del sistema
+    let categoriaGuardar = data.categoria
+    if (data.categoria?.toLowerCase().includes('ternero')) {
+      categoriaGuardar = 'Terneros nacidos'
+    } else if (data.categoria?.toLowerCase().includes('cordero')) {
+      categoriaGuardar = 'Corderos/as Mamones'
+    }
+
+    await prisma.evento.create({
+      data: {
+        tipo: "NACIMIENTO",
+        descripcion: `Nacimiento de ${data.cantidad} ${data.categoria} en potrero ${data.potrero || 'sin especificar'}`,
+        fecha: new Date(),
+        cantidad: data.cantidad || null,
+        categoria: categoriaGuardar,
+        loteId,
+        usuarioId: user.id,
+        campoId: user.campoId,
+      },
+    })
   } else {
     await prisma.evento.create({
       data: {
