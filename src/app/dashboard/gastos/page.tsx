@@ -1444,17 +1444,19 @@ const handleEditarGasto = (gasto: Gasto) => {
                               }} 
                             />
                             <div 
-                              className={`absolute z-50 left-0 w-64 bg-white border border-gray-200 rounded-xl shadow-2xl overflow-hidden ${
-                                (() => {
-                                  const trigger = document.querySelector(`[data-popover-trigger="${t.id}"]`)
-                                  if (trigger) {
-                                    const rect = trigger.getBoundingClientRect()
-                                    const spaceBelow = window.innerHeight - rect.bottom
-                                    return spaceBelow < 300 ? 'bottom-full mb-2' : 'top-full mt-2'
+                              className="fixed z-50 w-64 bg-white border border-gray-200 rounded-xl shadow-2xl overflow-hidden"
+                              style={(() => {
+                                const trigger = document.querySelector(`[data-popover-trigger="${t.id}"]`)
+                                if (trigger) {
+                                  const rect = trigger.getBoundingClientRect()
+                                  const spaceBelow = window.innerHeight - rect.bottom
+                                  if (spaceBelow < 300) {
+                                    return { left: rect.left, bottom: window.innerHeight - rect.top + 8 }
                                   }
-                                  return 'top-full mt-2'
-                                })()
-                              }`}
+                                  return { left: rect.left, top: rect.bottom + 8 }
+                                }
+                                return {}
+                              })()}
                             >
                               {/* Buscador */}
                               <div className="p-2 border-b border-gray-100">
@@ -1562,17 +1564,19 @@ const handleEditarGasto = (gasto: Gasto) => {
                                   onClick={() => setPopoverEstadoId(null)} 
                                 />
                                 <div 
-                                  className={`absolute z-50 left-0 w-48 bg-white border border-gray-200 rounded-xl shadow-2xl overflow-hidden ${
-                                    (() => {
-                                      const trigger = document.querySelector(`[data-estado-trigger="${t.id}"]`)
-                                      if (trigger) {
-                                        const rect = trigger.getBoundingClientRect()
-                                        const spaceBelow = window.innerHeight - rect.bottom
-                                        return spaceBelow < 200 ? 'bottom-full mb-2' : 'top-full mt-2'
+                                  className="fixed z-50 w-48 bg-white border border-gray-200 rounded-xl shadow-2xl overflow-hidden"
+                                  style={(() => {
+                                    const trigger = document.querySelector(`[data-estado-trigger="${t.id}"]`)
+                                    if (trigger) {
+                                      const rect = trigger.getBoundingClientRect()
+                                      const spaceBelow = window.innerHeight - rect.bottom
+                                      if (spaceBelow < 200) {
+                                        return { left: rect.left, bottom: window.innerHeight - rect.top + 8 }
                                       }
-                                      return 'top-full mt-2'
-                                    })()
-                                  }`}
+                                      return { left: rect.left, top: rect.bottom + 8 }
+                                    }
+                                    return {}
+                                  })()}
                                 >
                                   <div className="p-2 border-b border-gray-100 bg-gray-50">
                                     <span className="text-xs font-semibold text-gray-500 uppercase">Cambiar estado</span>
