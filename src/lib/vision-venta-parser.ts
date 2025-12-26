@@ -98,7 +98,7 @@ if (campoId) {
   messages: [
     {
       role: "system",
-      content: "Extrae de esta factura SOLO:\n1. RUT EMISOR o RUT VENDEDOR (solo números, sin puntos ni guiones)\n2. Nombre del EMISOR/VENDEDOR\n\nBuscar en: 'RUT EMISOR', 'RUT VENDEDOR', 'RUT:', o similar\n\nResponde en formato: RUT|NOMBRE\nEjemplo: 160096500018|Leonardo Apa & Cía\n\nSi no encuentras algo, usa 'NO_ENCONTRADO'"
+      content: "Extrae de esta factura SOLO:\n1. RUT VENDEDOR (solo números, sin puntos ni guiones)\n2. Nombre del VENDEDOR/PRODUCTOR\n\n⚠️ BUSCAR ESPECÍFICAMENTE:\n- Campo que diga 'RUT VENDEDOR' o 'RUT EMISOR'\n- Nombre en sección 'Nombre o Denominación' asociado al RUT VENDEDOR\n\n⚠️ NO CONFUNDIR CON:\n- RUT del logo (MEGAAGRO, consignatarios)\n- RUT COMPRADOR\n- RUT de empresas en el header\n\nEJEMPLO FACTURA MEGAAGRO:\nRUT VENDEDOR: 160216650011\nNombre: FERNANDEZ CASTRO SG\n→ Respuesta: 160216650011|FERNANDEZ CASTRO SG\n\nResponde en formato: RUT|NOMBRE\nSi no encuentras, usa 'NO_ENCONTRADO'"
     },
         {
           role: "user",
