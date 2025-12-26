@@ -103,11 +103,23 @@ const [mostrarMenuEstado, setMostrarMenuEstado] = useState(false)
   const [modalEditOpen, setModalEditOpen] = useState(false)
   const [gastoEditando, setGastoEditando] = useState<Gasto | null>(null)
 
-  // Estados para edición inline (popover)
+ // Estados para edición inline (popover)
   const [popoverCategoriaId, setPopoverCategoriaId] = useState<string | null>(null)
   const [popoverEstadoId, setPopoverEstadoId] = useState<string | null>(null)
   const [loadingInline, setLoadingInline] = useState<string | null>(null)
   const [busquedaCategoria, setBusquedaCategoria] = useState('')
+
+  // Bloquear scroll cuando hay popover abierto
+  useEffect(() => {
+    if (popoverCategoriaId || popoverEstadoId) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [popoverCategoriaId, popoverEstadoId])
 
   // Estados para Eliminar
   const [modalDeleteOpen, setModalDeleteOpen] = useState(false)
@@ -1445,29 +1457,63 @@ const handleEditarGasto = (gasto: Gasto) => {
                         {popoverCategoriaId === t.id && (
                           <>
                             <div 
-                              className="fixed inset-0 z-40" 
+                              className="fixed inset-0 z-40 bg-black/5" 
                               onClick={() => {
                                 setPopoverCategoriaId(null)
                                 setBusquedaCategoria('')
                               }} 
                             />
                             <div 
-                              className="fixed z-50 w-64 bg-white border border-gray-200 rounded-xl shadow-2xl"
+                              className="fixed z-50 w-64 bg-white border border-gray-200 rounded-xl shadow-2xl flex flex-col"
                               style={(() => {
                                 const trigger = document.querySelector(`[data-popover-trigger="${t.id}"]`)
-                                if (trigger) {
-                                  const rect = trigger.getBoundingClientRect()
-                                  const spaceBelow = window.innerHeight - rect.bottom
-                                  if (spaceBelow < 400) {
-                                    return { left: rect.left, bottom: window.innerHeight - rect.top + 8 }
+                                if (!trigger) return {}
+                                
+                                const rect = trigger.getBoundingClientRect()
+                                const popoverWidth = 256
+                                const popoverMaxHeight = 400
+                                const margin = 8
+                                
+                                const spaceBelow = window.innerHeight - rect.bottom
+                                const spaceAbove = rect.top
+                                const spaceRight = window.innerWidth - rect.left
+                                
+                                let top: number | undefined
+                                let bottom: number | undefined
+                                let left: number | undefined
+                                let right: number | undefined
+                                let maxHeight: number
+                                
+                                // Vertical: abrir arriba o abajo
+                                if (spaceBelow >= popoverMaxHeight + margin) {
+                                  top = rect.bottom + margin
+                                  maxHeight = Math.min(popoverMaxHeight, spaceBelow - margin)
+                                } else if (spaceAbove >= popoverMaxHeight + margin) {
+                                  bottom = window.innerHeight - rect.top + margin
+                                  maxHeight = Math.min(popoverMaxHeight, spaceAbove - margin)
+                                } else {
+                                  // Poco espacio arriba y abajo: usar el mayor
+                                  if (spaceBelow >= spaceAbove) {
+                                    top = rect.bottom + margin
+                                    maxHeight = spaceBelow - margin * 2
+                                  } else {
+                                    bottom = window.innerHeight - rect.top + margin
+                                    maxHeight = spaceAbove - margin * 2
                                   }
-                                  return { left: rect.left, top: rect.bottom + 8 }
                                 }
-                                return {}
+                                
+                                // Horizontal: alinear izquierda o derecha
+                                if (spaceRight >= popoverWidth + margin) {
+                                  left = rect.left
+                                } else {
+                                  right = margin
+                                }
+                                
+                                return { top, bottom, left, right, maxHeight }
                               })()}
                             >
                               {/* Buscador */}
-                              <div className="p-2 border-b border-gray-100">
+                              <div className="p-2 border-b border-gray-100 flex-shrink-0">
                                 <input
                                   type="text"
                                   placeholder="Buscar categoría..."
@@ -1478,8 +1524,8 @@ const handleEditarGasto = (gasto: Gasto) => {
                                 />
                               </div>
                               
-                              {/* Lista de categorías - SIN scroll, muestra todas */}
-                              <div className="py-1">
+                              {/* Lista de categorías - con scroll si es necesario */}
+                              <div className="py-1 overflow-y-auto flex-1">
                                 {categorias
                                   .filter((cat) => 
                                     cat.nombre.toLowerCase().includes(busquedaCategoria.toLowerCase())
@@ -1571,22 +1617,44 @@ const handleEditarGasto = (gasto: Gasto) => {
                             {popoverEstadoId === t.id && (
                               <>
                                 <div 
-                                  className="fixed inset-0 z-40" 
+                                  className="fixed inset-0 z-40 bg-black/5" 
                                   onClick={() => setPopoverEstadoId(null)} 
                                 />
                                 <div 
                                   className="fixed z-50 w-48 bg-white border border-gray-200 rounded-xl shadow-2xl"
                                   style={(() => {
                                     const trigger = document.querySelector(`[data-estado-trigger="${t.id}"]`)
-                                    if (trigger) {
-                                      const rect = trigger.getBoundingClientRect()
-                                      const spaceBelow = window.innerHeight - rect.bottom
-                                      if (spaceBelow < 200) {
-                                        return { left: rect.left, bottom: window.innerHeight - rect.top + 8 }
-                                      }
-                                      return { left: rect.left, top: rect.bottom + 8 }
+                                    if (!trigger) return {}
+                                    
+                                    const rect = trigger.getBoundingClientRect()
+                                    const popoverWidth = 192
+                                    const popoverHeight = 150
+                                    const margin = 8
+                                    
+                                    const spaceBelow = window.innerHeight - rect.bottom
+                                    const spaceAbove = rect.top
+                                    const spaceRight = window.innerWidth - rect.left
+                                    
+                                    let top: number | undefined
+                                    let bottom: number | undefined
+                                    let left: number | undefined
+                                    let right: number | undefined
+                                    
+                                    // Vertical
+                                    if (spaceBelow >= popoverHeight + margin) {
+                                      top = rect.bottom + margin
+                                    } else {
+                                      bottom = window.innerHeight - rect.top + margin
                                     }
-                                    return {}
+                                    
+                                    // Horizontal
+                                    if (spaceRight >= popoverWidth + margin) {
+                                      left = rect.left
+                                    } else {
+                                      right = margin
+                                    }
+                                    
+                                    return { top, bottom, left, right }
                                   })()}
                                 >
                                   <div className="p-2 border-b border-gray-100 bg-gray-50">
