@@ -154,12 +154,9 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
     setLoading(true)
     try {
       const res = await fetch(`/api/gastos/${gasto.id}`, {
-        method: 'PUT',
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          // ✅ SOLO enviamos el campo que queremos cambiar
-          pagado: true,
-        }),
+        body: JSON.stringify({ pagado: true }),
       })
 
       if (!res.ok) throw new Error('Error al marcar como pagado')
@@ -214,60 +211,32 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
         fechaFinal = new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), 12, 0, 0)).toISOString()
       }
 
-      // ✅ DETECTAR SI CAMBIÓ EL MONTO O LA MONEDA
-      const montoOriginalGasto = gasto.montoOriginal || gasto.monto
-      const cambioMonto = Math.abs(precioFinal - montoOriginalGasto) > 0.01
-      const cambioMoneda = moneda !== (gasto.moneda || 'USD')
-      
-      let bodyData: any = {
-        tipo: 'GASTO',
-        fecha: fechaFinal,
-        descripcion: `${item.trim()}${notas ? ` - ${notas}` : ''}`,
-        categoria,
-        metodoPago,
-        iva,
-        diasPlazo: metodoPago === 'Plazo' ? diasPlazo : null,
-        pagado: metodoPago === 'Contado' ? true : pagado,
-        proveedor: proveedor.trim() || null,
-        especie: especie,
-      }
-      
-      // ✅ SOLO recalcular montos si cambió monto o moneda
-      if (cambioMonto || cambioMoneda) {
-        if (moneda === 'USD' && !tasaCambio) {
-          alert('❌ No se pudo obtener la tasa de cambio')
-          setLoading(false)
-          return
-        }
-        
-        const montoOriginal = precioFinal
-        const montoEnUYU = moneda === 'USD' ? precioFinal * (tasaCambio || 1) : precioFinal
-        const tasaCambioFinal = moneda === 'USD' ? tasaCambio : null
-        
-        bodyData = {
-          ...bodyData,
-          monto: montoEnUYU,
-          montoOriginal,
-          moneda,
-          tasaCambio: tasaCambioFinal,
-          montoEnUYU,
-        }
-      } else {
-        // ✅ Si NO cambió, mantener valores existentes
-        bodyData = {
-          ...bodyData,
-          monto: gasto.montoEnUYU || gasto.monto,
-          montoOriginal: gasto.montoOriginal || gasto.monto,
-          moneda: gasto.moneda || 'USD',
-          tasaCambio: gasto.tasaCambio,
-          montoEnUYU: gasto.montoEnUYU || gasto.monto,
-        }
-      }
+      const montoOriginalFinal = precioFinal
+      const tasaCambioFinal = moneda === 'USD' ? tasaCambio : null
+      const montoEnUYUFinal = moneda === 'USD' ? precioFinal * (tasaCambio || 1) : precioFinal
+      const montoEnUSDFinal = moneda === 'USD' ? precioFinal : precioFinal / (tasaCambio || 1)
 
       const response = await fetch(`/api/gastos/${gasto.id}`, {
-        method: 'PUT',
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(bodyData),
+        body: JSON.stringify({
+          tipo: 'GASTO',
+          fecha: fechaFinal,
+          descripcion: `${item.trim()}${notas ? ` - ${notas}` : ''}`,
+          categoria,
+          moneda,
+          montoOriginal: montoOriginalFinal,
+          tasaCambio: tasaCambioFinal,
+          montoEnUYU: montoEnUYUFinal,
+          montoEnUSD: montoEnUSDFinal,
+          monto: montoEnUYUFinal,
+          metodoPago,
+          iva,
+          diasPlazo: metodoPago === 'Plazo' ? diasPlazo : null,
+          pagado: metodoPago === 'Contado' ? true : pagado,
+          proveedor: proveedor.trim() || null,
+          especie: especie,
+        }),
       })
 
       if (!response.ok) throw new Error('Error al actualizar')

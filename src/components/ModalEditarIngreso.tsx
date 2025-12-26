@@ -211,67 +211,55 @@ export default function ModalEditarIngreso({ gasto, onClose, onSuccess }: ModalE
     return
   }
 
+  if (moneda === 'USD' && !tasaCambio) {
+    alert('❌ No se pudo obtener la tasa de cambio')
+    return
+  }
+
   setLoading(true)
 
   try {
     const item = items[0]
     
-    // SI LA FECHA ES HOY, USAR HORA ACTUAL
+    // 🆕 SI LA FECHA ES HOY, USAR HORA ACTUAL
     const fechaSeleccionada = new Date(fecha + 'T00:00:00')
     const hoy = new Date()
     hoy.setHours(0, 0, 0, 0)
     
     let fechaFinal
     if (fechaSeleccionada.getTime() === hoy.getTime()) {
+      // Es hoy: usar hora actual
       fechaFinal = new Date().toISOString()
     } else {
+      // Es otra fecha: usar mediodía
       const [year, month, day] = fecha.split('-')
       fechaFinal = new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), 12, 0, 0)).toISOString()
     }
     
-    // ✅ DETECTAR SI CAMBIÓ EL MONTO O LA MONEDA
-    const montoOriginalGasto = gasto.montoOriginal || gasto.monto
-    const cambioMonto = Math.abs(item.precioFinal - montoOriginalGasto) > 0.01
-    const cambioMoneda = moneda !== (gasto.moneda || 'UYU')
-    
-    let bodyData: any = {
-      fecha: fechaFinal,
-      descripcion: `${item.item}${notas ? ` - ${notas}` : ''}`,
-      categoria: gasto.categoria,
-      iva: item.iva,
-      comprador: comprador ? comprador.trim() : null,
-      metodoPago,
-      diasPlazo: metodoPago === 'Plazo' ? diasPlazo : null,
-      pagado: metodoPago === 'Contado' ? true : pagado,
-    }
-    
-    // ✅ SOLO recalcular montos si cambió monto o moneda
-    if (cambioMonto || cambioMoneda) {
-      if (moneda === 'USD' && !tasaCambio) {
-        alert('❌ No se pudo obtener la tasa de cambio')
-        setLoading(false)
-        return
-      }
-      
-      const montoOriginal = item.precioFinal
-      const montoEnUYU = moneda === 'USD' ? item.precioFinal * (tasaCambio || 1) : item.precioFinal
-      const tasaCambioFinal = moneda === 'USD' ? tasaCambio : null
-      
-      bodyData = {
-        ...bodyData,
-        monto: montoEnUYU,
-        montoOriginal,
-        moneda,
-        tasaCambio: tasaCambioFinal,
-        montoEnUYU,
-      }
-    }
+    // 🆕 CALCULAR VALORES SEGÚN MONEDA
+    const montoOriginal = item.precioFinal
+    const montoEnUYU = moneda === 'USD' ? item.precioFinal * (tasaCambio || 1) : item.precioFinal
+    const tasaCambioFinal = moneda === 'USD' ? tasaCambio : null
 
     const response = await fetch(`/api/ingresos/${gasto.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(bodyData),
-    })
+      body: JSON.stringify({
+        fecha: fechaFinal,
+          descripcion: `${item.item}${notas ? ` - ${notas}` : ''}`,
+          categoria: gasto.categoria,
+          monto: montoEnUYU, // Para compatibilidad vieja
+          montoOriginal, // 🆕
+          moneda, // 🆕
+          tasaCambio: tasaCambioFinal, // 🆕
+          montoEnUYU, // 🆕
+          iva: item.iva,
+          comprador: comprador ? comprador.trim() : null,
+          metodoPago,
+          diasPlazo: metodoPago === 'Plazo' ? diasPlazo : null,
+          pagado: metodoPago === 'Contado' ? true : pagado,
+        }),
+      })
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => null)

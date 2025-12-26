@@ -1,3 +1,4 @@
+//src/app/api/gastos/id/route.ts
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { requireAuth, canWriteFinanzas } from "@/lib/auth-helpers"
@@ -161,6 +162,52 @@ export async function DELETE(
     console.error("💥 Error eliminando gasto:", error)
     return NextResponse.json(
       { error: "Error eliminando gasto" },
+      { status: 500 }
+    )
+  }
+}
+
+/**
+ * ✅ PATCH - Actualización parcial (solo campos enviados, sin reconvertir montos)
+ */
+export async function PATCH(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const { error, user } = await requireAuth()
+    if (error) return error
+
+    if (!canWriteFinanzas(user!)) {
+      return NextResponse.json(
+        { error: "No tienes permisos para modificar gastos" },
+        { status: 403 }
+      )
+    }
+
+    const body = await request.json()
+
+    const gastoExistente = await prisma.gasto.findUnique({
+      where: { id: params.id },
+    })
+
+    if (!gastoExistente || gastoExistente.campoId !== user!.campoId) {
+      return NextResponse.json(
+        { error: "Gasto no encontrado" },
+        { status: 404 }
+      )
+    }
+
+    const gastoActualizado = await prisma.gasto.update({
+      where: { id: params.id },
+      data: body,
+    })
+
+    return NextResponse.json(gastoActualizado)
+  } catch (error) {
+    console.error("💥 Error en PATCH gasto:", error)
+    return NextResponse.json(
+      { error: "Error actualizando gasto" },
       { status: 500 }
     )
   }
