@@ -242,9 +242,8 @@ try {
     for (const r of ventaData.renglones) {
       const mapped = mapearCategoriaVenta(r.categoria)
       
-      // Calcular monto neto proporcional del renglón
-      const proporcion = r.importeBrutoUSD / ventaData.subtotalUSD
-      const montoNetoRenglon = ventaData.totalNetoUSD * proporcion
+      // Usar el TOTAL NETO de la factura directamente
+      const montoNetoRenglon = ventaData.totalNetoUSD
       const montoEnUYU = await convertirAUYU(montoNetoRenglon, "USD")
       
       await prisma.gasto.create({
