@@ -193,3 +193,62 @@ export async function DELETE(
     )
   }
 }
+
+// ===========================================================
+// PATCH - Actualización parcial (sin reconvertir montos)
+// ===========================================================
+export async function PATCH(
+  request: Request,
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    const params = await context.params
+    const session = await getServerSession(authOptions)
+
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
+    }
+
+    const usuario = await prisma.user.findUnique({
+      where: { id: session.user.id },
+    })
+
+    if (!usuario?.campoId) {
+      return NextResponse.json(
+        { error: 'Usuario sin campo asignado' },
+        { status: 400 }
+      )
+    }
+
+    const ingresoExistente = await prisma.gasto.findUnique({
+      where: { id: params.id },
+    })
+
+    if (!ingresoExistente || ingresoExistente.campoId !== usuario.campoId) {
+      return NextResponse.json(
+        { error: 'No autorizado para editar este ingreso' },
+        { status: 403 }
+      )
+    }
+
+    const body = await request.json()
+
+    // Fecha de pago automática si se marca como pagado
+    if (!ingresoExistente.pagado && body.pagado === true) {
+      body.fechaPago = new Date()
+    }
+
+    const ingresoActualizado = await prisma.gasto.update({
+      where: { id: params.id },
+      data: body,
+    })
+
+    return NextResponse.json(ingresoActualizado)
+  } catch (error) {
+    console.error('💥 Error en PATCH ingreso:', error)
+    return NextResponse.json(
+      { error: 'Error actualizando ingreso' },
+      { status: 500 }
+    )
+  }
+}

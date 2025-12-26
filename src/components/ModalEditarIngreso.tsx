@@ -166,23 +166,9 @@ export default function ModalEditarIngreso({ gasto, onClose, onSuccess }: ModalE
     setLoading(true)
     try {
       const res = await fetch(`/api/ingresos/${gasto.id}`, {
-        method: 'PUT',
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          fecha: gasto.fecha,
-          descripcion: gasto.descripcion,
-          categoria: gasto.categoria,
-          monto: gasto.monto,
-          montoOriginal: gasto.montoOriginal,
-          moneda: gasto.moneda,
-          tasaCambio: gasto.tasaCambio,
-          montoEnUYU: gasto.montoEnUYU,
-          iva: gasto.iva,
-          comprador: gasto.comprador,
-          metodoPago: gasto.metodoPago,
-          diasPlazo: gasto.diasPlazo,
-          pagado: true,
-        }),
+        body: JSON.stringify({ pagado: true }),
       })
 
       if (!res.ok) throw new Error('Error al marcar como cobrado')
@@ -236,30 +222,32 @@ export default function ModalEditarIngreso({ gasto, onClose, onSuccess }: ModalE
       fechaFinal = new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), 12, 0, 0)).toISOString()
     }
     
-    // 🆕 CALCULAR VALORES SEGÚN MONEDA
-    const montoOriginal = item.precioFinal
-    const montoEnUYU = moneda === 'USD' ? item.precioFinal * (tasaCambio || 1) : item.precioFinal
+    // Calcular montos correctamente
+    const montoOriginalFinal = item.precioFinal
     const tasaCambioFinal = moneda === 'USD' ? tasaCambio : null
+    const montoEnUYUFinal = moneda === 'USD' ? item.precioFinal * (tasaCambio || 1) : item.precioFinal
+    const montoEnUSDFinal = moneda === 'USD' ? item.precioFinal : item.precioFinal / (tasaCambio || 1)
 
     const response = await fetch(`/api/ingresos/${gasto.id}`, {
-      method: 'PUT',
+      method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         fecha: fechaFinal,
-          descripcion: `${item.item}${notas ? ` - ${notas}` : ''}`,
-          categoria: gasto.categoria,
-          monto: montoEnUYU, // Para compatibilidad vieja
-          montoOriginal, // 🆕
-          moneda, // 🆕
-          tasaCambio: tasaCambioFinal, // 🆕
-          montoEnUYU, // 🆕
-          iva: item.iva,
-          comprador: comprador ? comprador.trim() : null,
-          metodoPago,
-          diasPlazo: metodoPago === 'Plazo' ? diasPlazo : null,
-          pagado: metodoPago === 'Contado' ? true : pagado,
-        }),
-      })
+        descripcion: `${item.item}${notas ? ` - ${notas}` : ''}`,
+        categoria: gasto.categoria,
+        moneda,
+        montoOriginal: montoOriginalFinal,
+        tasaCambio: tasaCambioFinal,
+        montoEnUYU: montoEnUYUFinal,
+        montoEnUSD: montoEnUSDFinal,
+        monto: montoEnUYUFinal,
+        iva: item.iva,
+        comprador: comprador ? comprador.trim() : null,
+        metodoPago,
+        diasPlazo: metodoPago === 'Plazo' ? diasPlazo : null,
+        pagado: metodoPago === 'Contado' ? true : pagado,
+      }),
+    })
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => null)
