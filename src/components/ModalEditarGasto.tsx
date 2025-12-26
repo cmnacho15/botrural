@@ -157,21 +157,8 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          tipo: gasto.tipo,
-          fecha: gasto.fecha,
-          descripcion: gasto.descripcion,
-          categoria: gasto.categoria,
-          monto: gasto.monto,
-          montoOriginal: gasto.montoOriginal,
-          moneda: gasto.moneda,
-          tasaCambio: gasto.tasaCambio,
-          montoEnUYU: gasto.montoEnUYU,
-          metodoPago: gasto.metodoPago,
-          iva: gasto.iva,
-          diasPlazo: gasto.diasPlazo,
-          proveedor: gasto.proveedor,
+          // ✅ SOLO enviamos el campo que queremos cambiar
           pagado: true,
-          especie: gasto.especie,
         }),
       })
 
@@ -247,6 +234,12 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
       
       // ✅ SOLO recalcular montos si cambió monto o moneda
       if (cambioMonto || cambioMoneda) {
+        if (moneda === 'USD' && !tasaCambio) {
+          alert('❌ No se pudo obtener la tasa de cambio')
+          setLoading(false)
+          return
+        }
+        
         const montoOriginal = precioFinal
         const montoEnUYU = moneda === 'USD' ? precioFinal * (tasaCambio || 1) : precioFinal
         const tasaCambioFinal = moneda === 'USD' ? tasaCambio : null
@@ -258,6 +251,16 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
           moneda,
           tasaCambio: tasaCambioFinal,
           montoEnUYU,
+        }
+      } else {
+        // ✅ Si NO cambió, mantener valores existentes
+        bodyData = {
+          ...bodyData,
+          monto: gasto.montoEnUYU || gasto.monto,
+          montoOriginal: gasto.montoOriginal || gasto.monto,
+          moneda: gasto.moneda || 'USD',
+          tasaCambio: gasto.tasaCambio,
+          montoEnUYU: gasto.montoEnUYU || gasto.monto,
         }
       }
 
