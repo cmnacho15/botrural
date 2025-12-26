@@ -251,6 +251,10 @@ export async function handleInvoiceButtonResponse(
         }
       }
 
+      console.log("📋 DATOS ANTES DE GUARDAR:")
+      console.log("  Proveedor original:", invoiceData.proveedor)
+      console.log("  Proveedor normalizado:", invoiceData.proveedor?.trim().toLowerCase() || null)
+      
       for (const item of invoiceData.items) {
         const montoOriginal = item.precioFinal
         const montoEnUYU =
@@ -284,7 +288,10 @@ export async function handleInvoiceButtonResponse(
             monto: montoEnUYU,
           },
         })
+        console.log("✅ GASTO GUARDADO CON PROVEEDOR:", invoiceData.proveedor?.trim().toLowerCase() || null)
       }
+
+      
 
       await sendWhatsAppMessage(
         phoneNumber,
