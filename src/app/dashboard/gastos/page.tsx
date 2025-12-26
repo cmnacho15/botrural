@@ -91,6 +91,8 @@ export default function GastosPage() {
   const [modalCategoriaOpen, setModalCategoriaOpen] = useState(false)
   const [nuevaCategoriaNombre, setNuevaCategoriaNombre] = useState('')
   const [proveedorFiltro, setProveedorFiltro] = useState('')
+  const [estadoPagoFiltro, setEstadoPagoFiltro] = useState<'todos' | 'gastos-pendientes' | 'gastos-pagados' | 'ingresos-por-cobrar' | 'ingresos-cobrados'>('todos')
+const [mostrarMenuEstado, setMostrarMenuEstado] = useState(false)
 
   // NUEVOS ESTADOS
   const [proveedoresCargados, setProveedoresCargados] = useState<string[]>([])
@@ -283,7 +285,31 @@ export default function GastosPage() {
     coincideFecha = fechaGastoStr >= fechaInicio && fechaGastoStr <= fechaFin
   }
 
-  return coincideCategoria && coincideProveedor && coincideFecha
+  // NUEVO: Filtro por estado de pago
+  let coincideEstado = true
+  if (estadoPagoFiltro !== 'todos') {
+    const esGasto = g.tipo === 'GASTO'
+    const esIngreso = g.tipo === 'INGRESO'
+    const pagado = g.pagado
+    const metodoPago = g.metodoPago
+
+    switch (estadoPagoFiltro) {
+      case 'gastos-pendientes':
+        coincideEstado = esGasto && metodoPago === 'Plazo' && !pagado
+        break
+      case 'gastos-pagados':
+        coincideEstado = esGasto && pagado
+        break
+      case 'ingresos-por-cobrar':
+        coincideEstado = esIngreso && metodoPago === 'Plazo' && !pagado
+        break
+      case 'ingresos-cobrados':
+        coincideEstado = esIngreso && pagado
+        break
+    }
+  }
+
+  return coincideCategoria && coincideProveedor && coincideFecha && coincideEstado
 })
 
 // 👇 Calcular categorías SIN filtro de categoría seleccionada
@@ -701,10 +727,199 @@ const handleEditarGasto = (gasto: Gasto) => {
                 )}
               </div>
 
-              {/* Botón limpiar filtro */}
+              {/* Botón limpiar filtro proveedor */}
               {proveedorFiltro && (
                 <button
                   onClick={() => setProveedorFiltro('')}
+                  className="px-4 py-2.5 bg-red-100 text-red-700 rounded-xl hover:bg-red-200 transition-colors text-sm font-medium flex items-center gap-2 shadow-sm"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  Limpiar
+                </button>
+              )}
+            </div>
+
+            {/* NUEVO FILTRO: Estado de pago */}
+            <div className="flex items-center gap-3 flex-1">
+              <div className="flex items-center gap-2">
+                <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span className="text-sm font-semibold text-gray-700">Estado:</span>
+              </div>
+
+              {/* Dropdown de estado */}
+              <div className="relative flex-1 min-w-[250px] max-w-sm">
+                <button
+                  onClick={() => setMostrarMenuEstado(!mostrarMenuEstado)}
+                  className="w-full flex items-center justify-between px-4 py-2.5 bg-gray-50 border-2 border-gray-300 rounded-xl hover:border-blue-400 hover:bg-blue-50 transition-all group"
+                >
+                  <div className="flex items-center gap-2">
+                    {estadoPagoFiltro === 'todos' && (
+                      <>
+                        <span className="text-lg">🌐</span>
+                        <span className="text-sm text-gray-500">Todos los estados</span>
+                      </>
+                    )}
+                    {estadoPagoFiltro === 'gastos-pendientes' && (
+                      <>
+                        <span className="text-lg">🟡</span>
+                        <span className="text-sm font-medium text-gray-900">Gastos Pendientes</span>
+                      </>
+                    )}
+                    {estadoPagoFiltro === 'gastos-pagados' && (
+                      <>
+                        <span className="text-lg">✅</span>
+                        <span className="text-sm font-medium text-gray-900">Gastos Pagados</span>
+                      </>
+                    )}
+                    {estadoPagoFiltro === 'ingresos-por-cobrar' && (
+                      <>
+                        <span className="text-lg">🔵</span>
+                        <span className="text-sm font-medium text-gray-900">Ingresos Por Cobrar</span>
+                      </>
+                    )}
+                    {estadoPagoFiltro === 'ingresos-cobrados' && (
+                      <>
+                        <span className="text-lg">💚</span>
+                        <span className="text-sm font-medium text-gray-900">Ingresos Cobrados</span>
+                      </>
+                    )}
+                  </div>
+                  <svg
+                    className={`w-5 h-5 text-gray-400 group-hover:text-blue-600 transition-transform ${
+                      mostrarMenuEstado ? 'rotate-180' : ''
+                    }`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+
+                {mostrarMenuEstado && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setMostrarMenuEstado(false)} />
+                    <div className="absolute z-50 w-full mt-2 bg-white border-2 border-blue-500 rounded-xl shadow-2xl">
+                      {/* Opción "Todos" */}
+                      <button
+                        onClick={() => {
+                          setEstadoPagoFiltro('todos')
+                          setMostrarMenuEstado(false)
+                        }}
+                        className={`w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors border-b ${
+                          estadoPagoFiltro === 'todos' ? 'bg-blue-50 font-semibold text-blue-700' : 'text-gray-700'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg">🌐</span>
+                          <span className="text-sm">Todos los estados</span>
+                        </div>
+                      </button>
+
+                      {/* Gastos Pendientes */}
+                      <button
+                        onClick={() => {
+                          setEstadoPagoFiltro('gastos-pendientes')
+                          setMostrarMenuEstado(false)
+                        }}
+                        className={`w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors border-b ${
+                          estadoPagoFiltro === 'gastos-pendientes' ? 'bg-blue-50' : ''
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="text-lg">🟡</span>
+                            <span className={`text-sm ${estadoPagoFiltro === 'gastos-pendientes' ? 'font-semibold text-blue-700' : 'text-gray-700'}`}>
+                              Gastos Pendientes
+                            </span>
+                          </div>
+                          <span className="px-2 py-0.5 bg-yellow-100 text-yellow-700 text-xs rounded-full font-medium">
+                            {gastosData.filter(g => g.tipo === 'GASTO' && g.metodoPago === 'Plazo' && !g.pagado).length}
+                          </span>
+                        </div>
+                      </button>
+
+                      {/* Gastos Pagados */}
+                      <button
+                        onClick={() => {
+                          setEstadoPagoFiltro('gastos-pagados')
+                          setMostrarMenuEstado(false)
+                        }}
+                        className={`w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors border-b ${
+                          estadoPagoFiltro === 'gastos-pagados' ? 'bg-blue-50' : ''
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="text-lg">✅</span>
+                            <span className={`text-sm ${estadoPagoFiltro === 'gastos-pagados' ? 'font-semibold text-blue-700' : 'text-gray-700'}`}>
+                              Gastos Pagados
+                            </span>
+                          </div>
+                          <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full font-medium">
+                            {gastosData.filter(g => g.tipo === 'GASTO' && g.pagado).length}
+                          </span>
+                        </div>
+                      </button>
+
+                      {/* Ingresos Por Cobrar */}
+                      <button
+                        onClick={() => {
+                          setEstadoPagoFiltro('ingresos-por-cobrar')
+                          setMostrarMenuEstado(false)
+                        }}
+                        className={`w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors border-b ${
+                          estadoPagoFiltro === 'ingresos-por-cobrar' ? 'bg-blue-50' : ''
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="text-lg">🔵</span>
+                            <span className={`text-sm ${estadoPagoFiltro === 'ingresos-por-cobrar' ? 'font-semibold text-blue-700' : 'text-gray-700'}`}>
+                              Ingresos Por Cobrar
+                            </span>
+                          </div>
+                          <span className="px-2 py-0.5 bg-cyan-100 text-cyan-700 text-xs rounded-full font-medium">
+                            {gastosData.filter(g => g.tipo === 'INGRESO' && g.metodoPago === 'Plazo' && !g.pagado).length}
+                          </span>
+                        </div>
+                      </button>
+
+                      {/* Ingresos Cobrados */}
+                      <button
+                        onClick={() => {
+                          setEstadoPagoFiltro('ingresos-cobrados')
+                          setMostrarMenuEstado(false)
+                        }}
+                        className={`w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors ${
+                          estadoPagoFiltro === 'ingresos-cobrados' ? 'bg-blue-50' : ''
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="text-lg">💚</span>
+                            <span className={`text-sm ${estadoPagoFiltro === 'ingresos-cobrados' ? 'font-semibold text-blue-700' : 'text-gray-700'}`}>
+                              Ingresos Cobrados
+                            </span>
+                          </div>
+                          <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full font-medium">
+                            {gastosData.filter(g => g.tipo === 'INGRESO' && g.pagado).length}
+                          </span>
+                        </div>
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Botón limpiar filtro estado */}
+              {estadoPagoFiltro !== 'todos' && (
+                <button
+                  onClick={() => setEstadoPagoFiltro('todos')}
                   className="px-4 py-2.5 bg-red-100 text-red-700 rounded-xl hover:bg-red-200 transition-colors text-sm font-medium flex items-center gap-2 shadow-sm"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
