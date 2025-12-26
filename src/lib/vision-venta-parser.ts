@@ -404,10 +404,27 @@ Extraer directamente de la tabla:
 - categoria: nombre del animal
 - tipoAnimal: "OVINO" o "BOVINO" o "EQUINO"
 - cantidad: número de animales
-- pesoTotalKg: peso total (columna "PESO")
-- pesoPromedio: peso por animal (columna "PESO PROMEDIO")
-- precioKgUSD: si hay precio/kg úsalo, sino null
-- importeBrutoUSD: importe total (columna "TOTAL")
+- pesoTotalKg: peso total DESPUÉS de aplicar % DESTARE
+  
+  ⚠️ CRÍTICO - % DESTARE:
+  Si la factura tiene columna "% Destare" o "%Destare":
+  1. Leer el peso en "Kilos Pie" o "Peso"
+  2. Aplicar el destare: pesoFinal = pesoOriginal × (1 - %destare/100)
+  3. Usar el peso DESTAREADO en pesoTotalKg
+  
+  EJEMPLO:
+  Kilos Pie: 5919.50
+  % Destare: 5.00
+  → pesoTotalKg = 5919.50 × (1 - 5/100) = 5919.50 × 0.95 = 5623.52
+  
+- pesoPromedio: pesoTotalKg / cantidad
+  (peso DESTAREADO por animal)
+  
+- precioKgUSD: precio/kg de la columna "Precio" (SIN TOCAR, NO aplicar destare)
+  ⚠️ El destare NO se aplica al precio, SOLO al peso
+  
+- importeBrutoUSD: pesoTotalKg × precioKgUSD
+  (usar peso DESTAREADO × precio ORIGINAL)
 - rendimiento: null
 - pesoTotal2da4ta: null
 - pesoTotalPie: null
