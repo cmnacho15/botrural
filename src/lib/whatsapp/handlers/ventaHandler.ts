@@ -234,48 +234,50 @@ try {
       })
     }
     
-    // 💰 CREAR INGRESOS EN TABLA GASTO (para que aparezcan en Finanzas)
-    console.log("💰 Creando ingresos en tabla Gasto...")
+    // 💰 CREAR UN SOLO INGRESO CONSOLIDADO (para que aparezca en Finanzas)
+    console.log("💰 Creando ingreso consolidado en tabla Gasto...")
     
     const tasaCambio = await obtenerTasaCambio("USD")
+    const montoEnUYU = await convertirAUYU(ventaData.totalNetoUSD, "USD")
     
-    for (const r of ventaData.renglones) {
-      const mapped = mapearCategoriaVenta(r.categoria)
-      
-      // Usar el TOTAL NETO de la factura directamente
-      const montoNetoRenglon = ventaData.totalNetoUSD
-      const montoEnUYU = await convertirAUYU(montoNetoRenglon, "USD")
-      
-      await prisma.gasto.create({
-        data: {
-          tipo: "INGRESO",
-          fecha: new Date(ventaData.fecha),
-          descripcion: `${r.cantidad} ${mapped.categoria} - ${r.pesoTotalKg.toFixed(0)} kg`,
-          categoria: "Venta de Ganado",
-          comprador: ventaData.comprador,
-          proveedor: null,
-          metodoPago: ventaData.metodoPago || "Contado",
-          diasPlazo: ventaData.diasPlazo || null,
-          pagado: ventaData.metodoPago === "Contado",
-          monto: montoEnUYU,
-          montoOriginal: montoNetoRenglon,
-          moneda: "USD",
-          montoEnUYU: montoEnUYU,
-          montoEnUSD: montoNetoRenglon,
-          tasaCambio: tasaCambio,
-          imageUrl: imageUrl,
-          imageName: imageName,
-          iva: null,
-          campo: {
-            connect: { id: campoId }
-          },
-          especie: null,
-        },
+    // Generar descripción con todas las categorías
+    const descripcionCategorias = ventaData.renglones
+      .map(r => {
+        const mapped = mapearCategoriaVenta(r.categoria)
+        return `${r.cantidad} ${mapped.categoria}${r.cantidad > 1 ? 's' : ''}`
       })
-      
-      console.log(`  ✅ Ingreso creado: ${r.cantidad} ${mapped.categoria} - $${montoNetoRenglon.toFixed(2)} USD`)
-    }
+      .join(', ')
     
+    const descripcion = `Venta de ${ventaData.cantidadTotal} animales (${descripcionCategorias})`
+    
+    await prisma.gasto.create({
+      data: {
+        tipo: "INGRESO",
+        fecha: new Date(ventaData.fecha),
+        descripcion: descripcion,
+        categoria: "Venta de Ganado",
+        comprador: ventaData.comprador,
+        proveedor: null,
+        metodoPago: ventaData.metodoPago || "Contado",
+        diasPlazo: ventaData.diasPlazo || null,
+        pagado: ventaData.metodoPago === "Contado",
+        monto: montoEnUYU,
+        montoOriginal: ventaData.totalNetoUSD,
+        moneda: "USD",
+        montoEnUYU: montoEnUYU,
+        montoEnUSD: ventaData.totalNetoUSD,
+        tasaCambio: tasaCambio,
+        imageUrl: imageUrl,
+        imageName: imageName,
+        iva: null,
+        campo: {
+          connect: { id: campoId }
+        },
+        especie: null,
+      },
+    })
+    
+    console.log(`  ✅ Ingreso consolidado creado: ${ventaData.cantidadTotal} animales - $${ventaData.totalNetoUSD.toFixed(2)} USD`)
 
     await prisma.evento.create({
       data: {
