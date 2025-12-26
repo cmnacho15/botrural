@@ -702,12 +702,30 @@ RESPONDE EN JSON (sin markdown):
       data.totalNetoUSD = data.subtotalUSD - (data.totalImpuestosUSD || 0);
     }
 
-    // Asegurar que metodoPago tenga valor
-    if (!data.metodoPago) {
-      data.metodoPago = "Contado";
+    // ✅ CALCULAR MÉTODO DE PAGO Y DÍAS DE PLAZO automáticamente
+    if (data.fechaVencimiento) {
+      const fechaFactura = new Date(data.fecha);
+      const fechaVenc = new Date(data.fechaVencimiento);
+      
+      // Si vencimiento es > 7 días después de la factura → es Plazo
+      const diffMs = fechaVenc.getTime() - fechaFactura.getTime();
+      const diffDias = Math.round(diffMs / (1000 * 60 * 60 * 24));
+      
+      if (diffDias > 7) {
+        data.metodoPago = "Plazo";
+        data.diasPlazo = diffDias;
+        console.log(`💳 Método de pago: PLAZO (${diffDias} días hasta ${data.fechaVencimiento})`);
+      } else {
+        data.metodoPago = "Contado";
+        data.diasPlazo = null;
+        console.log(`💳 Método de pago: CONTADO (vencimiento muy próximo)`);
+      }
+    } else {
+      // Sin fecha de vencimiento → Contado
+      if (!data.metodoPago) {
+        data.metodoPago = "Contado";
+      }
     }
-
-   
 
     console.log("✅ Factura de VENTA procesada:", {
       comprador: data.comprador,
