@@ -139,7 +139,7 @@ export async function POST(request: Request) {
         fecha: new Date(fechaISO),
         descripcion,
         categoria,
-        proveedor: proveedor?.trim().toLowerCase() || null,
+        proveedor: proveedor?.trim() || null,
         comprador: comprador?.trim().toLowerCase() || null,
         metodoPago: metodoPago || "Contado",
         diasPlazo: diasPlazo ? Number(diasPlazo) : null,

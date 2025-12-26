@@ -18,8 +18,8 @@ export async function GET() {
       return NextResponse.json([], { status: 200 })
     }
 
-    // ✅ Obtener proveedores directamente del campo "proveedor"
-    const gastos = await prisma.evento.findMany({
+    // ✅ Obtener proveedores de AMBAS tablas: evento Y gasto
+    const proveedoresEvento = await prisma.evento.findMany({
       where: {
         campoId: usuario.campoId,
         tipo: 'GASTO',
@@ -30,17 +30,39 @@ export async function GET() {
       select: {
         proveedor: true
       },
-      distinct: ['proveedor'], // ✅ Obtener solo valores únicos
+      distinct: ['proveedor'],
     })
 
-    // ✅ Extraer y limpiar proveedores
-    const proveedores = gastos
-      .map(g => g.proveedor?.trim())
+    const proveedoresGasto = await prisma.gasto.findMany({
+      where: {
+        campoId: usuario.campoId,
+        proveedor: {
+          not: null
+        }
+      },
+      select: {
+        proveedor: true
+      },
+      distinct: ['proveedor'],
+    })
+
+    // ✅ Combinar y eliminar duplicados
+    const todosProveedores = [
+      ...proveedoresEvento.map(g => g.proveedor?.trim()),
+      ...proveedoresGasto.map(g => g.proveedor?.trim())
+    ]
       .filter((p): p is string => !!p && p.length > 0)
 
-    console.log('✅ Proveedores encontrados:', proveedores) // Debug
+    // ✅ Eliminar duplicados (case-insensitive)
+    const proveedoresUnicos = Array.from(
+      new Set(todosProveedores.map(p => p.toLowerCase()))
+    ).map(lower => 
+      todosProveedores.find(p => p.toLowerCase() === lower)!
+    )
 
-    return NextResponse.json(proveedores)
+    console.log('✅ Proveedores encontrados:', proveedoresUnicos)
+
+    return NextResponse.json(proveedoresUnicos)
   } catch (error) {
     console.error('❌ Error obteniendo proveedores:', error)
     return NextResponse.json({ error: 'Error obteniendo proveedores' }, { status: 500 })
