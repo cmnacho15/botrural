@@ -446,13 +446,14 @@ const calcularVencimiento = (gasto: Gasto) => {
   const diffTime = fechaVencimiento.getTime() - hoy.getTime()
   const diasRestantes = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
 
+  // Formatear fecha SIN conversión de zona horaria
+  const dia = String(fechaVencimiento.getDate()).padStart(2, '0')
+  const mes = String(fechaVencimiento.getMonth() + 1).padStart(2, '0')
+  const año = fechaVencimiento.getFullYear()
+
   return {
     diasRestantes,
-    fechaVencimiento: fechaVencimiento.toLocaleDateString('es-UY', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    })
+    fechaVencimiento: `${dia}/${mes}/${año}`
   }
 }
 
