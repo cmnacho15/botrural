@@ -99,14 +99,15 @@ const [mostrarMenuEstado, setMostrarMenuEstado] = useState(false)
   const [mostrarMenuProveedor, setMostrarMenuProveedor] = useState(false)
   const [sectorHover, setSectorHover] = useState<string | null>(null)
 
- // Estados para Editar
+  // Estados para Editar
   const [modalEditOpen, setModalEditOpen] = useState(false)
   const [gastoEditando, setGastoEditando] = useState<Gasto | null>(null)
 
-  // Estados para edición inline
-  const [editandoCategoriaId, setEditandoCategoriaId] = useState<string | null>(null)
-  const [editandoEstadoId, setEditandoEstadoId] = useState<string | null>(null)
+  // Estados para edición inline (popover)
+  const [popoverCategoriaId, setPopoverCategoriaId] = useState<string | null>(null)
+  const [popoverEstadoId, setPopoverEstadoId] = useState<string | null>(null)
   const [loadingInline, setLoadingInline] = useState<string | null>(null)
+  const [busquedaCategoria, setBusquedaCategoria] = useState('')
 
   // Estados para Eliminar
   const [modalDeleteOpen, setModalDeleteOpen] = useState(false)
@@ -503,12 +504,13 @@ const handleCambiarCategoria = async (gastoId: string, nuevaCategoria: string, t
     setGastosData((prev) =>
       prev.map((g) => (g.id === gastoId ? { ...g, categoria: nuevaCategoria } : g))
     )
+    setPopoverCategoriaId(null)
+    setBusquedaCategoria('')
   } catch (error) {
     console.error('Error:', error)
     alert('❌ Error al cambiar categoría')
   } finally {
     setLoadingInline(null)
-    setEditandoCategoriaId(null)
   }
 }
 
@@ -528,12 +530,12 @@ const handleCambiarEstado = async (gastoId: string, nuevoPagado: boolean, tipo: 
     setGastosData((prev) =>
       prev.map((g) => (g.id === gastoId ? { ...g, pagado: nuevoPagado } : g))
     )
+    setPopoverEstadoId(null)
   } catch (error) {
     console.error('Error:', error)
     alert('❌ Error al cambiar estado')
   } finally {
     setLoadingInline(null)
-    setEditandoEstadoId(null)
   }
 }
 
@@ -1406,32 +1408,76 @@ const handleEditarGasto = (gasto: Gasto) => {
                       {/* ÍTEM */}
                       <td className="px-3 py-3">{t.item}</td>
 
-                      {/* CATEGORÍA - Editable */}
-                      <td className="px-3 py-3">
-                        {editandoCategoriaId === t.id ? (
-                          <select
-                            autoFocus
-                            value={t.categoria}
-                            onChange={(e) => handleCambiarCategoria(t.id, e.target.value, t.tipo)}
-                            onBlur={() => setEditandoCategoriaId(null)}
-                            disabled={loadingInline === t.id}
-                            className="px-2 py-1 text-xs border border-blue-400 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
-                          >
-                            {categorias.map((cat) => (
-                              <option key={cat.nombre} value={cat.nombre}>
-                                {cat.nombre}
-                              </option>
-                            ))}
-                          </select>
-                        ) : (
-                          <button
-                            onClick={() => setEditandoCategoriaId(t.id)}
-                            className="inline-block px-3 py-1 rounded-lg text-xs font-medium cursor-pointer hover:ring-2 hover:ring-blue-400 transition"
-                            style={{ backgroundColor: `${t.color}15`, color: t.color }}
-                            title="Click para cambiar categoría"
-                          >
-                            {loadingInline === t.id ? '...' : t.categoria}
-                          </button>
+                      {/* CATEGORÍA - Popover */}
+                      <td className="px-3 py-3 relative">
+                        <button
+                          onClick={() => {
+                            setPopoverCategoriaId(popoverCategoriaId === t.id ? null : t.id)
+                            setPopoverEstadoId(null)
+                            setBusquedaCategoria('')
+                          }}
+                          className="inline-block px-3 py-1 rounded-lg text-xs font-medium cursor-pointer hover:ring-2 hover:ring-offset-1 hover:ring-blue-400 transition-all"
+                          style={{ backgroundColor: `${t.color}15`, color: t.color }}
+                        >
+                          {loadingInline === t.id ? '...' : t.categoria}
+                        </button>
+
+                        {popoverCategoriaId === t.id && (
+                          <>
+                            <div 
+                              className="fixed inset-0 z-40" 
+                              onClick={() => {
+                                setPopoverCategoriaId(null)
+                                setBusquedaCategoria('')
+                              }} 
+                            />
+                            <div className="absolute z-50 mt-2 left-0 w-64 bg-white border border-gray-200 rounded-xl shadow-2xl overflow-hidden">
+                              {/* Buscador */}
+                              <div className="p-2 border-b border-gray-100">
+                                <input
+                                  type="text"
+                                  placeholder="Buscar categoría..."
+                                  value={busquedaCategoria}
+                                  onChange={(e) => setBusquedaCategoria(e.target.value)}
+                                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                                  autoFocus
+                                />
+                              </div>
+                              
+                              {/* Lista de categorías */}
+                              <div className="max-h-64 overflow-y-auto">
+                                {categorias
+                                  .filter((cat) => 
+                                    cat.nombre.toLowerCase().includes(busquedaCategoria.toLowerCase())
+                                  )
+                                  .map((cat) => {
+                                    const isSelected = cat.nombre === t.categoria
+                                    return (
+                                      <button
+                                        key={cat.nombre}
+                                        onClick={() => handleCambiarCategoria(t.id, cat.nombre, t.tipo)}
+                                        className={`w-full text-left px-3 py-2.5 flex items-center gap-3 hover:bg-gray-50 transition-colors ${
+                                          isSelected ? 'bg-blue-50' : ''
+                                        }`}
+                                      >
+                                        <div
+                                          className="w-3 h-3 rounded-full flex-shrink-0"
+                                          style={{ backgroundColor: cat.color }}
+                                        />
+                                        <span className={`text-sm ${isSelected ? 'font-semibold text-blue-700' : 'text-gray-700'}`}>
+                                          {cat.nombre}
+                                        </span>
+                                        {isSelected && (
+                                          <svg className="w-4 h-4 text-blue-600 ml-auto" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                          </svg>
+                                        )}
+                                      </button>
+                                    )
+                                  })}
+                              </div>
+                            </div>
+                          </>
                         )}
                       </td>
 
@@ -1448,68 +1494,100 @@ const handleEditarGasto = (gasto: Gasto) => {
                       {/* USUARIO */}
                       <td className="hidden lg:table-cell px-3 py-3">{t.usuario}</td>
 
-                      {/* ESTADO DE PAGO - Editable */}
-                      <td className="px-4 sm:px-6 py-3 text-sm">
-                        {editandoEstadoId === t.id ? (
-                          <select
-                            autoFocus
-                            value={pagado ? 'pagado' : 'pendiente'}
-                            onChange={(e) => handleCambiarEstado(t.id, e.target.value === 'pagado', t.tipo)}
-                            onBlur={() => setEditandoEstadoId(null)}
-                            disabled={loadingInline === t.id}
-                            className="px-2 py-1 text-xs border border-blue-400 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
-                          >
-                            <option value="pagado">{esIngreso ? 'Cobrado' : 'Pagado'}</option>
-                            <option value="pendiente">{esIngreso ? 'Por cobrar' : 'Pendiente'}</option>
-                          </select>
-                        ) : pagado ? (
-                          <button
-                            onClick={() => setEditandoEstadoId(t.id)}
-                            className="inline-flex items-center gap-1 text-green-700 bg-green-50 border border-green-200 px-2 py-1 rounded-md cursor-pointer hover:ring-2 hover:ring-green-400 transition"
-                            title="Click para cambiar estado"
-                          >
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              className="w-4 h-4"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
+                      {/* ESTADO DE PAGO - Popover */}
+                      <td className="px-4 sm:px-6 py-3 text-sm relative">
+                        {metodoPago === 'Plazo' || pagado ? (
+                          <>
+                            <button
+                              onClick={() => {
+                                setPopoverEstadoId(popoverEstadoId === t.id ? null : t.id)
+                                setPopoverCategoriaId(null)
+                              }}
+                              className={`inline-flex items-center gap-1 px-2 py-1 rounded-md cursor-pointer hover:ring-2 hover:ring-offset-1 transition-all ${
+                                pagado
+                                  ? 'text-green-700 bg-green-50 border border-green-200 hover:ring-green-400'
+                                  : esIngreso
+                                  ? 'text-cyan-700 bg-cyan-100 border border-cyan-300 hover:ring-cyan-400'
+                                  : 'text-yellow-700 bg-yellow-100 border border-yellow-300 hover:ring-yellow-400'
+                              }`}
                             >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M5 13l4 4L19 7"
-                              />
-                            </svg>
-                            {loadingInline === t.id ? '...' : esIngreso ? 'Cobrado' : 'Pagado'}
-                          </button>
-                        ) : metodoPago === 'Plazo' ? (
-                          <button
-                            onClick={() => setEditandoEstadoId(t.id)}
-                            className={`inline-flex items-center gap-1 px-2 py-1 rounded-md cursor-pointer hover:ring-2 transition ${
-                              esIngreso
-                                ? 'text-cyan-700 bg-cyan-100 border border-cyan-300 hover:ring-cyan-400'
-                                : 'text-yellow-700 bg-yellow-100 border border-yellow-300 hover:ring-yellow-400'
-                            }`}
-                            title="Click para cambiar estado"
-                          >
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              className="w-4 h-4"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M12 8v4l3 3"
-                              />
-                            </svg>
-                            {loadingInline === t.id ? '...' : esIngreso ? 'Por cobrar' : 'Pendiente'}
-                          </button>
+                              {loadingInline === t.id ? (
+                                '...'
+                              ) : pagado ? (
+                                <>
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                  </svg>
+                                  {esIngreso ? 'Cobrado' : 'Pagado'}
+                                </>
+                              ) : (
+                                <>
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3" />
+                                  </svg>
+                                  {esIngreso ? 'Por cobrar' : 'Pendiente'}
+                                </>
+                              )}
+                            </button>
+
+                            {popoverEstadoId === t.id && (
+                              <>
+                                <div 
+                                  className="fixed inset-0 z-40" 
+                                  onClick={() => setPopoverEstadoId(null)} 
+                                />
+                                <div className="absolute z-50 mt-2 left-0 w-48 bg-white border border-gray-200 rounded-xl shadow-2xl overflow-hidden">
+                                  <div className="p-2 border-b border-gray-100 bg-gray-50">
+                                    <span className="text-xs font-semibold text-gray-500 uppercase">Cambiar estado</span>
+                                  </div>
+                                  
+                                  <button
+                                    onClick={() => handleCambiarEstado(t.id, true, t.tipo)}
+                                    className={`w-full text-left px-3 py-2.5 flex items-center gap-3 hover:bg-gray-50 transition-colors ${
+                                      pagado ? 'bg-green-50' : ''
+                                    }`}
+                                  >
+                                    <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center">
+                                      <svg className="w-4 h-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                      </svg>
+                                    </div>
+                                    <span className={`text-sm ${pagado ? 'font-semibold text-green-700' : 'text-gray-700'}`}>
+                                      {esIngreso ? 'Cobrado' : 'Pagado'}
+                                    </span>
+                                    {pagado && (
+                                      <svg className="w-4 h-4 text-green-600 ml-auto" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                      </svg>
+                                    )}
+                                  </button>
+
+                                  <button
+                                    onClick={() => handleCambiarEstado(t.id, false, t.tipo)}
+                                    className={`w-full text-left px-3 py-2.5 flex items-center gap-3 hover:bg-gray-50 transition-colors ${
+                                      !pagado ? (esIngreso ? 'bg-cyan-50' : 'bg-yellow-50') : ''
+                                    }`}
+                                  >
+                                    <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
+                                      esIngreso ? 'bg-cyan-100' : 'bg-yellow-100'
+                                    }`}>
+                                      <svg className={`w-4 h-4 ${esIngreso ? 'text-cyan-600' : 'text-yellow-600'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3" />
+                                      </svg>
+                                    </div>
+                                    <span className={`text-sm ${!pagado ? (esIngreso ? 'font-semibold text-cyan-700' : 'font-semibold text-yellow-700') : 'text-gray-700'}`}>
+                                      {esIngreso ? 'Por cobrar' : 'Pendiente'}
+                                    </span>
+                                    {!pagado && (
+                                      <svg className={`w-4 h-4 ml-auto ${esIngreso ? 'text-cyan-600' : 'text-yellow-600'}`} fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                      </svg>
+                                    )}
+                                  </button>
+                                </div>
+                              </>
+                            )}
+                          </>
                         ) : (
                           <span className="text-gray-500">—</span>
                         )}
