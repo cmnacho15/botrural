@@ -98,7 +98,7 @@ if (campoId) {
   messages: [
     {
       role: "system",
-      content: "Extrae de esta factura SOLO:\n1. RUT EMISOR (solo números, sin puntos ni guiones)\n2. Nombre del EMISOR/VENDEDOR\n\nResponde en formato: RUT|NOMBRE\nEjemplo: 160096500018|Leonardo Apa & Cía\n\nSi no encuentras algo, usa 'NO_ENCONTRADO'"
+      content: "Extrae de esta factura SOLO:\n1. RUT EMISOR o RUT VENDEDOR (solo números, sin puntos ni guiones)\n2. Nombre del EMISOR/VENDEDOR\n\nBuscar en: 'RUT EMISOR', 'RUT VENDEDOR', 'RUT:', o similar\n\nResponde en formato: RUT|NOMBRE\nEjemplo: 160096500018|Leonardo Apa & Cía\n\nSi no encuentras algo, usa 'NO_ENCONTRADO'"
     },
         {
           role: "user",
@@ -436,6 +436,25 @@ IMPORTANTE:
 - Los precios están en USD (U$S o US$)
 - IGNORAR totalmente las bonificaciones en renglones
 - Las bonificaciones se reflejan en el subtotal/total general
+
+====== IDENTIFICACIÓN DE ROLES ======
+CRÍTICO para asignar comprador/productor correctamente:
+
+Si la factura dice "RUT VENDEDOR":
+- Ese RUT → productor (quien VENDE)
+- El nombre en "Comprador:" → comprador (quien COMPRA)
+
+Si la factura dice "RUT EMISOR":
+- Verificar contexto para determinar rol
+
+Consignatarios/Intermediarios (MEGAAGRO, etc.):
+- NO son ni comprador ni productor
+- Van en campo "consignatario"
+
+Ejemplo factura MegaAgro:
+- RUT VENDEDOR: 160363240012 → productor: "FERNANDEZ CASTRO HNOS SG"
+- Comprador: MARIA CECILIA CARBALLAL → comprador: "MARIA CECILIA CARBALLAL"
+- MEGAAGRO → consignatario: "MEGAAGRO HACIENDAS LTDA"
 
 REGLAS ESTRICTAS DE FORMATO:
 1. NUNCA respondas con texto explicativo como "Lo siento" o "No puedo"
