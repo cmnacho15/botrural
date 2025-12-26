@@ -101,6 +101,7 @@ console.log('API COSTOS - superficieParaCalculo:', superficieParaCalculo)
     const gastos = await prisma.gasto.findMany({
       where: {
         campoId,
+        tipo: "GASTO",  // ✅ Solo gastos, NO ingresos
         fecha: {
           gte: fechaDesde,
           lte: fechaHasta,
