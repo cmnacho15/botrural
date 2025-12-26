@@ -165,8 +165,8 @@ const loteActualizado = await prisma.lote.update({
     esPastoreable: esPastoreable ?? true,
     ...(poligono && { poligono }),
     
-    // 🔥 LÓGICA ULTRA SIMPLE: Solo resetear si queda VACÍO
-    ultimoCambio: (() => {
+    // 🔥 LÓGICA: Resetear cuando cambia estado vacío ↔ con animales
+ultimoCambio: (() => {
   // 1️⃣ Si hay ajuste manual, usar eso
   if (diasPastoreoAjuste !== undefined && diasPastoreoAjuste !== null && tendraAnimales) {
     return new Date(Date.now() - (diasPastoreoAjuste * 24 * 60 * 60 * 1000));
@@ -181,7 +181,13 @@ const loteActualizado = await prisma.lote.update({
     return new Date();
   }
   
-  // 3️⃣ Si el potrero TIENE animales (cualquier cantidad), MANTENER fecha
+  // 3️⃣ 🔥 NUEVO: Si estaba VACÍO y ahora tendrá animales, resetear a HOY (0 días pastoreo)
+  if (!teniaAnimales && tendraAnimales) {
+    console.log("✅ RESETEAR: potrero pasa de VACÍO a CON ANIMALES");
+    return new Date();
+  }
+  
+  // 4️⃣ Si el potrero YA TENÍA animales y sigue teniendo, MANTENER fecha
   console.log("✅ MANTENER: potrero sigue con animales");
   return lote.ultimoCambio;
 })(),
