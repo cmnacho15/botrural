@@ -267,7 +267,7 @@ export async function handleInvoiceButtonResponse(
             fecha: new Date(invoiceData.fecha),
             descripcion: item.descripcion,
             categoria: item.categoria || "Otros",
-            proveedor: invoiceData.proveedor,
+            proveedor: invoiceData.proveedor?.trim().toLowerCase() || null,
             metodoPago: invoiceData.metodoPago,
             pagado: invoiceData.pagado,
             diasPlazo: invoiceData.diasPlazo || null,
