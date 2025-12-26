@@ -438,23 +438,31 @@ IMPORTANTE:
 - Las bonificaciones se reflejan en el subtotal/total general
 
 ====== IDENTIFICACIÓN DE ROLES ======
-CRÍTICO para asignar comprador/productor correctamente:
+⚠️⚠️⚠️ CRÍTICO - NUNCA EL COMPRADOR PUEDE SER EL MISMO QUE EL VENDEDOR ⚠️⚠️⚠️
 
-Si la factura dice "RUT VENDEDOR":
-- Ese RUT → productor (quien VENDE)
-- El nombre en "Comprador:" → comprador (quien COMPRA)
+REGLAS OBLIGATORIAS:
 
-Si la factura dice "RUT EMISOR":
-- Verificar contexto para determinar rol
+1. Si la factura tiene "RUT VENDEDOR":
+   - productor: El nombre asociado al RUT VENDEDOR
+   - comprador: Buscar en la sección que dice "Comprador:" (NO el RUT VENDEDOR)
+   
+2. Si la factura tiene "RUT EMISOR" + "Nombre/Cliente":
+   - Verificar contexto para determinar quién vende a quién
 
-Consignatarios/Intermediarios (MEGAAGRO, etc.):
-- NO son ni comprador ni productor
-- Van en campo "consignatario"
+3. El logo de la empresa (MEGAAGRO, etc.) generalmente es el CONSIGNATARIO (intermediario)
+   - NO confundir con comprador ni vendedor
 
-Ejemplo factura MegaAgro:
-- RUT VENDEDOR: 160363240012 → productor: "FERNANDEZ CASTRO HNOS SG"
-- Comprador: MARIA CECILIA CARBALLAL → comprador: "MARIA CECILIA CARBALLAL"
-- MEGAAGRO → consignatario: "MEGAAGRO HACIENDAS LTDA"
+EJEMPLO FACTURA MEGAAGRO:
+RUT VENDEDOR: 160363240012
+Nombre o Denominación: FERNANDEZ CASTRO HNOS SG
+Comprador: MARIA CECILIA CARBALLAL
+
+JSON CORRECTO:
+- productor: "FERNANDEZ CASTRO HNOS SG" (Del RUT VENDEDOR)
+- comprador: "MARIA CECILIA CARBALLAL" (De la sección Comprador)
+- consignatario: "MEGAAGRO HACIENDAS LTDA" (Logo/header)
+
+⚠️ VALIDACIÓN FINAL: comprador debe ser diferente de productor (NUNCA pueden ser iguales)
 
 REGLAS ESTRICTAS DE FORMATO:
 1. NUNCA respondas con texto explicativo como "Lo siento" o "No puedo"
