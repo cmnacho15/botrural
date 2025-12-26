@@ -281,29 +281,59 @@ async function handleDataEntry(data: any) {
     } else if (data.categoria?.toLowerCase().includes('cordero')) {
       categoriaGuardar = 'Corderos/as Mamones'
     }
-   
+
+    const cantidadNacidos = parseInt(data.cantidad) || 0
 
     console.log("🐣 NACIMIENTO DEBUG:", {
       loteId,
       potreroNombre,
       categoriaOriginal: data.categoria,
       categoriaGuardar,
-      cantidad: data.cantidad,
+      cantidad: cantidadNacidos,
       campoId: user.campoId
     })
-    
+
+    // 1) Crear el evento
     await prisma.evento.create({
       data: {
         tipo: "NACIMIENTO",
-        descripcion: `Nacimiento de ${data.cantidad} ${data.categoria} en potrero ${data.potrero || 'sin especificar'}`,
+        descripcion: `Nacimiento de ${cantidadNacidos} ${data.categoria} en potrero ${data.potrero || 'sin especificar'}`,
         fecha: new Date(),
-        cantidad: data.cantidad || null,
+        cantidad: cantidadNacidos,
         categoria: categoriaGuardar,
         loteId,
         usuarioId: user.id,
         campoId: user.campoId,
       },
     })
+
+    // 2) Actualizar stock de animales en AnimalLote
+    if (loteId && cantidadNacidos > 0) {
+      const animalExistente = await prisma.animalLote.findFirst({
+        where: { 
+          loteId, 
+          categoria: categoriaGuardar,
+          lote: { campoId: user.campoId } 
+        },
+      })
+
+      if (animalExistente) {
+        await prisma.animalLote.update({
+          where: { id: animalExistente.id },
+          data: { cantidad: animalExistente.cantidad + cantidadNacidos },
+        })
+      } else {
+        await prisma.animalLote.create({
+          data: { 
+            categoria: categoriaGuardar, 
+            cantidad: cantidadNacidos, 
+            loteId 
+          },
+        })
+      }
+
+      console.log("✅ AnimalLote actualizado:", categoriaGuardar, cantidadNacidos)
+    }
   } else {
     await prisma.evento.create({
       data: {
