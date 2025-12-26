@@ -1428,10 +1428,18 @@ const handleEditarGasto = (gasto: Gasto) => {
                             setBusquedaCategoria('')
                           }}
                           data-popover-trigger={t.id}
-                          className="inline-block px-3 py-1 rounded-lg text-xs font-medium cursor-pointer hover:ring-2 hover:ring-offset-1 hover:ring-blue-400 transition-all"
-                          style={{ backgroundColor: `${t.color}15`, color: t.color }}
+                          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer border border-gray-200 hover:border-blue-400 hover:bg-gray-50 transition-all"
                         >
-                          {loadingInline === t.id ? '...' : t.categoria}
+                          <div
+                            className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                            style={{ backgroundColor: t.color }}
+                          />
+                          <span className="text-gray-700">
+                            {loadingInline === t.id ? '...' : t.categoria}
+                          </span>
+                          <svg className="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
                         </button>
 
                         {popoverCategoriaId === t.id && (
@@ -1444,13 +1452,13 @@ const handleEditarGasto = (gasto: Gasto) => {
                               }} 
                             />
                             <div 
-                              className="fixed z-50 w-64 bg-white border border-gray-200 rounded-xl shadow-2xl overflow-hidden"
+                              className="fixed z-50 w-64 bg-white border border-gray-200 rounded-xl shadow-2xl"
                               style={(() => {
                                 const trigger = document.querySelector(`[data-popover-trigger="${t.id}"]`)
                                 if (trigger) {
                                   const rect = trigger.getBoundingClientRect()
                                   const spaceBelow = window.innerHeight - rect.bottom
-                                  if (spaceBelow < 300) {
+                                  if (spaceBelow < 400) {
                                     return { left: rect.left, bottom: window.innerHeight - rect.top + 8 }
                                   }
                                   return { left: rect.left, top: rect.bottom + 8 }
@@ -1470,8 +1478,8 @@ const handleEditarGasto = (gasto: Gasto) => {
                                 />
                               </div>
                               
-                              {/* Lista de categorías */}
-                              <div className="max-h-64 overflow-y-auto">
+                              {/* Lista de categorías - SIN scroll, muestra todas */}
+                              <div className="py-1">
                                 {categorias
                                   .filter((cat) => 
                                     cat.nombre.toLowerCase().includes(busquedaCategoria.toLowerCase())
@@ -1482,7 +1490,7 @@ const handleEditarGasto = (gasto: Gasto) => {
                                       <button
                                         key={cat.nombre}
                                         onClick={() => handleCambiarCategoria(t.id, cat.nombre, t.tipo)}
-                                        className={`w-full text-left px-3 py-2.5 flex items-center gap-3 hover:bg-gray-50 transition-colors ${
+                                        className={`w-full text-left px-3 py-2 flex items-center gap-3 hover:bg-gray-50 transition-colors ${
                                           isSelected ? 'bg-blue-50' : ''
                                         }`}
                                       >
@@ -1530,7 +1538,7 @@ const handleEditarGasto = (gasto: Gasto) => {
                                 setPopoverCategoriaId(null)
                               }}
                               data-estado-trigger={t.id}
-                              className={`inline-flex items-center gap-1 px-2 py-1 rounded-md cursor-pointer hover:ring-2 hover:ring-offset-1 transition-all ${
+                              className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md cursor-pointer hover:ring-2 hover:ring-offset-1 transition-all ${
                                 pagado
                                   ? 'text-green-700 bg-green-50 border border-green-200 hover:ring-green-400'
                                   : esIngreso
@@ -1555,6 +1563,9 @@ const handleEditarGasto = (gasto: Gasto) => {
                                   {esIngreso ? 'Por cobrar' : 'Pendiente'}
                                 </>
                               )}
+                              <svg className="w-3.5 h-3.5 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                              </svg>
                             </button>
 
                             {popoverEstadoId === t.id && (
@@ -1564,7 +1575,7 @@ const handleEditarGasto = (gasto: Gasto) => {
                                   onClick={() => setPopoverEstadoId(null)} 
                                 />
                                 <div 
-                                  className="fixed z-50 w-48 bg-white border border-gray-200 rounded-xl shadow-2xl overflow-hidden"
+                                  className="fixed z-50 w-48 bg-white border border-gray-200 rounded-xl shadow-2xl"
                                   style={(() => {
                                     const trigger = document.querySelector(`[data-estado-trigger="${t.id}"]`)
                                     if (trigger) {
