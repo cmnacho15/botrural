@@ -1422,11 +1422,12 @@ const handleEditarGasto = (gasto: Gasto) => {
                       {/* CATEGORÍA - Popover */}
                       <td className="px-3 py-3 relative">
                         <button
-                          onClick={() => {
+                          onClick={(e) => {
                             setPopoverCategoriaId(popoverCategoriaId === t.id ? null : t.id)
                             setPopoverEstadoId(null)
                             setBusquedaCategoria('')
                           }}
+                          data-popover-trigger={t.id}
                           className="inline-block px-3 py-1 rounded-lg text-xs font-medium cursor-pointer hover:ring-2 hover:ring-offset-1 hover:ring-blue-400 transition-all"
                           style={{ backgroundColor: `${t.color}15`, color: t.color }}
                         >
@@ -1442,7 +1443,19 @@ const handleEditarGasto = (gasto: Gasto) => {
                                 setBusquedaCategoria('')
                               }} 
                             />
-                            <div className="absolute z-50 mt-2 left-0 w-64 bg-white border border-gray-200 rounded-xl shadow-2xl overflow-hidden">
+                            <div 
+                              className={`absolute z-50 left-0 w-64 bg-white border border-gray-200 rounded-xl shadow-2xl overflow-hidden ${
+                                (() => {
+                                  const trigger = document.querySelector(`[data-popover-trigger="${t.id}"]`)
+                                  if (trigger) {
+                                    const rect = trigger.getBoundingClientRect()
+                                    const spaceBelow = window.innerHeight - rect.bottom
+                                    return spaceBelow < 300 ? 'bottom-full mb-2' : 'top-full mt-2'
+                                  }
+                                  return 'top-full mt-2'
+                                })()
+                              }`}
+                            >
                               {/* Buscador */}
                               <div className="p-2 border-b border-gray-100">
                                 <input
@@ -1514,6 +1527,7 @@ const handleEditarGasto = (gasto: Gasto) => {
                                 setPopoverEstadoId(popoverEstadoId === t.id ? null : t.id)
                                 setPopoverCategoriaId(null)
                               }}
+                              data-estado-trigger={t.id}
                               className={`inline-flex items-center gap-1 px-2 py-1 rounded-md cursor-pointer hover:ring-2 hover:ring-offset-1 transition-all ${
                                 pagado
                                   ? 'text-green-700 bg-green-50 border border-green-200 hover:ring-green-400'
@@ -1547,7 +1561,19 @@ const handleEditarGasto = (gasto: Gasto) => {
                                   className="fixed inset-0 z-40" 
                                   onClick={() => setPopoverEstadoId(null)} 
                                 />
-                                <div className="absolute z-50 mt-2 left-0 w-48 bg-white border border-gray-200 rounded-xl shadow-2xl overflow-hidden">
+                                <div 
+                                  className={`absolute z-50 left-0 w-48 bg-white border border-gray-200 rounded-xl shadow-2xl overflow-hidden ${
+                                    (() => {
+                                      const trigger = document.querySelector(`[data-estado-trigger="${t.id}"]`)
+                                      if (trigger) {
+                                        const rect = trigger.getBoundingClientRect()
+                                        const spaceBelow = window.innerHeight - rect.bottom
+                                        return spaceBelow < 200 ? 'bottom-full mb-2' : 'top-full mt-2'
+                                      }
+                                      return 'top-full mt-2'
+                                    })()
+                                  }`}
+                                >
                                   <div className="p-2 border-b border-gray-100 bg-gray-50">
                                     <span className="text-xs font-semibold text-gray-500 uppercase">Cambiar estado</span>
                                   </div>
