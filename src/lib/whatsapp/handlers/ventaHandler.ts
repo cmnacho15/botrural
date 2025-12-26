@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma"
 import { processVentaImage, mapearCategoriaVenta } from "@/lib/vision-venta-parser"
 import { buscarPotrerosConCategoria } from "@/lib/potrero-helpers"
 import { sendWhatsAppMessage, sendCustomButtons } from "../services/messageService"
+import { convertirAUYU, obtenerTasaCambio } from "@/lib/currency"
 
 /**
  * Procesa una imagen de factura de VENTA
@@ -236,33 +237,42 @@ try {
     // 💰 CREAR INGRESOS EN TABLA GASTO (para que aparezcan en Finanzas)
     console.log("💰 Creando ingresos en tabla Gasto...")
     
+    const tasaCambio = await obtenerTasaCambio("USD")
+    
     for (const r of ventaData.renglones) {
       const mapped = mapearCategoriaVenta(r.categoria)
+      const montoEnUYU = await convertirAUYU(r.importeBrutoUSD, "USD")
       
-      const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/ingresos`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          fecha: new Date(ventaData.fecha).toISOString(),
+      await prisma.gasto.create({
+        data: {
+          tipo: "INGRESO",
+          fecha: new Date(ventaData.fecha),
           descripcion: `${r.cantidad} ${mapped.categoria} - ${r.pesoTotalKg.toFixed(0)} kg`,
           categoria: "Venta de Ganado",
           comprador: ventaData.comprador,
+          proveedor: null,
           metodoPago: ventaData.metodoPago || "Contado",
           diasPlazo: ventaData.diasPlazo || null,
           pagado: ventaData.metodoPago === "Contado",
-          monto: r.importeBrutoUSD,
+          monto: montoEnUYU,
           montoOriginal: r.importeBrutoUSD,
           moneda: "USD",
+          montoEnUYU: montoEnUYU,
+          montoEnUSD: r.importeBrutoUSD,
+          tasaCambio: tasaCambio,
+          imageUrl: imageUrl,
+          imageName: imageName,
           iva: null,
-        }),
+          campo: {
+            connect: { id: campoId }
+          },
+          especie: null,
+        },
       })
       
-      if (!response.ok) {
-        console.error(`❌ Error creando ingreso para renglón ${r.categoria}`)
-      } else {
-        console.log(`  ✅ Ingreso creado: ${r.cantidad} ${mapped.categoria} - $${r.importeBrutoUSD.toFixed(2)} USD`)
-      }
+      console.log(`  ✅ Ingreso creado: ${r.cantidad} ${mapped.categoria} - $${r.importeBrutoUSD.toFixed(2)} USD`)
     }
+    
 
     await prisma.evento.create({
       data: {
