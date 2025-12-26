@@ -239,34 +239,29 @@ try {
     for (const r of ventaData.renglones) {
       const mapped = mapearCategoriaVenta(r.categoria)
       
-      await prisma.gasto.create({
-        data: {
-          tipo: "INGRESO",
-          fecha: new Date(ventaData.fecha),
+      const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/ingresos`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fecha: new Date(ventaData.fecha).toISOString(),
           descripcion: `${r.cantidad} ${mapped.categoria} - ${r.pesoTotalKg.toFixed(0)} kg`,
           categoria: "Venta de Ganado",
           comprador: ventaData.comprador,
-          proveedor: null,
           metodoPago: ventaData.metodoPago || "Contado",
           diasPlazo: ventaData.diasPlazo || null,
           pagado: ventaData.metodoPago === "Contado",
           monto: r.importeBrutoUSD,
           montoOriginal: r.importeBrutoUSD,
           moneda: "USD",
-          montoEnUYU: null,
-          montoEnUSD: r.importeBrutoUSD,
-          tasaCambio: null,
-          imageUrl: imageUrl,
-          imageName: imageName,
           iva: null,
-          campo: {
-            connect: { id: campoId }
-          },
-          especie: null,
-        },
+        }),
       })
       
-      console.log(`  ✅ Ingreso creado: ${r.cantidad} ${mapped.categoria} - $${r.importeBrutoUSD.toFixed(2)} USD`)
+      if (!response.ok) {
+        console.error(`❌ Error creando ingreso para renglón ${r.categoria}`)
+      } else {
+        console.log(`  ✅ Ingreso creado: ${r.cantidad} ${mapped.categoria} - $${r.importeBrutoUSD.toFixed(2)} USD`)
+      }
     }
 
     await prisma.evento.create({
