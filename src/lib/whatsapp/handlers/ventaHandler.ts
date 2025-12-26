@@ -232,7 +232,41 @@ try {
         cantidad: r.cantidad 
       })
     }
-
+    
+    // 💰 CREAR INGRESOS EN TABLA GASTO (para que aparezcan en Finanzas)
+    console.log("💰 Creando ingresos en tabla Gasto...")
+    
+    for (const r of ventaData.renglones) {
+      const mapped = mapearCategoriaVenta(r.categoria)
+      
+      await prisma.gasto.create({
+        data: {
+          tipo: "INGRESO",
+          fecha: new Date(ventaData.fecha),
+          descripcion: `${r.cantidad} ${mapped.categoria} - ${r.pesoTotalKg.toFixed(0)} kg`,
+          categoria: null,
+          comprador: ventaData.comprador,
+          proveedor: null,
+          metodoPago: ventaData.metodoPago || "Contado",
+          diasPlazo: ventaData.diasPlazo || null,
+          pagado: ventaData.metodoPago === "Contado",
+          monto: r.importeBrutoUSD,
+          montoOriginal: r.importeBrutoUSD,
+          moneda: "USD",
+          montoEnUYU: null,
+          montoEnUSD: r.importeBrutoUSD,
+          tasaCambio: null,
+          imageUrl: imageUrl,
+          imageName: imageName,
+          iva: null,
+          campoId: campoId,
+          especie: null,
+        },
+      })
+      
+      console.log(`  ✅ Ingreso creado: ${r.cantidad} ${mapped.categoria} - $${r.importeBrutoUSD.toFixed(2)} USD`)
+    }
+    
     await prisma.evento.create({
       data: {
         tipo: "VENTA",

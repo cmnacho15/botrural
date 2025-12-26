@@ -174,7 +174,7 @@ export default function ModalIngreso({ onClose, onSuccess }: ModalIngresoProps) 
   body: JSON.stringify({
     fecha: fechaConHora.toISOString(),
     descripcion: `${item.item}${notas ? ` - ${notas}` : ''}`,
-    categoria: 'Otros',
+    categoria: null,
     monto: item.precioFinal,          // 🔥 SIEMPRE manda este
 montoOriginal: item.precioFinal,  // 🔥 Lo que escribió el usuario
 moneda: moneda,                   // 🔥 UYU o USD

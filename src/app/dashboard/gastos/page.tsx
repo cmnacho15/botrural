@@ -1433,130 +1433,136 @@ const handleEditarGasto = (gasto: Gasto) => {
 
                       {/* CATEGORÍA - Popover */}
                       <td className="px-3 py-3 relative">
-                        <button
-                          onClick={(e) => {
-                            setPopoverCategoriaId(popoverCategoriaId === t.id ? null : t.id)
-                            setPopoverEstadoId(null)
-                            setBusquedaCategoria('')
-                          }}
-                          data-popover-trigger={t.id}
-                          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer border border-gray-200 hover:border-blue-400 hover:bg-gray-50 transition-all"
-                        >
-                          <div
-                            className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                            style={{ backgroundColor: t.color }}
-                          />
-                          <span className="text-gray-700">
-                            {loadingInline === t.id ? '...' : t.categoria}
-                          </span>
-                          <svg className="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                          </svg>
-                        </button>
-
-                        {popoverCategoriaId === t.id && (
+                        {t.esIngreso ? (
+                          <span className="text-sm text-gray-500">—</span>
+                        ) : (
                           <>
-                            <div 
-                              className="fixed inset-0 z-40 bg-black/5" 
-                              onClick={() => {
-                                setPopoverCategoriaId(null)
+                            <button
+                              onClick={(e) => {
+                                setPopoverCategoriaId(popoverCategoriaId === t.id ? null : t.id)
+                                setPopoverEstadoId(null)
                                 setBusquedaCategoria('')
-                              }} 
-                            />
-                            <div 
-                              className="fixed z-50 w-64 bg-white border border-gray-200 rounded-xl shadow-2xl flex flex-col"
-                              style={(() => {
-                                const trigger = document.querySelector(`[data-popover-trigger="${t.id}"]`)
-                                if (!trigger) return {}
-                                
-                                const rect = trigger.getBoundingClientRect()
-                                const popoverWidth = 256
-                                const popoverMaxHeight = 400
-                                const margin = 8
-                                
-                                const spaceBelow = window.innerHeight - rect.bottom
-                                const spaceAbove = rect.top
-                                const spaceRight = window.innerWidth - rect.left
-                                
-                                let top: number | undefined
-                                let bottom: number | undefined
-                                let left: number | undefined
-                                let right: number | undefined
-                                let maxHeight: number
-                                
-                                // Vertical: abrir arriba o abajo
-                                if (spaceBelow >= popoverMaxHeight + margin) {
-                                  top = rect.bottom + margin
-                                  maxHeight = Math.min(popoverMaxHeight, spaceBelow - margin)
-                                } else if (spaceAbove >= popoverMaxHeight + margin) {
-                                  bottom = window.innerHeight - rect.top + margin
-                                  maxHeight = Math.min(popoverMaxHeight, spaceAbove - margin)
-                                } else {
-                                  // Poco espacio arriba y abajo: usar el mayor
-                                  if (spaceBelow >= spaceAbove) {
-                                    top = rect.bottom + margin
-                                    maxHeight = spaceBelow - margin * 2
-                                  } else {
-                                    bottom = window.innerHeight - rect.top + margin
-                                    maxHeight = spaceAbove - margin * 2
-                                  }
-                                }
-                                
-                                // Horizontal: alinear izquierda o derecha
-                                if (spaceRight >= popoverWidth + margin) {
-                                  left = rect.left
-                                } else {
-                                  right = margin
-                                }
-                                
-                                return { top, bottom, left, right, maxHeight }
-                              })()}
+                              }}
+                              data-popover-trigger={t.id}
+                              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer border border-gray-200 hover:border-blue-400 hover:bg-gray-50 transition-all"
                             >
-                              {/* Buscador */}
-                              <div className="p-2 border-b border-gray-100 flex-shrink-0">
-                                <input
-                                  type="text"
-                                  placeholder="Buscar categoría..."
-                                  value={busquedaCategoria}
-                                  onChange={(e) => setBusquedaCategoria(e.target.value)}
-                                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                                  autoFocus
+                              <div
+                                className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                                style={{ backgroundColor: t.color }}
+                              />
+                              <span className="text-gray-700">
+                                {loadingInline === t.id ? '...' : t.categoria}
+                              </span>
+                              <svg className="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                              </svg>
+                            </button>
+
+                            {popoverCategoriaId === t.id && (
+                              <>
+                                <div 
+                                  className="fixed inset-0 z-40 bg-black/5" 
+                                  onClick={() => {
+                                    setPopoverCategoriaId(null)
+                                    setBusquedaCategoria('')
+                                  }} 
                                 />
-                              </div>
-                              
-                              {/* Lista de categorías - con scroll si es necesario */}
-                              <div className="py-1 overflow-y-auto flex-1">
-                                {categorias
-                                  .filter((cat) => 
-                                    cat.nombre.toLowerCase().includes(busquedaCategoria.toLowerCase())
-                                  )
-                                  .map((cat) => {
-                                    const isSelected = cat.nombre === t.categoria
-                                    return (
-                                      <button
-                                        key={cat.nombre}
-                                        onClick={() => handleCambiarCategoria(t.id, cat.nombre, t.tipo)}
-                                        className={`w-full text-left px-3 py-2 flex items-center gap-3 hover:bg-gray-50 transition-colors ${
-                                          isSelected ? 'bg-blue-50' : ''
-                                        }`}
-                                      >
-                                        <div
-                                          className="w-3 h-3 rounded-full flex-shrink-0"
-                                          style={{ backgroundColor: cat.color }}
-                                        />
-                                        <span className={`text-sm ${isSelected ? 'font-semibold text-blue-700' : 'text-gray-700'}`}>
-                                          {cat.nombre}
-                                        </span>
-                                        {isSelected && (
-                                          <svg className="w-4 h-4 text-blue-600 ml-auto" fill="currentColor" viewBox="0 0 20 20">
-                                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                          </svg>
-                                        )}
-                                      </button>
-                                    )
-                                  })}
-                              </div>
-                            </div>
+                                <div 
+                                  className="fixed z-50 w-64 bg-white border border-gray-200 rounded-xl shadow-2xl flex flex-col"
+                                  style={(() => {
+                                    const trigger = document.querySelector(`[data-popover-trigger="${t.id}"]`)
+                                    if (!trigger) return {}
+                                    
+                                    const rect = trigger.getBoundingClientRect()
+                                    const popoverWidth = 256
+                                    const popoverMaxHeight = 400
+                                    const margin = 8
+                                    
+                                    const spaceBelow = window.innerHeight - rect.bottom
+                                    const spaceAbove = rect.top
+                                    const spaceRight = window.innerWidth - rect.left
+                                    
+                                    let top: number | undefined
+                                    let bottom: number | undefined
+                                    let left: number | undefined
+                                    let right: number | undefined
+                                    let maxHeight: number
+                                    
+                                    // Vertical: abrir arriba o abajo
+                                    if (spaceBelow >= popoverMaxHeight + margin) {
+                                      top = rect.bottom + margin
+                                      maxHeight = Math.min(popoverMaxHeight, spaceBelow - margin)
+                                    } else if (spaceAbove >= popoverMaxHeight + margin) {
+                                      bottom = window.innerHeight - rect.top + margin
+                                      maxHeight = Math.min(popoverMaxHeight, spaceAbove - margin)
+                                    } else {
+                                      // Poco espacio arriba y abajo: usar el mayor
+                                      if (spaceBelow >= spaceAbove) {
+                                        top = rect.bottom + margin
+                                        maxHeight = spaceBelow - margin * 2
+                                      } else {
+                                        bottom = window.innerHeight - rect.top + margin
+                                        maxHeight = spaceAbove - margin * 2
+                                      }
+                                    }
+                                    
+                                    // Horizontal: alinear izquierda o derecha
+                                    if (spaceRight >= popoverWidth + margin) {
+                                      left = rect.left
+                                    } else {
+                                      right = margin
+                                    }
+                                    
+                                    return { top, bottom, left, right, maxHeight }
+                                  })()}
+                                >
+                                  {/* Buscador */}
+                                  <div className="p-2 border-b border-gray-100 flex-shrink-0">
+                                    <input
+                                      type="text"
+                                      placeholder="Buscar categoría..."
+                                      value={busquedaCategoria}
+                                      onChange={(e) => setBusquedaCategoria(e.target.value)}
+                                      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                                      autoFocus
+                                    />
+                                  </div>
+                                  
+                                  {/* Lista de categorías - con scroll si es necesario */}
+                                  <div className="py-1 overflow-y-auto flex-1">
+                                    {categorias
+                                      .filter((cat) => 
+                                        cat.nombre.toLowerCase().includes(busquedaCategoria.toLowerCase())
+                                      )
+                                      .map((cat) => {
+                                        const isSelected = cat.nombre === t.categoria
+                                        return (
+                                          <button
+                                            key={cat.nombre}
+                                            onClick={() => handleCambiarCategoria(t.id, cat.nombre, t.tipo)}
+                                            className={`w-full text-left px-3 py-2 flex items-center gap-3 hover:bg-gray-50 transition-colors ${
+                                              isSelected ? 'bg-blue-50' : ''
+                                            }`}
+                                          >
+                                            <div
+                                              className="w-3 h-3 rounded-full flex-shrink-0"
+                                              style={{ backgroundColor: cat.color }}
+                                            />
+                                            <span className={`text-sm ${isSelected ? 'font-semibold text-blue-700' : 'text-gray-700'}`}>
+                                              {cat.nombre}
+                                            </span>
+                                            {isSelected && (
+                                              <svg className="w-4 h-4 text-blue-600 ml-auto" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                              </svg>
+                                            )}
+                                          </button>
+                                        )
+                                      })}
+                                  </div>
+                                </div>
+                              </>
+                            )}
                           </>
                         )}
                       </td>
