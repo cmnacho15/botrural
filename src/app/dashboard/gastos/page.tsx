@@ -99,9 +99,14 @@ const [mostrarMenuEstado, setMostrarMenuEstado] = useState(false)
   const [mostrarMenuProveedor, setMostrarMenuProveedor] = useState(false)
   const [sectorHover, setSectorHover] = useState<string | null>(null)
 
-  // Estados para Editar
+ // Estados para Editar
   const [modalEditOpen, setModalEditOpen] = useState(false)
   const [gastoEditando, setGastoEditando] = useState<Gasto | null>(null)
+
+  // Estados para edición inline
+  const [editandoCategoriaId, setEditandoCategoriaId] = useState<string | null>(null)
+  const [editandoEstadoId, setEditandoEstadoId] = useState<string | null>(null)
+  const [loadingInline, setLoadingInline] = useState<string | null>(null)
 
   // Estados para Eliminar
   const [modalDeleteOpen, setModalDeleteOpen] = useState(false)
@@ -482,7 +487,57 @@ const transacciones = gastosFiltrados
   return 0
 })
 
-// EDITAR
+// EDITAR INLINE - Categoría
+const handleCambiarCategoria = async (gastoId: string, nuevaCategoria: string, tipo: 'GASTO' | 'INGRESO') => {
+  setLoadingInline(gastoId)
+  try {
+    const endpoint = tipo === 'INGRESO' ? `/api/ingresos/${gastoId}` : `/api/gastos/${gastoId}`
+    const res = await fetch(endpoint, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ categoria: nuevaCategoria }),
+    })
+
+    if (!res.ok) throw new Error('Error al actualizar')
+
+    setGastosData((prev) =>
+      prev.map((g) => (g.id === gastoId ? { ...g, categoria: nuevaCategoria } : g))
+    )
+  } catch (error) {
+    console.error('Error:', error)
+    alert('❌ Error al cambiar categoría')
+  } finally {
+    setLoadingInline(null)
+    setEditandoCategoriaId(null)
+  }
+}
+
+// EDITAR INLINE - Estado (pagado/cobrado)
+const handleCambiarEstado = async (gastoId: string, nuevoPagado: boolean, tipo: 'GASTO' | 'INGRESO') => {
+  setLoadingInline(gastoId)
+  try {
+    const endpoint = tipo === 'INGRESO' ? `/api/ingresos/${gastoId}` : `/api/gastos/${gastoId}`
+    const res = await fetch(endpoint, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pagado: nuevoPagado }),
+    })
+
+    if (!res.ok) throw new Error('Error al actualizar')
+
+    setGastosData((prev) =>
+      prev.map((g) => (g.id === gastoId ? { ...g, pagado: nuevoPagado } : g))
+    )
+  } catch (error) {
+    console.error('Error:', error)
+    alert('❌ Error al cambiar estado')
+  } finally {
+    setLoadingInline(null)
+    setEditandoEstadoId(null)
+  }
+}
+
+// EDITAR (modal)
 const handleEditarGasto = (gasto: Gasto) => {
   setGastoEditando(gasto)
   setModalEditOpen(true)
@@ -1351,14 +1406,33 @@ const handleEditarGasto = (gasto: Gasto) => {
                       {/* ÍTEM */}
                       <td className="px-3 py-3">{t.item}</td>
 
-                      {/* CATEGORÍA */}
+                      {/* CATEGORÍA - Editable */}
                       <td className="px-3 py-3">
-                        <span
-                          className="inline-block px-3 py-1 rounded-lg text-xs font-medium"
-                          style={{ backgroundColor: `${t.color}15`, color: t.color }}
-                        >
-                          {t.categoria}
-                        </span>
+                        {editandoCategoriaId === t.id ? (
+                          <select
+                            autoFocus
+                            value={t.categoria}
+                            onChange={(e) => handleCambiarCategoria(t.id, e.target.value, t.tipo)}
+                            onBlur={() => setEditandoCategoriaId(null)}
+                            disabled={loadingInline === t.id}
+                            className="px-2 py-1 text-xs border border-blue-400 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                          >
+                            {categorias.map((cat) => (
+                              <option key={cat.nombre} value={cat.nombre}>
+                                {cat.nombre}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          <button
+                            onClick={() => setEditandoCategoriaId(t.id)}
+                            className="inline-block px-3 py-1 rounded-lg text-xs font-medium cursor-pointer hover:ring-2 hover:ring-blue-400 transition"
+                            style={{ backgroundColor: `${t.color}15`, color: t.color }}
+                            title="Click para cambiar categoría"
+                          >
+                            {loadingInline === t.id ? '...' : t.categoria}
+                          </button>
+                        )}
                       </td>
 
                       {/* PROVEEDOR/COMPRADOR */}
@@ -1374,10 +1448,26 @@ const handleEditarGasto = (gasto: Gasto) => {
                       {/* USUARIO */}
                       <td className="hidden lg:table-cell px-3 py-3">{t.usuario}</td>
 
-                      {/* ESTADO DE PAGO */}
+                      {/* ESTADO DE PAGO - Editable */}
                       <td className="px-4 sm:px-6 py-3 text-sm">
-                        {pagado ? (
-                          <span className="inline-flex items-center gap-1 text-green-700 bg-green-50 border border-green-200 px-2 py-1 rounded-md">
+                        {editandoEstadoId === t.id ? (
+                          <select
+                            autoFocus
+                            value={pagado ? 'pagado' : 'pendiente'}
+                            onChange={(e) => handleCambiarEstado(t.id, e.target.value === 'pagado', t.tipo)}
+                            onBlur={() => setEditandoEstadoId(null)}
+                            disabled={loadingInline === t.id}
+                            className="px-2 py-1 text-xs border border-blue-400 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                          >
+                            <option value="pagado">{esIngreso ? 'Cobrado' : 'Pagado'}</option>
+                            <option value="pendiente">{esIngreso ? 'Por cobrar' : 'Pendiente'}</option>
+                          </select>
+                        ) : pagado ? (
+                          <button
+                            onClick={() => setEditandoEstadoId(t.id)}
+                            className="inline-flex items-center gap-1 text-green-700 bg-green-50 border border-green-200 px-2 py-1 rounded-md cursor-pointer hover:ring-2 hover:ring-green-400 transition"
+                            title="Click para cambiar estado"
+                          >
                             <svg
                               xmlns="http://www.w3.org/2000/svg"
                               className="w-4 h-4"
@@ -1392,15 +1482,17 @@ const handleEditarGasto = (gasto: Gasto) => {
                                 d="M5 13l4 4L19 7"
                               />
                             </svg>
-                            {esIngreso ? 'Cobrado' : 'Pagado'}
-                          </span>
+                            {loadingInline === t.id ? '...' : esIngreso ? 'Cobrado' : 'Pagado'}
+                          </button>
                         ) : metodoPago === 'Plazo' ? (
-                          <span
-                            className={`inline-flex items-center gap-1 px-2 py-1 rounded-md ${
+                          <button
+                            onClick={() => setEditandoEstadoId(t.id)}
+                            className={`inline-flex items-center gap-1 px-2 py-1 rounded-md cursor-pointer hover:ring-2 transition ${
                               esIngreso
-                                ? 'text-cyan-700 bg-cyan-100 border border-cyan-300'
-                                : 'text-yellow-700 bg-yellow-100 border border-yellow-300'
+                                ? 'text-cyan-700 bg-cyan-100 border border-cyan-300 hover:ring-cyan-400'
+                                : 'text-yellow-700 bg-yellow-100 border border-yellow-300 hover:ring-yellow-400'
                             }`}
+                            title="Click para cambiar estado"
                           >
                             <svg
                               xmlns="http://www.w3.org/2000/svg"
@@ -1416,8 +1508,8 @@ const handleEditarGasto = (gasto: Gasto) => {
                                 d="M12 8v4l3 3"
                               />
                             </svg>
-                            {esIngreso ? 'Por cobrar' : 'Pendiente'}
-                          </span>
+                            {loadingInline === t.id ? '...' : esIngreso ? 'Por cobrar' : 'Pendiente'}
+                          </button>
                         ) : (
                           <span className="text-gray-500">—</span>
                         )}
