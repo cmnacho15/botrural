@@ -227,30 +227,44 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
         fechaFinal = new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), 12, 0, 0)).toISOString()
       }
 
-      const montoOriginal = precioFinal
-      const montoEnUYU = moneda === 'USD' ? precioFinal * (tasaCambio || 1) : precioFinal
-      const tasaCambioFinal = moneda === 'USD' ? tasaCambio : null
-
-      const response = await fetch(`/api/gastos/${gasto.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tipo: 'GASTO',
-          fecha: fechaFinal,
-          descripcion: `${item.trim()}${notas ? ` - ${notas}` : ''}`,
-          categoria,
+      // ✅ DETECTAR SI CAMBIÓ EL MONTO O LA MONEDA
+      const montoOriginalGasto = gasto.montoOriginal || gasto.monto
+      const cambioMonto = Math.abs(precioFinal - montoOriginalGasto) > 0.01
+      const cambioMoneda = moneda !== (gasto.moneda || 'USD')
+      
+      let bodyData: any = {
+        tipo: 'GASTO',
+        fecha: fechaFinal,
+        descripcion: `${item.trim()}${notas ? ` - ${notas}` : ''}`,
+        categoria,
+        metodoPago,
+        iva,
+        diasPlazo: metodoPago === 'Plazo' ? diasPlazo : null,
+        pagado: metodoPago === 'Contado' ? true : pagado,
+        proveedor: proveedor.trim() || null,
+        especie: especie,
+      }
+      
+      // ✅ SOLO recalcular montos si cambió monto o moneda
+      if (cambioMonto || cambioMoneda) {
+        const montoOriginal = precioFinal
+        const montoEnUYU = moneda === 'USD' ? precioFinal * (tasaCambio || 1) : precioFinal
+        const tasaCambioFinal = moneda === 'USD' ? tasaCambio : null
+        
+        bodyData = {
+          ...bodyData,
           monto: montoEnUYU,
           montoOriginal,
           moneda,
           tasaCambio: tasaCambioFinal,
           montoEnUYU,
-          metodoPago,
-          iva,
-          diasPlazo: metodoPago === 'Plazo' ? diasPlazo : null,
-          pagado: metodoPago === 'Contado' ? true : pagado,
-          proveedor: proveedor.trim() || null,
-          especie: especie,
-        }),
+        }
+      }
+
+      const response = await fetch(`/api/gastos/${gasto.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(bodyData),
       })
 
       if (!response.ok) throw new Error('Error al actualizar')

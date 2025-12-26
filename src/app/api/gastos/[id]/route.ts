@@ -87,38 +87,14 @@ export async function PUT(
     // ---------------------------------------------------------
     // 🧱 Data para actualizar
     // ---------------------------------------------------------
-    
-    // ✅ IMPORTANTE: Solo recalcular montos si cambió el monto o la moneda
-    const cambioMonto = monto !== undefined && parseFloat(monto) !== gastoExistente.montoOriginal
-    const cambioMoneda = moneda !== undefined && moneda !== gastoExistente.moneda
-    
-    let datosMoneda: any = {}
-    
-    if (cambioMonto || cambioMoneda) {
-      // Si cambió el monto o moneda, recalcular todo
-      datosMoneda = {
-        monto: montoEnUYU,
-        montoOriginal: montoFloat,
-        moneda: monedaFinal,
-        montoEnUYU,
-        montoEnUSD,
-        tasaCambio,
-      }
-    } else {
-      // Si NO cambió monto/moneda, mantener valores existentes
-      datosMoneda = {
-        monto: gastoExistente.monto,
-        montoOriginal: gastoExistente.montoOriginal,
-        moneda: gastoExistente.moneda,
-        montoEnUYU: gastoExistente.montoEnUYU,
-        montoEnUSD: gastoExistente.montoEnUSD,
-        tasaCambio: gastoExistente.tasaCambio,
-      }
-    }
-
     const dataToUpdate: any = {
-      ...datosMoneda,
-      especie: especie !== undefined ? especie : gastoExistente.especie,
+      monto: montoEnUYU,          // deprecated pero lo mantenemos
+      montoOriginal: montoFloat,
+      moneda: monedaFinal,
+      montoEnUYU,
+      montoEnUSD,                 // ✅ NUEVO
+      tasaCambio,
+      especie: especie !== undefined ? especie : gastoExistente.especie, // ✅ NUEVO
 
       fecha: fecha 
         ? new Date(fecha.includes('T') ? fecha : `${fecha}T12:00:00.000Z`) 
