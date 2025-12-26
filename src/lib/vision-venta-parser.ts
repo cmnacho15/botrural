@@ -677,28 +677,23 @@ RESPONDE EN JSON (sin markdown):
       totalNetoUSD: data.totalNetoUSD
     });
 
-    // ✅ CORRECCIÓN: Verificar si el RUT emisor es del usuario (tu firma)
-    if (campoId && data.rutEmisor) {
-      const { prisma } = await import("@/lib/prisma")
-      const firma = await prisma.firma.findFirst({
-        where: {
-          campoId,
-          rut: data.rutEmisor
-        }
-      })
-      
-      if (firma) {
-        console.log(`🔄 RUT ${data.rutEmisor} es TU firma → Invirtiendo roles (vos vendés)`)
-        
-        // Invertir: el emisor sos VOS (vendedor), el otro te compra
-        const temp = data.comprador
-        data.comprador = data.productor  // El que estaba como "productor" ahora es comprador
-        data.productor = temp             // Vos (emisor) sos el productor/vendedor
-        
-        console.log(`  Productor/Vendedor (vos): ${data.productor}`)
-        console.log(`  Comprador: ${data.comprador}`)
-      }
+    console.log("✅ Factura de VENTA procesada:", {
+      comprador: data.comprador,
+      productor: data.productor,
+      renglones: data.renglones.length,
+      totalNetoUSD: data.totalNetoUSD
+    });
+
+    // ✅ VALIDACIÓN FINAL: Productor y Comprador deben ser diferentes
+    if (data.productor === data.comprador) {
+      console.error(`❌ ERROR: Productor (${data.productor}) y Comprador (${data.comprador}) son iguales`)
+      console.error(`   Esto es un error de extracción de GPT`)
+      throw new Error("El productor y el comprador no pueden ser la misma entidad")
     }
+    
+    console.log(`✅ Roles validados:`)
+    console.log(`   Productor/Vendedor: ${data.productor}`)
+    console.log(`   Comprador: ${data.comprador}`)
 
     return data;
 
