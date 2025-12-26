@@ -132,6 +132,23 @@ export async function POST(request: Request) {
 
     console.log(`Mensaje de ${from}: ${messageText}`)
 
+
+    // ==========================================
+    // 🔥 COMANDO CANCELAR GLOBAL - Siempre funciona
+    // ==========================================
+    if (messageText.toLowerCase().trim() === "cancelar") {
+      const deleted = await prisma.pendingConfirmation.deleteMany({
+        where: { telefono: from },
+      })
+      
+      if (deleted.count > 0) {
+        await sendWhatsAppMessage(from, "❌ Operación cancelada. Podés empezar de nuevo.")
+      } else {
+        await sendWhatsAppMessage(from, "No hay ninguna operación pendiente para cancelar.")
+      }
+      return NextResponse.json({ status: "cancelled" })
+    }
+
     // ==========================================
     // 3. FASE 1: Detectar si es un token de invitación
     // ==========================================
