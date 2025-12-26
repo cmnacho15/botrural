@@ -1496,7 +1496,7 @@ const handleEditarGasto = (gasto: Gasto) => {
 
                       {/* ESTADO DE PAGO - Popover */}
                       <td className="px-4 sm:px-6 py-3 text-sm relative">
-                        {metodoPago === 'Plazo' || pagado ? (
+                        {metodoPago === 'Plazo' ? (
                           <>
                             <button
                               onClick={() => {
