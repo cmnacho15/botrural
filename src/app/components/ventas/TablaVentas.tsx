@@ -167,8 +167,51 @@ export default function TablaVentas({ ventas, onRefresh }: TablaVentasProps) {
                           <td className="px-4 py-3 text-sm text-gray-700" rowSpan={venta.renglones.length}>
                             {venta.comprador}
                           </td>
-                          <td className="px-4 py-3 text-sm text-gray-700" rowSpan={venta.renglones.length}>
-                            {venta.fechaVencimiento ? formatFecha(venta.fechaVencimiento) : '-'}
+                          <td className="px-4 py-3 text-sm" rowSpan={venta.renglones.length}>
+                            {(() => {
+                              // Si es Contado, mostrar "-"
+                              if (venta.metodoPago === 'Contado') {
+                                return <span className="text-gray-400">-</span>
+                              }
+
+                              // Si es a Plazo, calcular vencimiento
+                              if (venta.metodoPago === 'Plazo' && venta.fechaVencimiento) {
+                                const fechaVenc = new Date(venta.fechaVencimiento)
+                                const dia = String(fechaVenc.getDate()).padStart(2, '0')
+                                const mes = String(fechaVenc.getMonth() + 1).padStart(2, '0')
+                                const año = fechaVenc.getFullYear()
+                                
+                                const hoy = new Date()
+                                hoy.setHours(0, 0, 0, 0)
+                                fechaVenc.setHours(0, 0, 0, 0)
+                                
+                                const diffTime = fechaVenc.getTime() - hoy.getTime()
+                                const diasRestantes = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+                                
+                                const esVencido = diasRestantes < 0
+                                const esCercano = diasRestantes >= 0 && diasRestantes <= 7
+
+                                return (
+                                  <div className="flex flex-col gap-0.5">
+                                    <span className={`text-sm font-semibold ${
+                                      esVencido ? 'text-red-600' : 
+                                      esCercano ? 'text-orange-600' : 
+                                      'text-blue-600'
+                                    }`}>
+                                      {esVencido 
+                                        ? `⚠️ Vencido hace ${Math.abs(diasRestantes)} días`
+                                        : `📅 Faltan ${diasRestantes} días`
+                                      }
+                                    </span>
+                                    <span className="text-xs text-gray-500">
+                                      Vence: {dia}/{mes}/{año}
+                                    </span>
+                                  </div>
+                                )
+                              }
+
+                              return <span className="text-gray-400">-</span>
+                            })()}
                           </td>
                         </>
                       )}
