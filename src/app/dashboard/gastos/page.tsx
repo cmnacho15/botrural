@@ -1588,6 +1588,13 @@ const handleEditarGasto = (gasto: Gasto) => {
                               </>
                             )}
                           </>
+                        ) : metodoPago === 'Contado' ? (
+                          <span className="inline-flex items-center gap-1 text-green-700 bg-green-50 border border-green-200 px-2 py-1 rounded-md">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                            {esIngreso ? 'Cobrado' : 'Pagado'}
+                          </span>
                         ) : (
                           <span className="text-gray-500">—</span>
                         )}
