@@ -241,7 +241,11 @@ try {
     
     for (const r of ventaData.renglones) {
       const mapped = mapearCategoriaVenta(r.categoria)
-      const montoEnUYU = await convertirAUYU(r.importeBrutoUSD, "USD")
+      
+      // Calcular monto neto proporcional del renglón
+      const proporcion = r.importeBrutoUSD / ventaData.subtotalUSD
+      const montoNetoRenglon = ventaData.totalNetoUSD * proporcion
+      const montoEnUYU = await convertirAUYU(montoNetoRenglon, "USD")
       
       await prisma.gasto.create({
         data: {
@@ -255,10 +259,10 @@ try {
           diasPlazo: ventaData.diasPlazo || null,
           pagado: ventaData.metodoPago === "Contado",
           monto: montoEnUYU,
-          montoOriginal: r.importeBrutoUSD,
+          montoOriginal: montoNetoRenglon,
           moneda: "USD",
           montoEnUYU: montoEnUYU,
-          montoEnUSD: r.importeBrutoUSD,
+          montoEnUSD: montoNetoRenglon,
           tasaCambio: tasaCambio,
           imageUrl: imageUrl,
           imageName: imageName,
@@ -270,7 +274,7 @@ try {
         },
       })
       
-      console.log(`  ✅ Ingreso creado: ${r.cantidad} ${mapped.categoria} - $${r.importeBrutoUSD.toFixed(2)} USD`)
+      console.log(`  ✅ Ingreso creado: ${r.cantidad} ${mapped.categoria} - $${montoNetoRenglon.toFixed(2)} USD`)
     }
     
 
