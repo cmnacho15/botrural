@@ -259,14 +259,16 @@ try {
           imageUrl: imageUrl,
           imageName: imageName,
           iva: null,
-          campoId: campoId,
+          campo: {
+            connect: { id: campoId }
+          },
           especie: null,
         },
       })
       
       console.log(`  ✅ Ingreso creado: ${r.cantidad} ${mapped.categoria} - $${r.importeBrutoUSD.toFixed(2)} USD`)
     }
-    
+
     await prisma.evento.create({
       data: {
         tipo: "VENTA",
