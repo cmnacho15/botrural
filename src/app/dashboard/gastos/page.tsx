@@ -1194,7 +1194,8 @@ const handleEditarGasto = (gasto: Gasto) => {
                   {mostrarMenuEstado && (
                     <>
                       <div className="fixed inset-0 z-40" onClick={() => setMostrarMenuEstado(false)} />
-                      <div className="absolute z-50 w-full mt-2 bg-white border-2 border-blue-500 rounded-xl shadow-2xl">
+                      <div className="absolute z-50 w-full mt-2 bg-white border-2 border-blue-500 rounded-xl shadow-2xl overflow-hidden">
+                        {/* TODOS */}
                         <button
                           onClick={() => {
                             setEstadoPagoFiltro('todos')
@@ -1210,6 +1211,11 @@ const handleEditarGasto = (gasto: Gasto) => {
                           </div>
                         </button>
 
+                        {/* HEADER GASTOS */}
+                        <div className="px-4 py-2 bg-gray-100 border-b">
+                          <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">Gastos</span>
+                        </div>
+
                         <button
                           onClick={() => {
                             setEstadoPagoFiltro('gastos-pendientes')
@@ -1223,7 +1229,7 @@ const handleEditarGasto = (gasto: Gasto) => {
                             <div className="flex items-center gap-2">
                               <span className="text-lg">🟡</span>
                               <span className={`text-sm ${estadoPagoFiltro === 'gastos-pendientes' ? 'font-semibold text-blue-700' : 'text-gray-700'}`}>
-                                Gastos Pendientes
+                                Pendientes
                               </span>
                             </div>
                             <span className="px-2 py-0.5 bg-yellow-100 text-yellow-700 text-xs rounded-full font-medium">
@@ -1245,7 +1251,7 @@ const handleEditarGasto = (gasto: Gasto) => {
                             <div className="flex items-center gap-2">
                               <span className="text-lg">✅</span>
                               <span className={`text-sm ${estadoPagoFiltro === 'gastos-pagados' ? 'font-semibold text-blue-700' : 'text-gray-700'}`}>
-                                Gastos Pagados
+                                Pagados
                               </span>
                             </div>
                             <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full font-medium">
@@ -1253,6 +1259,11 @@ const handleEditarGasto = (gasto: Gasto) => {
                             </span>
                           </div>
                         </button>
+
+                        {/* HEADER INGRESOS */}
+                        <div className="px-4 py-2 bg-gray-100 border-b">
+                          <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">Ingresos</span>
+                        </div>
 
                         <button
                           onClick={() => {
@@ -1267,7 +1278,7 @@ const handleEditarGasto = (gasto: Gasto) => {
                             <div className="flex items-center gap-2">
                               <span className="text-lg">⏳</span>
                               <span className={`text-sm ${estadoPagoFiltro === 'ingresos-por-cobrar' ? 'font-semibold text-blue-700' : 'text-gray-700'}`}>
-                                Ingresos Por Cobrar
+                                Por Cobrar
                               </span>
                             </div>
                             <span className="px-2 py-0.5 bg-cyan-100 text-cyan-700 text-xs rounded-full font-medium">
@@ -1289,7 +1300,7 @@ const handleEditarGasto = (gasto: Gasto) => {
                             <div className="flex items-center gap-2">
                               <span className="text-lg">💰</span>
                               <span className={`text-sm ${estadoPagoFiltro === 'ingresos-cobrados' ? 'font-semibold text-blue-700' : 'text-gray-700'}`}>
-                                Ingresos Cobrados
+                                Cobrados
                               </span>
                             </div>
                             <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full font-medium">
