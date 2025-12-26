@@ -281,7 +281,17 @@ async function handleDataEntry(data: any) {
     } else if (data.categoria?.toLowerCase().includes('cordero')) {
       categoriaGuardar = 'Corderos/as Mamones'
     }
+   
 
+    console.log("🐣 NACIMIENTO DEBUG:", {
+      loteId,
+      potreroNombre,
+      categoriaOriginal: data.categoria,
+      categoriaGuardar,
+      cantidad: data.cantidad,
+      campoId: user.campoId
+    })
+    
     await prisma.evento.create({
       data: {
         tipo: "NACIMIENTO",
