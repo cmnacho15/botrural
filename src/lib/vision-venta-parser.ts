@@ -442,9 +442,28 @@ IMPORTANTE:
 
 REGLAS OBLIGATORIAS:
 
-1. Si la factura tiene "RUT VENDEDOR":
-   - productor: El nombre asociado al RUT VENDEDOR
-   - comprador: Buscar en la sección que dice "Comprador:" (NO el RUT VENDEDOR)
+1. Si la factura tiene "RUT VENDEDOR" o "RUT EMISOR":
+   - rutEmisor: SIEMPRE el RUT VENDEDOR/EMISOR (sin puntos ni guiones)
+   - productor: El nombre asociado al RUT VENDEDOR/EMISOR
+   - comprador: El nombre que aparece en "Comprador:"
+   
+   ⚠️ CRÍTICO: 
+   - rutEmisor SIEMPRE es del VENDEDOR (quien emite la factura)
+   - NO confundir con "RUT COMPRADOR"
+   
+   EJEMPLO 1 - Venta tuya:
+   RUT VENDEDOR: 160216650011 (tu firma)
+   Comprador: ESTABLECIMIENTO COLONIA SA
+   → rutEmisor: "160216650011"
+   → productor: "FERNANDEZ CASTRO SG"
+   → comprador: "ESTABLECIMIENTO COLONIA SA"
+   
+   EJEMPLO 2 - Compra tuya (futuro):
+   RUT VENDEDOR: 999999999 (otro productor)
+   Comprador: FERNANDEZ CASTRO SG (tu firma)
+   → rutEmisor: "999999999"
+   → productor: "OTRO PRODUCTOR"
+   → comprador: "FERNANDEZ CASTRO SG"
    
 2. Si la factura tiene "RUT EMISOR" + "Nombre/Cliente":
    - Verificar contexto para determinar quién vende a quién
@@ -477,7 +496,8 @@ RESPONDE EN JSON (sin markdown):
   "comprador": "nombre del frigorífico",
   "productor": "nombre del productor",
   "productorDicose": "XX.XX.XXXXX",
-  "rutEmisor": "RUT del emisor de la factura",
+  "rutEmisor": "RUT VENDEDOR de la factura (sin puntos, solo números)",
+  "productorRut": "mismo que rutEmisor",
   "consignatario": "nombre o null",
   "fecha": "YYYY-MM-DD",
   "nroFactura": "número",
