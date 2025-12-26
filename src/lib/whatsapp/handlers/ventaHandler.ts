@@ -244,7 +244,7 @@ try {
           tipo: "INGRESO",
           fecha: new Date(ventaData.fecha),
           descripcion: `${r.cantidad} ${mapped.categoria} - ${r.pesoTotalKg.toFixed(0)} kg`,
-          categoria: null,
+          categoria: "Venta de Ganado",
           comprador: ventaData.comprador,
           proveedor: null,
           metodoPago: ventaData.metodoPago || "Contado",
