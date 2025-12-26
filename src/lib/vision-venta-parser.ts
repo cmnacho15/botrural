@@ -670,12 +670,7 @@ RESPONDE EN JSON (sin markdown):
       data.metodoPago = "Contado";
     }
 
-    console.log("✅ Factura de VENTA procesada:", {
-      comprador: data.comprador,
-      productor: data.productor,
-      renglones: data.renglones.length,
-      totalNetoUSD: data.totalNetoUSD
-    });
+   
 
     console.log("✅ Factura de VENTA procesada:", {
       comprador: data.comprador,
