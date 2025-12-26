@@ -777,13 +777,13 @@ const handleEditarGasto = (gasto: Gasto) => {
                     )}
                     {estadoPagoFiltro === 'ingresos-por-cobrar' && (
                       <>
-                        <span className="text-lg">🔵</span>
+                        <span className="text-lg">⏳</span>
                         <span className="text-sm font-medium text-gray-900">Ingresos Por Cobrar</span>
                       </>
                     )}
                     {estadoPagoFiltro === 'ingresos-cobrados' && (
                       <>
-                        <span className="text-lg">💚</span>
+                        <span className="text-lg">💰</span>
                         <span className="text-sm font-medium text-gray-900">Ingresos Cobrados</span>
                       </>
                     )}
