@@ -295,7 +295,7 @@ RESPONDE SOLO:
 /**
  * Procesar imagen de factura de VENTA de hacienda
  */
-export async function processVentaImage(imageUrl: string): Promise<ParsedVenta | null> {
+export async function processVentaImage(imageUrl: string, campoId?: string): Promise<ParsedVenta | null> {
   try {
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
@@ -649,6 +649,29 @@ RESPONDE EN JSON (sin markdown):
       renglones: data.renglones.length,
       totalNetoUSD: data.totalNetoUSD
     });
+
+    // ✅ CORRECCIÓN: Verificar si el RUT emisor es del usuario (tu firma)
+    if (campoId && data.rutEmisor) {
+      const { prisma } = await import("@/lib/prisma")
+      const firma = await prisma.firma.findFirst({
+        where: {
+          campoId,
+          rut: data.rutEmisor
+        }
+      })
+      
+      if (firma) {
+        console.log(`🔄 RUT ${data.rutEmisor} es TU firma → Invirtiendo roles (vos vendés)`)
+        
+        // Invertir: el emisor sos VOS (vendedor), el otro te compra
+        const temp = data.comprador
+        data.comprador = data.productor  // El que estaba como "productor" ahora es comprador
+        data.productor = temp             // Vos (emisor) sos el productor/vendedor
+        
+        console.log(`  Productor/Vendedor (vos): ${data.productor}`)
+        console.log(`  Comprador: ${data.comprador}`)
+      }
+    }
 
     return data;
 

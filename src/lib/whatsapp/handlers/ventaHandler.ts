@@ -16,7 +16,7 @@ export async function handleVentaImage(
   caption: string
 ) {
   try {
-    const ventaData = await processVentaImage(imageUrl)
+    const ventaData = await processVentaImage(imageUrl, campoId)
     if (!ventaData || !ventaData.renglones?.length) {
       await sendWhatsAppMessage(phoneNumber, "No pude leer la factura de venta. ¿La imagen está clara?")
       return
