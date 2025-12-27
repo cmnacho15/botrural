@@ -437,12 +437,19 @@ const calcularVencimiento = (gasto: Gasto) => {
     return null
   }
 
-  const fechaGasto = new Date(gasto.fecha)
+  // Parsear fecha como local (evitar zona horaria UTC)
+  const fechaStr = String(gasto.fecha).split('T')[0] // "2025-11-20"
+  const partes = fechaStr.split('-').map(Number)
+  const fechaGasto = new Date(partes[0], partes[1] - 1, partes[2])
+  
   const fechaVencimiento = new Date(fechaGasto)
   fechaVencimiento.setDate(fechaVencimiento.getDate() + gasto.diasPlazo)
 
-  // Calcular días restantes (considerando zona horaria de Uruguay)
+  // Calcular días restantes desde HOY
   const hoy = new Date()
+  hoy.setHours(0, 0, 0, 0)
+  fechaVencimiento.setHours(0, 0, 0, 0)
+  
   const diffTime = fechaVencimiento.getTime() - hoy.getTime()
   const diasRestantes = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
 
