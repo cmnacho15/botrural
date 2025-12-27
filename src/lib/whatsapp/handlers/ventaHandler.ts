@@ -139,24 +139,50 @@ async function guardarVentaEnBD(savedData: any, phoneNumber: string) {
       select: { id: true } 
     })
     
-    // Detectar firma automáticamente por RUT
+    // Detectar firma automáticamente por RUT O por nombre del productor
 let firmaId = null
-if (ventaData.rutEmisor) {
+
+// Construir condiciones de búsqueda
+const condiciones: any[] = []
+
+// 1. Buscar por RUT (si existe y no es del consignatario)
+if (ventaData.productorRut && ventaData.productorRut !== ventaData.rutEmisor) {
+  condiciones.push({ rut: ventaData.productorRut })
+}
+
+// 2. Buscar por nombre del productor
+if (ventaData.productor) {
+  condiciones.push({ 
+    razonSocial: { contains: ventaData.productor, mode: 'insensitive' } 
+  })
+  
+  // 3. Buscar por palabras del nombre
+  const palabras = ventaData.productor.split(/\s+/).filter(p => p.length > 2)
+  palabras.forEach(palabra => {
+    condiciones.push({
+      razonSocial: { contains: palabra, mode: 'insensitive' }
+    })
+  })
+}
+
+// Buscar firma
+if (condiciones.length > 0) {
   const firma = await prisma.firma.findFirst({
     where: { 
       campoId,
-      rut: ventaData.rutEmisor 
+      OR: condiciones
     }
   })
+  
   if (firma) {
     firmaId = firma.id
-    console.log(`✅ Firma detectada: ${firma.razonSocial} (${firma.rut})`)
+    console.log(`✅ Firma detectada: ${firma.razonSocial} (por nombre/RUT)`)
   } else {
-    console.log(`⚠️ RUT ${ventaData.rutEmisor} no encontrado en firmas configuradas`)
+    console.log(`⚠️ Productor "${ventaData.productor}" no encontrado en firmas configuradas`)
   }
 }
 
-    let venta
+let venta
 try {
   venta = await prisma.venta.create({
     data: {
@@ -170,8 +196,8 @@ try {
       metodoPago: ventaData.metodoPago || "Contado",
       diasPlazo: ventaData.diasPlazo || null,
       fechaVencimiento: ventaData.fechaVencimiento 
-  ? new Date(ventaData.fechaVencimiento + 'T12:00:00Z') 
-  : null,
+        ? new Date(ventaData.fechaVencimiento + 'T12:00:00Z') 
+        : null,
       pagado: ventaData.metodoPago === "Contado",
       moneda: "USD",
       tasaCambio: ventaData.tipoCambio || null,
