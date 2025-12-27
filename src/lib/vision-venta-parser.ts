@@ -98,11 +98,11 @@ if (campoId) {
   messages: [
     {
       role: "system",
-      content: "Extrae de esta factura el VENDEDOR/PRODUCTOR de hacienda.\n\n⚠️ BUSCAR EN ESTE ORDEN DE PRIORIDAD:\n\n1. Si existe campo 'RUT VENDEDOR' o 'RUT EMISOR':\n   → Extraer ese RUT + nombre asociado\n   \n2. Si NO existe RUT VENDEDOR, buscar campo 'VENDEDOR:' o 'Vendedor:':\n   → Extraer solo el nombre que aparece ahí\n   \n3. Si hay sección 'NOMBRE:' asociada al vendedor:\n   → Extraer ese nombre\n\n⚠️ NO CONFUNDIR CON:\n- RUT del header/logo (empresas consignatarias como TOURON, MEGAAGRO, etc.)\n- Campo 'RUT COMPRADOR' o 'Comprador:'\n- Campo 'NOMBRE:' si está asociado al comprador\n- Razón social de la empresa que emite la factura (consignatario)\n\n📋 FORMATO DE RESPUESTA:\n- Si encontrás RUT: RUT|NOMBRE\n- Si NO hay RUT pero SÍ nombre: SIN_RUT|NOMBRE\n- Si no encontrás NADA: NO_ENCONTRADO"
+      content: "Extrae de esta factura el VENDEDOR/PRODUCTOR de hacienda.\n\n⚠️ INSTRUCCIÓN CRÍTICA:\nEsta es una factura de VENTA de animales. El VENDEDOR es el productor ganadero que vende los animales, NO la empresa que emite la factura.\n\n⚠️ PISTAS VISUALES IMPORTANTES:\n- Buscar texto que diga literalmente 'VENDEDOR:' seguido de un nombre\n- Puede estar en fondo VERDE con letras BLANCAS\n- Suele estar en la parte superior/media izquierda de la factura\n- Puede estar en un recuadro o sección específica\n\n⚠️ BUSCAR EN ESTE ORDEN:\n\n1. Campo 'RUT VENDEDOR' o 'RUT EMISOR':\n   → Extraer RUT + nombre asociado\n   \n2. Campo 'VENDEDOR:' o 'Vendedor:' (PRIORIDAD ALTA):\n   → Extraer el nombre que aparece después\n   → Ejemplo: 'VENDEDOR: LUCIA CASTRO' → extraer 'LUCIA CASTRO'\n   \n3. Sección 'NOMBRE:' asociada al vendedor\n\n⚠️ NO CONFUNDIR CON:\n- RUT del header (TOURON, MEGAAGRO, etc. son consignatarios)\n- 'RUT COMPRADOR' o 'Comprador:'\n- Empresa que emite la factura\n\n📋 FORMATO RESPUESTA:\n- Con RUT: RUT|NOMBRE\n- Sin RUT: SIN_RUT|NOMBRE\n- Si NO encuentras: NO_ENCONTRADO\n\n⚠️ IMPORTANTE: Si ves 'VENDEDOR:' en la factura, SIEMPRE debes extraer lo que viene después, aunque esté en fondo verde o con letras blancas."
     },
         {
           role: "user",
-          content: [{ type: "image_url", image_url: { url: imageUrl, detail: "low" } }]
+          content: [{ type: "image_url", image_url: { url: imageUrl, detail: "high" } }]
         }
       ],
       max_tokens: 50,
