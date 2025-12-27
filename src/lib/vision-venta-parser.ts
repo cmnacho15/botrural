@@ -704,8 +704,8 @@ RESPONDE EN JSON (sin markdown):
 
     // ✅ CALCULAR MÉTODO DE PAGO Y DÍAS DE PLAZO automáticamente
     if (data.fechaVencimiento) {
-      const fechaFactura = new Date(data.fecha);
-      const fechaVenc = new Date(data.fechaVencimiento);
+      const fechaFactura = new Date(data.fecha + 'T00:00:00');
+const fechaVenc = new Date(data.fechaVencimiento + 'T00:00:00');
       
       // Si vencimiento es > 7 días después de la factura → es Plazo
       const diffMs = fechaVenc.getTime() - fechaFactura.getTime();
