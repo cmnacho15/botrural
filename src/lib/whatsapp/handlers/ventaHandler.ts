@@ -169,7 +169,9 @@ try {
       nroFactura: ventaData.nroFactura || null,
       metodoPago: ventaData.metodoPago || "Contado",
       diasPlazo: ventaData.diasPlazo || null,
-      fechaVencimiento: ventaData.fechaVencimiento ? new Date(ventaData.fechaVencimiento) : null,
+      fechaVencimiento: ventaData.fechaVencimiento 
+  ? new Date(ventaData.fechaVencimiento + 'T12:00:00Z') 
+  : null,
       pagado: ventaData.metodoPago === "Contado",
       moneda: "USD",
       tasaCambio: ventaData.tipoCambio || null,
