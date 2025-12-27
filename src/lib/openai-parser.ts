@@ -86,12 +86,14 @@ TIPOS DE EVENTOS QUE DEBES DETECTAR:
      "potrero": "Norte" (nombre EXACTO si se menciona)
    }
 
-3. MUERTE:
+3. MORTANDAD:
    - "murieron 2 vacas"
    - "se murió un ternero en el lote sur"
+   - "murió un novillo"
+   - "perdí 3 ovejas"
    Retorna:
    {
-     "tipo": "MUERTE",
+     "tipo": "MORTANDAD",
      "categoria": "vacas",
      "cantidad": 2,
      "potrero": "Sur" (nombre EXACTO si se menciona)
