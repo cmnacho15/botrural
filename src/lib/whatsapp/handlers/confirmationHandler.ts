@@ -24,7 +24,7 @@ export async function solicitarConfirmacion(phone: string, data: any) {
   break
     case "MORTANDAD":
       mensaje += `*Mortandad*\n• Cantidad: ${data.cantidad} ${data.categoria}`
-      if (data.lote) mensaje += `\n• Potrero: ${data.lote}`
+      if (data.potrero) mensaje += `\n• Potrero: ${data.potrero}`
       break
     case "GASTO":
       mensaje += `*Gasto*\n• Monto: $${data.monto}\n• Concepto: ${data.descripcion}\n• Categoría: ${data.categoria}`
@@ -333,6 +333,58 @@ async function handleDataEntry(data: any) {
       }
 
       console.log("✅ AnimalLote actualizado:", categoriaGuardar, cantidadNacidos)
+    }
+  } else if (data.tipo === "MORTANDAD") {
+    const cantidadMuertos = parseInt(data.cantidad) || 0
+
+    console.log("💀 MORTANDAD DEBUG:", {
+      loteId,
+      potreroNombre,
+      categoria: data.categoria,
+      cantidad: cantidadMuertos,
+      campoId: user.campoId
+    })
+
+    // 1) Crear el evento
+    await prisma.evento.create({
+      data: {
+        tipo: "MORTANDAD",
+        descripcion: `Mortandad de ${cantidadMuertos} ${data.categoria} en potrero ${data.potrero || 'sin especificar'}`,
+        fecha: new Date(),
+        cantidad: cantidadMuertos,
+        categoria: data.categoria,
+        loteId,
+        usuarioId: user.id,
+        campoId: user.campoId,
+      },
+    })
+
+    // 2) Restar del stock de animales en AnimalLote
+    if (loteId && cantidadMuertos > 0 && data.categoria) {
+      const animalExistente = await prisma.animalLote.findFirst({
+        where: { 
+          loteId, 
+          categoria: data.categoria,
+          lote: { campoId: user.campoId } 
+        },
+      })
+
+      if (animalExistente) {
+        const nuevaCantidad = Math.max(0, animalExistente.cantidad - cantidadMuertos)
+        
+        if (nuevaCantidad === 0) {
+          await prisma.animalLote.delete({ where: { id: animalExistente.id } })
+          console.log("🗑️ AnimalLote eliminado (cantidad llegó a 0)")
+        } else {
+          await prisma.animalLote.update({
+            where: { id: animalExistente.id },
+            data: { cantidad: nuevaCantidad },
+          })
+          console.log("✅ AnimalLote actualizado:", data.categoria, "→", nuevaCantidad)
+        }
+      } else {
+        console.log("⚠️ No se encontró categoría", data.categoria, "en el potrero")
+      }
     }
   } else {
     await prisma.evento.create({
