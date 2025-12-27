@@ -142,43 +142,79 @@ async function guardarVentaEnBD(savedData: any, phoneNumber: string) {
     // Detectar firma automáticamente por RUT O por nombre del productor
 let firmaId = null
 
-// Construir condiciones de búsqueda
-const condiciones: any[] = []
-
-// 1. Buscar por RUT (si existe y no es del consignatario)
-if (ventaData.productorRut && ventaData.productorRut !== ventaData.rutEmisor) {
-  condiciones.push({ rut: ventaData.productorRut })
-}
-
-// 2. Buscar por nombre del productor
-if (ventaData.productor) {
-  condiciones.push({ 
-    razonSocial: { contains: ventaData.productor, mode: 'insensitive' } 
-  })
-  
-  // 3. Buscar por palabras del nombre
-  const palabras = ventaData.productor.split(/\s+/).filter(p => p.length > 2)
-  palabras.forEach(palabra => {
-    condiciones.push({
-      razonSocial: { contains: palabra, mode: 'insensitive' }
+if (ventaData.productor || ventaData.productorRut) {
+  // 1. Buscar por RUT exacto (si existe y no es del consignatario)
+  if (ventaData.productorRut && ventaData.productorRut !== ventaData.rutEmisor) {
+    const firmaPorRut = await prisma.firma.findFirst({
+      where: { 
+        campoId,
+        rut: ventaData.productorRut
+      }
     })
-  })
-}
-
-// Buscar firma
-if (condiciones.length > 0) {
-  const firma = await prisma.firma.findFirst({
-    where: { 
-      campoId,
-      OR: condiciones
+    
+    if (firmaPorRut) {
+      firmaId = firmaPorRut.id
+      console.log(`✅ Firma detectada por RUT: ${firmaPorRut.razonSocial} (${firmaPorRut.rut})`)
     }
-  })
+  }
   
-  if (firma) {
-    firmaId = firma.id
-    console.log(`✅ Firma detectada: ${firma.razonSocial} (por nombre/RUT)`)
-  } else {
-    console.log(`⚠️ Productor "${ventaData.productor}" no encontrado en firmas configuradas`)
+  // 2. Si no encontró por RUT, buscar por nombre
+  if (!firmaId && ventaData.productor) {
+    // Traer todas las firmas del campo
+    const todasLasFirmas = await prisma.firma.findMany({
+      where: { campoId }
+    })
+    
+    if (todasLasFirmas.length > 0) {
+      const nombreBuscado = ventaData.productor.trim().toUpperCase()
+      
+      // Calcular score de coincidencia para cada firma
+      const firmasConScore = todasLasFirmas.map(firma => {
+        const razonSocial = firma.razonSocial.toUpperCase()
+        
+        // Match exacto = score 100
+        if (razonSocial === nombreBuscado) {
+          return { firma, score: 100 }
+        }
+        
+        // Contiene el nombre completo = score 80
+        if (razonSocial.includes(nombreBuscado)) {
+          return { firma, score: 80 }
+        }
+        
+        // Contar palabras en común (mínimo 2 palabras para considerar)
+        const palabrasBuscadas = nombreBuscado.split(/\s+/).filter(p => p.length > 2)
+        const palabrasFirma = razonSocial.split(/\s+/).filter(p => p.length > 2)
+        
+        if (palabrasBuscadas.length < 2) {
+          return { firma, score: 0 } // No buscar si es una sola palabra
+        }
+        
+        const palabrasCoincidentes = palabrasBuscadas.filter(p => 
+          palabrasFirma.includes(p)
+        ).length
+        
+        // Score proporcional a coincidencias (mínimo 2 palabras)
+        if (palabrasCoincidentes >= 2) {
+          const score = (palabrasCoincidentes / palabrasBuscadas.length) * 60
+          return { firma, score }
+        }
+        
+        return { firma, score: 0 }
+      })
+      
+      // Ordenar por score y tomar la mejor
+      const mejorMatch = firmasConScore
+        .filter(f => f.score > 0)
+        .sort((a, b) => b.score - a.score)[0]
+      
+      if (mejorMatch) {
+        firmaId = mejorMatch.firma.id
+        console.log(`✅ Firma detectada por nombre (score: ${mejorMatch.score}): ${mejorMatch.firma.razonSocial}`)
+      } else {
+        console.log(`⚠️ Productor "${ventaData.productor}" no encontrado en firmas configuradas`)
+      }
+    }
   }
 }
 
