@@ -431,6 +431,17 @@ const datosBarChart = (() => {
 
   return Object.values(gastosPorMes)
 })()
+
+
+// Helper para parsear fechas sin problemas de zona horaria
+const parseFechaLocal = (fecha: string | Date): Date => {
+  const fechaStr = String(fecha).split('T')[0]
+  const partes = fechaStr.split('-').map(Number)
+  return new Date(partes[0], partes[1] - 1, partes[2])
+}
+
+
+
 // 🗓️ FUNCIÓN PARA CALCULAR VENCIMIENTO
 const calcularVencimiento = (gasto: Gasto) => {
   if (!gasto.diasPlazo || gasto.metodoPago !== 'Plazo' || gasto.pagado) {
@@ -438,9 +449,7 @@ const calcularVencimiento = (gasto: Gasto) => {
   }
 
   // Parsear fecha como local (evitar zona horaria UTC)
-  const fechaStr = String(gasto.fecha).split('T')[0] // "2025-11-20"
-  const partes = fechaStr.split('-').map(Number)
-  const fechaGasto = new Date(partes[0], partes[1] - 1, partes[2])
+  const fechaGasto = parseFechaLocal(gasto.fecha)
   
   const fechaVencimiento = new Date(fechaGasto)
   fechaVencimiento.setDate(fechaVencimiento.getDate() + gasto.diasPlazo)
@@ -471,19 +480,18 @@ const transacciones = gastosFiltrados
     const esIngreso = gasto.tipo === 'INGRESO'
 
     // Formatear fecha correctamente sin problemas de zona horaria
-    const fechaObj = new Date(gasto.fecha)
-    const fechaFormateada = new Date(fechaObj.getTime() + fechaObj.getTimezoneOffset() * 60000)
-      .toLocaleDateString('es-UY', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
-      })
+    const fechaLocal = parseFechaLocal(gasto.fecha)
+    const fechaFormateada = fechaLocal.toLocaleDateString('es-UY', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    })
 
     return {
       id: gasto.id,
       tipo: gasto.tipo,
       fecha: fechaFormateada,
-      fechaOriginal: new Date(gasto.fecha).getTime(),
+      fechaOriginal: fechaLocal.getTime(),
       monto: getMontoVista(gasto),
       item: gasto.descripcion?.split(' - ')[0] || 'Sin descripción',
       categoria: gasto.categoria,
