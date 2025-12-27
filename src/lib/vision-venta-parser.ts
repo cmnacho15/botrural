@@ -98,7 +98,7 @@ if (campoId) {
   messages: [
     {
       role: "system",
-      content: "Extrae de esta factura SOLO:\n1. RUT VENDEDOR (solo números, sin puntos ni guiones)\n2. Nombre del VENDEDOR/PRODUCTOR\n\n⚠️ BUSCAR ESPECÍFICAMENTE:\n- Campo que diga 'RUT VENDEDOR' o 'RUT EMISOR'\n- Nombre en sección 'Nombre o Denominación' asociado al RUT VENDEDOR\n\n⚠️ NO CONFUNDIR CON:\n- RUT del logo (MEGAAGRO, consignatarios)\n- RUT COMPRADOR\n- RUT de empresas en el header\n\nEJEMPLO FACTURA MEGAAGRO:\nRUT VENDEDOR: 160216650011\nNombre: FERNANDEZ CASTRO SG\n→ Respuesta: 160216650011|FERNANDEZ CASTRO SG\n\nResponde en formato: RUT|NOMBRE\nSi no encuentras, usa 'NO_ENCONTRADO'"
+      content: "Extrae de esta factura el VENDEDOR/PRODUCTOR de hacienda.\n\n⚠️ BUSCAR EN ESTE ORDEN DE PRIORIDAD:\n\n1. Si existe campo 'RUT VENDEDOR' o 'RUT EMISOR':\n   → Extraer ese RUT + nombre asociado\n   \n2. Si NO existe RUT VENDEDOR, buscar campo 'VENDEDOR:' o 'Vendedor:':\n   → Extraer solo el nombre que aparece ahí\n   \n3. Si hay sección 'NOMBRE:' asociada al vendedor:\n   → Extraer ese nombre\n\n⚠️ NO CONFUNDIR CON:\n- RUT del header/logo (empresas consignatarias como TOURON, MEGAAGRO, etc.)\n- Campo 'RUT COMPRADOR' o 'Comprador:'\n- Campo 'NOMBRE:' si está asociado al comprador\n- Razón social de la empresa que emite la factura (consignatario)\n\n📋 FORMATO DE RESPUESTA:\n- Si encontrás RUT: RUT|NOMBRE\n- Si NO hay RUT pero SÍ nombre: SIN_RUT|NOMBRE\n- Si no encontrás NADA: NO_ENCONTRADO"
     },
         {
           role: "user",
@@ -117,25 +117,47 @@ if (respuesta && respuesta !== "NO_ENCONTRADO") {
   
   const { prisma } = await import("@/lib/prisma")
   
-  // Buscar por RUT O por razón social
-  const firmaEncontrada = await prisma.firma.findFirst({
-    where: {
-      campoId,
-      OR: [
-        { rut: rutExtraido?.trim() },
-        { razonSocial: { contains: nombreExtraido?.trim(), mode: 'insensitive' } }
-      ]
-    }
-  })
+  // Construir condiciones de búsqueda
+  const condiciones: any[] = []
+  
+  // 1. Si hay RUT (y no es "SIN_RUT"), buscar por RUT
+  if (rutExtraido && rutExtraido !== "SIN_RUT") {
+    condiciones.push({ rut: rutExtraido.trim() })
+  }
+  
+  // 2. Buscar por razón social completa
+  if (nombreExtraido) {
+    condiciones.push({ 
+      razonSocial: { contains: nombreExtraido.trim(), mode: 'insensitive' } 
+    })
+    
+    // 3. Buscar por palabras individuales del nombre (por si el nombre está incompleto)
+    const palabras = nombreExtraido.trim().split(/\s+/).filter(p => p.length > 2)
+    palabras.forEach(palabra => {
+      condiciones.push({
+        razonSocial: { contains: palabra, mode: 'insensitive' }
+      })
+    })
+  }
+  
+  // Buscar en BD
+  const firmaEncontrada = condiciones.length > 0 
+    ? await prisma.firma.findFirst({
+        where: {
+          campoId,
+          OR: condiciones
+        }
+      })
+    : null
 
-      if (firmaEncontrada) {
-        console.log(`✅ RUT ${rutExtraido} pertenece a firma configurada: ${firmaEncontrada.razonSocial}`)
-        console.log("🎯 AUTO-DETECTADO como VENTA (es tu firma)")
-        return "VENTA"
-      } else {
-        console.log(`ℹ️ RUT ${rutExtraido} NO está en tus firmas configuradas`)
-      }
-    }
+  if (firmaEncontrada) {
+    console.log(`✅ Nombre "${nombreExtraido}" encontrado en firma: ${firmaEncontrada.razonSocial}`)
+    console.log("🎯 AUTO-DETECTADO como VENTA (es tu firma)")
+    return "VENTA"
+  } else {
+    console.log(`ℹ️ Nombre "${nombreExtraido}" NO está en tus firmas configuradas`)
+  }
+}
   } catch (err) {
     console.warn("⚠️ Error en detección rápida de RUT, continuando con método normal:", err)
   }
@@ -235,31 +257,35 @@ RESPONDE SOLO:
 
     // Buscar palabras clave VENTA (más específicas)
     const palabrasVentaFuertes = [
-      "TROPA",
-      "DICOSE",
-      "FACT. HACIENDAS",
-      "FACT.HACIENDAS",
-      "FRIGORIFICO",
-      "FRIGORÍFICO",
-      "FRIGO ",
-      "SEGUNDA BALANZA",
-      "RENDIMIENTO",
-      "MEVIR",
-      "INIA",
-      "IMEBA",
-      "PRODUCTOR:",
-      "LIQUIDACION",
-      "LIQUIDACIÓN",
-      "CHIADEL",
-      "E-FACTURA",
-      "RUT COMPRADOR",
-      "COMISION",
-      "COMISIÓN",
-      "C.S.E",
-      "TCB",
-      "TCF",
-      "COMPENSACION KILOS"
-    ];
+  "TROPA",
+  "DICOSE",
+  "FACT. HACIENDAS",
+  "FACT.HACIENDAS",
+  "FRIGORIFICO",
+  "FRIGORÍFICO",
+  "FRIGO ",
+  "SEGUNDA BALANZA",
+  "RENDIMIENTO",
+  "MEVIR",
+  "INIA",
+  "IMEBA",
+  "PRODUCTOR:",
+  "LIQUIDACION",
+  "LIQUIDACIÓN",
+  "CHIADEL",
+  "E-FACTURA",
+  "RUT COMPRADOR",
+  "COMISION",
+  "COMISIÓN",
+  "C.S.E",
+  "TCB",
+  "TCF",
+  "COMPENSACION KILOS",
+  "VENDEDOR:",
+  "PESO BRUTO",
+  "PESO NETO",
+  "DESTARE",
+];
 
     for (const palabra of palabrasVentaFuertes) {
       if (texto.includes(palabra)) {
