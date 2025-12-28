@@ -18,6 +18,7 @@ type Registro = {
   diasDescanso: number
   hectareas: number
   comentarios: string
+  comentariosHtml?: string
 }
 
 export default function ReportePastoreoPage() {
@@ -243,7 +244,10 @@ export default function ReportePastoreoPage() {
                         <td className="px-4 py-3 text-sm text-center">{registro.fechaSalida}</td>
                         <td className="px-4 py-3 text-sm text-center">{registro.diasDescanso}</td>
                         <td className="px-4 py-3 text-sm text-center">{registro.hectareas.toFixed(2)}</td>
-                        <td className="px-4 py-3 text-sm">{registro.comentarios}</td>
+                        <td 
+                          className="px-4 py-3 text-sm"
+                          dangerouslySetInnerHTML={{ __html: registro.comentariosHtml || registro.comentarios }}
+                        />
                       </tr>
                     ))}
                   </tbody>
