@@ -240,7 +240,7 @@ export async function ejecutarCambioPotrero(data: any) {
       })
     }
 
-    // Verificar si el potrero origen quedó vacío después de la transacción
+   // Verificar si el potrero origen quedó vacío después de la transacción
     const loteOrigenFinal = await tx.lote.findUnique({
       where: { id: data.loteId },
       include: { animalesLote: true }
@@ -253,7 +253,11 @@ export async function ejecutarCambioPotrero(data: any) {
       })
     }
 
-    // ✅ Potrero destino recibe animales → NO resetear días
+    // ✅ Potrero destino recibe animales → resetear ultimoCambio para que días de pastoreo arranque en 0
+    await tx.lote.update({
+      where: { id: data.loteDestinoId },
+      data: { ultimoCambio: new Date() }
+    })
 
     const descripcion = `Cambio de ${data.cantidad} ${data.categoria} del potrero "${data.loteOrigenNombre}" al potrero "${data.loteDestinoNombre}".`
 
