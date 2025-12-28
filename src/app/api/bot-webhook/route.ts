@@ -242,6 +242,21 @@ if (consultaStockMatch && usuario?.campoId) {
 
 const parsedData = await parseMessageWithAI(messageText, potreros, categorias)
 
+    // ========================================
+    // 🚫 GPT retornó un error
+    // ========================================
+    if (parsedData?.error) {
+      const nombresPotreros = potreros.map(p => p.nombre).join(', ')
+      await sendWhatsAppMessage(
+        from,
+        `❌ ${parsedData.error}\n\n` +
+        (potreros.length > 0 
+          ? `📍 Tus potreros son: ${nombresPotreros}`
+          : `No tenés potreros creados aún.`)
+      )
+      return NextResponse.json({ status: "error from gpt" })
+    }
+
     if (parsedData) {
   // ========================================
   // 📊 REPORTE DE CARGA (PDF)
