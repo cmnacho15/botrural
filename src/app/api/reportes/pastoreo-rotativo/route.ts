@@ -193,21 +193,17 @@ export async function GET(request: Request) {
         const fechaEntrada = ciclo.fechaInicio
         const fechaSalida = ciclo.fechaFin
 
-        // Aplicar filtro de fechas AQUÍ (después de construir los ciclos)
-        // Solo excluir si el ciclo está completamente fuera del rango
-        if (fechaDesde) {
-          const limiteDesde = new Date(fechaDesde)
-          // Si el ciclo terminó antes de la fecha desde, no lo incluir
-          if (fechaSalida && fechaSalida < limiteDesde) {
-            continue
-          }
-        }
-
-        if (fechaHasta) {
-          const limiteHasta = new Date(fechaHasta)
+        // Aplicar filtro de fechas solo si están definidos
+        // Incluir ciclo si tiene alguna intersección con el rango de fechas
+        if (fechaDesde || fechaHasta) {
+          const limiteDesde = fechaDesde ? new Date(fechaDesde) : new Date(0)
+          const limiteHasta = fechaHasta ? new Date(fechaHasta) : hoy
           limiteHasta.setHours(23, 59, 59, 999)
-          // Si el ciclo empezó después de la fecha hasta, no lo incluir
-          if (fechaEntrada > limiteHasta) {
+          
+          const fechaFinCiclo = fechaSalida || hoy
+          
+          // Excluir solo si el ciclo está COMPLETAMENTE fuera del rango
+          if (fechaFinCiclo < limiteDesde || fechaEntrada > limiteHasta) {
             continue
           }
         }
