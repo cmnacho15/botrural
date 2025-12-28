@@ -446,6 +446,12 @@ export async function POST(request: Request) {
       // ======================================================================
       case "NACIMIENTO":
         if (loteId && cantidad && categoria) {
+          // ✅ Verificar ANTES si el potrero estaba vacío
+          const animalesAntes = await prisma.animalLote.findMany({
+            where: { loteId },
+          });
+          const estabaVacio = animalesAntes.length === 0;
+
           const animal = await prisma.animalLote.findFirst({
             where: { loteId, categoria, lote: { campoId: usuario.campoId } },
           });
@@ -461,7 +467,13 @@ export async function POST(request: Request) {
             });
           }
 
-          await actualizarUltimoCambioSiVacio(loteId);
+          // ✅ Si estaba vacío, resetear ultimoCambio
+          if (estabaVacio) {
+            await prisma.lote.update({
+              where: { id: loteId },
+              data: { ultimoCambio: new Date() },
+            });
+          }
         }
         break;
 

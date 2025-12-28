@@ -100,38 +100,45 @@ export async function GET(request: Request) {
       const entradasPotrero = eventos.filter(e => e.loteDestinoId === potrero.id)
       const salidasPotrero = eventos.filter(e => e.loteId === potrero.id)
 
-      // Si no hay eventos de entrada pero hay ultimoCambio, agregar carga inicial
-      if (entradasPotrero.length === 0 && potrero.ultimoCambio) {
-        const fechaInicial = new Date(potrero.ultimoCambio)
+      // Si no hay eventos de entrada pero hay ultimoCambio Y tiene animales, agregar carga inicial
+      if (entradasPotrero.length === 0 && potrero.ultimoCambio && potrero.animalesLote.length > 0) {
+        const comentario = potrero.animalesLote
+          .map(a => `${a.cantidad} ${a.categoria}`)
+          .join(', ')
+        const cantidadInicial = potrero.animalesLote.reduce((sum, a) => sum + a.cantidad, 0)
         
-        // Si tiene animales actualmente, usar esos
-        let comentario = ''
-        let cantidadInicial = 0
+        entradasPotrero.unshift({
+          id: 'inicial-' + potrero.id,
+          fecha: potrero.ultimoCambio,
+          loteId: null,
+          loteDestinoId: potrero.id,
+          categoria: comentario,
+          cantidad: cantidadInicial,
+          descripcion: comentario,
+        })
+      }
+      
+      // Si hay eventos de CAMBIO_POTRERO de salida pero ninguno de entrada, 
+      // significa que los animales se agregaron por edición antes del primer cambio
+      if (entradasPotrero.length === 0 && salidasPotrero.length > 0) {
+        const primeraSalida = salidasPotrero[0]
+        const comentario = primeraSalida.categoria || primeraSalida.descripcion || 'Animales'
+        const cantidadInicial = primeraSalida.cantidad || 0
         
-        if (potrero.animalesLote.length > 0) {
-          comentario = potrero.animalesLote
-            .map(a => `${a.cantidad} ${a.categoria}`)
-            .join(', ')
-          cantidadInicial = potrero.animalesLote.reduce((sum, a) => sum + a.cantidad, 0)
-        } else if (salidasPotrero.length > 0) {
-          // Si no tiene animales pero sí hay salidas, significa que tuvo animales antes
-          // Usar la cantidad de la primera salida como referencia
-          const primeraSalida = salidasPotrero[0]
-          comentario = primeraSalida.categoria || primeraSalida.descripcion || 'Animales'
-          cantidadInicial = primeraSalida.cantidad || 0
-        }
+        // Usar ultimoCambio o una fecha anterior a la primera salida
+        const fechaEntrada = potrero.ultimoCambio && new Date(potrero.ultimoCambio) < new Date(primeraSalida.fecha)
+          ? potrero.ultimoCambio
+          : new Date(new Date(primeraSalida.fecha).getTime() - (24 * 60 * 60 * 1000)) // 1 día antes
         
-        if (comentario || salidasPotrero.length > 0) {
-          entradasPotrero.unshift({
-            id: 'inicial-' + potrero.id,
-            fecha: potrero.ultimoCambio,
-            loteId: null,
-            loteDestinoId: potrero.id,
-            categoria: null,
-            cantidad: cantidadInicial || null,
-            descripcion: comentario || 'Carga inicial',
-          })
-        }
+        entradasPotrero.unshift({
+          id: 'inicial-' + potrero.id,
+          fecha: fechaEntrada,
+          loteId: null,
+          loteDestinoId: potrero.id,
+          categoria: comentario,
+          cantidad: cantidadInicial,
+          descripcion: `${cantidadInicial} ${comentario} (carga inicial)`,
+        })
       }
 
       if (entradasPotrero.length === 0 && salidasPotrero.length === 0) {
