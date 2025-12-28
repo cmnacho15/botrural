@@ -67,17 +67,8 @@ export async function GET(request: Request) {
       })
     }
 
-    const filtroFechas: any = {}
-    if (fechaDesde) {
-      filtroFechas.gte = new Date(fechaDesde)
-    }
-    if (fechaHasta) {
-      const fecha = new Date(fechaHasta)
-      fecha.setHours(23, 59, 59, 999)
-      filtroFechas.lte = fecha
-    }
-
-    // Obtener todos los eventos de cambio de potrero
+    // IMPORTANTE: Obtener TODOS los eventos sin filtro de fecha
+    // porque necesitamos el historial completo para armar los ciclos
     const eventos = await prisma.evento.findMany({
       where: {
         tipo: 'CAMBIO_POTRERO',
@@ -86,7 +77,6 @@ export async function GET(request: Request) {
           { loteDestinoId: { in: potrerosIds } },
           { loteId: { in: potrerosIds } }
         ],
-        ...(Object.keys(filtroFechas).length > 0 && { fecha: filtroFechas }),
       },
       select: {
         id: true,
@@ -113,42 +103,36 @@ export async function GET(request: Request) {
       // Si tiene animales actualmente pero no hay eventos de entrada, agregar carga inicial
       if (potrero.animalesLote.length > 0 && entradasPotrero.length === 0 && potrero.ultimoCambio) {
         const fechaInicial = new Date(potrero.ultimoCambio)
-        if ((!fechaDesde || fechaInicial >= new Date(fechaDesde)) &&
-            (!fechaHasta || fechaInicial <= new Date(fechaHasta))) {
-          const comentario = potrero.animalesLote
-            .map(a => `${a.cantidad} ${a.categoria}`)
-            .join(', ')
-          
-          entradasPotrero.unshift({
-            id: 'inicial-' + potrero.id,
-            fecha: potrero.ultimoCambio,
-            loteId: null,
-            loteDestinoId: potrero.id,
-            categoria: null,
-            cantidad: null,
-            descripcion: comentario,
-          })
-        }
+        const comentario = potrero.animalesLote
+          .map(a => `${a.cantidad} ${a.categoria}`)
+          .join(', ')
+        
+        entradasPotrero.unshift({
+          id: 'inicial-' + potrero.id,
+          fecha: potrero.ultimoCambio,
+          loteId: null,
+          loteDestinoId: potrero.id,
+          categoria: null,
+          cantidad: null,
+          descripcion: comentario,
+        })
       }
 
       if (entradasPotrero.length === 0 && salidasPotrero.length === 0) {
         // Potrero sin movimientos
         if (potrero.ultimoCambio && potrero.animalesLote.length === 0) {
           const fechaUltimoCambio = new Date(potrero.ultimoCambio)
-          if ((!fechaDesde || fechaUltimoCambio >= new Date(fechaDesde)) &&
-              (!fechaHasta || fechaUltimoCambio <= new Date(fechaHasta))) {
-            const diasDescanso = Math.floor((fechaLimite.getTime() - fechaUltimoCambio.getTime()) / (1000 * 60 * 60 * 24))
-            registros.push({
-              potrero: potrero.nombre,
-              fechaEntrada: '-',
-              dias: '-',
-              fechaSalida: fechaUltimoCambio.toLocaleDateString('es-UY'),
-              diasDescanso: diasDescanso,
-              hectareas: Math.round((potrero.hectareas || 0) * 100) / 100,
-              comentarios: 'En descanso (sin historial)',
-              comentariosHtml: 'En descanso (sin historial)',
-            })
-          }
+          const diasDescanso = Math.floor((fechaLimite.getTime() - fechaUltimoCambio.getTime()) / (1000 * 60 * 60 * 24))
+          registros.push({
+            potrero: potrero.nombre,
+            fechaEntrada: '-',
+            dias: '-',
+            fechaSalida: fechaUltimoCambio.toLocaleDateString('es-UY'),
+            diasDescanso: diasDescanso,
+            hectareas: Math.round((potrero.hectareas || 0) * 100) / 100,
+            comentarios: 'En descanso (sin historial)',
+            comentariosHtml: 'En descanso (sin historial)',
+          })
         }
         continue
       }
@@ -208,6 +192,25 @@ export async function GET(request: Request) {
       for (const ciclo of ciclos) {
         const fechaEntrada = ciclo.fechaInicio
         const fechaSalida = ciclo.fechaFin
+
+        // Aplicar filtro de fechas AQUÍ (después de construir los ciclos)
+        // Solo excluir si el ciclo está completamente fuera del rango
+        if (fechaDesde) {
+          const limiteDesde = new Date(fechaDesde)
+          // Si el ciclo terminó antes de la fecha desde, no lo incluir
+          if (fechaSalida && fechaSalida < limiteDesde) {
+            continue
+          }
+        }
+
+        if (fechaHasta) {
+          const limiteHasta = new Date(fechaHasta)
+          limiteHasta.setHours(23, 59, 59, 999)
+          // Si el ciclo empezó después de la fecha hasta, no lo incluir
+          if (fechaEntrada > limiteHasta) {
+            continue
+          }
+        }
 
         // Calcular días de pastoreo
         let diasPastoreo = 0
