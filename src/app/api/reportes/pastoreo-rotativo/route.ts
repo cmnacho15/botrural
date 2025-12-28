@@ -131,23 +131,24 @@ export async function GET(request: Request) {
           esEntrada: false,
         }))
 
-      // ✅ NUEVO: Entradas por AJUSTE positivo
-      const entradasAjuste = eventosAjuste
-        .filter(e => e.loteId === potrero.id && e.descripcion?.includes('positivo'))
-        .map(e => ({
-          ...e,
-          loteDestinoId: potrero.id,
-          tipoEvento: 'AJUSTE',
-          esEntrada: true,
-        }))
-
-      // ✅ NUEVO: Salidas por AJUSTE negativo
+      // ✅ NUEVO: Salidas por AJUSTE negativo (detectar primero las salidas)
       const salidasAjuste = eventosAjuste
         .filter(e => e.loteId === potrero.id && (e.descripcion?.includes('negativo') || e.descripcion?.includes('eliminaron')))
         .map(e => ({
           ...e,
           tipoEvento: 'AJUSTE',
           esEntrada: false,
+        }))
+
+      // ✅ NUEVO: Entradas por AJUSTE (todo lo que NO sea salida)
+      const idsSalidas = new Set(salidasAjuste.map(e => e.id))
+      const entradasAjuste = eventosAjuste
+        .filter(e => e.loteId === potrero.id && !idsSalidas.has(e.id))
+        .map(e => ({
+          ...e,
+          loteDestinoId: potrero.id,
+          tipoEvento: 'AJUSTE',
+          esEntrada: true,
         }))
 
       // ✅ Combinar todas las entradas y salidas
