@@ -27,3 +27,9 @@ export {
 
 export { handleReporteCarga } from "./handlers/reporteCargaHandler"
 export { sendWhatsAppDocument } from "./sendMessage"
+
+export {
+  handleStockConsulta,
+  handleStockEdicion,
+  handleStockButtonResponse,
+} from "./handlers/stockConsultaHandler"

@@ -24,6 +24,8 @@ import {
   handleCalendarioButtonResponse,
   handleMoverPotreroModulo,
   handleReporteCarga,
+  handleStockConsulta,
+  handleStockEdicion,
 } from "@/lib/whatsapp"
 
 const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || "mi_token_secreto"
@@ -177,10 +179,20 @@ export async function POST(request: Request) {
     })
 
     if (confirmacionPendiente) {
+      const data = JSON.parse(confirmacionPendiente.data)
+      
+      // Si hay consulta de stock activa, intentar procesar como edición
+      if (data.tipo === "STOCK_CONSULTA") {
+        const procesado = await handleStockEdicion(from, messageText)
+        if (procesado) {
+          return NextResponse.json({ status: "stock edit processed" })
+        }
+      }
+      
+      // Si no fue edición de stock, procesar confirmación normal
       await handleConfirmacion(from, messageText, confirmacionPendiente)
       return NextResponse.json({ status: "confirmacion processed" })
     }
-
     // ==========================================
 // 6. FASE 3: Procesar con GPT (texto/audio)
 // ==========================================
@@ -206,6 +218,20 @@ if (usuario?.campoId) {
     select: { nombreSingular: true, nombrePlural: true }
   })
 }
+
+// ==========================================
+// 6.5 DETECTAR CONSULTA DE STOCK
+// ==========================================
+const consultaStockMatch = messageText.match(/(?:stock|ver|cuántos?|cuantos?|hay)\s+(?:en\s+)?(.+)/i)
+if (consultaStockMatch && usuario?.campoId) {
+  const nombrePotrero = consultaStockMatch[1].trim()
+  await handleStockConsulta(from, nombrePotrero, usuario.campoId)
+  return NextResponse.json({ status: "stock consulta processed" })
+}
+
+// ==========================================
+// 6. FASE 3: Procesar con GPT (texto/audio)
+// ==========================================
 
 const parsedData = await parseMessageWithAI(messageText, potreros, categorias)
 
