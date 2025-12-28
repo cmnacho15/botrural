@@ -67,9 +67,8 @@ export async function GET(request: Request) {
       })
     }
 
-    // IMPORTANTE: Obtener TODOS los eventos sin filtro de fecha
-    // porque necesitamos el historial completo para armar los ciclos
-    const eventos = await prisma.evento.findMany({
+    // ✅ Obtener eventos CAMBIO_POTRERO
+    const eventosCambio = await prisma.evento.findMany({
       where: {
         tipo: 'CAMBIO_POTRERO',
         campoId: usuario.campoId,
@@ -90,17 +89,72 @@ export async function GET(request: Request) {
       orderBy: { fecha: 'asc' },
     })
 
+    // ✅ NUEVO: Obtener eventos AJUSTE (entradas/salidas por edición de potrero)
+    const eventosAjuste = await prisma.evento.findMany({
+      where: {
+        tipo: 'AJUSTE',
+        campoId: usuario.campoId,
+        loteId: { in: potrerosIds },
+      },
+      select: {
+        id: true,
+        fecha: true,
+        loteId: true,
+        categoria: true,
+        cantidad: true,
+        descripcion: true,
+      },
+      orderBy: { fecha: 'asc' },
+    })
+
     const hoy = new Date()
     const fechaLimite = fechaHasta ? new Date(fechaHasta) : hoy
     const registros: any[] = []
 
     // Procesar cada potrero
     for (const potrero of potreros) {
-      // Separar entradas y salidas de este potrero
-      const entradasPotrero = eventos.filter(e => e.loteDestinoId === potrero.id)
-      const salidasPotrero = eventos.filter(e => e.loteId === potrero.id)
+      // ✅ Entradas por CAMBIO_POTRERO (destino)
+      const entradasCambio = eventosCambio
+        .filter(e => e.loteDestinoId === potrero.id)
+        .map(e => ({
+          ...e,
+          tipoEvento: 'CAMBIO_POTRERO',
+          esEntrada: true,
+        }))
 
-      // Si no hay eventos de entrada pero hay ultimoCambio Y tiene animales, agregar carga inicial
+      // ✅ Salidas por CAMBIO_POTRERO (origen)
+      const salidasCambio = eventosCambio
+        .filter(e => e.loteId === potrero.id)
+        .map(e => ({
+          ...e,
+          tipoEvento: 'CAMBIO_POTRERO',
+          esEntrada: false,
+        }))
+
+      // ✅ NUEVO: Entradas por AJUSTE positivo
+      const entradasAjuste = eventosAjuste
+        .filter(e => e.loteId === potrero.id && e.descripcion?.includes('positivo'))
+        .map(e => ({
+          ...e,
+          loteDestinoId: potrero.id,
+          tipoEvento: 'AJUSTE',
+          esEntrada: true,
+        }))
+
+      // ✅ NUEVO: Salidas por AJUSTE negativo
+      const salidasAjuste = eventosAjuste
+        .filter(e => e.loteId === potrero.id && (e.descripcion?.includes('negativo') || e.descripcion?.includes('eliminaron')))
+        .map(e => ({
+          ...e,
+          tipoEvento: 'AJUSTE',
+          esEntrada: false,
+        }))
+
+      // ✅ Combinar todas las entradas y salidas
+      let entradasPotrero = [...entradasCambio, ...entradasAjuste]
+      let salidasPotrero = [...salidasCambio, ...salidasAjuste]
+
+      // ✅ Si no hay eventos de entrada pero hay ultimoCambio Y tiene animales, agregar carga inicial
       if (entradasPotrero.length === 0 && potrero.ultimoCambio && potrero.animalesLote.length > 0) {
         const comentario = potrero.animalesLote
           .map(a => `${a.cantidad} ${a.categoria}`)
@@ -115,20 +169,20 @@ export async function GET(request: Request) {
           categoria: comentario,
           cantidad: cantidadInicial,
           descripcion: comentario,
+          tipoEvento: 'INICIAL',
+          esEntrada: true,
         })
       }
       
-      // Si hay eventos de CAMBIO_POTRERO de salida pero ninguno de entrada, 
-      // significa que los animales se agregaron por edición antes del primer cambio
+      // ✅ Si hay salidas pero no hay entradas, crear entrada virtual
       if (entradasPotrero.length === 0 && salidasPotrero.length > 0) {
         const primeraSalida = salidasPotrero[0]
         const comentario = primeraSalida.categoria || primeraSalida.descripcion || 'Animales'
         const cantidadInicial = primeraSalida.cantidad || 0
         
-        // Usar ultimoCambio o una fecha anterior a la primera salida
         const fechaEntrada = potrero.ultimoCambio && new Date(potrero.ultimoCambio) < new Date(primeraSalida.fecha)
           ? potrero.ultimoCambio
-          : new Date(new Date(primeraSalida.fecha).getTime() - (24 * 60 * 60 * 1000)) // 1 día antes
+          : new Date(new Date(primeraSalida.fecha).getTime() - (24 * 60 * 60 * 1000))
         
         entradasPotrero.unshift({
           id: 'inicial-' + potrero.id,
@@ -138,6 +192,8 @@ export async function GET(request: Request) {
           categoria: comentario,
           cantidad: cantidadInicial,
           descripcion: `${cantidadInicial} ${comentario} (carga inicial)`,
+          tipoEvento: 'INICIAL',
+          esEntrada: true,
         })
       }
 
@@ -160,26 +216,23 @@ export async function GET(request: Request) {
         continue
       }
 
-      // Agrupar por ciclos de ocupación (entrada -> salida COMPLETA -> nueva entrada)
-      const ciclos: any[] = []
-      let cicloActual: any = null
-
-      // Ordenar todos los eventos por fecha
+      // ✅ Ordenar todos los eventos por fecha
       const todosEventos = [...entradasPotrero, ...salidasPotrero]
         .sort((a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime())
 
+      // ✅ Agrupar por ciclos de ocupación
+      const ciclos: any[] = []
+      let cicloActual: any = null
       let animalesEnPotrero = 0
 
       for (const evento of todosEventos) {
-        const esEntrada = evento.loteDestinoId === potrero.id
-        const esSalida = evento.loteId === potrero.id
+        const esEntrada = evento.esEntrada
+        const cantidadEvento = evento.cantidad || 0
 
         if (esEntrada) {
-          const cantidadEntra = evento.cantidad || 0
-          animalesEnPotrero += cantidadEntra
+          animalesEnPotrero += cantidadEvento
 
           if (!cicloActual) {
-            // Iniciar nuevo ciclo
             cicloActual = {
               fechaInicio: new Date(evento.fecha),
               entradas: [],
@@ -188,19 +241,15 @@ export async function GET(request: Request) {
             ciclos.push(cicloActual)
           }
 
-          // Agregar entrada al ciclo actual
           cicloActual.entradas.push({
             fecha: new Date(evento.fecha),
             cantidad: evento.cantidad,
             categoria: evento.categoria || evento.descripcion || 'Sin categoría',
           })
-        }
+        } else {
+          // Es salida
+          animalesEnPotrero -= cantidadEvento
 
-        if (esSalida) {
-          const cantidadSale = evento.cantidad || 0
-          animalesEnPotrero -= cantidadSale
-
-          // Si el potrero queda vacío, cerrar ciclo
           if (animalesEnPotrero <= 0) {
             if (cicloActual) {
               cicloActual.fechaFin = new Date(evento.fecha)
@@ -216,8 +265,7 @@ export async function GET(request: Request) {
         const fechaEntrada = ciclo.fechaInicio
         const fechaSalida = ciclo.fechaFin
 
-        // Aplicar filtro de fechas solo si están definidos
-        // Incluir ciclo si tiene alguna intersección con el rango de fechas
+        // Aplicar filtro de fechas
         if (fechaDesde || fechaHasta) {
           const limiteDesde = fechaDesde ? new Date(fechaDesde) : new Date(0)
           const limiteHasta = fechaHasta ? new Date(fechaHasta) : hoy
@@ -225,7 +273,6 @@ export async function GET(request: Request) {
           
           const fechaFinCiclo = fechaSalida || hoy
           
-          // Excluir solo si el ciclo está COMPLETAMENTE fuera del rango
           if (fechaFinCiclo < limiteDesde || fechaEntrada > limiteHasta) {
             continue
           }

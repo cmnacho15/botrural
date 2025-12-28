@@ -264,10 +264,15 @@ ultimoCambio: (() => {
 
         descripcion += ` (ajuste positivo)`;
 
+        // ✅ Usar fecha ajustada si el potrero estaba vacío y hay días configurados
+        const fechaEvento = (!teniaAnimales && diasPastoreoAjuste)
+          ? new Date(Date.now() - (diasPastoreoAjuste * 24 * 60 * 60 * 1000))
+          : new Date();
+
         await prisma.evento.create({
           data: {
             tipo: 'AJUSTE',
-            fecha: new Date(),
+            fecha: fechaEvento,
             descripcion,
             campoId: usuario!.campoId!,
             loteId: id,

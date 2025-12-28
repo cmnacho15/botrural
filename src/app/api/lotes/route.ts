@@ -149,7 +149,8 @@ const { nombre, hectareas, poligono, cultivos = [], animales = [], moduloPastore
       }
     }
 
-    // 2️⃣ Crear eventos de INGRESO de animales
+    
+// 2️⃣ Crear eventos de INGRESO de animales
 for (const animal of animales) {
   if (animal.categoria && animal.cantidad) {
     // ✅ Construir descripción con peso
@@ -162,15 +163,21 @@ for (const animal of animales) {
     
     descripcion += ` al lote "${nombre}".`;
 
+    // ✅ Usar fecha ajustada si hay días de pastoreo configurados
+    const fechaEvento = diasPastoreoAjuste 
+      ? new Date(Date.now() - (diasPastoreoAjuste * 24 * 60 * 60 * 1000))
+      : new Date();
+
     await prisma.evento.create({
       data: {
         tipo: 'AJUSTE',
-        fecha: new Date(),
+        fecha: fechaEvento,
         descripcion,
         campoId: usuario.campoId,
         loteId: lote.id,
         usuarioId: session.user.id,
         cantidad: parseInt(animal.cantidad),
+        categoria: animal.categoria,
       },
     });
   }
