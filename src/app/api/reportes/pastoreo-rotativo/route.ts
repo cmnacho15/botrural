@@ -85,11 +85,12 @@ export async function GET(request: Request) {
         categoria: true,
         cantidad: true,
         descripcion: true,
+        createdAt: true,
       },
       orderBy: { fecha: 'asc' },
     })
 
-    // ✅ NUEVO: Obtener eventos AJUSTE (entradas/salidas por edición de potrero)
+    // ✅ Obtener eventos AJUSTE (entradas/salidas por edición de potrero)
     const eventosAjuste = await prisma.evento.findMany({
       where: {
         tipo: 'AJUSTE',
@@ -103,6 +104,7 @@ export async function GET(request: Request) {
         categoria: true,
         cantidad: true,
         descripcion: true,
+        createdAt: true,
       },
       orderBy: { fecha: 'asc' },
     })
@@ -131,7 +133,7 @@ export async function GET(request: Request) {
           esEntrada: false,
         }))
 
-      // ✅ NUEVO: Salidas por AJUSTE negativo (detectar primero las salidas)
+      // ✅ Salidas por AJUSTE negativo (detectar primero las salidas)
       const salidasAjuste = eventosAjuste
         .filter(e => e.loteId === potrero.id && (e.descripcion?.includes('negativo') || e.descripcion?.includes('eliminaron')))
         .map(e => ({
@@ -140,7 +142,7 @@ export async function GET(request: Request) {
           esEntrada: false,
         }))
 
-      // ✅ NUEVO: Entradas por AJUSTE (todo lo que NO sea salida)
+      // ✅ Entradas por AJUSTE (todo lo que NO sea salida)
       const idsSalidas = new Set(salidasAjuste.map(e => e.id))
       const entradasAjuste = eventosAjuste
         .filter(e => e.loteId === potrero.id && !idsSalidas.has(e.id))
@@ -172,6 +174,7 @@ export async function GET(request: Request) {
           descripcion: comentario,
           tipoEvento: 'INICIAL',
           esEntrada: true,
+          createdAt: potrero.ultimoCambio,
         })
       }
       
@@ -195,6 +198,7 @@ export async function GET(request: Request) {
           descripcion: `${cantidadInicial} ${comentario} (carga inicial)`,
           tipoEvento: 'INICIAL',
           esEntrada: true,
+          createdAt: fechaEntrada,
         })
       }
 
@@ -206,20 +210,29 @@ export async function GET(request: Request) {
           registros.push({
             potrero: potrero.nombre,
             fechaEntrada: '-',
+            fechaEntradaDate: null,
             dias: '-',
             fechaSalida: fechaUltimoCambio.toLocaleDateString('es-UY'),
             diasDescanso: diasDescanso,
             hectareas: Math.round((potrero.hectareas || 0) * 100) / 100,
             comentarios: 'En descanso (sin historial)',
             comentariosHtml: 'En descanso (sin historial)',
+            ordenTimestamp: fechaUltimoCambio.getTime(),
           })
         }
         continue
       }
 
-      // ✅ Ordenar todos los eventos por fecha
+      // ✅ Ordenar todos los eventos por fecha y luego por createdAt
       const todosEventos = [...entradasPotrero, ...salidasPotrero]
-        .sort((a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime())
+        .sort((a, b) => {
+          const fechaDiff = new Date(a.fecha).getTime() - new Date(b.fecha).getTime()
+          if (fechaDiff !== 0) return fechaDiff
+          // Si misma fecha, ordenar por createdAt
+          const createdA = a.createdAt ? new Date(a.createdAt).getTime() : 0
+          const createdB = b.createdAt ? new Date(b.createdAt).getTime() : 0
+          return createdA - createdB
+        })
 
       // ✅ Agrupar por ciclos de ocupación
       const ciclos: any[] = []
@@ -237,7 +250,9 @@ export async function GET(request: Request) {
             cicloActual = {
               fechaInicio: new Date(evento.fecha),
               entradas: [],
+              salidas: [], // ✅ NUEVO: trackear salidas parciales
               fechaFin: null,
+              createdAt: evento.createdAt,
             }
             ciclos.push(cicloActual)
           }
@@ -250,6 +265,15 @@ export async function GET(request: Request) {
         } else {
           // Es salida
           animalesEnPotrero -= cantidadEvento
+
+          // ✅ NUEVO: Registrar salida parcial si el ciclo sigue abierto
+          if (cicloActual && animalesEnPotrero > 0) {
+            cicloActual.salidas.push({
+              fecha: new Date(evento.fecha),
+              cantidad: cantidadEvento,
+              categoria: evento.categoria || 'Animales',
+            })
+          }
 
           if (animalesEnPotrero <= 0) {
             if (cicloActual) {
@@ -300,40 +324,51 @@ export async function GET(request: Request) {
           }
         }
 
-        // Construir comentarios con HTML
-        const comentariosPartes = ciclo.entradas.map((entrada: any, idx: number) => {
+        // ✅ Construir comentarios con entradas Y salidas parciales
+        const comentariosPartes: string[] = []
+        const comentariosPartesHtml: string[] = []
+        
+        // Agregar entradas
+        ciclo.entradas.forEach((entrada: any, idx: number) => {
           const cantidadTexto = entrada.cantidad ? `${entrada.cantidad} ` : ''
           const fechaCorta = entrada.fecha.toLocaleDateString('es-UY', { day: '2-digit', month: '2-digit' })
           
           if (idx === 0) {
-            return `<span style="background-color: #93C5FD; padding: 2px 6px; border-radius: 4px; font-weight: 500;">${cantidadTexto}${entrada.categoria} (${fechaCorta})</span>`
+            comentariosPartesHtml.push(`<span style="background-color: #93C5FD; padding: 2px 6px; border-radius: 4px; font-weight: 500;">${cantidadTexto}${entrada.categoria} (${fechaCorta})</span>`)
           } else {
-            return `${cantidadTexto}${entrada.categoria} (${fechaCorta})`
+            comentariosPartesHtml.push(`+${cantidadTexto}${entrada.categoria} (${fechaCorta})`)
           }
+          comentariosPartes.push(`${cantidadTexto}${entrada.categoria} (${fechaCorta})`)
         })
 
-        const comentariosHtml = comentariosPartes.join(' + ')
-        
-        const comentariosTexto = ciclo.entradas.map((entrada: any) => {
-          const cantidadTexto = entrada.cantidad ? `${entrada.cantidad} ` : ''
-          const fechaCorta = entrada.fecha.toLocaleDateString('es-UY', { day: '2-digit', month: '2-digit' })
-          return `${cantidadTexto}${entrada.categoria} (${fechaCorta})`
-        }).join(' + ')
+        // ✅ NUEVO: Agregar salidas parciales (si las hay)
+        if (ciclo.salidas && ciclo.salidas.length > 0) {
+          ciclo.salidas.forEach((salida: any) => {
+            const fechaCorta = salida.fecha.toLocaleDateString('es-UY', { day: '2-digit', month: '2-digit' })
+            comentariosPartesHtml.push(`<span style="background-color: #FCA5A5; padding: 2px 6px; border-radius: 4px; font-weight: 500;">-${salida.cantidad} (${fechaCorta})</span>`)
+            comentariosPartes.push(`-${salida.cantidad} salieron (${fechaCorta})`)
+          })
+        }
+
+        const comentariosHtml = comentariosPartesHtml.join(' ')
+        const comentariosTexto = comentariosPartes.join(' | ')
 
         registros.push({
           potrero: potrero.nombre,
           fechaEntrada: fechaEntrada.toLocaleDateString('es-UY'),
+          fechaEntradaDate: fechaEntrada, // ✅ Para ordenar
           dias: diasPastoreo,
           fechaSalida: fechaSalida ? fechaSalida.toLocaleDateString('es-UY') : '-',
           diasDescanso: diasDescanso,
           hectareas: Math.round((potrero.hectareas || 0) * 100) / 100,
           comentarios: comentariosTexto,
           comentariosHtml: comentariosHtml,
+          ordenTimestamp: ciclo.createdAt ? new Date(ciclo.createdAt).getTime() : fechaEntrada.getTime(), // ✅ Para ordenar
         })
       }
     }
 
-    // Ordenar por fecha de entrada
+    // ✅ MEJORADO: Ordenar por fecha de entrada, y si hay empate, por timestamp de creación
     registros.sort((a, b) => {
       if (a.fechaEntrada === '-' && b.fechaEntrada === '-') return 0
       if (a.fechaEntrada === '-') return 1
@@ -344,12 +379,27 @@ export async function GET(request: Request) {
         return new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]))
       }
       
-      return parseDate(a.fechaEntrada).getTime() - parseDate(b.fechaEntrada).getTime()
+      const fechaA = parseDate(a.fechaEntrada).getTime()
+      const fechaB = parseDate(b.fechaEntrada).getTime()
+      
+      // Si las fechas son diferentes, ordenar por fecha
+      if (fechaA !== fechaB) {
+        return fechaA - fechaB
+      }
+      
+      // Si las fechas son iguales, ordenar por timestamp de creación
+      return (a.ordenTimestamp || 0) - (b.ordenTimestamp || 0)
+    })
+
+    // Limpiar campos auxiliares antes de enviar
+    const registrosLimpios = registros.map(r => {
+      const { fechaEntradaDate, ordenTimestamp, ...resto } = r
+      return resto
     })
 
     return NextResponse.json({
       modulo: modulo.nombre,
-      registros,
+      registros: registrosLimpios,
     })
 
   } catch (error) {
