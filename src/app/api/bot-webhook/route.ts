@@ -222,7 +222,14 @@ if (usuario?.campoId) {
 // ==========================================
 // 6.5 DETECTAR CONSULTA DE STOCK
 // ==========================================
-const consultaStockMatch = messageText.match(/(?:stock|ver|cuántos?|cuantos?|hay)\s+(?:en\s+)?(.+)/i)
+// Detecta múltiples formatos:
+// - "potrero sur"
+// - "stock potrero sur" / "stock sur"
+// - "ver norte" / "ver potrero norte"
+// - "cuántos hay en el este"
+const consultaStockMatch = messageText.match(
+  /^(?:potrero|stock|ver|cuántos?|cuantos?|hay)\s+(?:potrero\s+|en\s+)?(.+)$/i
+)
 if (consultaStockMatch && usuario?.campoId) {
   const nombrePotrero = consultaStockMatch[1].trim()
   await handleStockConsulta(from, nombrePotrero, usuario.campoId)
