@@ -783,10 +783,14 @@ case "TRASLADO": {
     }
   }
 
-  // Actualizar timestamps de ambos potreros
- await actualizarUltimoCambioSiVacio(loteId);
+  // ✅ POTRERO ORIGEN: Si quedó vacío, empezar a contar descanso
+  await actualizarUltimoCambioSiVacio(loteId);
   
-  // ✅ Potrero destino recibe animales → NO resetear días
+  // ✅ POTRERO DESTINO: Resetear ultimoCambio porque empiezan a pastorear
+  await prisma.lote.update({
+    where: { id: loteDestinoId },
+    data: { ultimoCambio: new Date() },
+  });
 
   // Actualizar evento con resumen
   const resumenAnimales = animalesAProcesar.map(a => `${a.cantidad} ${a.categoria}`).join(', ');
