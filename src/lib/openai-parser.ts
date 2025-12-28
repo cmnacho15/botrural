@@ -187,6 +187,18 @@ TIPOS DE EVENTOS QUE DEBES DETECTAR:
    {
      "tipo": "REPORTE_CARGA"
    }
+
+   11. REPORTE_PASTOREO:
+   - "reporte de pastoreo"
+   - "reporte pastoreo"
+   - "pdf de pastoreo"
+   - "pastoreo rotativo"
+   - "historial de pastoreo"
+   - "rotación de potreros"
+   Retorna:
+   {
+     "tipo": "REPORTE_PASTOREO"
+   }
      
 ⚠️ CRÍTICO: Para CAMBIO_POTRERO usa SIEMPRE "loteOrigen" y "loteDestino", NUNCA "potreroOrigen" ni "potreroDestino"
 

@@ -24,6 +24,8 @@ import {
   handleCalendarioButtonResponse,
   handleMoverPotreroModulo,
   handleReporteCarga,
+  handleReportePastoreo,
+  handleReportePastoreoButtonResponse,
   handleStockConsulta,
   handleStockEdicion,
 } from "@/lib/whatsapp"
@@ -111,6 +113,11 @@ export async function POST(request: Request) {
         if (messageText.startsWith("stock_")) {
           await handleStockButtonResponse(from, messageText)
           return NextResponse.json({ status: "stock button processed" })
+        }
+
+        if (messageText.startsWith("pastoreo_")) {
+          await handleReportePastoreoButtonResponse(from, messageText)
+          return NextResponse.json({ status: "pastoreo button processed" })
         }
       }
     } else if (messageType === "audio") {
@@ -264,6 +271,14 @@ const parsedData = await parseMessageWithAI(messageText, potreros, categorias)
   if (parsedData.tipo === "REPORTE_CARGA") {
     await handleReporteCarga(from)
     return NextResponse.json({ status: "reporte carga sent" })
+  }
+
+  // ========================================
+  // 📊 REPORTE DE PASTOREO (PDF)
+  // ========================================
+  if (parsedData.tipo === "REPORTE_PASTOREO") {
+    await handleReportePastoreo(from)
+    return NextResponse.json({ status: "reporte pastoreo initiated" })
   }
 
   // ========================================
