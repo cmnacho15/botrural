@@ -42,6 +42,7 @@ export async function handleCalendarioCrear(
       return
     }
 
+    // 🔥 MEJORA: Usar descripcion completa en las notas
     const actividad = await prisma.actividadCalendario.create({
       data: {
         campoId: user.campoId,
@@ -49,7 +50,7 @@ export async function handleCalendarioCrear(
         titulo: parsedData.titulo,
         fechaProgramada,
         origen: "WHATSAPP",
-        notas: `Creada por WhatsApp: "${parsedData.fechaRelativa}"`
+        notas: parsedData.descripcion || `Creada por WhatsApp: "${parsedData.fechaRelativa}"`
       }
     })
 
@@ -60,12 +61,17 @@ export async function handleCalendarioCrear(
       timeZone: 'America/Montevideo'
     })
 
-    // ✅ SOLO BOTÓN EDITAR - Si está mal, permite corregir TODO desde cero
+    // 🔥 MEJORA: Mostrar descripción completa si existe
+    const descripcionCompleta = parsedData.descripcion && parsedData.descripcion !== parsedData.titulo
+      ? `\n📝 ${parsedData.descripcion}`
+      : ""
+
     await sendWhatsAppButtons(
       telefono,
       `✅ *Actividad agendada*\n\n` +
-      `📌 ${parsedData.titulo}\n` +
-      `📅 ${fechaFormateada}\n` +
+      `📌 ${parsedData.titulo}` +
+      descripcionCompleta +
+      `\n📅 ${fechaFormateada}\n` +
       `⏰ En ${parsedData.diasDesdeHoy} día${parsedData.diasDesdeHoy !== 1 ? 's' : ''}\n\n` +
       `_Si algo no es correcto, podés editarlo._`,
       [
@@ -151,9 +157,12 @@ export async function handleCalendarioConsultar(telefono: string) {
         urgencia = `📅 En ${diasRestantes} días`
       }
 
+      // 🔥 MEJORA: Mostrar notas si existen
+      const notasTexto = act.notas ? `\n_${act.notas}_` : ""
+
       await sendWhatsAppButtons(
         telefono,
-        `*${act.titulo}*\n${fechaStr} (${urgencia})`,
+        `*${act.titulo}*\n${fechaStr} (${urgencia})${notasTexto}`,
         [
           { id: `cal_done_${act.id}`, title: "✅ Realizada" },
           { id: `cal_delete_${act.id}`, title: "🗑️ Eliminar" }
@@ -208,7 +217,6 @@ export async function handleCalendarioButtonResponse(
     // ✏️ EDITAR - Borra actividad y pide mensaje completo de nuevo
     // ==========================================
     if (accion === "edit") {
-      // Borrar la actividad
       await prisma.actividadCalendario.delete({
         where: { id: actividadId }
       })
@@ -218,7 +226,7 @@ export async function handleCalendarioButtonResponse(
         `✏️ *Editando actividad*\n\n` +
         `La actividad fue eliminada.\n\n` +
         `Mandame de nuevo el mensaje completo (texto o audio) con la información correcta.\n\n` +
-        `Ejemplo: "en 15 días sacar tablilla"`
+        `Ejemplo: "en 15 días sacar tablilla a terneros en potrero sol"`
       )
       return
     }
