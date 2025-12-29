@@ -277,3 +277,231 @@ export async function PATCH(req: Request) {
     );
   }
 }
+
+
+
+/**
+ * DELETE - Eliminar un campo y todos sus datos
+ */
+export async function DELETE(request: Request) {
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "No autenticado" }, { status: 401 })
+    }
+
+    const { searchParams } = new URL(request.url)
+    const campoId = searchParams.get("id")
+    const confirmacion = searchParams.get("confirmacion")
+
+    if (!campoId) {
+      return NextResponse.json({ error: "ID del campo es requerido" }, { status: 400 })
+    }
+
+    if (confirmacion !== "ELIMINAR") {
+      return NextResponse.json({ error: "Confirmación incorrecta" }, { status: 400 })
+    }
+
+    // Verificar que el usuario es ADMIN_GENERAL del campo
+    const usuarioCampo = await prisma.usuarioCampo.findFirst({
+      where: {
+        userId: session.user.id,
+        campoId: campoId,
+        rol: "ADMIN_GENERAL"
+      },
+      include: {
+        campo: {
+          select: { nombre: true, grupoId: true }
+        }
+      }
+    })
+
+    if (!usuarioCampo) {
+      return NextResponse.json({ error: "No tenés permiso para eliminar este campo" }, { status: 403 })
+    }
+
+    // Contar cuántos campos tiene el usuario
+    const cantidadCampos = await prisma.usuarioCampo.count({
+      where: { userId: session.user.id }
+    })
+
+    if (cantidadCampos <= 1) {
+      return NextResponse.json({ 
+        error: "No podés eliminar tu único campo. Primero creá otro campo." 
+      }, { status: 400 })
+    }
+
+    const campoNombre = usuarioCampo.campo.nombre
+    const grupoId = usuarioCampo.campo.grupoId
+
+    // Eliminar en transacción
+    await prisma.$transaction(async (tx) => {
+      // 1. Borrar traslados (origen o destino)
+      await tx.traslado.deleteMany({
+        where: {
+          OR: [
+            { campoOrigenId: campoId },
+            { campoDestinoId: campoId }
+          ]
+        }
+      })
+
+      // 2. Borrar eventos
+      await tx.evento.deleteMany({
+        where: { campoId }
+      })
+
+      // 3. Borrar gastos
+      await tx.gasto.deleteMany({
+        where: { campoId }
+      })
+
+      // 4. Borrar ventas y sus renglones
+      const ventas = await tx.venta.findMany({
+        where: { campoId },
+        select: { id: true }
+      })
+      
+      if (ventas.length > 0) {
+        await tx.ventaRenglon.deleteMany({
+          where: { ventaId: { in: ventas.map(v => v.id) } }
+        })
+        await tx.venta.deleteMany({
+          where: { campoId }
+        })
+      }
+
+      // 5. Borrar compras y sus renglones
+      const compras = await tx.compra.findMany({
+        where: { campoId },
+        select: { id: true }
+      })
+      
+      if (compras.length > 0) {
+        await tx.compraRenglon.deleteMany({
+          where: { compraId: { in: compras.map(c => c.id) } }
+        })
+        await tx.compra.deleteMany({
+          where: { campoId }
+        })
+      }
+
+      // 6. Borrar animales de lotes
+      const lotes = await tx.lote.findMany({
+        where: { campoId },
+        select: { id: true }
+      })
+
+      if (lotes.length > 0) {
+        await tx.animalLote.deleteMany({
+          where: { loteId: { in: lotes.map(l => l.id) } }
+        })
+
+        await tx.cultivo.deleteMany({
+          where: { loteId: { in: lotes.map(l => l.id) } }
+        })
+      }
+
+      // 7. Borrar lotes (potreros)
+      await tx.lote.deleteMany({
+        where: { campoId }
+      })
+
+      // 8. Borrar módulos de pastoreo
+      await tx.moduloPastoreo.deleteMany({
+        where: { campoId }
+      })
+
+      // 9. Borrar rodeos
+      await tx.rodeo.deleteMany({
+        where: { campoId }
+      })
+
+      // 10. Borrar insumos
+      await tx.insumo.deleteMany({
+        where: { campoId }
+      })
+
+      // 11. Borrar firmas
+      await tx.firma.deleteMany({
+        where: { campoId }
+      })
+
+      // 12. Borrar categorías de gasto
+      await tx.categoriaGasto.deleteMany({
+        where: { campoId }
+      })
+
+      // 13. Borrar categorías de animal
+      await tx.categoriaAnimal.deleteMany({
+        where: { campoId }
+      })
+
+      // 14. Borrar invitaciones
+      await tx.invitation.deleteMany({
+        where: { campoId }
+      })
+
+      // 15. Borrar UsuarioCampo (todos los usuarios del campo)
+      await tx.usuarioCampo.deleteMany({
+        where: { campoId }
+      })
+
+      // 16. Borrar el campo
+      await tx.campo.delete({
+        where: { id: campoId }
+      })
+
+      // 17. Si el grupo quedó sin campos, borrarlo
+      if (grupoId) {
+        const camposRestantes = await tx.campo.count({
+          where: { grupoId }
+        })
+
+        if (camposRestantes === 0) {
+          await tx.usuarioGrupo.deleteMany({
+            where: { grupoId }
+          })
+          await tx.grupo.delete({
+            where: { id: grupoId }
+          })
+          console.log(`🗑️ Grupo eliminado (quedó sin campos)`)
+        }
+      }
+
+      // 18. Actualizar el usuario para que apunte a otro campo
+      const otroCampo = await tx.usuarioCampo.findFirst({
+        where: { userId: session.user.id },
+        include: { campo: true }
+      })
+
+      if (otroCampo) {
+        await tx.usuarioCampo.updateMany({
+          where: { userId: session.user.id },
+          data: { esActivo: false }
+        })
+
+        await tx.usuarioCampo.update({
+          where: { id: otroCampo.id },
+          data: { esActivo: true }
+        })
+
+        await tx.user.update({
+          where: { id: session.user.id },
+          data: { campoId: otroCampo.campoId }
+        })
+      }
+    })
+
+    console.log(`🗑️ Campo eliminado: ${campoNombre} por usuario ${session.user.id}`)
+
+    return NextResponse.json({
+      success: true,
+      message: "Campo eliminado correctamente"
+    })
+
+  } catch (error) {
+    console.error("Error eliminando campo:", error)
+    return NextResponse.json({ error: "Error interno al eliminar campo" }, { status: 500 })
+  }
+}

@@ -27,6 +27,12 @@ export default function PreferenciasPage() {
   // Estados de campo
   const [nombreCampo, setNombreCampo] = useState('')
   const [guardandoCampo, setGuardandoCampo] = useState(false)
+  const [campoActualId, setCampoActualId] = useState('')
+  const [cantidadCampos, setCantidadCampos] = useState(0)
+  const [confirmacionVaciar, setConfirmacionVaciar] = useState('')
+  const [confirmacionEliminar, setConfirmacionEliminar] = useState('')
+  const [vaciandoCampo, setVaciandoCampo] = useState(false)
+  const [eliminandoCampo, setEliminandoCampo] = useState(false)
 
   // Estados de cultivos
   const [cultivos, setCultivos] = useState<TipoCultivo[]>([])
@@ -64,12 +70,20 @@ const [nuevaFirma, setNuevaFirma] = useState({ rut: '', razonSocial: '', esPrinc
 const [savingFirma, setSavingFirma] = useState(false)
 const [editandoFirma, setEditandoFirma] = useState<{ id: string; rut: string; razonSocial: string; esPrincipal: boolean } | null>(null)
 
-  // Cargar nombre del campo
+  // Cargar campos del usuario
   useEffect(() => {
     fetch('/api/campos')
       .then(r => r.json())
       .then(data => {
-        if (data.nombre) {
+        if (Array.isArray(data)) {
+          setCantidadCampos(data.length)
+          const campoActivo = data.find((c: any) => c.esActivo)
+          if (campoActivo) {
+            setNombreCampo(campoActivo.nombre)
+            setCampoActualId(campoActivo.id)
+          }
+        } else if (data.nombre) {
+          // Compatibilidad con respuesta anterior
           setNombreCampo(data.nombre)
         }
       })
@@ -596,7 +610,8 @@ async function handleEliminarFirma(id: string) {
                 </div>
               </div>
 
-              <div className="bg-white border border-gray-200 rounded-lg p-6 max-w-2xl">
+              {/* NOMBRE DEL CAMPO */}
+              <div className="bg-white border border-gray-200 rounded-lg p-6 max-w-2xl mb-8">
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -645,6 +660,142 @@ async function handleEliminarFirma(id: string) {
                   >
                     {guardandoCampo ? 'Guardando...' : 'Guardar cambios'}
                   </button>
+                </div>
+              </div>
+
+              {/* ZONA DE PELIGRO */}
+              <div className="max-w-2xl">
+                <h3 className="text-lg font-semibold text-red-600 mb-4 flex items-center gap-2">
+                  ⚠️ Zona de peligro
+                </h3>
+
+                {/* VACIAR CAMPO */}
+                <div className="bg-red-50 border border-red-200 rounded-lg p-6 mb-4">
+                  <div className="flex items-start gap-4">
+                    <div className="text-3xl">🔄</div>
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-gray-900 mb-1">Vaciar campo</h4>
+                      <p className="text-sm text-gray-600 mb-4">
+                        Elimina todos los datos (eventos, gastos, animales, potreros) pero mantiene el campo y las categorías. 
+                        El campo quedará como nuevo para empezar de cero.
+                      </p>
+                      
+                      <div className="flex flex-col sm:flex-row gap-3">
+                        <input
+                          type="text"
+                          value={confirmacionVaciar}
+                          onChange={(e) => setConfirmacionVaciar(e.target.value.toUpperCase())}
+                          placeholder='Escribí "VACIAR" para confirmar'
+                          className="flex-1 px-4 py-2 border border-red-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                        />
+                        <button
+                          onClick={async () => {
+                            if (confirmacionVaciar !== 'VACIAR') {
+                              alert('Escribí "VACIAR" para confirmar')
+                              return
+                            }
+
+                            if (!confirm('⚠️ ¿Estás seguro?\n\nSe eliminarán TODOS los datos del campo:\n- Eventos\n- Gastos\n- Ventas\n- Compras\n- Potreros\n- Animales\n\nEsta acción NO se puede deshacer.')) {
+                              return
+                            }
+
+                            setVaciandoCampo(true)
+                            try {
+                              const response = await fetch('/api/campos/vaciar', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                  campoId: campoActualId,
+                                  confirmacion: 'VACIAR'
+                                })
+                              })
+
+                              if (response.ok) {
+                                alert('✅ Campo vaciado correctamente')
+                                setConfirmacionVaciar('')
+                                window.location.reload()
+                              } else {
+                                const error = await response.json()
+                                alert(error.error || 'Error al vaciar campo')
+                              }
+                            } catch (error) {
+                              alert('Error al vaciar campo')
+                            } finally {
+                              setVaciandoCampo(false)
+                            }
+                          }}
+                          disabled={vaciandoCampo || confirmacionVaciar !== 'VACIAR'}
+                          className="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition"
+                        >
+                          {vaciandoCampo ? 'Vaciando...' : 'Vaciar Campo'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* ELIMINAR CAMPO */}
+                <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+                  <div className="flex items-start gap-4">
+                    <div className="text-3xl">🗑️</div>
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-gray-900 mb-1">Eliminar campo</h4>
+                      <p className="text-sm text-gray-600 mb-4">
+                        Elimina el campo y todos sus datos permanentemente. Esta acción es irreversible.
+                      </p>
+
+                      {cantidadCampos <= 1 ? (
+                        <div className="bg-gray-100 border border-gray-300 rounded-lg p-4 text-sm text-gray-600">
+                          🔒 No podés eliminar tu único campo. Primero creá otro campo desde el menú de usuario.
+                        </div>
+                      ) : (
+                        <div className="flex flex-col sm:flex-row gap-3">
+                          <input
+                            type="text"
+                            value={confirmacionEliminar}
+                            onChange={(e) => setConfirmacionEliminar(e.target.value.toUpperCase())}
+                            placeholder='Escribí "ELIMINAR" para confirmar'
+                            className="flex-1 px-4 py-2 border border-red-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                          />
+                          <button
+                            onClick={async () => {
+                              if (confirmacionEliminar !== 'ELIMINAR') {
+                                alert('Escribí "ELIMINAR" para confirmar')
+                                return
+                              }
+
+                              if (!confirm(`⚠️ ¿Estás COMPLETAMENTE seguro?\n\nSe eliminará el campo "${nombreCampo}" y TODOS sus datos.\n\nEsta acción NO se puede deshacer.`)) {
+                                return
+                              }
+
+                              setEliminandoCampo(true)
+                              try {
+                                const response = await fetch(`/api/campos?id=${campoActualId}&confirmacion=ELIMINAR`, {
+                                  method: 'DELETE'
+                                })
+
+                                if (response.ok) {
+                                  alert('✅ Campo eliminado correctamente')
+                                  window.location.href = '/dashboard'
+                                } else {
+                                  const error = await response.json()
+                                  alert(error.error || 'Error al eliminar campo')
+                                }
+                              } catch (error) {
+                                alert('Error al eliminar campo')
+                              } finally {
+                                setEliminandoCampo(false)
+                              }
+                            }}
+                            disabled={eliminandoCampo || confirmacionEliminar !== 'ELIMINAR'}
+                            className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition"
+                          >
+                            {eliminandoCampo ? 'Eliminando...' : 'Eliminar Campo'}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
