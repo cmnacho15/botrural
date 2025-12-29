@@ -433,7 +433,7 @@ async function handleDataEntry(data: any) {
   } else if (data.tipo === "CONSUMO") {
     const cantidadConsumidos = parseInt(data.cantidad) || 0
     
-    console.log("🍖 CONSUMO DEBUG:", {
+    console.log("🍖 CONSUMO DEBUG 1 - Input:", {
       loteId,
       potreroNombre,
       categoria: data.categoria,
@@ -441,25 +441,49 @@ async function handleDataEntry(data: any) {
       campoId: user.campoId
     })
 
-    // Buscar el animalLote para poder crear el renglón
+    // 🔍 DEBUG: Ver todos los animales del potrero
+    const todosLosAnimales = loteId ? await prisma.animalLote.findMany({
+      where: { loteId },
+      select: { id: true, categoria: true, cantidad: true, loteId: true }
+    }) : []
+    
+    console.log("🔍 CONSUMO DEBUG 2 - Animales en potrero:", JSON.stringify(todosLosAnimales, null, 2))
+
+    // 🔍 DEBUG: Ver con filtro de campo
+    const animalesConCampo = loteId ? await prisma.animalLote.findMany({
+      where: { 
+        loteId,
+        lote: { campoId: user.campoId } 
+      },
+      select: { id: true, categoria: true, cantidad: true }
+    }) : []
+    
+    console.log("🔍 CONSUMO DEBUG 3 - Animales con filtro campo:", JSON.stringify(animalesConCampo, null, 2))
+
+    // Búsqueda flexible con contains
     const animalLote = loteId ? await prisma.animalLote.findFirst({
       where: { 
         loteId, 
-        categoria: data.categoria,
+        categoria: { 
+          contains: data.categoria, 
+          mode: 'insensitive' 
+        },
         lote: { campoId: user.campoId } 
       },
     }) : null
 
+    console.log("🔍 CONSUMO DEBUG 4 - AnimalLote encontrado:", animalLote ? animalLote.id : 'NULL')
+
     if (!animalLote) {
-      throw new Error(`No se encontraron animales de ${data.categoria} en el potrero ${potreroNombre || 'especificado'}`)
+      throw new Error(`No se encontraron animales con categoría que contenga "${data.categoria}" en el potrero ${potreroNombre}. Disponibles: ${animalesConCampo.map(a => a.categoria).join(', ') || 'ninguno'}`)
     }
 
     if (animalLote.cantidad < cantidadConsumidos) {
-      throw new Error(`Solo hay ${animalLote.cantidad} ${data.categoria} disponibles`)
+      throw new Error(`Solo hay ${animalLote.cantidad} ${animalLote.categoria} disponibles`)
     }
 
-    // Determinar tipo de animal
-    const categoriaLower = data.categoria.toLowerCase()
+    // Determinar tipo de animal usando la categoría real de la BD
+    const categoriaLower = animalLote.categoria.toLowerCase()
     let tipoAnimal = 'OTRO'
     if (categoriaLower.includes('vaca') || categoriaLower.includes('toro') || 
         categoriaLower.includes('novillo') || categoriaLower.includes('ternero')) {
@@ -478,7 +502,7 @@ async function handleDataEntry(data: any) {
         data: {
           campoId: user.campoId,
           fecha: new Date(),
-          descripcion: `Consumo de ${cantidadConsumidos} ${data.categoria}${potreroNombre ? ` en potrero ${potreroNombre}` : ''}`,
+          descripcion: `Consumo de ${cantidadConsumidos} ${animalLote.categoria}${potreroNombre ? ` en potrero ${potreroNombre}` : ''}`,
           notas: null,
         }
       })
