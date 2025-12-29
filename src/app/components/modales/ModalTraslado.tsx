@@ -57,6 +57,7 @@ export default function ModalTraslado({ onClose, onSuccess }: ModalTrasladoProps
   const [potrerosDestino, setPotrerosDestino] = useState<Lote[]>([])
   const [potreroDestinoId, setPotreroDestinoId] = useState('')
   const [loadingPotreros, setLoadingPotreros] = useState(false)
+const [cargandoCampos, setCargandoCampos] = useState(true)
 
   // Cargar potreros del campo actual y campos disponibles
   useEffect(() => {
@@ -73,10 +74,17 @@ export default function ModalTraslado({ onClose, onSuccess }: ModalTrasladoProps
         const resCampos = await fetch('/api/campos')
         if (resCampos.ok) {
           const data = await resCampos.json()
-          // Filtrar el campo actual (el que tiene esActivo: true)
-          const otrosCampos = data.filter((c: any) => !c.esActivo)
+          // Obtener el grupo del campo activo
+          const campoActivo = data.find((c: any) => c.esActivo)
+          const grupoActivo = campoActivo?.grupoId
+          
+          // Filtrar: mismo grupo + no es el campo activo
+          const otrosCampos = data.filter((c: any) => 
+            !c.esActivo && c.grupoId === grupoActivo
+          )
           setCamposDestino(otrosCampos)
         }
+        setCargandoCampos(false)
       } catch (error) {
         console.error('Error cargando datos:', error)
       }
@@ -271,7 +279,7 @@ export default function ModalTraslado({ onClose, onSuccess }: ModalTrasladoProps
       </div>
 
       {/* SIN CAMPOS DISPONIBLES */}
-      {camposDestino.length === 0 && (
+      {!cargandoCampos && camposDestino.length === 0 && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
           <p className="text-yellow-800">
             ⚠️ No tenés otros campos para trasladar. Primero creá otro campo desde el menú de usuario.

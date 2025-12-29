@@ -29,7 +29,7 @@ const CATEGORIAS_GASTOS_DEFAULT = [
 
 export async function POST(request: Request) {
   try {
-    const { name, email, password, campoNombre, telefono } = await request.json()  // 🔥 AGREGAR telefono
+    const { name, email, password, campoNombre, telefono } = await request.json()
 
     if (!name || !email || !password || !campoNombre) {
       return NextResponse.json(
@@ -53,14 +53,22 @@ export async function POST(request: Request) {
     // Hash
     const hashedPassword = await bcrypt.hash(password, 10)
 
-    // Crear campo + usuario admin + categorías predeterminadas
+    // Crear grupo + campo + usuario admin + categorías predeterminadas
     const result = await prisma.$transaction(async (tx) => {
-      // 1. Crear campo
-      const campo = await tx.campo.create({
+      // 1. Crear grupo (usa el nombre del campo como nombre del grupo)
+      const grupo = await tx.grupo.create({
         data: { nombre: campoNombre },
       })
 
-      // 2. Crear usuario admin
+      // 2. Crear campo asociado al grupo
+      const campo = await tx.campo.create({
+        data: { 
+          nombre: campoNombre,
+          grupoId: grupo.id,
+        },
+      })
+
+      // 3. Crear usuario admin
       const user = await tx.user.create({
         data: {
           name,
@@ -70,11 +78,31 @@ export async function POST(request: Request) {
           accesoFinanzas: true,
           campoId: campo.id,
           onboardingStartedAt: new Date(),
-          telefono: telefono || null,  // 🔥 AGREGAR ESTA LÍNEA
+          telefono: telefono || null,
         },
       })
 
-      // 3. Crear categorías de gastos predeterminadas
+      // 4. Crear relación UsuarioGrupo
+      await tx.usuarioGrupo.create({
+        data: {
+          userId: user.id,
+          grupoId: grupo.id,
+          rol: "ADMIN_GENERAL",
+          esActivo: true,
+        },
+      })
+
+      // 5. Crear relación UsuarioCampo
+      await tx.usuarioCampo.create({
+        data: {
+          userId: user.id,
+          campoId: campo.id,
+          rol: "ADMIN_GENERAL",
+          esActivo: true,
+        },
+      })
+
+      // 6. Crear categorías de gastos predeterminadas
       await tx.categoriaGasto.createMany({
         data: CATEGORIAS_GASTOS_DEFAULT.map((cat, index) => ({
           nombre: cat.nombre,
@@ -86,7 +114,7 @@ export async function POST(request: Request) {
         skipDuplicates: true,
       })
 
-      // 4. Crear categorías de animales predeterminadas
+      // 7. Crear categorías de animales predeterminadas
       await tx.categoriaAnimal.createMany({
         data: CATEGORIAS_ANIMALES_DEFAULT.map(cat => ({
           nombreSingular: cat.nombreSingular,
@@ -99,10 +127,13 @@ export async function POST(request: Request) {
         skipDuplicates: true,
       })
 
-      return { user, campo }
+      return { user, campo, grupo }
     })
 
-    console.log(`✅ Campo creado: ${result.campo.nombre}`)
+    console.log(`✅ Registro completo:`)
+    console.log(`   - Grupo: ${result.grupo.nombre}`)
+    console.log(`   - Campo: ${result.campo.nombre}`)
+    console.log(`   - Usuario: ${result.user.email}`)
     console.log(`   - ${CATEGORIAS_GASTOS_DEFAULT.length} categorías de gastos`)
     console.log(`   - ${CATEGORIAS_ANIMALES_DEFAULT.length} categorías de animales`)
 
