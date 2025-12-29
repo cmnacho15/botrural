@@ -107,6 +107,9 @@ model Campo {
   compras Compra[]
 
   actividadesCalendario ActividadCalendario[]
+
+  trasladosOrigen   Traslado[] @relation("TrasladosOrigen")
+  trasladosDestino  Traslado[] @relation("TrasladosDestino")
 }
 
 model CategoriaGasto {
@@ -184,6 +187,9 @@ model Lote {
   esPastoreable     Boolean            @default(true)  // 🆕 NUEVO CAMPO
   campoId           String
   moduloPastoreoId  String? 
+
+  trasladosDesde    Traslado[] @relation("TrasladosDesdePotreros")
+  trasladosHacia    Traslado[] @relation("TrasladosHaciaPotreros")
   
 
 
@@ -863,4 +869,60 @@ model UsuarioCampo {
   @@unique([userId, campoId])
   @@index([userId])
   @@index([campoId])
+}
+
+
+
+
+
+
+
+
+
+// ==========================================
+// 🚚 TRASLADOS ENTRE CAMPOS
+// ==========================================
+
+model Traslado {
+  id                String   @id @default(cuid())
+  fecha             DateTime
+  
+  // Origen
+  campoOrigenId     String
+  potreroOrigenId   String
+  
+  // Destino  
+  campoDestinoId    String
+  potreroDestinoId  String
+  
+  // Animales
+  tipoAnimal        String   // "BOVINO" | "OVINO"
+  categoria         String
+  cantidad          Int
+  
+  // Valoración (opcional, editable)
+  pesoPromedio      Float?
+  precioKgUSD       Float?
+  pesoTotalKg       Float?   // calculado: cantidad * pesoPromedio
+  precioAnimalUSD   Float?   // calculado: pesoPromedio * precioKgUSD
+  totalUSD          Float?   // calculado: cantidad * precioAnimalUSD
+  
+  // Stock
+  stockDescontado   Boolean  @default(false)
+  stockSumado       Boolean  @default(false)
+  
+  notas             String?
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  // Relaciones
+  campoOrigen       Campo    @relation("TrasladosOrigen", fields: [campoOrigenId], references: [id], onDelete: Cascade)
+  campoDestino      Campo    @relation("TrasladosDestino", fields: [campoDestinoId], references: [id], onDelete: Cascade)
+  potreroOrigen     Lote     @relation("TrasladosDesdePotreros", fields: [potreroOrigenId], references: [id])
+  potreroDestino    Lote     @relation("TrasladosHaciaPotreros", fields: [potreroDestinoId], references: [id])
+  
+  @@index([campoOrigenId])
+  @@index([campoDestinoId])
+  @@index([fecha])
 }

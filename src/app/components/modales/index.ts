@@ -20,6 +20,7 @@ export { default as ModalRefertilizacion } from './ModalRefertilizacion'
 export { default as ModalPulverizacion } from './ModalPulverizacion'
 export { default as ModalVenta } from './ModalVenta'  // ← AGREGAR ESTA LÍNEA
 export { default as ModalCompra } from './ModalCompra'
+export { default as ModalTraslado } from './ModalTraslado'
 
 // Importar y re-exportar directamente
 import ModalRecategorizacion from './ModalRecategorizacion'

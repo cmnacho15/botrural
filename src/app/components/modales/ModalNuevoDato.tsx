@@ -24,6 +24,7 @@ import {
   ModalPulverizacion,
   ModalCompra,
   ModalVenta,  // ← AGREGAR ESTE IMPORT
+  ModalTraslado,
   
 } from '@/app/components/modales'
 
@@ -100,6 +101,7 @@ export default function ModalNuevoDato({
         {tipo === 'pulverizacion' && <ModalPulverizacion onClose={onClose} onSuccess={handleSuccess} />}
         {tipo === 'venta' && <ModalVenta onClose={onClose} onSuccess={handleSuccess} />} 
         {tipo === 'compra' && <ModalCompra onClose={onClose} onSuccess={handleSuccess} />}
+        {tipo === 'traslado' && <ModalTraslado onClose={onClose} onSuccess={handleSuccess} />}
 
         {tipo === 'recategorizacion' && (         
           <ModalRecategorizacion 
