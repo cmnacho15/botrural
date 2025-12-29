@@ -159,9 +159,9 @@ export default function EvolucionUGDashboard() {
     const añoInicio = new Date(datos.dias[0]).getFullYear()
     const añoFin = new Date(datos.dias[datos.dias.length - 1]).getFullYear()
     
-    for (let año = añoInicio; año <= añoFin; año++) {
+    for (let año = añoInicio; año <= añoFin + 1; año++) {
       const inviernoInicio = `${año}-06-01`
-      const inviernoFin = `${año}-09-30`
+      const inviernoFin = `${año}-08-10`
       
       if (datos.dias.some(d => d >= inviernoInicio && d <= inviernoFin)) {
         temporadas.push({ inicio: inviernoInicio, fin: inviernoFin, nombre: 'Invierno' })
