@@ -2,6 +2,29 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { CATEGORIAS_ANIMALES_DEFAULT } from "@/lib/constants";
+
+const CATEGORIAS_GASTOS_DEFAULT = [
+  { nombre: 'Alimentación', color: '#ef4444' },
+  { nombre: 'Otros', color: '#6b7280' },
+  { nombre: 'Administración', color: '#3b82f6' },
+  { nombre: 'Renta', color: '#8b5cf6' },
+  { nombre: 'Asesoramiento', color: '#06b6d4' },
+  { nombre: 'Combustible', color: '#f97316' },
+  { nombre: 'Compras de Hacienda', color: '#84cc16' },
+  { nombre: 'Estructuras', color: '#64748b' },
+  { nombre: 'Fertilizantes', color: '#22c55e' },
+  { nombre: 'Fitosanitarios', color: '#14b8a6' },
+  { nombre: 'Gastos Comerciales', color: '#a855f7' },
+  { nombre: 'Impuestos', color: '#ec4899' },
+  { nombre: 'Insumos Agrícolas', color: '#eab308' },
+  { nombre: 'Labores', color: '#f59e0b' },
+  { nombre: 'Maquinaria', color: '#78716c' },
+  { nombre: 'Sanidad', color: '#dc2626' },
+  { nombre: 'Seguros', color: '#0ea5e9' },
+  { nombre: 'Semillas', color: '#65a30d' },
+  { nombre: 'Sueldos', color: '#7c3aed' },
+];
 
 // 🧱 POST → Crear un campo y asociarlo al usuario actual
 export async function POST(req: Request) {
@@ -20,15 +43,47 @@ export async function POST(req: Request) {
       );
     }
 
-    // 🚜 Crear campo
-    const campo = await prisma.campo.create({
-      data: {
-        nombre: nombre.trim(),
-        usuarios: {
-          connect: { id: session.user.id },
+    // 🚜 Crear campo con categorías predeterminadas
+    const campo = await prisma.$transaction(async (tx) => {
+      // 1. Crear campo
+      const nuevoCampo = await tx.campo.create({
+        data: {
+          nombre: nombre.trim(),
+          usuarios: {
+            connect: { id: session.user.id },
+          },
         },
-      },
+      });
+
+      // 2. Crear categorías de gastos predeterminadas
+      await tx.categoriaGasto.createMany({
+        data: CATEGORIAS_GASTOS_DEFAULT.map((cat, index) => ({
+          nombre: cat.nombre,
+          color: cat.color,
+          campoId: nuevoCampo.id,
+          orden: index,
+          activo: true,
+        })),
+        skipDuplicates: true,
+      });
+
+      // 3. Crear categorías de animales predeterminadas
+      await tx.categoriaAnimal.createMany({
+        data: CATEGORIAS_ANIMALES_DEFAULT.map(cat => ({
+          nombreSingular: cat.nombreSingular,
+          nombrePlural: cat.nombrePlural,
+          tipoAnimal: cat.tipoAnimal,
+          campoId: nuevoCampo.id,
+          activo: true,
+          esPredeterminado: true,
+        })),
+        skipDuplicates: true,
+      });
+
+      return nuevoCampo;
     });
+
+    console.log(`✅ Campo creado: ${campo.nombre} con categorías predeterminadas`);
 
     // 🆕 Desactivar otros campos del usuario
     await prisma.usuarioCampo.updateMany({
