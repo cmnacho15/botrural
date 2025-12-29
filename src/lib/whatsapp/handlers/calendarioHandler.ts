@@ -30,10 +30,10 @@ export async function handleCalendarioCrear(
     }
 
     // 🔥 FIX: Crear fecha en zona horaria de Montevideo para evitar desfases
-    const ahora = new Date()
-    const fechaProgramada = new Date(ahora.toLocaleString('en-US', { timeZone: 'America/Montevideo' }))
-    fechaProgramada.setDate(fechaProgramada.getDate() + parsedData.diasDesdeHoy)
-    fechaProgramada.setHours(12, 0, 0, 0) // Usar mediodía para evitar problemas de timezone
+const ahora = new Date()
+const fechaProgramada = new Date(ahora)
+fechaProgramada.setDate(fechaProgramada.getDate() + parsedData.diasDesdeHoy)
+fechaProgramada.setHours(12, 0, 0, 0) // Usar mediodía para evitar problemas de timezone
 
     if (parsedData.diasDesdeHoy < 0) {
       await sendWhatsAppMessage(
