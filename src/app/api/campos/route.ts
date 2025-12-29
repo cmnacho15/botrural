@@ -6,7 +6,6 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 // 🧱 POST → Crear un campo y asociarlo al usuario actual
 export async function POST(req: Request) {
   try {
-    // 🔐 Verificar sesión activa
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
@@ -14,7 +13,6 @@ export async function POST(req: Request) {
 
     const { nombre } = await req.json();
 
-    // 🧩 Validar nombre
     if (!nombre || nombre.trim().length < 2) {
       return NextResponse.json(
         { error: "El nombre del campo es requerido" },
@@ -22,21 +20,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // 🧩 Buscar usuario actual
-    const usuario = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      include: { campo: true },
-    });
-
-    // Si ya tiene campo, no permitir duplicar
-    if (usuario?.campoId) {
-      return NextResponse.json(
-        { error: "El usuario ya tiene un campo asociado" },
-        { status: 400 }
-      );
-    }
-
-    // 🚜 Crear campo y asociarlo al usuario
+    // 🚜 Crear campo
     const campo = await prisma.campo.create({
       data: {
         nombre: nombre.trim(),
@@ -46,7 +30,23 @@ export async function POST(req: Request) {
       },
     });
 
-    // 👑 Asignar campoId al usuario y rol ADMIN
+    // 🆕 Desactivar otros campos del usuario
+    await prisma.usuarioCampo.updateMany({
+      where: { userId: session.user.id },
+      data: { esActivo: false },
+    });
+
+    // 🆕 Crear relación en UsuarioCampo
+    await prisma.usuarioCampo.create({
+      data: {
+        userId: session.user.id,
+        campoId: campo.id,
+        rol: "ADMIN_GENERAL",
+        esActivo: true,
+      },
+    });
+
+    // 👑 Actualizar campoId del usuario al nuevo campo
     await prisma.user.update({
       where: { id: session.user.id },
       data: { campoId: campo.id, role: "ADMIN_GENERAL" },
@@ -56,7 +56,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       success: true,
-      message: "Campo creado y usuario asociado correctamente ✅",
+      message: "Campo creado correctamente ✅",
       campo,
     });
   } catch (error) {
@@ -68,7 +68,7 @@ export async function POST(req: Request) {
   }
 }
 
-// 📋 GET → Obtener campo del usuario autenticado
+// 📋 GET → Obtener campos del usuario autenticado
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
@@ -76,33 +76,64 @@ export async function GET() {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
     }
 
-    // Buscar el campo del usuario actual
-    const usuario = await prisma.user.findUnique({
-      where: { id: session.user.id },
+    // 🆕 Obtener todos los campos del usuario via UsuarioCampo
+    const usuarioCampos = await prisma.usuarioCampo.findMany({
+      where: { userId: session.user.id },
       include: {
         campo: {
           include: {
             lotes: true,
-            usuarios: {
-              select: { id: true, name: true, email: true, role: true },
-            },
+            _count: {
+              select: { usuarios: true }
+            }
           },
         },
       },
+      orderBy: { createdAt: 'asc' },
     });
 
-    if (!usuario?.campo) {
-      return NextResponse.json(
-        { message: "El usuario no tiene un campo asociado" },
-        { status: 200 }
-      );
+    // Formatear respuesta
+    const campos = usuarioCampos.map(uc => ({
+      id: uc.campo.id,
+      nombre: uc.campo.nombre,
+      rol: uc.rol,
+      esActivo: uc.esActivo,
+      cantidadPotreros: uc.campo.lotes.length,
+      cantidadUsuarios: uc.campo._count.usuarios,
+      createdAt: uc.campo.createdAt,
+    }));
+
+    // Si no hay campos en UsuarioCampo pero sí en User.campoId (migración pendiente)
+    if (campos.length === 0) {
+      const usuario = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        include: {
+          campo: {
+            include: {
+              lotes: true,
+            },
+          },
+        },
+      });
+
+      if (usuario?.campo) {
+        return NextResponse.json([{
+          id: usuario.campo.id,
+          nombre: usuario.campo.nombre,
+          rol: usuario.role,
+          esActivo: true,
+          cantidadPotreros: usuario.campo.lotes.length,
+          cantidadUsuarios: 1,
+          createdAt: usuario.campo.createdAt,
+        }]);
+      }
     }
 
-    return NextResponse.json(usuario.campo, { status: 200 });
+    return NextResponse.json(campos);
   } catch (error) {
-    console.error("💥 Error obteniendo campo:", error);
+    console.error("💥 Error obteniendo campos:", error);
     return NextResponse.json(
-      { error: "Error interno al obtener campo", details: String(error) },
+      { error: "Error interno al obtener campos", details: String(error) },
       { status: 500 }
     );
   }
@@ -118,7 +149,6 @@ export async function PATCH(req: Request) {
 
     const { nombre } = await req.json();
 
-    // Validar nombre
     if (!nombre || nombre.trim().length < 2) {
       return NextResponse.json(
         { error: "El nombre del campo es requerido (mínimo 2 caracteres)" },
@@ -126,7 +156,6 @@ export async function PATCH(req: Request) {
       );
     }
 
-    // Buscar usuario y su campo
     const usuario = await prisma.user.findUnique({
       where: { id: session.user.id },
       select: { campoId: true },
@@ -139,7 +168,6 @@ export async function PATCH(req: Request) {
       );
     }
 
-    // Actualizar nombre del campo
     const campoActualizado = await prisma.campo.update({
       where: { id: usuario.campoId },
       data: { nombre: nombre.trim() },

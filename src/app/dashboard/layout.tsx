@@ -40,6 +40,32 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   
   const userMenuRef = useRef<HTMLDivElement>(null);
 
+  const campoNombre = session?.user?.campoNombre || "Mi Campo";
+  const userName = session?.user?.name || "Usuario";
+  const userEmail = session?.user?.email || "";
+
+  // 🆕 Estado para campos del usuario
+  const [campos, setCampos] = useState<Array<{id: string, nombre: string, rol: string, esActivo: boolean}>>([]);
+  const [mostrarModalNuevoCampo, setMostrarModalNuevoCampo] = useState(false);
+  const [nombreNuevoCampo, setNombreNuevoCampo] = useState("");
+  const [creandoCampo, setCreandoCampo] = useState(false);
+
+  // 🆕 Cargar campos del usuario
+  useEffect(() => {
+    async function cargarCampos() {
+      try {
+        const res = await fetch('/api/campos');
+        if (res.ok) {
+          const data = await res.json();
+          setCampos(data);
+        }
+      } catch (error) {
+        console.error('Error cargando campos:', error);
+      }
+    }
+    cargarCampos();
+  }, []);
+
   useEffect(() => {
     if (sidebarOpen) {
       document.body.style.overflow = 'hidden';
@@ -73,10 +99,6 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
     );
   }
 
-  const campoNombre = session?.user?.campoNombre || "Mi Campo";
-  const userName = session?.user?.name || "Usuario";
-  const userEmail = session?.user?.email || "";
-
   // Obtener inicial del campo para el avatar
   const campoInicial = campoNombre.charAt(0).toUpperCase();
 
@@ -86,6 +108,58 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   };
 
   const closeModal = () => setModalTipo(null);
+
+  // 🆕 Función para crear nuevo campo
+  const crearNuevoCampo = async () => {
+    if (!nombreNuevoCampo.trim() || nombreNuevoCampo.trim().length < 2) {
+      alert('El nombre debe tener al menos 2 caracteres');
+      return;
+    }
+    
+    setCreandoCampo(true);
+    try {
+      const res = await fetch('/api/campos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nombre: nombreNuevoCampo.trim() }),
+      });
+      
+      if (res.ok) {
+        setMostrarModalNuevoCampo(false);
+        setNombreNuevoCampo("");
+        // Recargar página para actualizar sesión
+        window.location.reload();
+      } else {
+        const error = await res.json();
+        alert(error.error || 'Error al crear campo');
+      }
+    } catch (error) {
+      alert('Error al crear campo');
+    } finally {
+      setCreandoCampo(false);
+    }
+  };
+
+  // 🆕 Función para cambiar campo activo
+  const cambiarCampoActivo = async (campoId: string) => {
+    try {
+      const res = await fetch('/api/usuarios/campo-activo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ campoId }),
+      });
+      
+      if (res.ok) {
+        setUserMenuOpen(false);
+        window.location.reload();
+      } else {
+        const error = await res.json();
+        alert(error.error || 'Error al cambiar campo');
+      }
+    } catch (error) {
+      alert('Error al cambiar campo');
+    }
+  };
 
   const userRole = session?.user?.role || "COLABORADOR";
   const accesoFinanzas = session?.user?.accesoFinanzas || false;
@@ -113,14 +187,14 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
       ],
     },
     {
-  title: "Otros",
-  items: [
-    { href: "/dashboard/gastos", icon: "💸", label: "Finanzas", roles: ["ADMIN_GENERAL", "COLABORADOR", "CONTADOR"], requiresFinance: true },
-    { href: "/dashboard/insumos", icon: "📦", label: "Insumos", roles: ["ADMIN_GENERAL", "COLABORADOR"], requiresFinance: false },
-    { href: "/dashboard/calendario", icon: "📅", label: "Calendario", roles: ["ADMIN_GENERAL", "COLABORADOR", "EMPLEADO"], requiresFinance: false },  // ← AGREGAR ESTA LÍNEA
-    { href: "/dashboard/mano-de-obra", icon: "👷", label: "Mano de Obra", roles: ["ADMIN_GENERAL", "COLABORADOR", "CONTADOR"], requiresFinance: false },
-  ],
-},
+      title: "Otros",
+      items: [
+        { href: "/dashboard/gastos", icon: "💸", label: "Finanzas", roles: ["ADMIN_GENERAL", "COLABORADOR", "CONTADOR"], requiresFinance: true },
+        { href: "/dashboard/insumos", icon: "📦", label: "Insumos", roles: ["ADMIN_GENERAL", "COLABORADOR"], requiresFinance: false },
+        { href: "/dashboard/calendario", icon: "📅", label: "Calendario", roles: ["ADMIN_GENERAL", "COLABORADOR", "EMPLEADO"], requiresFinance: false },
+        { href: "/dashboard/mano-de-obra", icon: "👷", label: "Mano de Obra", roles: ["ADMIN_GENERAL", "COLABORADOR", "CONTADOR"], requiresFinance: false },
+      ],
+    },
     {
       title: "Configuración",
       items: [
@@ -203,16 +277,34 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                   <p className="text-blue-100 text-sm">{userEmail}</p>
                 </div>
 
-                {/* Campo actual */}
+                {/* Campo actual y lista de campos */}
                 <div className="p-3 bg-blue-50 border-b border-blue-100">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center text-white font-bold text-lg shadow-md">
-                      {campoInicial}
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-xs text-gray-600 font-medium">Campo actual</p>
-                      <p className="font-semibold text-gray-900">{campoNombre}</p>
-                    </div>
+                  <p className="text-xs text-gray-600 font-medium mb-2">Mis campos</p>
+                  <div className="space-y-2 max-h-40 overflow-y-auto">
+                    {campos.map((campo) => (
+                      <button
+                        key={campo.id}
+                        onClick={() => !campo.esActivo && cambiarCampoActivo(campo.id)}
+                        className={`w-full flex items-center gap-3 p-2 rounded-lg transition-colors ${
+                          campo.esActivo 
+                            ? 'bg-green-100 border-2 border-green-500' 
+                            : 'bg-white hover:bg-gray-100 border border-gray-200'
+                        }`}
+                      >
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-md ${
+                          campo.esActivo ? 'bg-green-600' : 'bg-gray-400'
+                        }`}>
+                          {campo.nombre.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="flex-1 text-left">
+                          <p className={`font-semibold text-sm ${campo.esActivo ? 'text-green-800' : 'text-gray-700'}`}>
+                            {campo.nombre}
+                          </p>
+                          <p className="text-xs text-gray-500">{campo.rol === 'ADMIN_GENERAL' ? 'Admin' : campo.rol}</p>
+                        </div>
+                        {campo.esActivo && <span className="text-green-600 text-lg">✓</span>}
+                      </button>
+                    ))}
                   </div>
                 </div>
 
@@ -237,14 +329,17 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                     </div>
                   </div>
 
-                  {/* Agregar Campo - Deshabilitado por ahora */}
-                  <div className="flex items-center gap-3 px-6 py-3 opacity-50 cursor-not-allowed border-t border-gray-100">
+                  {/* Agregar Campo */}
+                  <button
+                    onClick={() => {
+                      setUserMenuOpen(false);
+                      setMostrarModalNuevoCampo(true);
+                    }}
+                    className="w-full flex items-center gap-3 px-6 py-3 hover:bg-gray-50 transition-colors border-t border-gray-100"
+                  >
                     <span className="text-xl">➕</span>
-                    <div className="flex-1">
-                      <span className="text-gray-700 font-medium">Agregar Campo</span>
-                      <p className="text-xs text-gray-500">Próximamente</p>
-                    </div>
-                  </div>
+                    <span className="text-gray-700 font-medium">Agregar Campo</span>
+                  </button>
 
                   {/* Mis Pagos - Deshabilitado por ahora */}
                   <div className="flex items-center gap-3 px-6 py-3 opacity-50 cursor-not-allowed">
@@ -463,6 +558,54 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
 
         <main className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6">{children}</main>
       </div>
+
+      {/* 🆕 MODAL NUEVO CAMPO */}
+      {mostrarModalNuevoCampo && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+          onClick={() => setMostrarModalNuevoCampo(false)}
+        >
+          <div 
+            className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Agregar Nuevo Campo</h2>
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Nombre del campo
+              </label>
+              <input
+                type="text"
+                value={nombreNuevoCampo}
+                onChange={(e) => setNombreNuevoCampo(e.target.value)}
+                placeholder="Ej: Estancia San Pedro"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                autoFocus
+              />
+            </div>
+            
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setMostrarModalNuevoCampo(false);
+                  setNombreNuevoCampo("");
+                }}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={crearNuevoCampo}
+                disabled={creandoCampo || nombreNuevoCampo.trim().length < 2}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              >
+                {creandoCampo ? 'Creando...' : 'Crear Campo'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* MODAL DEL EVENTO ELEGIDO */}
       {modalTipo && (
