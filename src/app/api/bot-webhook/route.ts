@@ -28,6 +28,8 @@ import {
   handleReportePastoreoButtonResponse,
   handleStockConsulta,
   handleStockEdicion,
+  handleCambiarCampo,
+  handleCambiarCampoSeleccion,
 } from "@/lib/whatsapp"
 
 const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || "mi_token_secreto"
@@ -119,6 +121,11 @@ export async function POST(request: Request) {
           await handleReportePastoreoButtonResponse(from, messageText)
           return NextResponse.json({ status: "pastoreo button processed" })
         }
+
+        if (messageText.startsWith("campo_")) {
+          await handleCambiarCampoSeleccion(from, messageText)
+          return NextResponse.json({ status: "campo change processed" })
+        }
       }
     } else if (messageType === "audio") {
       // Procesar audio y obtener transcripción
@@ -156,6 +163,15 @@ export async function POST(request: Request) {
         await sendWhatsAppMessage(from, "No hay ninguna operación pendiente para cancelar.")
       }
       return NextResponse.json({ status: "cancelled" })
+    }
+
+    // ==========================================
+    // 2.5 COMANDO CAMBIAR CAMPO
+    // ==========================================
+    const comandosCambiarCampo = ["cambiar campo", "cambiar de campo", "mis campos", "otros campos"]
+    if (comandosCambiarCampo.includes(messageText.toLowerCase().trim())) {
+      await handleCambiarCampo(from)
+      return NextResponse.json({ status: "cambiar campo" })
     }
 
     // ==========================================

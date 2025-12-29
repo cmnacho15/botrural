@@ -34,3 +34,8 @@ export {
   handleStockEdicion,
   handleStockButtonResponse,
 } from "./handlers/stockConsultaHandler"
+
+export {
+  handleCambiarCampo,
+  handleCambiarCampoSeleccion,
+} from "./handlers/campoHandler"
