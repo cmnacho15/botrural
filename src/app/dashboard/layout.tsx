@@ -45,7 +45,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   const userEmail = session?.user?.email || "";
 
   // 🆕 Estado para campos del usuario
-  const [campos, setCampos] = useState<Array<{id: string, nombre: string, rol: string, esActivo: boolean}>>([]);
+  const [campos, setCampos] = useState<Array<{id: string, nombre: string, rol: string, esActivo: boolean, grupoId: string | null}>>([]);
   const [mostrarModalNuevoCampo, setMostrarModalNuevoCampo] = useState(false);
 const [nombreNuevoCampo, setNombreNuevoCampo] = useState("");
 const [creandoCampo, setCreandoCampo] = useState(false);
@@ -306,36 +306,88 @@ const crearNuevoCampo = async () => {
                   <p className="text-blue-100 text-sm">{userEmail}</p>
                 </div>
 
-                {/* Campo actual y lista de campos */}
-                <div className="p-3 bg-blue-50 border-b border-blue-100">
-                  <p className="text-xs text-gray-600 font-medium mb-2">Mis campos</p>
-                  <div className="space-y-2 max-h-40 overflow-y-auto">
-                    {campos.map((campo) => (
-                      <button
-                        key={campo.id}
-                        onClick={() => !campo.esActivo && cambiarCampoActivo(campo.id)}
-                        className={`w-full flex items-center gap-3 p-2 rounded-lg transition-colors ${
-                          campo.esActivo 
-                            ? 'bg-green-100 border-2 border-green-500' 
-                            : 'bg-white hover:bg-gray-100 border border-gray-200'
-                        }`}
-                      >
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-md ${
-                          campo.esActivo ? 'bg-green-600' : 'bg-gray-400'
-                        }`}>
-                          {campo.nombre.charAt(0).toUpperCase()}
-                        </div>
-                        <div className="flex-1 text-left">
-                          <p className={`font-semibold text-sm ${campo.esActivo ? 'text-green-800' : 'text-gray-700'}`}>
-                            {campo.nombre}
-                          </p>
-                          <p className="text-xs text-gray-500">{campo.rol === 'ADMIN_GENERAL' ? 'Admin' : campo.rol}</p>
-                        </div>
-                        {campo.esActivo && <span className="text-green-600 text-lg">✓</span>}
-                      </button>
-                    ))}
-                  </div>
+                {/* Campo actual y lista de campos agrupados */}
+<div className="p-3 bg-blue-50 border-b border-blue-100">
+  <div className="space-y-3 max-h-60 overflow-y-auto">
+    {grupos.map((grupo) => {
+      const camposDelGrupo = campos.filter(c => c.grupoId === grupo.id);
+      if (camposDelGrupo.length === 0) return null;
+      
+      return (
+        <div key={grupo.id}>
+          {/* Mostrar nombre del grupo solo si hay más de 1 grupo */}
+          {grupos.length > 1 && (
+            <p className="text-xs text-gray-500 font-medium mb-1 px-1">
+              {grupo.nombre}
+            </p>
+          )}
+          <div className="space-y-1">
+            {camposDelGrupo.map((campo) => (
+              <button
+                key={campo.id}
+                onClick={() => !campo.esActivo && cambiarCampoActivo(campo.id)}
+                className={`w-full flex items-center gap-3 p-2 rounded-lg transition-colors ${
+                  campo.esActivo 
+                    ? 'bg-green-100 border-2 border-green-500' 
+                    : 'bg-white hover:bg-gray-100 border border-gray-200'
+                }`}
+              >
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-md ${
+                  campo.esActivo ? 'bg-green-600' : 'bg-gray-400'
+                }`}>
+                  {campo.nombre.charAt(0).toUpperCase()}
                 </div>
+                <div className="flex-1 text-left">
+                  <p className={`font-semibold text-sm ${campo.esActivo ? 'text-green-800' : 'text-gray-700'}`}>
+                    {campo.nombre}
+                  </p>
+                  <p className="text-xs text-gray-500">{campo.rol === 'ADMIN_GENERAL' ? 'Admin' : campo.rol}</p>
+                </div>
+                {campo.esActivo && <span className="text-green-600 text-lg">✓</span>}
+              </button>
+            ))}
+          </div>
+        </div>
+      );
+    })}
+    
+    {/* Campos sin grupo (compatibilidad) */}
+    {campos.filter(c => !c.grupoId).length > 0 && (
+      <div>
+        {grupos.length > 0 && (
+          <p className="text-xs text-gray-500 font-medium mb-1 px-1">Otros</p>
+        )}
+        <div className="space-y-1">
+          {campos.filter(c => !c.grupoId).map((campo) => (
+            <button
+              key={campo.id}
+              onClick={() => !campo.esActivo && cambiarCampoActivo(campo.id)}
+              className={`w-full flex items-center gap-3 p-2 rounded-lg transition-colors ${
+                campo.esActivo 
+                  ? 'bg-green-100 border-2 border-green-500' 
+                  : 'bg-white hover:bg-gray-100 border border-gray-200'
+              }`}
+            >
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-md ${
+                campo.esActivo ? 'bg-green-600' : 'bg-gray-400'
+              }`}>
+                {campo.nombre.charAt(0).toUpperCase()}
+              </div>
+              <div className="flex-1 text-left">
+                <p className={`font-semibold text-sm ${campo.esActivo ? 'text-green-800' : 'text-gray-700'}`}>
+                  {campo.nombre}
+                </p>
+                <p className="text-xs text-gray-500">{campo.rol === 'ADMIN_GENERAL' ? 'Admin' : campo.rol}</p>
+              </div>
+              {campo.esActivo && <span className="text-green-600 text-lg">✓</span>}
+            </button>
+          ))}
+        </div>
+      </div>
+    )}
+  </div>
+</div>
+
 
                 {/* Opciones del menú */}
                 <div className="py-2">
