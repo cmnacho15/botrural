@@ -101,3 +101,48 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Error interno" }, { status: 500 })
   }
 }
+
+
+
+/**
+ * PATCH - Editar nombre del grupo
+ */
+export async function PATCH(request: Request) {
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "No autenticado" }, { status: 401 })
+    }
+
+    const { id, nombre } = await request.json()
+
+    if (!id || !nombre || nombre.trim().length < 2) {
+      return NextResponse.json({ error: "ID y nombre son requeridos" }, { status: 400 })
+    }
+
+    // Verificar que el usuario tiene acceso al grupo
+    const usuarioGrupo = await prisma.usuarioGrupo.findFirst({
+      where: {
+        userId: session.user.id,
+        grupoId: id,
+        rol: 'ADMIN_GENERAL'
+      }
+    })
+
+    if (!usuarioGrupo) {
+      return NextResponse.json({ error: "No tenés permiso para editar este grupo" }, { status: 403 })
+    }
+
+    const grupoActualizado = await prisma.grupo.update({
+      where: { id },
+      data: { nombre: nombre.trim() }
+    })
+
+    console.log(`✅ Grupo actualizado: ${grupoActualizado.nombre}`)
+
+    return NextResponse.json({ success: true, grupo: grupoActualizado })
+  } catch (error) {
+    console.error("Error actualizando grupo:", error)
+    return NextResponse.json({ error: "Error interno" }, { status: 500 })
+  }
+}

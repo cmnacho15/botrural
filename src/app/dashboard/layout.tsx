@@ -52,6 +52,8 @@ const [creandoCampo, setCreandoCampo] = useState(false);
 const [grupos, setGrupos] = useState<Array<{id: string, nombre: string, esActivo: boolean, cantidadCampos: number}>>([]);
 const [opcionGrupo, setOpcionGrupo] = useState<'mismo' | 'nuevo'>('mismo');
 const [nombreNuevoGrupo, setNombreNuevoGrupo] = useState("");
+const [editandoGrupo, setEditandoGrupo] = useState<string | null>(null);
+const [nombreGrupoEdit, setNombreGrupoEdit] = useState("");
 
   // 🆕 Cargar campos y grupos del usuario
 useEffect(() => {
@@ -165,6 +167,37 @@ const crearNuevoCampo = async () => {
     alert('Error al crear campo');
   } finally {
     setCreandoCampo(false);
+  }
+};
+
+
+// 🆕 Función para editar nombre del grupo
+const guardarNombreGrupo = async (grupoId: string) => {
+  if (!nombreGrupoEdit.trim() || nombreGrupoEdit.trim().length < 2) {
+    alert('El nombre debe tener al menos 2 caracteres');
+    return;
+  }
+  
+  try {
+    const res = await fetch('/api/grupos', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: grupoId, nombre: nombreGrupoEdit.trim() }),
+    });
+    
+    if (res.ok) {
+      setEditandoGrupo(null);
+      setNombreGrupoEdit("");
+      // Recargar grupos
+      const resGrupos = await fetch('/api/grupos');
+      if (resGrupos.ok) {
+        setGrupos(await resGrupos.json());
+      }
+    } else {
+      alert('Error al guardar');
+    }
+  } catch (error) {
+    alert('Error al guardar');
   }
 };
 
@@ -317,10 +350,53 @@ const crearNuevoCampo = async () => {
         <div key={grupo.id}>
           {/* Mostrar nombre del grupo solo si hay más de 1 grupo */}
           {grupos.length > 1 && (
-            <p className="text-xs text-gray-500 font-medium mb-1 px-1">
-              {grupo.nombre}
-            </p>
+            <div className="flex items-center gap-1 mb-1 px-1">
+              {editandoGrupo === grupo.id ? (
+                <div className="flex items-center gap-1 flex-1">
+                  <input
+                    type="text"
+                    value={nombreGrupoEdit}
+                    onChange={(e) => setNombreGrupoEdit(e.target.value)}
+                    className="flex-1 text-xs px-2 py-1 border rounded"
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') guardarNombreGrupo(grupo.id);
+                      if (e.key === 'Escape') setEditandoGrupo(null);
+                    }}
+                  />
+                  <button
+                    onClick={() => guardarNombreGrupo(grupo.id)}
+                    className="text-green-600 hover:text-green-800 text-xs"
+                  >
+                    ✓
+                  </button>
+                  <button
+                    onClick={() => setEditandoGrupo(null)}
+                    className="text-gray-400 hover:text-gray-600 text-xs"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <p className="text-xs text-gray-500 font-medium flex-1">
+                    {grupo.nombre}
+                  </p>
+                  <button
+                    onClick={() => {
+                      setEditandoGrupo(grupo.id);
+                      setNombreGrupoEdit(grupo.nombre);
+                    }}
+                    className="text-gray-400 hover:text-gray-600 text-xs"
+                    title="Editar nombre"
+                  >
+                    ✏️
+                  </button>
+                </>
+              )}
+            </div>
           )}
+          
           <div className="space-y-1">
             {camposDelGrupo.map((campo) => (
               <button
