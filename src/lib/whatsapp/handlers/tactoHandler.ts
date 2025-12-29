@@ -76,8 +76,7 @@ export async function handleTacto(
         descripcion: `Tacto en potrero ${potrero.nombre}: ${parsedData.cantidad} animales tactados, ${parsedData.preñadas} preñados (${porcentaje}% de preñez)`,
         loteId: potrero.id,
         cantidad: parsedData.cantidad,
-        notas: `${parsedData.preñadas} preñadas, ${falladas} falladas`,
-        creadoPor: user.id
+        notas: `${parsedData.preñadas} preñadas, ${falladas} falladas`
       }
     })
 
