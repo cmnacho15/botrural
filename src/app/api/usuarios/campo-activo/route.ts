@@ -20,7 +20,6 @@ export async function POST(req: Request) {
       );
     }
 
-    
     // Verificar que el usuario tiene acceso a ese campo
     const usuarioCampo = await prisma.usuarioCampo.findFirst({
       where: {
@@ -39,28 +38,53 @@ export async function POST(req: Request) {
       );
     }
 
-    // Desactivar todos los campos del usuario
-    await prisma.usuarioCampo.updateMany({
-      where: { userId: session.user.id },
-      data: { esActivo: false },
+    // Obtener el grupoId del campo
+    const campo = await prisma.campo.findUnique({
+      where: { id: campoId },
+      select: { grupoId: true }
     });
 
-    // Activar el campo seleccionado
-    await prisma.usuarioCampo.updateMany({
-      where: {
-        userId: session.user.id,
-        campoId: campoId,
-      },
-      data: { esActivo: true },
-    });
+    // Transacción para cambiar campo activo y grupo activo
+    await prisma.$transaction(async (tx) => {
+      // Desactivar todos los campos del usuario
+      await tx.usuarioCampo.updateMany({
+        where: { userId: session.user.id },
+        data: { esActivo: false },
+      });
 
-    // Actualizar User.campoId para compatibilidad
-    await prisma.user.update({
-      where: { id: session.user.id },
-      data: { 
-        campoId: campoId,
-        role: usuarioCampo.rol, // Actualizar rol según el campo
-      },
+      // Activar el campo seleccionado
+      await tx.usuarioCampo.updateMany({
+        where: {
+          userId: session.user.id,
+          campoId: campoId,
+        },
+        data: { esActivo: true },
+      });
+
+      // Actualizar grupo activo basado en el grupo del campo
+      if (campo?.grupoId) {
+        await tx.usuarioGrupo.updateMany({
+          where: { userId: session.user.id },
+          data: { esActivo: false }
+        });
+
+        await tx.usuarioGrupo.updateMany({
+          where: {
+            userId: session.user.id,
+            grupoId: campo.grupoId
+          },
+          data: { esActivo: true }
+        });
+      }
+
+      // Actualizar User.campoId y role
+      await tx.user.update({
+        where: { id: session.user.id },
+        data: {
+          campoId: campoId,
+          role: usuarioCampo.rol,
+        },
+      });
     });
 
     console.log(`✅ Campo activo cambiado a: ${usuarioCampo.campo.nombre} para ${session.user.email}`);
