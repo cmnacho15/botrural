@@ -34,7 +34,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
     }
 
-    const { nombre } = await req.json();
+    const { nombre, grupoId, nuevoGrupoNombre } = await req.json();
 
     if (!nombre || nombre.trim().length < 2) {
       return NextResponse.json(
@@ -43,12 +43,44 @@ export async function POST(req: Request) {
       );
     }
 
+    // Determinar el grupo a usar
+    let grupoIdFinal = grupoId;
+
+    // Si se pasa nuevoGrupoNombre, crear grupo nuevo
+    if (nuevoGrupoNombre && nuevoGrupoNombre.trim().length >= 2) {
+      const nuevoGrupo = await prisma.grupo.create({
+        data: { nombre: nuevoGrupoNombre.trim() }
+      });
+
+      // Crear relación UsuarioGrupo
+      await prisma.usuarioGrupo.create({
+        data: {
+          userId: session.user.id,
+          grupoId: nuevoGrupo.id,
+          rol: 'ADMIN_GENERAL',
+          esActivo: false
+        }
+      });
+
+      grupoIdFinal = nuevoGrupo.id;
+      console.log(`✅ Nuevo grupo creado: ${nuevoGrupo.nombre}`);
+    }
+
+    // Si no se especificó grupo, usar el grupo activo del usuario
+    if (!grupoIdFinal) {
+      const grupoActivo = await prisma.usuarioGrupo.findFirst({
+        where: { userId: session.user.id, esActivo: true }
+      });
+      grupoIdFinal = grupoActivo?.grupoId || null;
+    }
+
     // 🚜 Crear campo con categorías predeterminadas
     const campo = await prisma.$transaction(async (tx) => {
       // 1. Crear campo
       const nuevoCampo = await tx.campo.create({
         data: {
           nombre: nombre.trim(),
+          grupoId: grupoIdFinal,
           usuarios: {
             connect: { id: session.user.id },
           },
@@ -138,6 +170,7 @@ export async function GET() {
         campo: {
           include: {
             lotes: true,
+            grupo: { select: { id: true, nombre: true } },
             _count: {
               select: { usuarios: true }
             }
@@ -155,6 +188,7 @@ export async function GET() {
       esActivo: uc.esActivo,
       cantidadPotreros: uc.campo.lotes.length,
       cantidadUsuarios: uc.campo._count.usuarios,
+      grupoId: uc.campo.grupoId,
       createdAt: uc.campo.createdAt,
     }));
 

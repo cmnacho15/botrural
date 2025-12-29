@@ -47,24 +47,36 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   // 🆕 Estado para campos del usuario
   const [campos, setCampos] = useState<Array<{id: string, nombre: string, rol: string, esActivo: boolean}>>([]);
   const [mostrarModalNuevoCampo, setMostrarModalNuevoCampo] = useState(false);
-  const [nombreNuevoCampo, setNombreNuevoCampo] = useState("");
-  const [creandoCampo, setCreandoCampo] = useState(false);
+const [nombreNuevoCampo, setNombreNuevoCampo] = useState("");
+const [creandoCampo, setCreandoCampo] = useState(false);
+const [grupos, setGrupos] = useState<Array<{id: string, nombre: string, esActivo: boolean, cantidadCampos: number}>>([]);
+const [opcionGrupo, setOpcionGrupo] = useState<'mismo' | 'nuevo'>('mismo');
+const [nombreNuevoGrupo, setNombreNuevoGrupo] = useState("");
 
-  // 🆕 Cargar campos del usuario
-  useEffect(() => {
-    async function cargarCampos() {
-      try {
-        const res = await fetch('/api/campos');
-        if (res.ok) {
-          const data = await res.json();
-          setCampos(data);
-        }
-      } catch (error) {
-        console.error('Error cargando campos:', error);
+  // 🆕 Cargar campos y grupos del usuario
+useEffect(() => {
+  async function cargarDatos() {
+    try {
+      const [resCampos, resGrupos] = await Promise.all([
+        fetch('/api/campos'),
+        fetch('/api/grupos')
+      ]);
+      
+      if (resCampos.ok) {
+        const data = await resCampos.json();
+        setCampos(data);
       }
+      
+      if (resGrupos.ok) {
+        const data = await resGrupos.json();
+        setGrupos(data);
+      }
+    } catch (error) {
+      console.error('Error cargando datos:', error);
     }
-    cargarCampos();
-  }, []);
+  }
+  cargarDatos();
+}, []);
 
   useEffect(() => {
     if (sidebarOpen) {
@@ -110,35 +122,51 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   const closeModal = () => setModalTipo(null);
 
   // 🆕 Función para crear nuevo campo
-  const crearNuevoCampo = async () => {
-    if (!nombreNuevoCampo.trim() || nombreNuevoCampo.trim().length < 2) {
-      alert('El nombre debe tener al menos 2 caracteres');
-      return;
-    }
+const crearNuevoCampo = async () => {
+  if (!nombreNuevoCampo.trim() || nombreNuevoCampo.trim().length < 2) {
+    alert('El nombre debe tener al menos 2 caracteres');
+    return;
+  }
+
+  if (opcionGrupo === 'nuevo' && (!nombreNuevoGrupo.trim() || nombreNuevoGrupo.trim().length < 2)) {
+    alert('El nombre del cliente/empresa debe tener al menos 2 caracteres');
+    return;
+  }
+  
+  setCreandoCampo(true);
+  try {
+    const grupoActivo = grupos.find(g => g.esActivo);
     
-    setCreandoCampo(true);
-    try {
-      const res = await fetch('/api/campos', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nombre: nombreNuevoCampo.trim() }),
-      });
-      
-      if (res.ok) {
-        setMostrarModalNuevoCampo(false);
-        setNombreNuevoCampo("");
-        // Recargar página para actualizar sesión
-        window.location.reload();
-      } else {
-        const error = await res.json();
-        alert(error.error || 'Error al crear campo');
-      }
-    } catch (error) {
-      alert('Error al crear campo');
-    } finally {
-      setCreandoCampo(false);
+    const payload: any = { nombre: nombreNuevoCampo.trim() };
+    
+    if (opcionGrupo === 'mismo' && grupoActivo) {
+      payload.grupoId = grupoActivo.id;
+    } else if (opcionGrupo === 'nuevo') {
+      payload.nuevoGrupoNombre = nombreNuevoGrupo.trim();
     }
-  };
+
+    const res = await fetch('/api/campos', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    
+    if (res.ok) {
+      setMostrarModalNuevoCampo(false);
+      setNombreNuevoCampo("");
+      setNombreNuevoGrupo("");
+      setOpcionGrupo('mismo');
+      window.location.reload();
+    } else {
+      const error = await res.json();
+      alert(error.error || 'Error al crear campo');
+    }
+  } catch (error) {
+    alert('Error al crear campo');
+  } finally {
+    setCreandoCampo(false);
+  }
+};
 
   // 🆕 Función para cambiar campo activo
   const cambiarCampoActivo = async (campoId: string) => {
@@ -561,52 +589,109 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
       </div>
 
       {/* 🆕 MODAL NUEVO CAMPO */}
-      {mostrarModalNuevoCampo && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
-          onClick={() => setMostrarModalNuevoCampo(false)}
-        >
-          <div 
-            className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Agregar Nuevo Campo</h2>
+{mostrarModalNuevoCampo && (
+  <div 
+    className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+    onClick={() => setMostrarModalNuevoCampo(false)}
+  >
+    <div 
+      className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <h2 className="text-xl font-bold text-gray-900 mb-4">Agregar Nuevo Campo</h2>
+      
+      {/* Nombre del campo */}
+      <div className="mb-4">
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Nombre del campo
+        </label>
+        <input
+          type="text"
+          value={nombreNuevoCampo}
+          onChange={(e) => setNombreNuevoCampo(e.target.value)}
+          placeholder="Ej: Estancia San Pedro"
+          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          autoFocus
+        />
+      </div>
+
+      {/* Pregunta sobre grupo - solo si ya tiene campos */}
+      {campos.length > 0 && (
+        <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+          <label className="block text-sm font-medium text-gray-700 mb-3">
+            ¿Este campo es del mismo dueño/empresa que tus otros campos?
+          </label>
+          
+          <div className="space-y-2">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                checked={opcionGrupo === 'mismo'}
+                onChange={() => setOpcionGrupo('mismo')}
+                className="text-blue-600"
+              />
+              <span className="text-sm text-gray-700">
+                Sí, es del mismo dueño
+                <span className="text-gray-500 text-xs ml-1">
+                  (podrás hacer traslados entre campos)
+                </span>
+              </span>
+            </label>
             
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Nombre del campo
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                checked={opcionGrupo === 'nuevo'}
+                onChange={() => setOpcionGrupo('nuevo')}
+                className="text-blue-600"
+              />
+              <span className="text-sm text-gray-700">
+                No, es de otro cliente/empresa
+              </span>
+            </label>
+          </div>
+
+          {/* Nombre del nuevo grupo */}
+          {opcionGrupo === 'nuevo' && (
+            <div className="mt-3">
+              <label className="block text-xs text-gray-600 mb-1">
+                Nombre del cliente/empresa
               </label>
               <input
                 type="text"
-                value={nombreNuevoCampo}
-                onChange={(e) => setNombreNuevoCampo(e.target.value)}
-                placeholder="Ej: Estancia San Pedro"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                autoFocus
+                value={nombreNuevoGrupo}
+                onChange={(e) => setNombreNuevoGrupo(e.target.value)}
+                placeholder="Ej: Estancia Don Pedro"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
               />
             </div>
-            
-            <div className="flex gap-3">
-              <button
-                onClick={() => {
-                  setMostrarModalNuevoCampo(false);
-                  setNombreNuevoCampo("");
-                }}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={crearNuevoCampo}
-                disabled={creandoCampo || nombreNuevoCampo.trim().length < 2}
-                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-              >
-                {creandoCampo ? 'Creando...' : 'Crear Campo'}
-              </button>
-            </div>
-          </div>
+          )}
         </div>
       )}
+      
+      <div className="flex gap-3">
+        <button
+          onClick={() => {
+            setMostrarModalNuevoCampo(false);
+            setNombreNuevoCampo("");
+            setNombreNuevoGrupo("");
+            setOpcionGrupo('mismo');
+          }}
+          className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+        >
+          Cancelar
+        </button>
+        <button
+          onClick={crearNuevoCampo}
+          disabled={creandoCampo || nombreNuevoCampo.trim().length < 2 || (opcionGrupo === 'nuevo' && nombreNuevoGrupo.trim().length < 2)}
+          className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+        >
+          {creandoCampo ? 'Creando...' : 'Crear Campo'}
+        </button>
+      </div>
+    </div>
+  </div>
+)}
 
       {/* MODAL DEL EVENTO ELEGIDO */}
       {modalTipo && (

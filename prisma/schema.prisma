@@ -33,6 +33,8 @@ model User {
   
   // 🟢 LADO INVERSO DE SnigUploadSession
   snigUploadSessions    SnigUploadSession[]
+
+  grupos    UsuarioGrupo[]
 }
 
 model Account {
@@ -110,6 +112,9 @@ model Campo {
 
   trasladosOrigen   Traslado[] @relation("TrasladosOrigen")
   trasladosDestino  Traslado[] @relation("TrasladosDestino")
+
+  grupoId   String?
+  grupo     Grupo?   @relation(fields: [grupoId], references: [id])
 }
 
 model CategoriaGasto {
@@ -879,6 +884,8 @@ model UsuarioCampo {
 
 
 
+
+
 // ==========================================
 // 🚚 TRASLADOS ENTRE CAMPOS
 // ==========================================
@@ -925,4 +932,39 @@ model Traslado {
   @@index([campoOrigenId])
   @@index([campoDestinoId])
   @@index([fecha])
+}
+
+
+
+
+
+// ==========================================
+// 🏢 GRUPOS (Empresas/Clientes)
+// ==========================================
+
+model Grupo {
+  id        String   @id @default(cuid())
+  nombre    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  campos    Campo[]
+  usuarios  UsuarioGrupo[]
+}
+
+model UsuarioGrupo {
+  id        String   @id @default(cuid())
+  userId    String
+  grupoId   String
+  rol       Role     @default(COLABORADOR)
+  esActivo  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  grupo     Grupo    @relation(fields: [grupoId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, grupoId])
+  @@index([userId])
+  @@index([grupoId])
 }
