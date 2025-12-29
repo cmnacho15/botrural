@@ -178,7 +178,8 @@ async function generarYEnviarReportePastoreo(telefono: string, moduloId: string,
     const fecha = new Date().toLocaleDateString('es-UY', {
       day: '2-digit',
       month: '2-digit',
-      year: 'numeric'
+      year: 'numeric',
+      timeZone: 'America/Montevideo'
     })
 
     const nombreArchivo = `Pastoreo_${moduloNombre.replace(/\s+/g, '_')}_${fecha.replace(/\//g, '-')}.pdf`
@@ -493,7 +494,8 @@ async function generarPDFPastoreo(data: any, nombreCampo: string): Promise<Buffe
     const fecha = new Date().toLocaleDateString('es-UY', {
       day: '2-digit',
       month: '2-digit',
-      year: 'numeric'
+      year: 'numeric',
+      timeZone: 'America/Montevideo'
     })
     doc.text(`Generado: ${fecha}`, pageWidth - margin - 40, 15)
 
