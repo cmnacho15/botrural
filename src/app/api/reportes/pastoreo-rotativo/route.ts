@@ -212,7 +212,7 @@ export async function GET(request: Request) {
             fechaEntrada: '-',
             fechaEntradaDate: null,
             dias: '-',
-            fechaSalida: fechaUltimoCambio.toLocaleDateString('es-UY'),
+            fechaSalida: fechaUltimoCambio.toLocaleDateString('es-UY', { timeZone: 'America/Montevideo' }),
             diasDescanso: diasDescanso,
             hectareas: Math.round((potrero.hectareas || 0) * 100) / 100,
             comentarios: 'En descanso (sin historial)',
@@ -331,7 +331,7 @@ export async function GET(request: Request) {
         // Agregar entradas
         ciclo.entradas.forEach((entrada: any, idx: number) => {
           const cantidadTexto = entrada.cantidad ? `${entrada.cantidad} ` : ''
-          const fechaCorta = entrada.fecha.toLocaleDateString('es-UY', { day: '2-digit', month: '2-digit' })
+          const fechaCorta = entrada.fecha.toLocaleDateString('es-UY', { day: '2-digit', month: '2-digit', timeZone: 'America/Montevideo' })
           
           if (idx === 0) {
             comentariosPartesHtml.push(`<span style="background-color: #93C5FD; padding: 2px 6px; border-radius: 4px; font-weight: 500;">${cantidadTexto}${entrada.categoria} (${fechaCorta})</span>`)
@@ -344,7 +344,7 @@ export async function GET(request: Request) {
         // ✅ NUEVO: Agregar salidas parciales (si las hay)
         if (ciclo.salidas && ciclo.salidas.length > 0) {
           ciclo.salidas.forEach((salida: any) => {
-            const fechaCorta = salida.fecha.toLocaleDateString('es-UY', { day: '2-digit', month: '2-digit' })
+            const fechaCorta = salida.fecha.toLocaleDateString('es-UY', { day: '2-digit', month: '2-digit', timeZone: 'America/Montevideo' })
             comentariosPartesHtml.push(`<span style="background-color: #FCA5A5; padding: 2px 6px; border-radius: 4px; font-weight: 500;">-${salida.cantidad} (${fechaCorta})</span>`)
             comentariosPartes.push(`-${salida.cantidad} salieron (${fechaCorta})`)
           })
@@ -355,10 +355,10 @@ export async function GET(request: Request) {
 
         registros.push({
           potrero: potrero.nombre,
-          fechaEntrada: fechaEntrada.toLocaleDateString('es-UY'),
+          fechaEntrada: fechaEntrada.toLocaleDateString('es-UY', { timeZone: 'America/Montevideo' }),
           fechaEntradaDate: fechaEntrada, // ✅ Para ordenar
           dias: diasPastoreo,
-          fechaSalida: fechaSalida ? fechaSalida.toLocaleDateString('es-UY') : '-',
+          fechaSalida: fechaSalida ? fechaSalida.toLocaleDateString('es-UY', { timeZone: 'America/Montevideo' }) : '-',
           diasDescanso: diasDescanso,
           hectareas: Math.round((potrero.hectareas || 0) * 100) / 100,
           comentarios: comentariosTexto,

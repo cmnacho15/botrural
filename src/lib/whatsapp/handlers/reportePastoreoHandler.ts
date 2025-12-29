@@ -342,7 +342,7 @@ async function obtenerDatosReportePastoreo(campoId: string, moduloId: string) {
             potrero: potrero.nombre,
             fechaEntrada: '-',
             dias: '-',
-            fechaSalida: fechaUltimoCambio.toLocaleDateString('es-UY'),
+            fechaSalida: fechaUltimoCambio.toLocaleDateString('es-UY', { timeZone: 'America/Montevideo' }),
             diasDescanso,
             hectareas: Math.round((potrero.hectareas || 0) * 100) / 100,
             comentarios: 'En descanso (sin historial)'
@@ -423,21 +423,21 @@ async function obtenerDatosReportePastoreo(campoId: string, moduloId: string) {
         const comentariosPartes: string[] = []
         ciclo.entradas.forEach((entrada: any) => {
           const cantidadTexto = entrada.cantidad ? `${entrada.cantidad} ` : ''
-          const fechaCorta = entrada.fecha.toLocaleDateString('es-UY', { day: '2-digit', month: '2-digit' })
+          const fechaCorta = entrada.fecha.toLocaleDateString('es-UY', { day: '2-digit', month: '2-digit', timeZone: 'America/Montevideo' })
           comentariosPartes.push(`${cantidadTexto}${entrada.categoria} (${fechaCorta})`)
         })
         if (ciclo.salidas && ciclo.salidas.length > 0) {
           ciclo.salidas.forEach((salida: any) => {
-            const fechaCorta = salida.fecha.toLocaleDateString('es-UY', { day: '2-digit', month: '2-digit' })
+            const fechaCorta = salida.fecha.toLocaleDateString('es-UY', { day: '2-digit', month: '2-digit', timeZone: 'America/Montevideo' })
             comentariosPartes.push(`-${salida.cantidad} (${fechaCorta})`)
           })
         }
 
         registros.push({
           potrero: potrero.nombre,
-          fechaEntrada: fechaEntrada.toLocaleDateString('es-UY'),
+          fechaEntrada: fechaEntrada.toLocaleDateString('es-UY', { timeZone: 'America/Montevideo' }),
           dias: diasPastoreo,
-          fechaSalida: fechaSalida ? fechaSalida.toLocaleDateString('es-UY') : '-',
+          fechaSalida: fechaSalida ? fechaSalida.toLocaleDateString('es-UY', { timeZone: 'America/Montevideo' }) : '-',
           diasDescanso,
           hectareas: Math.round((potrero.hectareas || 0) * 100) / 100,
           comentarios: comentariosPartes.join(' | '),
