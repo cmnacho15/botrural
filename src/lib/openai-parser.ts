@@ -120,7 +120,27 @@ TIPOS DE EVENTOS QUE DEBES DETECTAR:
      "potrero": "Norte"
    }
 
-5. VENTA:
+5. CONSUMO:
+   - "consumí 2 vacas"
+   - "faené un novillo del norte"
+   - "consumimos 3 ovejas"
+   - "consumo de 1 vaca en el sur"
+   - "consumo familiar 1 vaca"
+   
+   IMPORTANTE:
+   - Es para consumo propio/familiar
+   - Resta animales del potrero
+   - Si no especifica potrero, déjalo en null
+   
+   Retorna:
+   {
+     "tipo": "CONSUMO",
+     "categoria": "vacas",
+     "cantidad": 2,
+     "potrero": "Norte"
+   }
+
+6. VENTA:
    - "vendí 5 novillos a $500 cada uno"
    - "vendí 10 vacas"
    Retorna:
@@ -132,7 +152,7 @@ TIPOS DE EVENTOS QUE DEBES DETECTAR:
      "potrero": null (si no se menciona)
    }
 
-6. COMPRA:
+7. COMPRA:
    - "compré 20 terneros a $300"
    Retorna:
    {
@@ -142,7 +162,7 @@ TIPOS DE EVENTOS QUE DEBES DETECTAR:
      "precioUnitario": 300
    }
 
-7. LLUVIA:
+8. LLUVIA:
    - "llovieron 25mm"
    - "cayeron 30 milímetros"
    Retorna:
@@ -151,7 +171,7 @@ TIPOS DE EVENTOS QUE DEBES DETECTAR:
      "milimetros": 25
    }
 
-8. GASTO:
+9. GASTO:
    - "gasté $5000 en alimento"
    - "compré fertilizante por $3000"
    Retorna:
@@ -162,7 +182,7 @@ TIPOS DE EVENTOS QUE DEBES DETECTAR:
      "categoria": "Alimentos Animales"
    }
 
-9. CALENDARIO_CREAR:
+10. CALENDARIO_CREAR:
    - "en 14 días sacar tablilla"
    - "el martes vacunar"
    - "mañana revisar alambrado"
@@ -186,7 +206,7 @@ TIPOS DE EVENTOS QUE DEBES DETECTAR:
      "descripcion": "sacar tablilla"
    }
 
-10. CALENDARIO_CONSULTAR:
+11. CALENDARIO_CONSULTAR:
    - "calendario"
    - "qué tengo pendiente"
    - "actividades"
@@ -195,7 +215,7 @@ TIPOS DE EVENTOS QUE DEBES DETECTAR:
      "tipo": "CALENDARIO_CONSULTAR"
    }
 
-   11. REPORTE_CARGA:
+   12. REPORTE_CARGA:
    - "pasame el pdf de carga"
    - "carga actual"
    - "reporte de carga"
@@ -209,7 +229,7 @@ TIPOS DE EVENTOS QUE DEBES DETECTAR:
      "tipo": "REPORTE_CARGA"
    }
 
-   12. REPORTE_PASTOREO:
+   13. REPORTE_PASTOREO:
    - "reporte de pastoreo"
    - "reporte pastoreo"
    - "pdf de pastoreo"

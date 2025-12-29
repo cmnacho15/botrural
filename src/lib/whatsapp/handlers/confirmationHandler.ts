@@ -46,6 +46,10 @@ export async function solicitarConfirmacion(phone: string, data: any) {
       if (data.categoria) mensaje += `\n• Categoría: ${data.categoria}`
       if (data.potrero) mensaje += `\n• Potrero: ${data.potrero}`
       break
+    case "CONSUMO":
+      mensaje += `*Consumo*\n• Cantidad: ${data.cantidad} ${data.categoria}`
+      if (data.potrero) mensaje += `\n• Potrero: ${data.potrero}`
+      break
     case "SIEMBRA":
       mensaje += `*Siembra*`
       if (data.cantidad) mensaje += `\n• Hectáreas: ${data.cantidad}`
@@ -426,6 +430,110 @@ async function handleDataEntry(data: any) {
     })
 
     console.log("✅ Tratamiento guardado:", descripcionTratamiento)
+  } else if (data.tipo === "CONSUMO") {
+    const cantidadConsumidos = parseInt(data.cantidad) || 0
+    
+    console.log("🍖 CONSUMO DEBUG:", {
+      loteId,
+      potreroNombre,
+      categoria: data.categoria,
+      cantidad: cantidadConsumidos,
+      campoId: user.campoId
+    })
+
+    // Buscar el animalLote para poder crear el renglón
+    const animalLote = loteId ? await prisma.animalLote.findFirst({
+      where: { 
+        loteId, 
+        categoria: data.categoria,
+        lote: { campoId: user.campoId } 
+      },
+    }) : null
+
+    if (!animalLote) {
+      throw new Error(`No se encontraron animales de ${data.categoria} en el potrero ${potreroNombre || 'especificado'}`)
+    }
+
+    if (animalLote.cantidad < cantidadConsumidos) {
+      throw new Error(`Solo hay ${animalLote.cantidad} ${data.categoria} disponibles`)
+    }
+
+    // Determinar tipo de animal
+    const categoriaLower = data.categoria.toLowerCase()
+    let tipoAnimal = 'OTRO'
+    if (categoriaLower.includes('vaca') || categoriaLower.includes('toro') || 
+        categoriaLower.includes('novillo') || categoriaLower.includes('ternero')) {
+      tipoAnimal = 'BOVINO'
+    } else if (categoriaLower.includes('oveja') || categoriaLower.includes('carnero') || 
+               categoriaLower.includes('cordero') || categoriaLower.includes('capón')) {
+      tipoAnimal = 'OVINO'
+    } else if (categoriaLower.includes('caballo') || categoriaLower.includes('yegua')) {
+      tipoAnimal = 'EQUINO'
+    }
+
+    // Crear consumo completo en transacción
+    await prisma.$transaction(async (tx) => {
+      // 1. Crear el Consumo
+      const consumo = await tx.consumo.create({
+        data: {
+          campoId: user.campoId,
+          fecha: new Date(),
+          descripcion: `Consumo de ${cantidadConsumidos} ${data.categoria}${potreroNombre ? ` en potrero ${potreroNombre}` : ''}`,
+          notas: null,
+        }
+      })
+
+      // 2. Crear el ConsumoRenglon (sin peso ni precio)
+      await tx.consumoRenglon.create({
+        data: {
+          consumoId: consumo.id,
+          tipoAnimal,
+          categoria: data.categoria,
+          cantidad: cantidadConsumidos,
+          pesoPromedio: null,
+          precioKgUSD: null,
+          precioAnimalUSD: null,
+          pesoTotalKg: null,
+          valorTotalUSD: null,
+          descontadoDeStock: true,
+          animalLoteId: animalLote.id,
+          fechaDescuento: new Date(),
+        }
+      })
+
+      // 3. Descontar del stock
+      const nuevaCantidad = animalLote.cantidad - cantidadConsumidos
+      
+      if (nuevaCantidad === 0) {
+        await tx.animalLote.delete({
+          where: { id: animalLote.id }
+        })
+        console.log("🗑️ AnimalLote eliminado (cantidad llegó a 0)")
+      } else {
+        await tx.animalLote.update({
+          where: { id: animalLote.id },
+          data: { cantidad: nuevaCantidad }
+        })
+        console.log("✅ AnimalLote actualizado:", data.categoria, "→", nuevaCantidad)
+      }
+
+      // 4. Actualizar ultimoCambio SOLO si el potrero quedó vacío
+      if (loteId) {
+        const loteActualizado = await tx.lote.findUnique({
+          where: { id: loteId },
+          include: { animalesLote: true }
+        })
+        
+        if (loteActualizado && (!loteActualizado.animalesLote || loteActualizado.animalesLote.length === 0)) {
+          await tx.lote.update({
+            where: { id: loteId },
+            data: { ultimoCambio: new Date() }
+          })
+        }
+      }
+    })
+
+    console.log("✅ Consumo completo guardado en tabla Consumo y stock actualizado")
   } else {
     await prisma.evento.create({
       data: {
