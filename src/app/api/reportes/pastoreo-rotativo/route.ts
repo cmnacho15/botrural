@@ -346,8 +346,8 @@ export async function GET(request: Request) {
           ciclo.salidas.forEach((salida: any) => {
             const fechaCorta = salida.fecha.toLocaleDateString('es-UY', { day: '2-digit', month: '2-digit', timeZone: 'America/Montevideo' })
             const categoriaTexto = salida.categoria && salida.categoria !== 'Animales' ? ` ${salida.categoria}` : ''
-            comentariosPartesHtml.push(`<span style="background-color: #FCA5A5; padding: 2px 6px; border-radius: 4px; font-weight: 500;">⬇ -${salida.cantidad}${categoriaTexto} (${fechaCorta})</span>`)
-            comentariosPartes.push(`⬇ -${salida.cantidad}${categoriaTexto} (${fechaCorta})`)
+            comentariosPartesHtml.push(`<span style="background-color: #FCA5A5; padding: 2px 6px; border-radius: 4px; font-weight: 500;">-${salida.cantidad}${categoriaTexto} (${fechaCorta})</span>`)
+            comentariosPartes.push(`-${salida.cantidad}${categoriaTexto} salieron (${fechaCorta})`)
           })
         }
 
