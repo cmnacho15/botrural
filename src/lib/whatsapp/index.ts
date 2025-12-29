@@ -38,4 +38,5 @@ export {
 export {
   handleCambiarCampo,
   handleCambiarCampoSeleccion,
+  handleSeleccionGrupo,
 } from "./handlers/campoHandler"

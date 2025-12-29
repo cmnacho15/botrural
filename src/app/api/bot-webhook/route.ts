@@ -30,6 +30,7 @@ import {
   handleStockEdicion,
   handleCambiarCampo,
   handleCambiarCampoSeleccion,
+  handleSeleccionGrupo,
 } from "@/lib/whatsapp"
 
 const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || "mi_token_secreto"
@@ -203,6 +204,18 @@ export async function POST(request: Request) {
 
     if (confirmacionPendiente) {
       const data = JSON.parse(confirmacionPendiente.data)
+      
+      // Si está eligiendo grupo, procesar número
+      if (data.tipo === "CAMBIAR_GRUPO") {
+        const numero = parseInt(messageText.trim())
+        if (!isNaN(numero)) {
+          await handleSeleccionGrupo(from, numero, data.grupos)
+          return NextResponse.json({ status: "grupo selection processed" })
+        } else {
+          await sendWhatsAppMessage(from, `❌ Escribí un número del 1 al ${data.grupos.length} para elegir el grupo.`)
+          return NextResponse.json({ status: "invalid grupo selection" })
+        }
+      }
       
       // Si hay consulta de stock activa, intentar procesar como edición
       if (data.tipo === "STOCK_CONSULTA") {
