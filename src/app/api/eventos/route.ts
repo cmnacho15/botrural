@@ -6,6 +6,7 @@ import { actualizarUltimoCambioSiVacio } from '@/lib/potrero-helpers'
 import { convertirAUYU, obtenerTasaCambio } from '@/lib/currency'
 
 // Función para combinar fecha del usuario con hora actual
+// La fecha del usuario se interpreta como fecha de Uruguay (UTC-3)
 function crearFechaConHoraActual(fechaUsuario: string | undefined): Date {
   if (!fechaUsuario) return new Date()
   
@@ -15,20 +16,21 @@ function crearFechaConHoraActual(fechaUsuario: string | undefined): Date {
       return new Date(fechaUsuario)
     }
     
-    // Si es solo fecha, agregar hora actual
-    const fecha = new Date(fechaUsuario + 'T00:00:00.000Z')
-    const ahora = new Date()
+    // Obtener la fecha actual en Uruguay
+    const ahoraUruguay = new Date().toLocaleString('en-US', { timeZone: 'America/Montevideo' })
+    const fechaHoyUruguay = new Date(ahoraUruguay).toISOString().split('T')[0]
     
-    // Combinar la fecha del usuario con la hora actual
-    fecha.setUTCHours(ahora.getUTCHours())
-    fecha.setUTCMinutes(ahora.getUTCMinutes())
-    fecha.setUTCSeconds(ahora.getUTCSeconds())
-    fecha.setUTCMilliseconds(ahora.getUTCMilliseconds())
+    // Si la fecha del usuario es HOY (en Uruguay), usar la hora actual
+    if (fechaUsuario === fechaHoyUruguay) {
+      return new Date()
+    }
     
-    return fecha
+    // Si es otra fecha, usar mediodía de Uruguay (para evitar problemas de timezone)
+    // Mediodía Uruguay = 15:00 UTC (UTC-3)
+    return new Date(fechaUsuario + 'T15:00:00.000Z')
   } catch (error) {
     console.error('Error parseando fecha:', fechaUsuario, error)
-    return new Date() // Fallback a fecha actual
+    return new Date()
   }
 }
 

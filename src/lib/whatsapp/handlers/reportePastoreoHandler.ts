@@ -429,7 +429,8 @@ async function obtenerDatosReportePastoreo(campoId: string, moduloId: string) {
         if (ciclo.salidas && ciclo.salidas.length > 0) {
           ciclo.salidas.forEach((salida: any) => {
             const fechaCorta = salida.fecha.toLocaleDateString('es-UY', { day: '2-digit', month: '2-digit', timeZone: 'America/Montevideo' })
-            comentariosPartes.push(`-${salida.cantidad} (${fechaCorta})`)
+            const categoriaTexto = salida.categoria && salida.categoria !== 'Animales' ? ` ${salida.categoria}` : ''
+            comentariosPartes.push(`-${salida.cantidad}${categoriaTexto} (${fechaCorta})`)
           })
         }
 
