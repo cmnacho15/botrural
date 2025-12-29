@@ -159,12 +159,22 @@ const pendingColaborador = await prisma.pendingRegistration.findFirst({
         )
     }
 
-    // 🏗️ Crear usuario y marcar invitación como usada (transacción)
+    // 🏗️ Crear usuario, UsuarioCampo y marcar invitación como usada (transacción)
 const result = await prisma.$transaction(async (tx) => {
   // Crear usuario
   const user = await tx.user.create({
-  data: userData,
-})
+    data: userData,
+  })
+
+  // 🆕 Crear registro en UsuarioCampo
+  await tx.usuarioCampo.create({
+    data: {
+      userId: user.id,
+      campoId: invitacion.campoId,
+      rol: userData.role,
+      esActivo: true,
+    },
+  })
 
   // Marcar invitación como usada
   await tx.invitation.update({

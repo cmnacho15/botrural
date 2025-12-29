@@ -220,10 +220,15 @@ export async function POST(request: Request) {
 // 6. FASE 3: Procesar con GPT (texto/audio)
 // ==========================================
 
-// 🔥 OBTENER POTREROS DEL USUARIO (una sola vez)
+// 🔥 OBTENER DATOS DEL USUARIO (una sola vez)
 const usuario = await prisma.user.findUnique({
   where: { telefono: from },
-  select: { campoId: true }
+  select: { 
+    id: true,
+    name: true,
+    campoId: true,
+    campo: { select: { nombre: true } }
+  }
 })
 
 let potreros: Array<{ id: string; nombre: string }> = []
@@ -331,9 +336,11 @@ const parsedData = await parseMessageWithAI(messageText, potreros, categorias)
     // ==========================================
     // 7. Mensaje no reconocido
     // ==========================================
+    const campoActualNombre = usuario?.campo?.nombre || 'Sin campo'
     await sendWhatsAppMessage(
       from,
-      "No entendí tu mensaje. Podés enviarme cosas como:\n\n" +
+      `🏡 *Campo actual: ${campoActualNombre}*\n\n` +
+      `No entendí tu mensaje. Podés enviarme cosas como:\n\n` +
         "• nacieron 3 terneros en potrero norte\n" +
         "• murieron 2 vacas en lote sur\n" +
         "• llovieron 25mm\n" +
@@ -343,7 +350,8 @@ const parsedData = await parseMessageWithAI(messageText, potreros, categorias)
         "• en 14 días sacar tablilla\n" +
         "• el martes vacunar\n" +
         "• calendario (ver pendientes)\n\n" +
-        "También podés enviarme un *audio* o una *foto de factura*"
+        "También podés enviarme un *audio* o una *foto de factura*\n\n" +
+        `_(Escribí "cambiar campo" si querés trabajar en otro campo)_`
     )
 
     return NextResponse.json({ status: "ok" })
