@@ -130,7 +130,30 @@ TIPOS DE EVENTOS QUE DEBES DETECTAR:
      "potrero": "Norte"
    }
 
-5. CONSUMO:
+
+   5. TACTO:
+   - "tacto en potrero norte 83 tactadas 59 preñadas"
+   - "tacto en sol 120 animales 95 preñadas"
+   - "hice tacto en el sur: 100 tactadas, 78 preñadas"
+   - "tactamos 150 vacas en el oeste, 120 preñadas"
+   
+   IMPORTANTE:
+   - Detectar la cantidad total de animales tactados
+   - Detectar cuántos resultaron preñados
+   - El bot calculará automáticamente el porcentaje de preñez
+   - Si menciona "falladas" o "vacías", restarlas del total para obtener las preñadas
+   - Ejemplo: "83 tactadas 59 preñadas" → cantidad: 83, preñadas: 59
+   - Ejemplo: "100 tactadas 25 falladas" → cantidad: 100, preñadas: 75
+   
+   Retorna:
+   {
+     "tipo": "TACTO",
+     "potrero": "Norte" (nombre EXACTO),
+     "cantidad": 83,
+     "preñadas": 59
+   }
+
+6. CONSUMO:
    - "consumí 2 vacas"
    - "faené un novillo del norte"
    - "consumimos 3 ovejas"
@@ -150,7 +173,7 @@ TIPOS DE EVENTOS QUE DEBES DETECTAR:
      "potrero": "Norte"
    }
 
-6. VENTA:
+7. VENTA:
    - "vendí 5 novillos a $500 cada uno"
    - "vendí 10 vacas"
    Retorna:
@@ -162,7 +185,7 @@ TIPOS DE EVENTOS QUE DEBES DETECTAR:
      "potrero": null (si no se menciona)
    }
 
-7. COMPRA:
+8. COMPRA:
    - "compré 20 terneros a $300"
    Retorna:
    {
@@ -172,7 +195,7 @@ TIPOS DE EVENTOS QUE DEBES DETECTAR:
      "precioUnitario": 300
    }
 
-8. LLUVIA:
+9. LLUVIA:
    - "llovieron 25mm"
    - "cayeron 30 milímetros"
    Retorna:
@@ -181,7 +204,7 @@ TIPOS DE EVENTOS QUE DEBES DETECTAR:
      "milimetros": 25
    }
 
-9. GASTO:
+10. GASTO:
    - "gasté $5000 en alimento"
    - "compré fertilizante por $3000"
    Retorna:
@@ -192,7 +215,7 @@ TIPOS DE EVENTOS QUE DEBES DETECTAR:
      "categoria": "Alimentos Animales"
    }
 
-10. CALENDARIO_CREAR:
+11. CALENDARIO_CREAR:
    - "en 14 días sacar tablilla"
    - "el martes vacunar"
    - "el 5 de enero revisar alambrado"
@@ -222,7 +245,7 @@ TIPOS DE EVENTOS QUE DEBES DETECTAR:
      "descripcion": "sacar tablilla a terneros en potrero sol"
    }
 
-11. CALENDARIO_CONSULTAR:
+12. CALENDARIO_CONSULTAR:
    - "calendario"
    - "qué tengo pendiente"
    - "actividades"
@@ -231,7 +254,7 @@ TIPOS DE EVENTOS QUE DEBES DETECTAR:
      "tipo": "CALENDARIO_CONSULTAR"
    }
 
-   12. REPORTE_CARGA:
+   13. REPORTE_CARGA:
    - "pasame el pdf de carga"
    - "carga actual"
    - "reporte de carga"
@@ -245,7 +268,7 @@ TIPOS DE EVENTOS QUE DEBES DETECTAR:
      "tipo": "REPORTE_CARGA"
    }
 
-   13. REPORTE_PASTOREO:
+   14. REPORTE_PASTOREO:
    - "reporte de pastoreo"
    - "reporte pastoreo"
    - "pdf de pastoreo"

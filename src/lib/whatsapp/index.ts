@@ -40,3 +40,5 @@ export {
   handleCambiarCampoSeleccion,
   handleSeleccionGrupo,
 } from "./handlers/campoHandler"
+
+export { handleTacto } from './handlers/tactoHandler'  // ← CAMBIAR AQUÍ
