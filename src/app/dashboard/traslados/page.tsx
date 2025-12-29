@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { ModalTraslado } from '@/app/components/modales'
 
 type Traslado = {
   id: string
@@ -30,6 +31,7 @@ export default function TrasladosPage() {
     pesoPromedio: '',
     precioKgUSD: ''
   })
+  const [mostrarModal, setMostrarModal] = useState(false)
 
   useEffect(() => {
     cargarTraslados()
@@ -251,12 +253,20 @@ export default function TrasladosPage() {
           <h1 className="text-3xl font-bold text-gray-900">🚚 Traslados Entre Campos</h1>
           <p className="text-gray-600 mt-1">Movimientos de animales entre tus campos</p>
         </div>
-        <Link
-          href="/dashboard"
-          className="px-4 py-2 text-gray-600 hover:text-gray-800 flex items-center gap-2"
-        >
-          ← Volver
-        </Link>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setMostrarModal(true)}
+            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium flex items-center gap-2"
+          >
+            ➕ Nuevo Traslado
+          </button>
+          <Link
+            href="/dashboard"
+            className="px-4 py-2 text-gray-600 hover:text-gray-800 flex items-center gap-2"
+          >
+            ← Volver
+          </Link>
+        </div>
       </div>
 
       {/* Egresos */}
@@ -296,6 +306,21 @@ export default function TrasladosPage() {
           Los valores de "Precio/Animal", "Kg Totales" y "USD Totales" se calculan automáticamente.
         </p>
       </div>
+
+      {/* Modal de Nuevo Traslado */}
+      {mostrarModal && (
+        <div className="fixed inset-0 backdrop-blur-md bg-white/30 flex items-center justify-center z-[60] p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <ModalTraslado 
+              onClose={() => setMostrarModal(false)} 
+              onSuccess={() => {
+                cargarTraslados()
+                setMostrarModal(false)
+              }} 
+            />
+          </div>
+        </div>
+      )}
     </div>
   )
 }
