@@ -158,13 +158,24 @@ export default function EvolucionUGDashboard() {
   if (mostrarTemporadas) {
     const añoInicio = new Date(datos.dias[0]).getFullYear()
     const añoFin = new Date(datos.dias[datos.dias.length - 1]).getFullYear()
+    const primerDia = datos.dias[0]
+    const ultimoDia = datos.dias[datos.dias.length - 1]
     
-    for (let año = añoInicio; año <= añoFin + 1; año++) {
+    for (let año = añoInicio - 1; año <= añoFin + 1; año++) {
       const inviernoInicio = `${año}-06-01`
       const inviernoFin = `${año}-08-10`
       
-      if (datos.dias.some(d => d >= inviernoInicio && d <= inviernoFin)) {
-        temporadas.push({ inicio: inviernoInicio, fin: inviernoFin, nombre: 'Invierno' })
+      // Verificar si hay solapamiento entre el invierno y los datos disponibles
+      if (inviernoFin >= primerDia && inviernoInicio <= ultimoDia) {
+        // Ajustar los límites para que solo cubran el rango de datos disponibles
+        const inicioAjustado = inviernoInicio < primerDia ? primerDia : inviernoInicio
+        const finAjustado = inviernoFin > ultimoDia ? ultimoDia : inviernoFin
+        
+        temporadas.push({ 
+          inicio: inicioAjustado, 
+          fin: finAjustado, 
+          nombre: 'Invierno' 
+        })
       }
     }
   }
