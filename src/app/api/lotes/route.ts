@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
-// 📋 GET - Obtener lotes del campo del usuario autenticado
+// 📋 GET - Obtener lotes del campo del usuario autenticado (o de otro campo si se pasa campoId)
 export async function GET(request: Request) {
   try {
     const session = await getServerSession(authOptions)
@@ -12,17 +12,38 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
+    const { searchParams } = new URL(request.url)
+    const campoIdParam = searchParams.get('campoId')
+
     const usuario = await prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { campoId: true },
+      select: { id: true, campoId: true },
     })
 
     if (!usuario?.campoId) {
       return NextResponse.json({ error: 'Usuario sin campo' }, { status: 400 })
     }
 
+    // Si se pasa campoId, verificar que el usuario tiene acceso a ese campo
+    let campoIdAUsar = usuario.campoId
+
+    if (campoIdParam && campoIdParam !== usuario.campoId) {
+      const tieneAcceso = await prisma.usuarioCampo.findFirst({
+        where: {
+          userId: usuario.id,
+          campoId: campoIdParam
+        }
+      })
+
+      if (!tieneAcceso) {
+        return NextResponse.json({ error: 'No tenés acceso a ese campo' }, { status: 403 })
+      }
+
+      campoIdAUsar = campoIdParam
+    }
+
     const lotes = await prisma.lote.findMany({
-      where: { campoId: usuario.campoId },
+      where: { campoId: campoIdAUsar },
       include: {
         cultivos: true,
         animalesLote: true,
