@@ -50,7 +50,8 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
 const [nombreNuevoCampo, setNombreNuevoCampo] = useState("");
 const [creandoCampo, setCreandoCampo] = useState(false);
 const [grupos, setGrupos] = useState<Array<{id: string, nombre: string, esActivo: boolean, cantidadCampos: number}>>([]);
-const [opcionGrupo, setOpcionGrupo] = useState<'mismo' | 'nuevo'>('mismo');
+const [opcionGrupo, setOpcionGrupo] = useState<'existente' | 'nuevo'>('existente');
+const [grupoSeleccionadoId, setGrupoSeleccionadoId] = useState('');
 const [nombreNuevoGrupo, setNombreNuevoGrupo] = useState("");
 const [editandoGrupo, setEditandoGrupo] = useState<string | null>(null);
 const [nombreGrupoEdit, setNombreGrupoEdit] = useState("");
@@ -134,15 +135,18 @@ const crearNuevoCampo = async () => {
     alert('El nombre del cliente/empresa debe tener al menos 2 caracteres');
     return;
   }
+
+  if (opcionGrupo === 'existente' && !grupoSeleccionadoId && campos.length > 0) {
+    alert('Seleccioná un grupo');
+    return;
+  }
   
   setCreandoCampo(true);
   try {
-    const grupoActivo = grupos.find(g => g.esActivo);
-    
     const payload: any = { nombre: nombreNuevoCampo.trim() };
     
-    if (opcionGrupo === 'mismo' && grupoActivo) {
-      payload.grupoId = grupoActivo.id;
+    if (opcionGrupo === 'existente' && grupoSeleccionadoId) {
+      payload.grupoId = grupoSeleccionadoId;
     } else if (opcionGrupo === 'nuevo') {
       payload.nuevoGrupoNombre = nombreNuevoGrupo.trim();
     }
@@ -157,7 +161,8 @@ const crearNuevoCampo = async () => {
       setMostrarModalNuevoCampo(false);
       setNombreNuevoCampo("");
       setNombreNuevoGrupo("");
-      setOpcionGrupo('mismo');
+      setGrupoSeleccionadoId("");
+      setOpcionGrupo('existente');
       window.location.reload();
     } else {
       const error = await res.json();
@@ -396,7 +401,7 @@ const guardarNombreGrupo = async (grupoId: string) => {
               )}
             </div>
           )}
-          
+
           <div className="space-y-1">
             {camposDelGrupo.map((campo) => (
               <button
@@ -747,34 +752,42 @@ const guardarNombreGrupo = async (grupoId: string) => {
       {campos.length > 0 && (
         <div className="mb-4 p-4 bg-gray-50 rounded-lg">
           <label className="block text-sm font-medium text-gray-700 mb-3">
-            ¿Este campo es del mismo dueño/empresa que tus otros campos?
+            ¿A qué grupo/empresa pertenece este campo?
           </label>
           
           <div className="space-y-2">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="radio"
-                checked={opcionGrupo === 'mismo'}
-                onChange={() => setOpcionGrupo('mismo')}
-                className="text-blue-600"
-              />
-              <span className="text-sm text-gray-700">
-                Sí, es del mismo dueño
-                <span className="text-gray-500 text-xs ml-1">
-                  (podrás hacer traslados entre campos)
+            {grupos.map((grupo) => (
+              <label key={grupo.id} className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  checked={opcionGrupo === 'existente' && grupoSeleccionadoId === grupo.id}
+                  onChange={() => {
+                    setOpcionGrupo('existente')
+                    setGrupoSeleccionadoId(grupo.id)
+                  }}
+                  className="text-blue-600"
+                />
+                <span className="text-sm text-gray-700">
+                  {grupo.nombre}
+                  <span className="text-gray-500 text-xs ml-1">
+                    ({grupo.cantidadCampos} campo{grupo.cantidadCampos !== 1 ? 's' : ''})
+                  </span>
                 </span>
-              </span>
-            </label>
+              </label>
+            ))}
             
-            <label className="flex items-center gap-2 cursor-pointer">
+            <label className="flex items-center gap-2 cursor-pointer pt-2 border-t border-gray-200 mt-2">
               <input
                 type="radio"
                 checked={opcionGrupo === 'nuevo'}
-                onChange={() => setOpcionGrupo('nuevo')}
+                onChange={() => {
+                  setOpcionGrupo('nuevo')
+                  setGrupoSeleccionadoId('')
+                }}
                 className="text-blue-600"
               />
               <span className="text-sm text-gray-700">
-                No, es de otro cliente/empresa
+                + Crear nuevo grupo/empresa
               </span>
             </label>
           </div>
@@ -783,7 +796,7 @@ const guardarNombreGrupo = async (grupoId: string) => {
           {opcionGrupo === 'nuevo' && (
             <div className="mt-3">
               <label className="block text-xs text-gray-600 mb-1">
-                Nombre del cliente/empresa
+                Nombre del nuevo grupo/empresa
               </label>
               <input
                 type="text"
@@ -803,7 +816,8 @@ const guardarNombreGrupo = async (grupoId: string) => {
             setMostrarModalNuevoCampo(false);
             setNombreNuevoCampo("");
             setNombreNuevoGrupo("");
-            setOpcionGrupo('mismo');
+            setGrupoSeleccionadoId("");
+            setOpcionGrupo('existente');
           }}
           className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
         >
