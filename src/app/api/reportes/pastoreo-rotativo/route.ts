@@ -334,11 +334,11 @@ export async function GET(request: Request) {
           const fechaCorta = entrada.fecha.toLocaleDateString('es-UY', { day: '2-digit', month: '2-digit', timeZone: 'America/Montevideo' })
           
           if (idx === 0) {
-            comentariosPartesHtml.push(`<span style="background-color: #93C5FD; padding: 2px 6px; border-radius: 4px; font-weight: 500;">${cantidadTexto}${entrada.categoria} (${fechaCorta})</span>`)
+            comentariosPartesHtml.push(`<span style="background-color: #93C5FD; padding: 2px 6px; border-radius: 4px; font-weight: 500;">+${cantidadTexto}${entrada.categoria} (${fechaCorta})</span>`)
           } else {
-            comentariosPartesHtml.push(`+${cantidadTexto}${entrada.categoria} (${fechaCorta})`)
+            comentariosPartesHtml.push(`<span style="background-color: #93C5FD; padding: 2px 6px; border-radius: 4px; font-weight: 500;">+${cantidadTexto}${entrada.categoria} (${fechaCorta})</span>`)
           }
-          comentariosPartes.push(`${cantidadTexto}${entrada.categoria} (${fechaCorta})`)
+          comentariosPartes.push(`+${cantidadTexto}${entrada.categoria} (${fechaCorta})`)
         })
 
         // ✅ NUEVO: Agregar salidas parciales (si las hay)
@@ -347,7 +347,7 @@ export async function GET(request: Request) {
             const fechaCorta = salida.fecha.toLocaleDateString('es-UY', { day: '2-digit', month: '2-digit', timeZone: 'America/Montevideo' })
             const categoriaTexto = salida.categoria && salida.categoria !== 'Animales' ? ` ${salida.categoria}` : ''
             comentariosPartesHtml.push(`<span style="background-color: #FCA5A5; padding: 2px 6px; border-radius: 4px; font-weight: 500;">-${salida.cantidad}${categoriaTexto} (${fechaCorta})</span>`)
-            comentariosPartes.push(`-${salida.cantidad}${categoriaTexto} salieron (${fechaCorta})`)
+            comentariosPartes.push(`-${salida.cantidad}${categoriaTexto} (${fechaCorta})`)
           })
         }
 

@@ -424,7 +424,7 @@ async function obtenerDatosReportePastoreo(campoId: string, moduloId: string) {
         ciclo.entradas.forEach((entrada: any) => {
           const cantidadTexto = entrada.cantidad ? `${entrada.cantidad} ` : ''
           const fechaCorta = entrada.fecha.toLocaleDateString('es-UY', { day: '2-digit', month: '2-digit', timeZone: 'America/Montevideo' })
-          comentariosPartes.push(`${cantidadTexto}${entrada.categoria} (${fechaCorta})`)
+          comentariosPartes.push(`+${cantidadTexto}${entrada.categoria} (${fechaCorta})`)
         })
         if (ciclo.salidas && ciclo.salidas.length > 0) {
           ciclo.salidas.forEach((salida: any) => {
