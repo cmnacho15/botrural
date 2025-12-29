@@ -41,8 +41,10 @@ export async function solicitarConfirmacion(phone: string, data: any) {
       }
       break
     case "TRATAMIENTO":
-      mensaje += `*Tratamiento*\n• Cantidad: ${data.cantidad}\n• Producto: ${data.producto}`
-      if (data.lote) mensaje += `\n• Potrero: ${data.lote}`
+      mensaje += `*Tratamiento*\n• Producto: ${data.producto}`
+      if (data.cantidad) mensaje += `\n• Cantidad: ${data.cantidad} ${data.categoria || 'animales'}`
+      if (data.categoria) mensaje += `\n• Categoría: ${data.categoria}`
+      if (data.potrero) mensaje += `\n• Potrero: ${data.potrero}`
       break
     case "SIEMBRA":
       mensaje += `*Siembra*`
@@ -386,6 +388,44 @@ async function handleDataEntry(data: any) {
         console.log("⚠️ No se encontró categoría", data.categoria, "en el potrero")
       }
     }
+  } else if (data.tipo === "TRATAMIENTO") {
+    const cantidadTratados = parseInt(data.cantidad) || 0
+    
+    console.log("💉 TRATAMIENTO DEBUG:", {
+      loteId,
+      potreroNombre,
+      producto: data.producto,
+      categoria: data.categoria,
+      cantidad: cantidadTratados,
+      campoId: user.campoId
+    })
+
+    // Buscar el potrero si se especificó
+    let descripcionTratamiento = `Tratamiento: ${data.producto}`
+    
+    if (data.cantidad && data.categoria) {
+      descripcionTratamiento += ` aplicado a ${cantidadTratados} ${data.categoria}`
+    }
+    
+    if (potreroNombre) {
+      descripcionTratamiento += ` en potrero ${potreroNombre}`
+    }
+
+    // Crear el evento
+    await prisma.evento.create({
+      data: {
+        tipo: "TRATAMIENTO",
+        descripcion: descripcionTratamiento,
+        fecha: new Date(),
+        cantidad: cantidadTratados > 0 ? cantidadTratados : null,
+        categoria: data.categoria || null,
+        loteId,
+        usuarioId: user.id,
+        campoId: user.campoId,
+      },
+    })
+
+    console.log("✅ Tratamiento guardado:", descripcionTratamiento)
   } else {
     await prisma.evento.create({
       data: {

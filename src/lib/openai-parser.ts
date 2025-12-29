@@ -99,7 +99,28 @@ TIPOS DE EVENTOS QUE DEBES DETECTAR:
      "potrero": "Sur" (nombre EXACTO si se menciona)
    }
 
-4. VENTA:
+4. TRATAMIENTO:
+   - "apliqué ivermectina a 50 vacas"
+   - "vacuné 30 terneros con aftosa"
+   - "di antibiótico a 10 vacas en el norte"
+   - "desparasité 20 novillos"
+   - "tratamiento antiparasitario a 15 animales"
+   
+   IMPORTANTE: 
+   - "producto" es el medicamento/tratamiento (ivermectina, aftosa, antibiótico, etc.)
+   - Si no especifica cantidad, asume que es a todos los animales del potrero
+   - Si no especifica potrero, déjalo en null
+   
+   Retorna:
+   {
+     "tipo": "TRATAMIENTO",
+     "producto": "ivermectina",
+     "cantidad": 50,
+     "categoria": "vacas",
+     "potrero": "Norte"
+   }
+
+5. VENTA:
    - "vendí 5 novillos a $500 cada uno"
    - "vendí 10 vacas"
    Retorna:
@@ -111,7 +132,7 @@ TIPOS DE EVENTOS QUE DEBES DETECTAR:
      "potrero": null (si no se menciona)
    }
 
-5. COMPRA:
+6. COMPRA:
    - "compré 20 terneros a $300"
    Retorna:
    {
@@ -121,7 +142,7 @@ TIPOS DE EVENTOS QUE DEBES DETECTAR:
      "precioUnitario": 300
    }
 
-6. LLUVIA:
+7. LLUVIA:
    - "llovieron 25mm"
    - "cayeron 30 milímetros"
    Retorna:
@@ -130,7 +151,7 @@ TIPOS DE EVENTOS QUE DEBES DETECTAR:
      "milimetros": 25
    }
 
-7. GASTO:
+8. GASTO:
    - "gasté $5000 en alimento"
    - "compré fertilizante por $3000"
    Retorna:
@@ -141,7 +162,7 @@ TIPOS DE EVENTOS QUE DEBES DETECTAR:
      "categoria": "Alimentos Animales"
    }
 
-8. CALENDARIO_CREAR:
+9. CALENDARIO_CREAR:
    - "en 14 días sacar tablilla"
    - "el martes vacunar"
    - "mañana revisar alambrado"
@@ -165,7 +186,7 @@ TIPOS DE EVENTOS QUE DEBES DETECTAR:
      "descripcion": "sacar tablilla"
    }
 
-9. CALENDARIO_CONSULTAR:
+10. CALENDARIO_CONSULTAR:
    - "calendario"
    - "qué tengo pendiente"
    - "actividades"
@@ -174,7 +195,7 @@ TIPOS DE EVENTOS QUE DEBES DETECTAR:
      "tipo": "CALENDARIO_CONSULTAR"
    }
 
-   10. REPORTE_CARGA:
+   11. REPORTE_CARGA:
    - "pasame el pdf de carga"
    - "carga actual"
    - "reporte de carga"
@@ -188,7 +209,7 @@ TIPOS DE EVENTOS QUE DEBES DETECTAR:
      "tipo": "REPORTE_CARGA"
    }
 
-   11. REPORTE_PASTOREO:
+   12. REPORTE_PASTOREO:
    - "reporte de pastoreo"
    - "reporte pastoreo"
    - "pdf de pastoreo"
