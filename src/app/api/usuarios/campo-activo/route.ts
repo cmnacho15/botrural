@@ -20,13 +20,12 @@ export async function POST(req: Request) {
       );
     }
 
+    
     // Verificar que el usuario tiene acceso a ese campo
-    const usuarioCampo = await prisma.usuarioCampo.findUnique({
+    const usuarioCampo = await prisma.usuarioCampo.findFirst({
       where: {
-        userId_campoId: {
-          userId: session.user.id,
-          campoId: campoId,
-        },
+        userId: session.user.id,
+        campoId: campoId,
       },
       include: {
         campo: true,
@@ -47,12 +46,10 @@ export async function POST(req: Request) {
     });
 
     // Activar el campo seleccionado
-    await prisma.usuarioCampo.update({
+    await prisma.usuarioCampo.updateMany({
       where: {
-        userId_campoId: {
-          userId: session.user.id,
-          campoId: campoId,
-        },
+        userId: session.user.id,
+        campoId: campoId,
       },
       data: { esActivo: true },
     });
