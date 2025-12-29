@@ -156,10 +156,11 @@ export async function POST(request: Request) {
           : null
         const totalUSD = precioAnimalUSD ? animal.cantidad * precioAnimalUSD : null
 
-        // Crear traslado
+        // Crear traslado (ajustar fecha para Uruguay)
+        const fechaAjustada = new Date(fecha + 'T12:00:00')
         const traslado = await tx.traslado.create({
           data: {
-            fecha: new Date(fecha),
+            fecha: fechaAjustada,
             campoOrigenId: usuario.campoId!,
             potreroOrigenId,
             campoDestinoId,
