@@ -134,23 +134,35 @@ TIPOS DE EVENTOS QUE DEBES DETECTAR:
    5. TACTO:
    - "tacto en potrero norte 83 tactadas 59 preñadas"
    - "tacto en sol 120 animales 95 preñadas"
+   - "tacto en potrero sol 83 preñadas 67 falladas"
    - "hice tacto en el sur: 100 tactadas, 78 preñadas"
    - "tactamos 150 vacas en el oeste, 120 preñadas"
    
-   IMPORTANTE:
-   - Detectar la cantidad total de animales tactados
-   - Detectar cuántos resultaron preñados
-   - El bot calculará automáticamente el porcentaje de preñez
-   - Si menciona "falladas" o "vacías", restarlas del total para obtener las preñadas
-   - Ejemplo: "83 tactadas 59 preñadas" → cantidad: 83, preñadas: 59
-   - Ejemplo: "100 tactadas 25 falladas" → cantidad: 100, preñadas: 75
+   IMPORTANTE - TRES FORMATOS POSIBLES:
+   
+   A) Si dice "X tactadas/animales" + "Y preñadas":
+      → cantidad = X
+      → preñadas = Y
+      Ejemplo: "150 tactadas 83 preñadas" → cantidad: 150, preñadas: 83
+   
+   B) Si dice "X tactadas" + "Y falladas" (SIN mencionar preñadas):
+      → cantidad = X
+      → preñadas = X - Y
+      Ejemplo: "100 tactadas 25 falladas" → cantidad: 100, preñadas: 75
+   
+   C) Si dice "X preñadas" + "Y falladas" (SIN mencionar total):
+      → cantidad = X + Y (SUMAR AMBAS)
+      → preñadas = X
+      Ejemplo: "83 preñadas 67 falladas" → cantidad: 150, preñadas: 83
+   
+   CRÍTICO: Si solo menciona preñadas y falladas (sin total), DEBES SUMARLAS para obtener el total tactado.
    
    Retorna:
    {
      "tipo": "TACTO",
-     "potrero": "Norte" (nombre EXACTO),
-     "cantidad": 83,
-     "preñadas": 59
+     "potrero": "Sol" (nombre EXACTO),
+     "cantidad": 150,
+     "preñadas": 83
    }
 
 6. CONSUMO:
