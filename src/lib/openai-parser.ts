@@ -23,7 +23,16 @@ export async function parseMessageWithAI(
     console.log(`📋 Potreros del campo: ${nombresPotreros}`)
     
     // Obtener fecha actual para el cálculo de días
-const fechaActual = new Date().toISOString().split('T')[0]
+// 🔥 Obtener fecha actual en zona horaria de Montevideo
+const ahora = new Date()
+const fechaMontevideoStr = ahora.toLocaleString('es-UY', { 
+  timeZone: 'America/Montevideo',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit'
+})
+const [dia, mes, año] = fechaMontevideoStr.split(/[\/\s,]+/)
+const fechaActual = `${año}-${mes}-${dia}`
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
@@ -39,7 +48,8 @@ ${nombresPotreros || "No hay potreros creados aún"}
 ${nombresCategorias || "No hay categorías definidas"}
 
 
-📅 FECHA ACTUAL: ${fechaActual}
+📅 FECHA ACTUAL (Montevideo, Uruguay): ${fechaActual}
+DÍA DE HOY: ${new Date().toLocaleDateString('es-UY', { weekday: 'long', timeZone: 'America/Montevideo' })}
 
 IMPORTANTE PARA CAMBIOS DE POTRERO:
 - El usuario SOLO puede mover animales entre los potreros listados arriba
@@ -185,25 +195,31 @@ TIPOS DE EVENTOS QUE DEBES DETECTAR:
 10. CALENDARIO_CREAR:
    - "en 14 días sacar tablilla"
    - "el martes vacunar"
+   - "el 5 de enero revisar alambrado"
    - "mañana revisar alambrado"
    - "pasado mañana fumigar"
    
    IMPORTANTE: Debes calcular "diasDesdeHoy" a partir de HOY (${fechaActual}).
    
-   Ejemplos de cálculo:
+   Para fechas RELATIVAS (en X días, mañana, etc):
    - "mañana" → diasDesdeHoy: 1
    - "pasado mañana" → diasDesdeHoy: 2
    - "en 5 días" → diasDesdeHoy: 5
-   - "en 14 días" → diasDesdeHoy: 14
    - "en 2 semanas" → diasDesdeHoy: 14
+   
+   Para fechas ESPECÍFICAS (el 5 de enero, el martes, etc):
+   - Calcula cuántos días faltan desde HOY hasta esa fecha
+   - Ejemplo: Si hoy es 28 de diciembre y dice "el 5 de enero", son 8 días
+   - Ejemplo: Si hoy es lunes 30 y dice "el martes", son 1 día
+   - SIEMPRE incluye en "fechaRelativa" la fecha específica que mencionó
    
    Retorna:
    {
      "tipo": "CALENDARIO_CREAR",
      "titulo": "sacar tablilla",
      "diasDesdeHoy": 14,
-     "fechaRelativa": "en 14 días",
-     "descripcion": "sacar tablilla"
+     "fechaRelativa": "en 14 días" (o "el 5 de enero" si fue fecha específica),
+     "descripcion": "sacar tablilla a terneros en potrero sol"
    }
 
 11. CALENDARIO_CONSULTAR:
