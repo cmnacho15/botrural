@@ -4,7 +4,7 @@
 
 Sistema de calendario integrado con WhatsApp y la web.
 
-### Funcionalidades:
+### Funcionalidadess:
 - ✅ Crear actividades desde WhatsApp (audio o texto)
 - ✅ Crear actividades desde la web
 - ✅ Consultar pendientes desde WhatsApp
