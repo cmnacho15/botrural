@@ -933,7 +933,8 @@ if (esCierre) {
           
           const areaNum = Number(area) || 0
           let textoArea = ""
-          if (areaHa > 1) {
+          if (areaHa >= 0.01) {
+            // Mostrar hectáreas desde 0.01 ha (100 m²)
             textoArea = areaHa.toFixed(2) + " ha"
           } else {
             textoArea = Math.round(areaNum) + " m²"
