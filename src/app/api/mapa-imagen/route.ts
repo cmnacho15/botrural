@@ -2,9 +2,8 @@
 
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import sharp from 'sharp'
+import { Resvg } from '@resvg/resvg-js'
 
-// Colores para los potreros (30 colores distintos)
 const COLORES_POTREROS = [
   '#E53E3E', '#3182CE', '#38A169', '#D69E2E', '#805AD5',
   '#DD6B20', '#319795', '#E91E8C', '#2D3748', '#00B5D8',
@@ -25,7 +24,6 @@ interface PotreroData {
 
 export async function GET(request: NextRequest) {
   try {
-    // Verificar API key
     const apiKey = request.headers.get('x-api-key')
     if (apiKey !== (process.env.INTERNAL_API_KEY || 'bot-internal-key')) {
       return new Response('No autorizado', { status: 401 })
@@ -38,7 +36,6 @@ export async function GET(request: NextRequest) {
       return new Response('campoId requerido', { status: 400 })
     }
 
-    // Obtener campo y potreros
     const campo = await prisma.campo.findUnique({
       where: { id: campoId }
     })
@@ -60,7 +57,6 @@ export async function GET(request: NextRequest) {
       return new Response('No hay potreros', { status: 400 })
     }
 
-    // Preparar datos
     const potreros: PotreroData[] = lotes.map((lote, index) => ({
       nombre: lote.nombre,
       hectareas: lote.hectareas,
@@ -89,7 +85,6 @@ export async function GET(request: NextRequest) {
       })
     })
 
-    // Agregar padding
     const lngPadding = (maxLng - minLng) * 0.15
     const latPadding = (maxLat - minLat) * 0.15
     minLng -= lngPadding
@@ -100,10 +95,7 @@ export async function GET(request: NextRequest) {
     const centerLng = (minLng + maxLng) / 2
     const centerLat = (minLat + maxLat) / 2
 
-    // Calcular zoom
-    const latDiff = maxLat - minLat
-    const lngDiff = maxLng - minLng
-    const maxDiff = Math.max(latDiff, lngDiff)
+    const maxDiff = Math.max(maxLat - minLat, maxLng - minLng)
     let zoom = 14
     if (maxDiff > 0.1) zoom = 11
     else if (maxDiff > 0.05) zoom = 12
@@ -111,11 +103,15 @@ export async function GET(request: NextRequest) {
     else if (maxDiff > 0.01) zoom = 14
     else zoom = 15
 
-    // Dimensiones
     const mapWidth = 800
     const mapHeight = 500
+    const headerHeight = 55
+    const legendRowHeight = 55
+    const legendPadding = 90
+    const legendHeight = potreros.length * legendRowHeight + legendPadding
+    const totalHeight = headerHeight + mapHeight + legendHeight
 
-    // Obtener mapa satelital de Mapbox (sin polígonos)
+    // Obtener mapa satelital de Mapbox
     const mapboxToken = process.env.MAPBOX_ACCESS_TOKEN
     const mapboxUrl = `https://api.mapbox.com/styles/v1/mapbox/satellite-v9/static/${centerLng},${centerLat},${zoom},0/${mapWidth}x${mapHeight}@2x?access_token=${mapboxToken}`
 
@@ -125,139 +121,96 @@ export async function GET(request: NextRequest) {
     
     if (!mapResponse.ok) {
       console.error('❌ Error de Mapbox:', mapResponse.status)
-      return generarMapaFallback(campo.nombre, potreros, mapWidth, mapHeight)
+      return new Response('Error obteniendo mapa', { status: 500 })
     }
 
-    const mapBuffer = Buffer.from(await mapResponse.arrayBuffer())
+    const mapArrayBuffer = await mapResponse.arrayBuffer()
+    const mapBase64 = Buffer.from(mapArrayBuffer).toString('base64')
     console.log('✅ Mapa satelital recibido')
 
-    // Redimensionar el mapa (viene en @2x)
-    const resizedMap = await sharp(mapBuffer)
-      .resize(mapWidth, mapHeight)
-      .toBuffer()
+    // Convertir coordenadas a píxeles
+    const toPixelX = (lng: number) => ((lng - minLng) / (maxLng - minLng)) * mapWidth
+    const toPixelY = (lat: number) => mapHeight - ((lat - minLat) / (maxLat - minLat)) * mapHeight
 
-    // Convertir coordenadas geográficas a píxeles
-    const toPixelX = (lng: number) => {
-      return ((lng - minLng) / (maxLng - minLng)) * mapWidth
-    }
-    const toPixelY = (lat: number) => {
-      return mapHeight - ((lat - minLat) / (maxLat - minLat)) * mapHeight
-    }
-
-    // Crear SVG con los polígonos para superponer
+    // Generar polígonos SVG
     const polygonsSvg = potreros.map(p => {
       const points = p.coordinates.map(coord => 
         `${toPixelX(coord[0]).toFixed(1)},${toPixelY(coord[1]).toFixed(1)}`
       ).join(' ')
-
-      return `<polygon points="${points}" fill="${p.color}" fill-opacity="0.35" stroke="${p.color}" stroke-width="3"/>`
+      return `<polygon points="${points}" fill="${p.color}" fill-opacity="0.4" stroke="${p.color}" stroke-width="3"/>`
     }).join('')
 
-    // SVG de polígonos (transparente excepto los polígonos)
-    const overlaySvg = `
-      <svg xmlns="http://www.w3.org/2000/svg" width="${mapWidth}" height="${mapHeight}">
-        ${polygonsSvg}
-      </svg>
-    `
-
-    // Superponer polígonos sobre el mapa
-    const mapWithPolygons = await sharp(resizedMap)
-      .composite([{
-        input: Buffer.from(overlaySvg),
-        top: 0,
-        left: 0
-      }])
-      .toBuffer()
-
-    // Crear la leyenda
-    const legendRowHeight = 52
-    const legendPadding = 80
-    const legendHeight = potreros.length * legendRowHeight + legendPadding
-    const totalHeight = mapHeight + legendHeight
-
-    // Header SVG - usando encoding UTF-8 explícito
-    const headerHeight = 50
-    const safeNombreCampo = campo.nombre.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-    const headerSvg = `<?xml version="1.0" encoding="UTF-8"?>
-      <svg xmlns="http://www.w3.org/2000/svg" width="${mapWidth}" height="${headerHeight}">
-        <rect width="${mapWidth}" height="${headerHeight}" fill="#1e293b"/>
-        <text x="${mapWidth/2}" y="33" text-anchor="middle" fill="white" font-size="22" font-family="DejaVu Sans, Arial, sans-serif" font-weight="bold">Mapa: ${safeNombreCampo}</text>
-      </svg>
-    `
-
-    // Crear items de leyenda
+    // Generar leyenda
     const fecha = new Date().toLocaleDateString('es-UY')
-    let currentY = 50
     
-    // Función para limpiar texto de acentos
-    const limpiarTexto = (texto: string) => {
-      return texto
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '') // Quitar acentos
-        .replace(/[^\x00-\x7F]/g, '')    // Solo ASCII
-    }
-
-    const legendItemsSvg = potreros.map((p, index) => {
-      const y = currentY + (index * legendRowHeight)
+    const legendItems = potreros.map((p, index) => {
+      const y = headerHeight + mapHeight + 55 + (index * legendRowHeight)
       const totalAnimales = p.animales.reduce((sum, a) => sum + a.cantidad, 0)
-      
-      // Simplificar texto de animales (sin acentos)
-      let animalesTexto = ''
-      if (totalAnimales > 0) {
-        animalesTexto = p.animales.map(a => `${a.cantidad} ${limpiarTexto(a.categoria)}`).join(', ')
-      }
-      
-      // Texto de cultivos (sin acentos)
+      const animalesTexto = totalAnimales > 0 
+        ? p.animales.map(a => `${a.cantidad} ${a.categoria}`).join(', ')
+        : '(sin animales)'
       const cultivosTexto = p.cultivos.length > 0 
-        ? p.cultivos.map(c => limpiarTexto(c.tipoCultivo)).join(' + ')
+        ? p.cultivos.map(c => c.tipoCultivo).join(' + ')
         : ''
 
-      const nombreLimpio = limpiarTexto(p.nombre)
-
       return `
-        <rect x="8" y="${y}" width="784" height="${legendRowHeight - 4}" rx="8" fill="white"/>
-        <rect x="8" y="${y}" width="6" height="${legendRowHeight - 4}" rx="3" fill="${p.color}"/>
-        <text x="24" y="${y + 22}" fill="${p.color}" font-size="15" font-family="DejaVu Sans, Arial, sans-serif" font-weight="bold">${nombreLimpio}</text>
-        <text x="24" y="${y + 40}" fill="#64748b" font-size="12" font-family="DejaVu Sans, Arial, sans-serif">${p.hectareas.toFixed(1)} ha</text>
-        <text x="160" y="${y + 22}" fill="#334155" font-size="13" font-family="DejaVu Sans, Arial, sans-serif">${totalAnimales > 0 ? animalesTexto : '(sin animales)'}</text>
-        ${cultivosTexto ? `<text x="160" y="${y + 40}" fill="#16a34a" font-size="12" font-family="DejaVu Sans, Arial, sans-serif">${cultivosTexto}</text>` : ''}
+        <rect x="10" y="${y}" width="780" height="${legendRowHeight - 6}" rx="8" fill="white" stroke="#e2e8f0" stroke-width="1"/>
+        <rect x="10" y="${y}" width="6" height="${legendRowHeight - 6}" rx="3" fill="${p.color}"/>
+        <circle cx="35" cy="${y + 24}" r="12" fill="${p.color}"/>
+        <text x="58" y="${y + 20}" fill="${p.color}" font-size="15" font-weight="bold">${escapeXml(p.nombre)}</text>
+        <text x="58" y="${y + 38}" fill="#64748b" font-size="11">${p.hectareas.toFixed(1)} ha</text>
+        <text x="200" y="${y + 20}" fill="#334155" font-size="13">${escapeXml(animalesTexto)}</text>
+        ${cultivosTexto ? `<text x="200" y="${y + 38}" fill="#16a34a" font-size="11">${escapeXml(cultivosTexto)}</text>` : ''}
       `
     }).join('')
 
-    const legendSvg = `<?xml version="1.0" encoding="UTF-8"?>
-      <svg xmlns="http://www.w3.org/2000/svg" width="${mapWidth}" height="${legendHeight}">
-        <rect width="${mapWidth}" height="${legendHeight}" fill="#f1f5f9"/>
-        <text x="15" y="32" fill="#1e293b" font-size="16" font-family="DejaVu Sans, Arial, sans-serif" font-weight="bold">Detalle por Potrero:</text>
-        ${legendItemsSvg}
-        <rect y="${legendHeight - 30}" width="${mapWidth}" height="30" fill="#e2e8f0"/>
-        <text x="${mapWidth/2}" y="${legendHeight - 10}" text-anchor="middle" fill="#64748b" font-size="11" font-family="DejaVu Sans, Arial, sans-serif">Bot Rural - ${fecha}</text>
-      </svg>
-    `
+    // SVG completo
+    const fullSvg = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${mapWidth}" height="${totalHeight}">
+  <!-- Fondo -->
+  <rect width="${mapWidth}" height="${totalHeight}" fill="#f1f5f9"/>
+  
+  <!-- Header -->
+  <rect width="${mapWidth}" height="${headerHeight}" fill="#1e293b"/>
+  <text x="${mapWidth/2}" y="36" text-anchor="middle" fill="white" font-size="22" font-weight="bold">Mapa: ${escapeXml(campo.nombre)}</text>
+  
+  <!-- Mapa satelital -->
+  <image x="0" y="${headerHeight}" width="${mapWidth}" height="${mapHeight}" xlink:href="data:image/png;base64,${mapBase64}" preserveAspectRatio="xMidYMid slice"/>
+  
+  <!-- Polígonos sobre el mapa -->
+  <g transform="translate(0, ${headerHeight})">
+    ${polygonsSvg}
+  </g>
+  
+  <!-- Leyenda título -->
+  <text x="15" y="${headerHeight + mapHeight + 35}" fill="#1e293b" font-size="16" font-weight="bold">Detalle por Potrero:</text>
+  
+  <!-- Items de leyenda -->
+  ${legendItems}
+  
+  <!-- Footer -->
+  <rect y="${totalHeight - 35}" width="${mapWidth}" height="35" fill="#e2e8f0"/>
+  <text x="${mapWidth/2}" y="${totalHeight - 12}" text-anchor="middle" fill="#64748b" font-size="11">Bot Rural - ${fecha}</text>
+</svg>`
 
-    // Convertir SVGs a buffers
-    const headerBuffer = await sharp(Buffer.from(headerSvg)).png().toBuffer()
-    const legendBuffer = await sharp(Buffer.from(legendSvg)).png().toBuffer()
-
-    // Crear imagen final combinando todo
-    const finalImage = await sharp({
-      create: {
-        width: mapWidth,
-        height: headerHeight + mapHeight + legendHeight,
-        channels: 4,
-        background: { r: 241, g: 245, b: 249, alpha: 1 }
+    // Convertir SVG a PNG usando resvg
+    const resvg = new Resvg(fullSvg, {
+      fitTo: {
+        mode: 'width',
+        value: mapWidth
+      },
+      font: {
+        loadSystemFonts: false,
+        defaultFontFamily: 'Arial',
       }
     })
-    .composite([
-      { input: headerBuffer, top: 0, left: 0 },
-      { input: mapWithPolygons, top: headerHeight, left: 0 },
-      { input: legendBuffer, top: headerHeight + mapHeight, left: 0 }
-    ])
-    .png()
-    .toBuffer()
+    
+    const pngData = resvg.render()
+    const pngBuffer = pngData.asPng()
 
-    console.log('✅ Imagen final generada')
+    console.log('✅ Imagen final generada con resvg')
 
-    return new Response(new Uint8Array(finalImage), {
+    return new Response(new Uint8Array(pngBuffer), {
       headers: {
         'Content-Type': 'image/png',
         'Cache-Control': 'no-cache'
@@ -270,79 +223,11 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// Fallback sin Mapbox
-async function generarMapaFallback(
-  nombreCampo: string,
-  potreros: PotreroData[],
-  mapWidth: number,
-  mapHeight: number
-) {
-  let minLng = Infinity, maxLng = -Infinity
-  let minLat = Infinity, maxLat = -Infinity
-
-  potreros.forEach(p => {
-    p.coordinates.forEach(coord => {
-      minLng = Math.min(minLng, coord[0])
-      maxLng = Math.max(maxLng, coord[0])
-      minLat = Math.min(minLat, coord[1])
-      maxLat = Math.max(maxLat, coord[1])
-    })
-  })
-
-  const padding = (maxLng - minLng) * 0.1
-  minLng -= padding
-  maxLng += padding
-  minLat -= padding
-  maxLat += padding
-
-  const toPixelX = (lng: number) => ((lng - minLng) / (maxLng - minLng)) * mapWidth
-  const toPixelY = (lat: number) => mapHeight - ((lat - minLat) / (maxLat - minLat)) * mapHeight
-
-  const polygonsSvg = potreros.map(p => {
-    const points = p.coordinates.map(coord => 
-      `${toPixelX(coord[0]).toFixed(1)},${toPixelY(coord[1]).toFixed(1)}`
-    ).join(' ')
-    return `<polygon points="${points}" fill="${p.color}" fill-opacity="0.5" stroke="${p.color}" stroke-width="3"/>`
-  }).join('')
-
-  const legendRowHeight = 52
-  const legendHeight = potreros.length * legendRowHeight + 80
-  const totalHeight = 50 + mapHeight + legendHeight
-  const fecha = new Date().toLocaleDateString('es-UY')
-
-  const legendItems = potreros.map((p, index) => {
-    const y = 50 + mapHeight + 50 + (index * legendRowHeight)
-    const totalAnimales = p.animales.reduce((sum, a) => sum + a.cantidad, 0)
-    const animalesTexto = totalAnimales > 0 
-      ? p.animales.map(a => `${a.cantidad} ${a.categoria}`).join(', ')
-      : '(sin animales)'
-
-    return `
-      <rect x="8" y="${y}" width="784" height="${legendRowHeight - 4}" rx="8" fill="white"/>
-      <rect x="8" y="${y}" width="6" height="${legendRowHeight - 4}" rx="3" fill="${p.color}"/>
-      <text x="24" y="${y + 22}" fill="${p.color}" font-size="15" font-family="sans-serif" font-weight="bold">${p.nombre}</text>
-      <text x="24" y="${y + 40}" fill="#64748b" font-size="12" font-family="sans-serif">${p.hectareas.toFixed(1)} ha</text>
-      <text x="160" y="${y + 22}" fill="#334155" font-size="13" font-family="sans-serif">${animalesTexto}</text>
-    `
-  }).join('')
-
-  const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="${mapWidth}" height="${totalHeight}">
-      <rect width="${mapWidth}" height="${totalHeight}" fill="#f1f5f9"/>
-      <rect width="${mapWidth}" height="50" fill="#1e293b"/>
-      <text x="${mapWidth/2}" y="33" text-anchor="middle" fill="white" font-size="22" font-family="sans-serif" font-weight="bold">Mapa: ${nombreCampo}</text>
-      <rect y="50" width="${mapWidth}" height="${mapHeight}" fill="#4b5563"/>
-      <g transform="translate(0, 50)">${polygonsSvg}</g>
-      <text x="15" y="${50 + mapHeight + 32}" fill="#1e293b" font-size="16" font-family="sans-serif" font-weight="bold">Detalle por Potrero:</text>
-      ${legendItems}
-      <rect y="${totalHeight - 30}" width="${mapWidth}" height="30" fill="#e2e8f0"/>
-      <text x="${mapWidth/2}" y="${totalHeight - 10}" text-anchor="middle" fill="#64748b" font-size="11" font-family="sans-serif">Bot Rural - ${fecha}</text>
-    </svg>
-  `
-
-  const pngBuffer = await sharp(Buffer.from(svg)).png().toBuffer()
-
-  return new Response(new Uint8Array(pngBuffer), {
-    headers: { 'Content-Type': 'image/png' }
-  })
+function escapeXml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;')
 }
