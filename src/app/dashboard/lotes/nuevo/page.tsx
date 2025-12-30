@@ -516,7 +516,7 @@ const [esPastoreable, setEsPastoreable] = useState(true)
           {esPastoreable && (
             <div className="bg-amber-50 rounded-lg p-4 border-2 border-amber-200">
               <h3 className="font-medium text-gray-900 mb-2 flex items-center gap-2">
-                📅 {animales.some(a => a.categoria && a.cantidad) ? 'Días de Pastoreo' : 'Días de Descanso'}
+                📅 {animales.some(a => a.categoria && a.cantidad) ? 'Días de Pastoreo' : 'Días de Descanso'} <span className="text-gray-500 text-sm font-normal">(opcional)</span>
               </h3>
               <p className="text-xs text-gray-600 mb-3">
                 {animales.some(a => a.categoria && a.cantidad)
@@ -549,7 +549,10 @@ const [esPastoreable, setEsPastoreable] = useState(true)
           {/* 📦 SELECTOR DE MÓDULO */}
           {esPastoreable && (
           <div className="bg-purple-50 rounded-lg p-4">
-            <h3 className="font-medium text-gray-900 mb-3">📦 Módulo de Pastoreo</h3>
+            <h3 className="font-medium text-gray-900 mb-2">📦 Módulo de Pastoreo <span className="text-gray-500 text-sm font-normal">(opcional)</span></h3>
+            <p className="text-xs text-gray-600 mb-3">
+              Útil en pastoreo rotativo para visualizar informes de carga y pastoreo por módulo/s.
+            </p>
             
             {!crearNuevoModulo ? (
               <div className="space-y-3">
