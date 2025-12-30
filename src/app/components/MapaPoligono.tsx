@@ -582,23 +582,29 @@ const tooltipContent = `
     font-family: system-ui, -apple-system, sans-serif;
     text-align: center;
     white-space: nowrap;
-    background: rgba(0, 0, 0, 0.5);
-    padding: 6px 10px;
-    border-radius: 6px;
   ">
     <div style="
-      font-weight: 600; 
+      font-weight: 700; 
       font-size: ${sizes.nombre}; 
       color: white; 
-      margin-bottom: 3px;
-      letter-spacing: 0.3px;
+      text-shadow: 
+        -1px -1px 0 #000,
+        1px -1px 0 #000,
+        -1px 1px 0 #000,
+        1px 1px 0 #000;
+      margin-bottom: 2px;
     ">
       ${potrero.nombre}
     </div>
     <div style="
       font-size: ${sizes.animales}; 
-      color: rgba(255, 255, 255, 0.9); 
-      font-weight: 400;
+      color: white; 
+      font-weight: 500;
+      text-shadow: 
+        -1px -1px 0 #000,
+        1px -1px 0 #000,
+        -1px 1px 0 #000,
+        1px 1px 0 #000;
       line-height: 1.4;
     ">
       ${animalesText}
