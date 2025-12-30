@@ -175,12 +175,13 @@ export async function GET(request: NextRequest) {
     const legendHeight = potreros.length * legendRowHeight + legendPadding
     const totalHeight = mapHeight + legendHeight
 
-    // Header SVG
+    // Header SVG - usando encoding UTF-8 explícito
     const headerHeight = 50
-    const headerSvg = `
+    const safeNombreCampo = campo.nombre.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    const headerSvg = `<?xml version="1.0" encoding="UTF-8"?>
       <svg xmlns="http://www.w3.org/2000/svg" width="${mapWidth}" height="${headerHeight}">
         <rect width="${mapWidth}" height="${headerHeight}" fill="#1e293b"/>
-        <text x="${mapWidth/2}" y="33" text-anchor="middle" fill="white" font-size="22" font-family="sans-serif" font-weight="bold">Mapa: ${campo.nombre}</text>
+        <text x="${mapWidth/2}" y="33" text-anchor="middle" fill="white" font-size="22" font-family="DejaVu Sans, Arial, sans-serif" font-weight="bold">Mapa: ${safeNombreCampo}</text>
       </svg>
     `
 
@@ -188,28 +189,38 @@ export async function GET(request: NextRequest) {
     const fecha = new Date().toLocaleDateString('es-UY')
     let currentY = 50
     
+    // Función para limpiar texto de acentos
+    const limpiarTexto = (texto: string) => {
+      return texto
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '') // Quitar acentos
+        .replace(/[^\x00-\x7F]/g, '')    // Solo ASCII
+    }
+
     const legendItemsSvg = potreros.map((p, index) => {
       const y = currentY + (index * legendRowHeight)
       const totalAnimales = p.animales.reduce((sum, a) => sum + a.cantidad, 0)
       
-      // Simplificar texto de animales
+      // Simplificar texto de animales (sin acentos)
       let animalesTexto = ''
       if (totalAnimales > 0) {
-        animalesTexto = p.animales.map(a => `${a.cantidad} ${a.categoria}`).join(', ')
+        animalesTexto = p.animales.map(a => `${a.cantidad} ${limpiarTexto(a.categoria)}`).join(', ')
       }
       
-      // Texto de cultivos
+      // Texto de cultivos (sin acentos)
       const cultivosTexto = p.cultivos.length > 0 
-        ? p.cultivos.map(c => c.tipoCultivo).join(' + ')
+        ? p.cultivos.map(c => limpiarTexto(c.tipoCultivo)).join(' + ')
         : ''
+
+      const nombreLimpio = limpiarTexto(p.nombre)
 
       return `
         <rect x="8" y="${y}" width="784" height="${legendRowHeight - 4}" rx="8" fill="white"/>
         <rect x="8" y="${y}" width="6" height="${legendRowHeight - 4}" rx="3" fill="${p.color}"/>
-        <text x="24" y="${y + 22}" fill="${p.color}" font-size="15" font-family="sans-serif" font-weight="bold">${p.nombre}</text>
-        <text x="24" y="${y + 40}" fill="#64748b" font-size="12" font-family="sans-serif">${p.hectareas.toFixed(1)} ha</text>
-        <text x="160" y="${y + 22}" fill="#334155" font-size="13" font-family="sans-serif">${totalAnimales > 0 ? animalesTexto : '(sin animales)'}</text>
-        ${cultivosTexto ? `<text x="160" y="${y + 40}" fill="#16a34a" font-size="12" font-family="sans-serif">${cultivosTexto}</text>` : ''}
+        <text x="24" y="${y + 22}" fill="${p.color}" font-size="15" font-family="DejaVu Sans, Arial, sans-serif" font-weight="bold">${nombreLimpio}</text>
+        <text x="24" y="${y + 40}" fill="#64748b" font-size="12" font-family="DejaVu Sans, Arial, sans-serif">${p.hectareas.toFixed(1)} ha</text>
+        <text x="160" y="${y + 22}" fill="#334155" font-size="13" font-family="DejaVu Sans, Arial, sans-serif">${totalAnimales > 0 ? animalesTexto : '(sin animales)'}</text>
+        ${cultivosTexto ? `<text x="160" y="${y + 40}" fill="#16a34a" font-size="12" font-family="DejaVu Sans, Arial, sans-serif">${cultivosTexto}</text>` : ''}
       `
     }).join('')
 
