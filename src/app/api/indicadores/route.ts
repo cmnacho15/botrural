@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { requireAuth, canAccessFinanzas } from "@/lib/auth-helpers"
 import { calcularEstadisticasCampo, calcularRelacionLanarVacuno } from "@/lib/ugCalculator"
+import { getEquivalenciasUG } from "@/lib/getEquivalenciasUG"
 import { CATEGORIAS_VARIABLES } from "@/lib/costos/categoriasCostos"
 
 /**
@@ -68,7 +69,10 @@ export async function GET(request: Request) {
   },
 })
 
-    const estadisticas = calcularEstadisticasCampo(lotes)
+    // Obtener equivalencias personalizadas del campo
+    const pesosPersonalizados = await getEquivalenciasUG(campoId)
+    
+    const estadisticas = calcularEstadisticasCampo(lotes, pesosPersonalizados)
     const { ugTotalesCampo, desglosePorTipo, totalHectareas } = estadisticas
     
     const { relacion: relacionLanarVacuno } = calcularRelacionLanarVacuno(lotes)

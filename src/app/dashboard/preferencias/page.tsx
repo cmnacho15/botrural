@@ -679,7 +679,7 @@ async function handleEliminarFirma(id: string) {
               {/* ZONA DE PELIGRO */}
               <div className="max-w-2xl">
                 <h3 className="text-lg font-semibold text-red-600 mb-4 flex items-center gap-2">
-                  ⚠️ Zona de peligro
+                  ⚠️ Configuración crítica
                 </h3>
 
                 {/* VACIAR CAMPO */}
@@ -1181,7 +1181,7 @@ async function handleEliminarFirma(id: string) {
               <EquivalenciasUGPreferencias />
             </div>
           )}
-          
+
           {/* CONTENIDO TAB RODEOS */}
           {activeTab === 'rodeos' && (
             <div className="p-6">
