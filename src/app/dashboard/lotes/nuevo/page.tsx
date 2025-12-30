@@ -39,8 +39,7 @@ export default function NuevoLotePage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [nombre, setNombre] = useState('')
-  const [hectareasManual, setHectareasManual] = useState('')
-  const [esPastoreable, setEsPastoreable] = useState(true)  // 🆕 NUEVO
+const [esPastoreable, setEsPastoreable] = useState(true)
   const [showMap, setShowMap] = useState(false)
   const [poligono, setPoligono] = useState<number[][] | null>(null)
   const [hectareasCalculadas, setHectareasCalculadas] = useState<number | null>(null)
@@ -230,7 +229,7 @@ export default function NuevoLotePage() {
         }
       }
 
-      const hectareasFinales = hectareasCalculadas || parseFloat(hectareasManual)
+      const hectareasFinales = hectareasCalculadas!
       const cultivosValidos = cultivos
         .filter(c => c.tipoCultivo)
         .map(c => ({
@@ -335,19 +334,7 @@ export default function NuevoLotePage() {
             />
           </div>
 
-          {/* HECTÁREAS */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Hectáreas</label>
-            <input
-              type="number"
-              value={hectareasManual}
-              onChange={e => setHectareasManual(e.target.value)}
-              step="0.01"
-              required
-              className="w-full border border-gray-300 rounded-lg px-4 py-2.5"
-              placeholder="Ej: 25.5"
-            />
-          </div>
+          {/* Las hectáreas se calculan automáticamente al dibujar el polígono */}
 
           {/* 🆕 SELECTOR PASTOREABLE / NO PASTOREABLE */}
 <div className="bg-purple-50 rounded-lg p-4">

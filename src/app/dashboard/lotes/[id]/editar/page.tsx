@@ -43,8 +43,7 @@ export default function EditarLotePage() {
   const [loading, setLoading] = useState(false)
   const [cargando, setCargando] = useState(true)
   const [nombre, setNombre] = useState('')
-  const [hectareasManual, setHectareasManual] = useState('')
-  const [showMap, setShowMap] = useState(false)
+const [showMap, setShowMap] = useState(false)
   const [poligono, setPoligono] = useState<number[][] | null>(null)
   const [hectareasCalculadas, setHectareasCalculadas] = useState<number | null>(null)
   const [lotesExistentes, setLotesExistentes] = useState<LoteExistente[]>([])
@@ -152,9 +151,9 @@ export default function EditarLotePage() {
         console.log("Lote encontrado:", lote);
 
         if (lote) {
-          setNombre(lote.nombre);
-          setHectareasManual(parseFloat(lote.hectareas).toFixed(2));
-          setPoligono(lote.poligono || null);
+  setNombre(lote.nombre);
+  setPoligono(lote.poligono || null);
+  setHectareasCalculadas(parseFloat(lote.hectareas));
           setEsPastoreable(lote.esPastoreable ?? true);
           
           // 🔥 CARGAR MÓDULO ACTUAL
@@ -297,7 +296,7 @@ setDiasDescansoAjuste('')
         }
       }
 
-      const hectareasFinales = hectareasCalculadas || parseFloat(hectareasManual);
+      const hectareasFinales = hectareasCalculadas!
       const cultivosValidos = cultivos
         .filter(c => c.tipoCultivo)
         .map(c => ({
@@ -430,19 +429,14 @@ console.log('📅 Días descanso ajuste:', diasDescansoAjuste);
             />
           </div>
 
-          {/* HECTÁREAS */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Hectáreas</label>
-            <input
-              type="number"
-              value={hectareasManual}
-              onChange={e => setHectareasManual(e.target.value)}
-              step="0.01"
-              required
-              className="w-full border border-gray-300 rounded-lg px-4 py-2.5"
-              placeholder="Ej: 25.5"
-            />
-          </div>
+          {/* Las hectáreas se calculan automáticamente al dibujar el polígono */}
+          {hectareasCalculadas && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <p className="text-sm text-gray-700">
+                <span className="font-medium">Área del potrero:</span> {hectareasCalculadas.toFixed(2)} ha
+              </p>
+            </div>
+          )}
           
           {/* 🆕 SELECTOR PASTOREABLE / NO PASTOREABLE */}
 <div className="bg-purple-50 rounded-lg p-4">
