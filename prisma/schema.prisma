@@ -115,6 +115,8 @@ model Campo {
 
   grupoId   String?
   grupo     Grupo?   @relation(fields: [grupoId], references: [id])
+
+  equivalenciasUG EquivalenciaUG[]
 }
 
 model CategoriaGasto {
@@ -967,4 +969,24 @@ model UsuarioGrupo {
   @@unique([userId, grupoId])
   @@index([userId])
   @@index([grupoId])
+}
+
+
+// ==========================================
+// ⚖️ EQUIVALENCIAS UG PERSONALIZADAS
+// ==========================================
+
+model EquivalenciaUG {
+  id        String   @id @default(cuid())
+  campoId   String
+  categoria String   // "Terneros", "Vacas", etc.
+  pesoKg    Float    // El peso que el usuario configura
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  campo     Campo    @relation(fields: [campoId], references: [id], onDelete: Cascade)
+  
+  @@unique([campoId, categoria])
+  @@index([campoId])
 }

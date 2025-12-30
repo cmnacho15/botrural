@@ -1,11 +1,13 @@
+//src/lib/historico/caclularUGPotrero.ts
 import { prisma } from '@/lib/prisma'
 import { calcularUGTotales } from '@/lib/ugCalculator'
+import { getEquivalenciasUG } from '@/lib/getEquivalenciasUG'
 
 /**
  * Calcula la UG total de un potrero basándose en sus animales actuales
  * Usa las equivalencias ya definidas en ugCalculator.ts
  */
-export async function calcularUGPotrero(loteId: string): Promise<number> {
+export async function calcularUGPotrero(loteId: string, campoId?: string): Promise<number> {
   try {
     const animales = await prisma.animalLote.findMany({
       where: { loteId },
@@ -30,8 +32,14 @@ export async function calcularUGPotrero(loteId: string): Promise<number> {
       return acc
     }, [] as Array<{ categoria: string; cantidad: number }>)
 
-    // Reutilizar tu función existente
-    const ugTotal = calcularUGTotales(animalesAgrupados)
+    // Obtener equivalencias personalizadas si tenemos campoId
+    let pesos = undefined
+    if (campoId) {
+      pesos = await getEquivalenciasUG(campoId)
+    }
+
+    // Reutilizar tu función existente con pesos personalizados
+    const ugTotal = calcularUGTotales(animalesAgrupados, pesos)
 
     return Math.round(ugTotal * 100) / 100 // Redondear a 2 decimales
   } catch (error) {

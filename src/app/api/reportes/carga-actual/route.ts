@@ -3,11 +3,16 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 import { prisma } from '@/lib/prisma'
-import { EQUIVALENCIAS_UG } from '@/lib/ugCalculator'
+import { EQUIVALENCIAS_UG, PESOS_DEFAULT, PESO_REFERENCIA_UG } from '@/lib/ugCalculator'
+import { getEquivalenciasUG } from '@/lib/getEquivalenciasUG'
 
 export const dynamic = 'force-dynamic'
 
-function getEquivalenciaUG(categoria: string): number {
+// Esta función ahora recibe los pesos personalizados
+function getEquivalenciaUG(categoria: string, pesos?: Record<string, number>): number {
+  if (pesos && pesos[categoria] !== undefined) {
+    return pesos[categoria] / 380
+  }
   return EQUIVALENCIAS_UG[categoria] || 0
 }
 
@@ -26,6 +31,10 @@ export async function GET() {
     if (!usuario?.campoId || !usuario.campo) {
       return NextResponse.json({ error: 'Usuario sin campo' }, { status: 400 })
     }
+    
+
+    // Obtener equivalencias personalizadas del campo
+    const pesosPersonalizados = await getEquivalenciasUG(usuario.campoId)
 
     // Obtener categorías activas
     const categoriasDB = await prisma.categoriaAnimal.findMany({
@@ -35,17 +44,17 @@ export async function GET() {
 
     const categoriasBovinas = categoriasDB
       .filter(c => c.tipoAnimal === 'BOVINO')
-      .map(c => ({ nombre: c.nombreSingular, equivalenciaUG: getEquivalenciaUG(c.nombreSingular) }))
+      .map(c => ({ nombre: c.nombreSingular, equivalenciaUG: getEquivalenciaUG(c.nombreSingular, pesosPersonalizados) }))
 
     const categoriasOvinas = categoriasDB
       .filter(c => c.tipoAnimal === 'OVINO')
-      .map(c => ({ nombre: c.nombreSingular, equivalenciaUG: getEquivalenciaUG(c.nombreSingular) }))
+      .map(c => ({ nombre: c.nombreSingular, equivalenciaUG: getEquivalenciaUG(c.nombreSingular, pesosPersonalizados) }))
 
     const categoriasEquinas = categoriasDB
       .filter(c => c.tipoAnimal === 'EQUINO')
-      .map(c => ({ nombre: c.nombreSingular, equivalenciaUG: getEquivalenciaUG(c.nombreSingular) }))
+      .map(c => ({ nombre: c.nombreSingular, equivalenciaUG: getEquivalenciaUG(c.nombreSingular, pesosPersonalizados) }))
 
-    // Función para procesar un potrero
+    // Función para procesar un potrero (usa pesosPersonalizados del closure)
     function procesarPotrero(lote: any) {
       const animalesPorCategoria: Record<string, number> = {}
       categoriasDB.forEach(cat => { animalesPorCategoria[cat.nombreSingular] = 0 })
@@ -59,7 +68,7 @@ export async function GET() {
         if (animalesPorCategoria[animal.categoria] !== undefined) {
           animalesPorCategoria[animal.categoria] += animal.cantidad
         }
-        const eq = getEquivalenciaUG(animal.categoria)
+        const eq = getEquivalenciaUG(animal.categoria, pesosPersonalizados)
         ugTotales += animal.cantidad * eq
 
         const catDB = categoriasDB.find(c => c.nombreSingular === animal.categoria)

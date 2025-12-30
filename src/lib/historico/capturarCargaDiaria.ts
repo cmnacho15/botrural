@@ -1,3 +1,4 @@
+//src/lib/historico/capturarCargaDiaria
 import { prisma } from '@/lib/prisma'
 import { calcularUGPotrero } from './calcularUGPotrero'
 
@@ -33,8 +34,8 @@ export async function capturarCargaDiaria() {
         potrerosRevisados++
 
         try {
-          // 1. Calcular UG actual del potrero
-          const ugActual = await calcularUGPotrero(lote.id)
+          // 1. Calcular UG actual del potrero (pasando campoId para equivalencias personalizadas)
+          const ugActual = await calcularUGPotrero(lote.id, campo.id)
 
           // 2. Buscar el último snapshot guardado
           const ultimoSnapshot = await prisma.cargaHistorica.findFirst({

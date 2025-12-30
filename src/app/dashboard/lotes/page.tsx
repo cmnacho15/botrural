@@ -9,6 +9,7 @@ import Link from 'next/link'
 import useSWR from 'swr'
 import { EQUIVALENCIAS_UG, calcularRelacionLanarVacuno, calcularUGTotales } from '@/lib/ugCalculator'
 import BotonDescargarCarga from '@/app/dashboard/lotes/components/BotonDescargarCarga'
+import { useEquivalenciasUG } from '@/hooks/useEquivalenciasUG'
 
 interface Lote {
   id: string
@@ -351,6 +352,8 @@ export default function LotesPage() {
 
   const [loadingBorrado, setLoadingBorrado] = useState(false)
   const [showModalKMZ, setShowModalKMZ] = useState(false)
+  // Hook para equivalencias UG personalizadas
+  const { pesos: pesosPersonalizados, isLoading: loadingEquivalencias } = useEquivalenciasUG()
 
   // Estados para controlar qué acordeones están abiertos (CERRADOS por defecto)
 const [acordeonesAbiertos, setAcordeonesAbiertos] = useState<{[key: string]: boolean}>({})
@@ -437,7 +440,7 @@ const [acordeonesAbiertos, setAcordeonesAbiertos] = useState<{[key: string]: boo
     }, [] as Array<{ categoria: string; cantidad: number }>)
     
     const totalAnimales = todosAnimales.reduce((sum, a) => sum + a.cantidad, 0)
-    const ugTotales = calcularUGTotales(animalesAgrupados)
+    const ugTotales = calcularUGTotales(animalesAgrupados, pesosPersonalizados)
     const ugPorHa = totalHectareas > 0 ? ugTotales / totalHectareas : 0
     
     return { totalHectareas, totalAnimales, ugPorHa }
@@ -504,7 +507,7 @@ const [acordeonesAbiertos, setAcordeonesAbiertos] = useState<{[key: string]: boo
     return acc
   }, [] as Array<{ categoria: string; cantidad: number }>)
   
-  const ugTotales = calcularUGTotales(animalesAgrupados)
+  const ugTotales = calcularUGTotales(animalesAgrupados, pesosPersonalizados)
   const cargaUG = lote.hectareas > 0 ? ugTotales / lote.hectareas : 0
                 
                 const color = 
@@ -589,7 +592,7 @@ const [acordeonesAbiertos, setAcordeonesAbiertos] = useState<{[key: string]: boo
     </tr>
   )
 
-  const loading = loadingLotes || loadingCampo || loadingModulos
+  const loading = loadingLotes || loadingCampo || loadingModulos || loadingEquivalencias
   const hayLotes = lotes.length > 0
 
   if (loading) {
@@ -629,7 +632,7 @@ const [acordeonesAbiertos, setAcordeonesAbiertos] = useState<{[key: string]: boo
     return acc
   }, [] as Array<{ categoria: string; cantidad: number }>)
 
-  const ugTotales = calcularUGTotales(animalesAgrupados)
+  const ugTotales = calcularUGTotales(animalesAgrupados, pesosPersonalizados)
   const cargaGlobal = totalHectareas > 0 ? ugTotales / totalHectareas : 0
                 
   if (todosAnimales.length === 0) return null

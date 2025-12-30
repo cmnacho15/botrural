@@ -1,39 +1,58 @@
+// src/lib/ugCalculator.ts
 // ============================================
-// 📊 TABLA DE EQUIVALENCIAS UG (Uruguay)
+// 📊 CALCULADORA DE UNIDADES GANADERAS (UG)
 // ============================================
+// Soporta equivalencias personalizadas por campo
 
-export const EQUIVALENCIAS_UG: Record<string, number> = {
+// ============================================
+// 📊 PESOS DEFAULT (en kg)
+// ============================================
+// 1 UG = 380 kg (vaca de referencia)
+// Equivalencia = pesoKg / 380
+
+export const PESOS_DEFAULT: Record<string, number> = {
   // 🐄 VACUNOS
-  'Toros': 1.20,
-  'Vacas': 1.00,
-  'Vacas Gordas': 1.20,
-  'Novillos +3 años': 1.20,
-  'Novillos 2–3 años': 1.00,
-  'Novillos 1–2 años': 0.7,
-  'Vaquillonas +2 años': 1.00,
-  'Vaquillonas 1–2 años': 0.7,
-  'Terneros': 0.40, // 🆕 NUEVO
-  'Terneras': 0.40, // 🆕 NUEVO
-  'Terneros nacidos': 0, // 🆕 NUEVA (equivalencia = 0)
+  'Toros': 456,           // 1.20 UG
+  'Vacas': 380,           // 1.00 UG
+  'Vacas Gordas': 456,    // 1.20 UG
+  'Novillos +3 años': 456, // 1.20 UG
+  'Novillos 2–3 años': 380, // 1.00 UG
+  'Novillos 1–2 años': 266, // 0.70 UG
+  'Vaquillonas +2 años': 380, // 1.00 UG
+  'Vaquillonas 1–2 años': 266, // 0.70 UG
+  'Terneros': 152,        // 0.40 UG
+  'Terneras': 152,        // 0.40 UG
+  'Terneros nacidos': 0,  // 0 UG
   
   // 🐑 OVINOS
-  'Carneros': 0.17,
-  'Ovejas': 0.16,
-  'Capones': 0.14,
-  'Borregas 2–4 dientes': 0.16,
-  'Corderas DL': 0.10,
-  'Corderos DL': 0.10,
-  'Corderos/as Mamones': 0.10,
+  'Carneros': 65,         // 0.17 UG
+  'Ovejas': 61,           // 0.16 UG
+  'Capones': 53,          // 0.14 UG
+  'Borregas 2–4 dientes': 61, // 0.16 UG
+  'Corderas DL': 38,      // 0.10 UG
+  'Corderos DL': 38,      // 0.10 UG
+  'Corderos/as Mamones': 38, // 0.10 UG
 
-  // 🐴 YEGUARIZOS (ahora SÍ se cuentan en UG)
-  'Padrillos': 1.2,
-  'Yeguas': 1.2,
-  'Caballos': 1.2,
-  'Potrillos': 1.2,
+  // 🐴 YEGUARIZOS
+  'Padrillos': 456,       // 1.20 UG
+  'Yeguas': 456,          // 1.20 UG
+  'Caballos': 456,        // 1.20 UG
+  'Potrillos': 456,       // 1.20 UG
 }
 
 // ============================================
-// 🧮 FUNCIONES DE CÁLCULO
+// 📊 EQUIVALENCIAS UG DEFAULT (para compatibilidad)
+// ============================================
+// Estas se calculan de PESOS_DEFAULT / 380
+export const EQUIVALENCIAS_UG: Record<string, number> = Object.fromEntries(
+  Object.entries(PESOS_DEFAULT).map(([cat, peso]) => [cat, peso / 380])
+)
+
+// Peso de referencia (1 UG)
+export const PESO_REFERENCIA_UG = 380
+
+// ============================================
+// 🧮 INTERFACES
 // ============================================
 
 interface Animal {
@@ -47,29 +66,80 @@ interface Lote {
   hectareas: number
   animalesLote?: Animal[]
 }
+
+// Tipo para equivalencias personalizadas (pesoKg por categoría)
+export type EquivalenciasPersonalizadas = Record<string, number>
+
+// ============================================
+// 🔄 FUNCIÓN PARA OBTENER EQUIVALENCIAS
+// ============================================
+
+/**
+ * Convierte pesos a equivalencias UG
+ * @param pesos - Mapa de categoria -> pesoKg
+ * @returns Mapa de categoria -> equivalenciaUG
+ */
+export function pesosToEquivalencias(pesos: Record<string, number>): Record<string, number> {
+  return Object.fromEntries(
+    Object.entries(pesos).map(([cat, peso]) => [cat, peso / PESO_REFERENCIA_UG])
+  )
+}
+
+/**
+ * Obtiene la equivalencia UG para una categoría
+ * Usa personalizadas si existen, sino usa default
+ */
+function getEquivalencia(
+  categoria: string, 
+  personalizadas?: EquivalenciasPersonalizadas
+): number {
+  if (personalizadas && personalizadas[categoria] !== undefined) {
+    // Convertir peso personalizado a UG
+    return personalizadas[categoria] / PESO_REFERENCIA_UG
+  }
+  // Usar equivalencia default
+  return EQUIVALENCIAS_UG[categoria] || 0
+}
+
+// ============================================
+// 🧮 FUNCIONES DE CÁLCULO
+// ============================================
+
 /**
  * Calcula las UG de las vacas considerando terneros nacidos
  * 🆕 LÓGICA ESPECIAL: Vacas con ternero nacido = 1.2 UG
  */
-function calcularUGVacas(animales: Animal[]): number {
+function calcularUGVacas(
+  animales: Animal[], 
+  personalizadas?: EquivalenciasPersonalizadas
+): number {
   const ternerosNacidos = animales.find(a => a.categoria === 'Terneros nacidos')?.cantidad || 0
   const vacasTotal = animales.find(a => a.categoria === 'Vacas')?.cantidad || 0
   const vacasConCria = Math.min(ternerosNacidos, vacasTotal)
   const vacasSinCria = Math.max(0, vacasTotal - ternerosNacidos)
-  return (vacasConCria * 1.2) + (vacasSinCria * 1.0)
+  
+  // Vacas con cría = 1.2 UG (o personalizado + 20%)
+  const ugVacaSinCria = getEquivalencia('Vacas', personalizadas)
+  const ugVacaConCria = ugVacaSinCria * 1.2
+  
+  return (vacasConCria * ugVacaConCria) + (vacasSinCria * ugVacaSinCria)
 }
 
 /**
  * Calcula las UG totales de una lista de animales
- * 🆕 LÓGICA ESPECIAL: Si hay "Terneros nacidos", las vacas equivalentes valen 1.2 UG
+ * @param animales - Lista de animales con categoría y cantidad
+ * @param personalizadas - Pesos personalizados (opcional, en kg)
  */
-export function calcularUGTotales(animales: Animal[]): number {
+export function calcularUGTotales(
+  animales: Animal[], 
+  personalizadas?: EquivalenciasPersonalizadas
+): number {
   if (!animales || animales.length === 0) return 0
 
   let ugTotales = 0
   
   // 1️⃣ Calcular UG de vacas con lógica especial
-  const ugVacas = calcularUGVacas(animales)
+  const ugVacas = calcularUGVacas(animales, personalizadas)
   ugTotales += ugVacas
 
   // 2️⃣ Calcular UG del resto de animales (excepto vacas)
@@ -79,7 +149,7 @@ export function calcularUGTotales(animales: Animal[]): number {
       continue
     }
     
-    const equivalencia = EQUIVALENCIAS_UG[animal.categoria] || 0
+    const equivalencia = getEquivalencia(animal.categoria, personalizadas)
     ugTotales += animal.cantidad * equivalencia
   }
 
@@ -88,39 +158,40 @@ export function calcularUGTotales(animales: Animal[]): number {
 
 /**
  * Calcula la CARGA GLOBAL (UG/ha) de un lote
- * Carga Global = Total UG ÷ Hectáreas totales
  */
 export function calcularCargaGlobal(
   animales: Animal[],
-  hectareas: number
+  hectareas: number,
+  personalizadas?: EquivalenciasPersonalizadas
 ): number {
   if (hectareas <= 0) return 0
   
-  const ugTotales = calcularUGTotales(animales)
+  const ugTotales = calcularUGTotales(animales, personalizadas)
   return ugTotales / hectareas
 }
 
 /**
  * Calcula la CARGA INSTANTÁNEA (UG/ha) de un potrero
- * En este caso es igual a la carga global porque los animales están
- * en ese potrero específico en ese momento
  */
 export function calcularCargaInstantanea(
   animales: Animal[],
-  hectareas: number
+  hectareas: number,
+  personalizadas?: EquivalenciasPersonalizadas
 ): number {
-  return calcularCargaGlobal(animales, hectareas)
+  return calcularCargaGlobal(animales, hectareas, personalizadas)
 }
 
 /**
  * Calcula estadísticas completas de un lote
  */
-export function calcularEstadisticasLote(lote: Lote) {
-  // ✅ AHORA SE INCLUYEN TODOS LOS ANIMALES (incluyendo yeguarizos)
+export function calcularEstadisticasLote(
+  lote: Lote, 
+  personalizadas?: EquivalenciasPersonalizadas
+) {
   const animales = lote.animalesLote || []
-  const ugTotales = calcularUGTotales(animales)
-  const cargaGlobal = calcularCargaGlobal(animales, lote.hectareas)
-  const cargaInstantanea = calcularCargaInstantanea(animales, lote.hectareas)
+  const ugTotales = calcularUGTotales(animales, personalizadas)
+  const cargaGlobal = calcularCargaGlobal(animales, lote.hectareas, personalizadas)
+  const cargaInstantanea = calcularCargaInstantanea(animales, lote.hectareas, personalizadas)
 
   // Desglose por tipo de animal
   const desglosePorTipo = {
@@ -130,28 +201,29 @@ export function calcularEstadisticasLote(lote: Lote) {
   }
 
   // Calcular UG de vacas con lógica especial
-  const ugVacas = calcularUGVacas(animales)
-
-  // Agregar vacas al desglose primero
+  const ugVacas = calcularUGVacas(animales, personalizadas)
   desglosePorTipo.vacunos += ugVacas
 
-  animales.forEach(animal => {
-    // ✅ Saltar vacas - ya las contamos arriba
-    if (animal.categoria === 'Vacas') {
-      return
-    }
+  const categoriasVacunas = ['Toros', 'Vacas Gordas', 'Novillos +3 años', 'Novillos 2–3 años', 
+    'Novillos 1–2 años', 'Vaquillonas +2 años', 'Vaquillonas 1–2 años', 
+    'Terneros', 'Terneras', 'Terneros nacidos']
+  
+  const categoriasOvinas = ['Carneros', 'Ovejas', 'Capones', 'Borregas 2–4 dientes', 
+    'Corderas DL', 'Corderos DL', 'Corderos/as Mamones']
+  
+  const categoriasEquinas = ['Padrillos', 'Yeguas', 'Caballos', 'Potrillos']
 
-    const equivalencia = EQUIVALENCIAS_UG[animal.categoria] || 0
+  animales.forEach(animal => {
+    if (animal.categoria === 'Vacas') return // Ya contadas
+
+    const equivalencia = getEquivalencia(animal.categoria, personalizadas)
     const ugAnimal = animal.cantidad * equivalencia
 
-    if (['Toros', 'Vacas', 'Vacas Gordas', 'Novillos +3 años', 'Novillos 2–3 años', 
-     'Novillos 1–2 años', 'Vaquillonas +2 años', 'Vaquillonas 1–2 años', 
-     'Terneros', 'Terneras', 'Terneros nacidos'].includes(animal.categoria)) {
+    if (categoriasVacunas.includes(animal.categoria)) {
       desglosePorTipo.vacunos += ugAnimal
-    } else if (['Carneros', 'Ovejas', 'Capones', 'Borregas 2–4 dientes', 
-                'Corderas DL', 'Corderos DL', 'Corderos/as Mamones'].includes(animal.categoria)) {
+    } else if (categoriasOvinas.includes(animal.categoria)) {
       desglosePorTipo.ovinos += ugAnimal
-    } else if (['Padrillos', 'Yeguas', 'Caballos', 'Potrillos'].includes(animal.categoria)) {
+    } else if (categoriasEquinas.includes(animal.categoria)) {
       desglosePorTipo.yeguarizos += ugAnimal
     }
   })
@@ -176,12 +248,14 @@ export function calcularEstadisticasLote(lote: Lote) {
 /**
  * Calcula estadísticas de TODOS los lotes (carga global del campo completo)
  */
-export function calcularEstadisticasCampo(lotes: Lote[]) {
+export function calcularEstadisticasCampo(
+  lotes: Lote[], 
+  personalizadas?: EquivalenciasPersonalizadas
+) {
   const totalHectareas = lotes.reduce((sum, l) => sum + l.hectareas, 0)
-  // ✅ AHORA SE INCLUYEN TODOS LOS ANIMALES (incluyendo yeguarizos)
   const todosLosAnimales = lotes.flatMap(l => l.animalesLote || [])
   
-  const ugTotalesCampo = calcularUGTotales(todosLosAnimales)
+  const ugTotalesCampo = calcularUGTotales(todosLosAnimales, personalizadas)
   const cargaGlobalCampo = totalHectareas > 0 
     ? ugTotalesCampo / totalHectareas 
     : 0
@@ -193,29 +267,29 @@ export function calcularEstadisticasCampo(lotes: Lote[]) {
     yeguarizos: 0
   }
 
-  // Calcular UG de vacas con lógica especial
-  const ugVacas = calcularUGVacas(todosLosAnimales)
-
-  // Agregar vacas al desglose primero
+  const ugVacas = calcularUGVacas(todosLosAnimales, personalizadas)
   desglosePorTipo.vacunos += ugVacas
 
-  todosLosAnimales.forEach(animal => {
-    // ✅ Saltar vacas - ya las contamos arriba
-    if (animal.categoria === 'Vacas') {
-      return
-    }
+  const categoriasVacunas = ['Toros', 'Vacas Gordas', 'Novillos +3 años', 'Novillos 2–3 años', 
+    'Novillos 1–2 años', 'Vaquillonas +2 años', 'Vaquillonas 1–2 años', 
+    'Terneros', 'Terneras', 'Terneros nacidos']
+  
+  const categoriasOvinas = ['Carneros', 'Ovejas', 'Capones', 'Borregas 2–4 dientes', 
+    'Corderas DL', 'Corderos DL', 'Corderos/as Mamones']
+  
+  const categoriasEquinas = ['Padrillos', 'Yeguas', 'Caballos', 'Potrillos']
 
-    const equivalencia = EQUIVALENCIAS_UG[animal.categoria] || 0
+  todosLosAnimales.forEach(animal => {
+    if (animal.categoria === 'Vacas') return
+
+    const equivalencia = getEquivalencia(animal.categoria, personalizadas)
     const ugAnimal = animal.cantidad * equivalencia
 
-    if (['Toros', 'Vacas', 'Vacas Gordas', 'Novillos +3 años', 'Novillos 2–3 años', 
-     'Novillos 1–2 años', 'Vaquillonas +2 años', 'Vaquillonas 1–2 años', 
-     'Terneros', 'Terneras', 'Terneros nacidos'].includes(animal.categoria)) {
+    if (categoriasVacunas.includes(animal.categoria)) {
       desglosePorTipo.vacunos += ugAnimal
-    } else if (['Carneros', 'Ovejas', 'Capones', 'Borregas 2–4 dientes', 
-                'Corderas DL', 'Corderos DL', 'Corderos/as Mamones'].includes(animal.categoria)) {
+    } else if (categoriasOvinas.includes(animal.categoria)) {
       desglosePorTipo.ovinos += ugAnimal
-    } else if (['Padrillos', 'Yeguas', 'Caballos', 'Potrillos'].includes(animal.categoria)) {
+    } else if (categoriasEquinas.includes(animal.categoria)) {
       desglosePorTipo.yeguarizos += ugAnimal
     }
   })
@@ -268,7 +342,6 @@ export function evaluarCarga(cargaUGHa: number): {
 
 /**
  * Calcula la relación Lanar/Vacuno del campo
- * Relación = Total Ovinos ÷ Total Vacunos
  */
 export function calcularRelacionLanarVacuno(lotes: Lote[]): {
   totalOvinos: number
@@ -280,8 +353,7 @@ export function calcularRelacionLanarVacuno(lotes: Lote[]): {
   const categoriasOvinas = ['Carneros', 'Ovejas', 'Capones', 'Borregas 2–4 dientes', 
                             'Corderas DL', 'Corderos DL', 'Corderos/as Mamones']
   
-  // En calcularRelacionLanarVacuno()
-const categoriasVacunas = ['Toros', 'Vacas', 'Vacas Gordas', 'Novillos +3 años', 'Novillos 2–3 años', 
+  const categoriasVacunas = ['Toros', 'Vacas', 'Vacas Gordas', 'Novillos +3 años', 'Novillos 2–3 años', 
                            'Novillos 1–2 años', 'Vaquillonas +2 años', 'Vaquillonas 1–2 años', 
                            'Terneros', 'Terneras', 'Terneros nacidos']
   
