@@ -224,13 +224,13 @@ export async function GET(request: NextRequest) {
       `
     }).join('')
 
-    const legendSvg = `
+    const legendSvg = `<?xml version="1.0" encoding="UTF-8"?>
       <svg xmlns="http://www.w3.org/2000/svg" width="${mapWidth}" height="${legendHeight}">
         <rect width="${mapWidth}" height="${legendHeight}" fill="#f1f5f9"/>
-        <text x="15" y="32" fill="#1e293b" font-size="16" font-family="sans-serif" font-weight="bold">Detalle por Potrero:</text>
+        <text x="15" y="32" fill="#1e293b" font-size="16" font-family="DejaVu Sans, Arial, sans-serif" font-weight="bold">Detalle por Potrero:</text>
         ${legendItemsSvg}
         <rect y="${legendHeight - 30}" width="${mapWidth}" height="30" fill="#e2e8f0"/>
-        <text x="${mapWidth/2}" y="${legendHeight - 10}" text-anchor="middle" fill="#64748b" font-size="11" font-family="sans-serif">Bot Rural - ${fecha}</text>
+        <text x="${mapWidth/2}" y="${legendHeight - 10}" text-anchor="middle" fill="#64748b" font-size="11" font-family="DejaVu Sans, Arial, sans-serif">Bot Rural - ${fecha}</text>
       </svg>
     `
 
