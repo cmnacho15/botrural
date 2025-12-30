@@ -260,12 +260,7 @@ export default function TrasladosPage() {
           >
             ➕ Nuevo Traslado
           </button>
-          <Link
-            href="/dashboard"
-            className="px-4 py-2 text-gray-600 hover:text-gray-800 flex items-center gap-2"
-          >
-            ← Volver
-          </Link>
+          
         </div>
       </div>
 
