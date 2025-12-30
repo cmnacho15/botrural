@@ -1,7 +1,8 @@
 // src/app/api/mapa-imagen/route.ts
 
-import { NextRequest } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import sharp from 'sharp'
 
 // Colores para los potreros (30 colores distintos)
 const COLORES_POTREROS = [
@@ -97,7 +98,9 @@ export async function GET(request: NextRequest) {
     // Dimensiones
     const mapWidth = 800
     const mapHeight = 450
-    const legendHeight = Math.max(200, potreros.length * 52 + 60)
+    const legendRowHeight = 48
+    const legendPadding = 60
+    const legendHeight = Math.max(200, potreros.length * legendRowHeight + legendPadding)
     const totalHeight = mapHeight + legendHeight
 
     // Convertir coordenadas a píxeles
@@ -115,31 +118,29 @@ export async function GET(request: NextRequest) {
 
       return `
         <polygon points="${points}" fill="${p.color}" fill-opacity="0.7" stroke="${p.color}" stroke-width="3"/>
-        <text x="${centerX.toFixed(1)}" y="${centerY.toFixed(1)}" text-anchor="middle" dominant-baseline="middle" fill="white" font-size="14" font-weight="bold" stroke="black" stroke-width="0.5">${p.nombre}</text>
+        <text x="${centerX.toFixed(1)}" y="${centerY.toFixed(1)}" text-anchor="middle" dominant-baseline="middle" fill="white" font-size="14" font-weight="bold" stroke="black" stroke-width="0.5">${escapeXml(p.nombre)}</text>
       `
     }).join('')
 
-    // Generar leyenda HTML
-    const legendItems = potreros.map(p => {
+    // Generar leyenda SVG (sin foreignObject para compatibilidad con sharp)
+    let legendY = mapHeight + 40
+    const legendItems = potreros.map((p, index) => {
+      const y = legendY + (index * legendRowHeight)
       const totalAnimales = p.animales.reduce((sum, a) => sum + a.cantidad, 0)
       const animalesTexto = totalAnimales > 0 
-        ? `🐄 ${p.animales.map(a => `${a.cantidad} ${a.categoria}`).join(', ')}`
-        : '<span style="color: #a0aec0; font-style: italic;">Sin animales</span>'
+        ? p.animales.map(a => `${a.cantidad} ${a.categoria}`).join(', ')
+        : 'Sin animales'
       const cultivosTexto = p.cultivos.length > 0 
-        ? `<div style="color: #38a169;">🌱 ${p.cultivos.map(c => c.tipoCultivo).join(' + ')}</div>`
+        ? p.cultivos.map(c => c.tipoCultivo).join(' + ')
         : ''
 
       return `
-        <div style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: white; border-radius: 6px; border-left: 4px solid ${p.color}; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
-          <div style="min-width: 110px;">
-            <div style="font-weight: bold; color: ${p.color}; font-size: 13px;">${p.nombre}</div>
-            <div style="font-size: 10px; color: #718096;">${p.hectareas.toFixed(1)} ha</div>
-          </div>
-          <div style="flex: 1; font-size: 11px;">
-            <div style="color: #2d3748;">${animalesTexto}</div>
-            ${cultivosTexto}
-          </div>
-        </div>
+        <rect x="15" y="${y}" width="770" height="${legendRowHeight - 6}" rx="6" fill="white" stroke="#e2e8f0" stroke-width="1"/>
+        <rect x="15" y="${y}" width="4" height="${legendRowHeight - 6}" fill="${p.color}"/>
+        <text x="30" y="${y + 18}" fill="${p.color}" font-size="13" font-weight="bold">${escapeXml(p.nombre)}</text>
+        <text x="30" y="${y + 34}" fill="#718096" font-size="10">${p.hectareas.toFixed(1)} ha</text>
+        <text x="140" y="${y + 18}" fill="#2d3748" font-size="11">${totalAnimales > 0 ? '🐄 ' : ''}${escapeXml(animalesTexto)}</text>
+        ${cultivosTexto ? `<text x="140" y="${y + 34}" fill="#38a169" font-size="11">🌱 ${escapeXml(cultivosTexto)}</text>` : ''}
       `
     }).join('')
 
@@ -150,45 +151,7 @@ export async function GET(request: NextRequest) {
       <svg xmlns="http://www.w3.org/2000/svg" width="${mapWidth}" height="${totalHeight}">
         <defs>
           <style>
-            text { font-family: system-ui, -apple-system, sans-serif; }
-          </style>
-        </defs>
-        
-        <!-- Fondo -->
-        <rect width="${mapWidth}" height="${totalHeight}" fill="#1a202c"/>
-        
-        <!-- Header -->
-        <rect y="0" width="${mapWidth}" height="50" fill="#2d3748"/>
-        <text x="${mapWidth/2}" y="32" text-anchor="middle" fill="white" font-size="22" font-weight="bold">🗺️ ${campo.nombre}</text>
-        
-        <!-- Área del mapa -->
-        <rect y="50" width="${mapWidth}" height="${mapHeight - 50}" fill="#4a5568"/>
-        
-        <!-- Polígonos -->
-        <g transform="translate(0, 50)">
-          ${polygonsSvg}
-        </g>
-        
-        <!-- Leyenda fondo -->
-        <rect y="${mapHeight}" width="${mapWidth}" height="${legendHeight - 30}" fill="#f7fafc"/>
-        
-        <!-- Título leyenda -->
-        <text x="20" y="${mapHeight + 25}" fill="#2d3748" font-size="14" font-weight="bold">📋 Detalle por Potrero</text>
-        
-        <!-- Footer -->
-        <rect y="${totalHeight - 30}" width="${mapWidth}" height="30" fill="#edf2f7"/>
-        <text x="${mapWidth/2}" y="${totalHeight - 12}" text-anchor="middle" fill="#a0aec0" font-size="10">Bot Rural • ${fecha}</text>
-      </svg>
-    `
-
-    // Convertir SVG a PNG usando resvg-js (si está disponible) o retornar SVG
-    // Por simplicidad, vamos a usar un approach con HTML + foreignObject
-    
-    const htmlContent = `
-      <svg xmlns="http://www.w3.org/2000/svg" width="${mapWidth}" height="${totalHeight}">
-        <defs>
-          <style>
-            * { font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif; margin: 0; padding: 0; box-sizing: border-box; }
+            text { font-family: Arial, Helvetica, sans-serif; }
           </style>
         </defs>
         
@@ -197,7 +160,7 @@ export async function GET(request: NextRequest) {
         
         <!-- Header -->
         <rect y="0" width="${mapWidth}" height="50" fill="#2d3748"/>
-        <text x="${mapWidth/2}" y="32" text-anchor="middle" fill="white" font-size="22" font-weight="bold">🗺️ ${campo.nombre}</text>
+        <text x="${mapWidth/2}" y="32" text-anchor="middle" fill="white" font-size="22" font-weight="bold">🗺️ ${escapeXml(campo.nombre)}</text>
         
         <!-- Área del mapa -->
         <rect y="50" width="${mapWidth}" height="${mapHeight - 50}" fill="#718096"/>
@@ -210,15 +173,11 @@ export async function GET(request: NextRequest) {
         <!-- Separador -->
         <rect y="${mapHeight}" width="${mapWidth}" height="2" fill="#e2e8f0"/>
         
-        <!-- Leyenda con foreignObject -->
-        <foreignObject x="0" y="${mapHeight + 2}" width="${mapWidth}" height="${legendHeight - 32}">
-          <div xmlns="http://www.w3.org/1999/xhtml" style="padding: 12px 15px; font-family: system-ui, sans-serif;">
-            <div style="font-size: 14px; font-weight: bold; margin-bottom: 10px; color: #2d3748;">📋 Detalle por Potrero</div>
-            <div style="display: flex; flex-direction: column; gap: 6px;">
-              ${legendItems}
-            </div>
-          </div>
-        </foreignObject>
+        <!-- Título leyenda -->
+        <text x="20" y="${mapHeight + 25}" fill="#2d3748" font-size="14" font-weight="bold">📋 Detalle por Potrero</text>
+        
+        <!-- Items de leyenda -->
+        ${legendItems}
         
         <!-- Footer -->
         <rect y="${totalHeight - 30}" width="${mapWidth}" height="30" fill="#edf2f7"/>
@@ -226,10 +185,14 @@ export async function GET(request: NextRequest) {
       </svg>
     `
 
-    // Retornar como SVG (WhatsApp debería aceptarlo, si no, necesitamos convertir a PNG)
-    return new Response(htmlContent, {
+    // Convertir SVG a PNG con sharp
+    const pngBuffer = await sharp(Buffer.from(svgContent))
+      .png()
+      .toBuffer()
+
+    return new Response(new Uint8Array(pngBuffer), {
       headers: {
-        'Content-Type': 'image/svg+xml',
+        'Content-Type': 'image/png',
         'Cache-Control': 'no-cache'
       }
     })
@@ -238,4 +201,14 @@ export async function GET(request: NextRequest) {
     console.error('❌ Error generando imagen:', error)
     return new Response('Error interno', { status: 500 })
   }
+}
+
+// Función para escapar caracteres especiales en XML
+function escapeXml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;')
 }
