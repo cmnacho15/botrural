@@ -152,3 +152,54 @@ export async function sendWhatsAppDocument(
   console.log('✅ Documento enviado exitosamente')
   return responseData
 }
+
+
+/**
+ * 🖼️ Enviar imagen por WhatsApp
+ */
+export async function sendWhatsAppImage(
+  to: string,
+  imageUrl: string,
+  caption?: string
+) {
+  const phoneId = process.env.WHATSAPP_PHONE_ID
+  const token = process.env.WHATSAPP_TOKEN
+
+  if (!phoneId || !token) {
+    console.error('❌ WHATSAPP_PHONE_ID o WHATSAPP_TOKEN no configurados')
+    throw new Error('WhatsApp no configurado')
+  }
+
+  const url = `https://graph.facebook.com/v20.0/${phoneId}/messages`
+
+  console.log('🖼️ Enviando imagen...')
+  console.log('  → Destinatario:', to)
+  console.log('  → URL:', imageUrl.substring(0, 80) + '...')
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      messaging_product: 'whatsapp',
+      to,
+      type: 'image',
+      image: {
+        link: imageUrl,
+        ...(caption && { caption })
+      }
+    })
+  })
+
+  const responseData = await response.json()
+
+  if (!response.ok) {
+    console.error('❌ Error enviando imagen:', responseData)
+    throw new Error(`WhatsApp API error: ${response.statusText}`)
+  }
+
+  console.log('✅ Imagen enviada exitosamente')
+  return responseData
+}

@@ -32,6 +32,7 @@ import {
   handleCambiarCampoSeleccion,
   handleSeleccionGrupo,
   handleTacto,
+  handleMapa,
 } from "@/lib/whatsapp"
 
 const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || "mi_token_secreto"
@@ -262,6 +263,15 @@ if (usuario?.campoId) {
 }
 
 // ==========================================
+// 6.4 DETECTAR COMANDO MAPA (sin pasar por GPT)
+// ==========================================
+const comandosMapa = ["mapa", "ver mapa", "mapa del campo", "mostrame el mapa", "mandame el mapa", "imagen del campo"]
+if (comandosMapa.includes(messageText.toLowerCase().trim())) {
+  await handleMapa(from)
+  return NextResponse.json({ status: "mapa sent" })
+}
+
+// ==========================================
 // 6.5 DETECTAR CONSULTA DE STOCK
 // ==========================================
 // Detecta múltiples formatos:
@@ -314,6 +324,14 @@ const parsedData = await parseMessageWithAI(messageText, potreros, categorias)
   if (parsedData.tipo === "REPORTE_PASTOREO") {
     await handleReportePastoreo(from)
     return NextResponse.json({ status: "reporte pastoreo initiated" })
+  }
+
+  // ========================================
+  // 🗺️ MAPA DEL CAMPO
+  // ========================================
+  if (parsedData.tipo === "MAPA") {
+    await handleMapa(from)
+    return NextResponse.json({ status: "mapa sent" })
   }
 
   // ========================================

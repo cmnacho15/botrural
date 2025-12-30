@@ -291,6 +291,19 @@ TIPOS DE EVENTOS QUE DEBES DETECTAR:
    {
      "tipo": "REPORTE_PASTOREO"
    }
+
+   15. MAPA:
+   - "mapa"
+   - "mapa del campo"
+   - "ver mapa"
+   - "mostrame el mapa"
+   - "quiero ver el mapa"
+   - "mandame el mapa"
+   - "imagen del campo"
+   Retorna:
+   {
+     "tipo": "MAPA"
+   }
      
 ⚠️ CRÍTICO: Para CAMBIO_POTRERO usa SIEMPRE "loteOrigen" y "loteDestino", NUNCA "potreroOrigen" ni "potreroDestino"
 

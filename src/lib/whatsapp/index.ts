@@ -42,3 +42,6 @@ export {
 } from "./handlers/campoHandler"
 
 export { handleTacto } from './handlers/tactoHandler'  // ← CAMBIAR AQUÍ
+
+export { handleMapa } from "./handlers/mapaHandler"
+export { sendWhatsAppImage } from "./sendMessage"
