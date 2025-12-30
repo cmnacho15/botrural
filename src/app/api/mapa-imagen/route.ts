@@ -115,9 +115,12 @@ export async function GET(request: NextRequest) {
     const mapWidth = 800
     const mapHeight = 500
 
-    // Crear GeoJSON para los polígonos de Mapbox
-    const geojsonOverlays = potreros.map((p, index) => {
-      // Cerrar el polígono si no está cerrado
+    // Crear paths simplificados para Mapbox
+    // Formato: path-strokeWidth+strokeColor-strokeOpacity+fillColor-fillOpacity(lon,lat,lon,lat,...)
+    const pathOverlays = potreros.map((p) => {
+      const color = p.color.replace('#', '')
+      
+      // Cerrar el polígono
       const coords = [...p.coordinates]
       if (coords.length > 0) {
         const first = coords[0]
@@ -126,21 +129,18 @@ export async function GET(request: NextRequest) {
           coords.push(first)
         }
       }
-
-      const color = p.color.replace('#', '')
       
-      return `path-${color}+${color}-0.5(${encodeURIComponent(JSON.stringify({
-        type: 'Feature',
-        geometry: {
-          type: 'Polygon',
-          coordinates: [coords]
-        }
-      }))})`
+      // Formato: lon,lat,lon,lat,...
+      const pathCoords = coords.map(c => `${c[0].toFixed(5)},${c[1].toFixed(5)}`).join(',')
+      
+      return `path-3+${color}-1+${color}-0.4(${pathCoords})`
     }).join(',')
 
     // URL de Mapbox Static API con estilo satelital
     const mapboxToken = process.env.MAPBOX_ACCESS_TOKEN
-    const mapboxUrl = `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/static/${geojsonOverlays}/[${minLng},${minLat},${maxLng},${maxLat}]/${mapWidth}x${mapHeight}@2x?access_token=${mapboxToken}&logo=false&attribution=false`
+    
+    // Usar auto para que Mapbox calcule el bounds automáticamente
+    const mapboxUrl = `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/static/${pathOverlays}/auto/${mapWidth}x${mapHeight}@2x?access_token=${mapboxToken}&padding=50`
 
     console.log('🗺️ Solicitando mapa a Mapbox...')
 
