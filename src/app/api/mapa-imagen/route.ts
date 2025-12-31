@@ -1,7 +1,7 @@
 // src/app/api/mapa-imagen/route.ts
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { Canvas, loadImage } from 'skia-canvas'  // ← Import de skia-canvas
+import { Canvas, loadImage } from 'skia-canvas'
 
 const COLORES_POTREROS = [
   '#E53E3E', '#3182CE', '#38A169', '#D69E2E', '#805AD5',
@@ -77,13 +77,16 @@ export async function GET(request: NextRequest) {
     const legendHeight = potreros.length * legendRowHeight + legendPadding
     const totalHeight = headerHeight + mapHeight + legendHeight
 
-    // Mapbox satelital
+    // Mapbox satelital con token nuevo
     const mapboxUrl = `https://api.mapbox.com/styles/v1/mapbox/satellite-v9/static/${centerLng},${centerLat},${zoom},0/${mapWidth}x${mapHeight}@2x?access_token=${process.env.MAPBOX_ACCESS_TOKEN}`
     const mapRes = await fetch(mapboxUrl)
-    if (!mapRes.ok) return new Response('Error Mapbox', { status: 500 })
-    const mapBuffer = await mapRes.arrayBuffer()
+    if (!mapRes.ok) {
+      console.error('Error Mapbox:', await mapRes.text())
+      return new Response('Error Mapbox', { status: 500 })
+    }
+    const mapArrayBuffer = await mapRes.arrayBuffer()
 
-    // Canvas con skia-canvas
+    // Canvas
     const canvas = new Canvas(mapWidth, totalHeight)
     const ctx = canvas.getContext('2d')
 
@@ -101,7 +104,7 @@ export async function GET(request: NextRequest) {
     ctx.fillText(`Mapa: ${campo.nombre}`, mapWidth / 2, headerHeight / 2)
 
     // Mapa satelital
-    const mapImage = await loadImage(Buffer.from(mapBuffer))
+    const mapImage = await loadImage(Buffer.from(mapArrayBuffer))
     ctx.drawImage(mapImage, 0, headerHeight, mapWidth, mapHeight)
 
     // Polígonos overlay
@@ -131,39 +134,32 @@ export async function GET(request: NextRequest) {
     potreros.forEach((p, i) => {
       const y = legendYStart + 40 + i * legendRowHeight
 
-      // Fondo blanco
       ctx.fillStyle = 'white'
       ctx.fillRect(12, y, 776, legendRowHeight - 6)
       ctx.strokeStyle = '#e2e8f0'
       ctx.strokeRect(12, y, 776, legendRowHeight - 6)
 
-      // Borde izquierdo
       ctx.fillStyle = p.color
       ctx.fillRect(12, y, 6, legendRowHeight - 6)
 
-      // Círculo
       ctx.beginPath()
       ctx.arc(38, y + legendRowHeight / 2, 12, 0, Math.PI * 2)
       ctx.fill()
 
-      // Nombre
       ctx.fillStyle = p.color
       ctx.font = 'bold 15px sans-serif'
       ctx.fillText(p.nombre, 58, y + 20)
 
-      // Hectáreas
       ctx.fillStyle = '#64748b'
       ctx.font = '12px sans-serif'
       ctx.fillText(`${p.hectareas.toFixed(1)} ha`, 58, y + 38)
 
-      // Animales
       const totalAnimales = p.animales.reduce((s, a) => s + a.cantidad, 0)
       const animalesTexto = totalAnimales ? p.animales.map(a => `${a.cantidad} ${a.categoria}`).join(', ') : '(sin animales)'
       ctx.fillStyle = '#334155'
       ctx.font = '13px sans-serif'
       ctx.fillText(animalesTexto, 200, y + 20)
 
-      // Cultivos
       const cultivosTexto = p.cultivos.length ? p.cultivos.map(c => c.tipoCultivo).join(' + ') : ''
       if (cultivosTexto) {
         ctx.fillStyle = '#16a34a'
@@ -181,6 +177,7 @@ export async function GET(request: NextRequest) {
     ctx.textAlign = 'center'
     ctx.fillText(`Bot Rural - ${fecha}`, mapWidth / 2, totalHeight - 15)
 
+ 
     const buffer = canvas.toBuffer('png')
 
 return new Response(buffer as any, {
