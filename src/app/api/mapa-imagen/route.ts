@@ -3,6 +3,8 @@
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { initWasm, Resvg } from '@resvg/resvg-wasm'
+// @ts-ignore - Next.js soporta este import
+import wasmBuffer from '@resvg/resvg-wasm/index_bg.wasm?arraybuffer'
 
 const COLORES_POTREROS = [
   '#E53E3E', '#3182CE', '#38A169', '#D69E2E', '#805AD5',
@@ -29,7 +31,7 @@ let boldFont: Uint8Array | null = null
 
 async function initWasmIfNeeded() {
   if (!isWasmInitialized) {
-    await initWasm(fetch('https://unpkg.com/@resvg/resvg-wasm/index_bg.wasm'))
+    await initWasm(new Uint8Array(wasmBuffer as ArrayBuffer))
     isWasmInitialized = true
   }
 }
@@ -40,11 +42,11 @@ async function getFonts(): Promise<Uint8Array[]> {
   const regularUrl = 'https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hiJ-Ek-_EeA.woff2'
   const boldUrl = 'https://fonts.gstatic.com/s/inter/v13/UcC73FwrK3iLTeHuS_fvQtMwCp50SjIa1ZL7W0Q5n-wU.woff2'
 
-  const [regularRes, boldRes] = await Promise.all([fetch(regularUrl), fetch(boldUrl)])
-  const [regularBuffer, boldBuffer] = await Promise.all([regularRes.arrayBuffer(), boldRes.arrayBuffer()])
+  const [regRes, boldRes] = await Promise.all([fetch(regularUrl), fetch(boldUrl)])
+  const [regBuf, boldBuf] = await Promise.all([regRes.arrayBuffer(), boldRes.arrayBuffer()])
 
-  regularFont = new Uint8Array(regularBuffer)
-  boldFont = new Uint8Array(boldBuffer)
+  regularFont = new Uint8Array(regBuf)
+  boldFont = new Uint8Array(boldBuf)
 
   return [regularFont, boldFont]
 }
@@ -216,6 +218,8 @@ export async function GET(request: NextRequest) {
     // Inicializar WASM y obtener fuentes
     await initWasmIfNeeded()
     const fonts = await getFonts()
+
+    console.log('🔄 Renderizando SVG a PNG...')
 
     // Convertir SVG a PNG
     const resvg = new Resvg(fullSvg, {
