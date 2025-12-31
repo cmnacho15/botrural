@@ -1,7 +1,9 @@
-// src/app/api/mapa-imagen/route.ts
+// src/app/api/mapa-imagen/route.tsx
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { ImageResponse } from '@vercel/og'
+
+// NO poner export const runtime = 'edge' → así usa Node.js (límite 10 MB, no 1 MB)
 
 const COLORES_POTREROS = [
   '#E53E3E', '#3182CE', '#38A169', '#D69E2E', '#805AD5',
@@ -20,8 +22,6 @@ interface PotreroData {
   cultivos: { tipoCultivo: string }[]
   coordinates: number[][]
 }
-
-export const runtime = 'edge' // Más rápido y estable en Vercel
 
 export async function GET(request: NextRequest) {
   try {
@@ -76,10 +76,15 @@ export async function GET(request: NextRequest) {
     const totalHeight = headerHeight + mapHeight + legendHeight
 
     // Mapbox satelital
+    console.log('🗺️ Solicitando mapa satelital a Mapbox...')
     const mapboxUrl = `https://api.mapbox.com/styles/v1/mapbox/satellite-v9/static/${centerLng},${centerLat},${zoom},0/${mapWidth}x${mapHeight}@2x?access_token=${process.env.MAPBOX_ACCESS_TOKEN}`
     const mapRes = await fetch(mapboxUrl)
-    if (!mapRes.ok) return new Response('Error obteniendo mapa', { status: 500 })
+    if (!mapRes.ok) {
+      console.error('Error Mapbox:', mapRes.status)
+      return new Response('Error obteniendo mapa', { status: 500 })
+    }
     const mapBase64 = Buffer.from(await mapRes.arrayBuffer()).toString('base64')
+    console.log('✅ Mapa satelital recibido')
 
     // Polígonos overlay
     const toPixelX = (lng: number) => ((lng - minLng) / (maxLng - minLng)) * mapWidth
@@ -91,11 +96,13 @@ export async function GET(request: NextRequest) {
 
     const fecha = new Date().toLocaleDateString('es-UY')
 
-    // Fuentes Inter regular + bold
+    // Fuentes Inter regular + bold (descargadas en runtime)
     const [regularFont, boldFont] = await Promise.all([
       fetch('https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hiJ-Ek-_EeA.woff2').then(r => r.arrayBuffer()),
       fetch('https://fonts.gstatic.com/s/inter/v13/UcC73FwrK3iLTeHuS_fvQtMwCp50SjIa1ZL7W0Q5n-wU.woff2').then(r => r.arrayBuffer())
     ])
+
+    console.log('🔄 Generando imagen con @vercel/og...')
 
     return new ImageResponse(
       (
@@ -105,9 +112,13 @@ export async function GET(request: NextRequest) {
             <span style={{ fontSize: 22, fontWeight: 700, color: 'white' }}>Mapa: {campo.nombre}</span>
           </div>
 
-          {/* Mapa + polígonos */}
+          {/* Mapa satelital + polígonos overlay */}
           <div style={{ position: 'relative', height: mapHeight }}>
-            <img src={`data:image/png;base64,${mapBase64}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            <img
+              src={`data:image/png;base64,${mapBase64}`}
+              alt="Mapa satelital"
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            />
             <svg style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }} viewBox={`0 0 ${mapWidth} ${mapHeight}`}>
               <g dangerouslySetInnerHTML={{ __html: polygonsSvg }} />
             </svg>
@@ -116,12 +127,25 @@ export async function GET(request: NextRequest) {
           {/* Leyenda */}
           <div style={{ padding: '20px 15px', display: 'flex', flexDirection: 'column', gap: 10 }}>
             <span style={{ fontSize: 16, fontWeight: 700, color: '#1e293b' }}>Detalle por Potrero:</span>
+
             {potreros.map(p => {
               const totalAnimales = p.animales.reduce((s, a) => s + a.cantidad, 0)
               const animalesTexto = totalAnimales ? p.animales.map(a => `${a.cantidad} ${a.categoria}`).join(', ') : '(sin animales)'
               const cultivosTexto = p.cultivos.length ? p.cultivos.map(c => c.tipoCultivo).join(' + ') : ''
+
               return (
-                <div key={p.nombre} style={{ display: 'flex', alignItems: 'center', background: 'white', borderRadius: 8, padding: '12px', borderLeft: `6px solid ${p.color}` }}>
+                <div
+                  key={p.nombre}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    background: 'white',
+                    borderRadius: 8,
+                    padding: '12px',
+                    borderLeft: `6px solid ${p.color}`,
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                  }}
+                >
                   <div style={{ width: 24, height: 24, borderRadius: 12, background: p.color, marginRight: 15 }} />
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 15, fontWeight: 700, color: p.color }}>{p.nombre}</div>
@@ -134,6 +158,8 @@ export async function GET(request: NextRequest) {
                 </div>
               )
             })}
+
+            {/* Footer */}
             <div style={{ marginTop: 'auto', paddingTop: 15, textAlign: 'center', fontSize: 11, color: '#64748b', borderTop: '1px solid #e2e8f0' }}>
               Bot Rural - {fecha}
             </div>
@@ -149,8 +175,9 @@ export async function GET(request: NextRequest) {
         ]
       }
     )
+
   } catch (error) {
-    console.error('Error generando mapa:', error)
-    return new Response('Error interno', { status: 500 })
+    console.error('❌ Error generando mapa:', error)
+    return new Response('Error interno al generar la imagen', { status: 500 })
   }
 }
