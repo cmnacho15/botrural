@@ -54,24 +54,17 @@ export async function GET(request: NextRequest) {
     // Bounding box y zoom
     let minLng = Infinity, maxLng = -Infinity, minLat = Infinity, maxLat = -Infinity
     potreros.forEach(p => p.coordinates.forEach(([lng, lat]) => {
-      minLng = Math.min(minLng, lng)
-      maxLng = Math.max(maxLng, lng)
-      minLat = Math.min(minLat, lat)
-      maxLat = Math.max(maxLat, lat)
+      minLng = Math.min(minLng, lng); maxLng = Math.max(maxLng, lng)
+      minLat = Math.min(minLat, lat); maxLat = Math.max(maxLat, lat)
     }))
-
     const pad = 0.15
-    minLng -= (maxLng - minLng) * pad
-    maxLng += (maxLng - minLng) * pad
-    minLat -= (maxLat - minLat) * pad
-    maxLat += (maxLat - minLat) * pad
-
+    minLng -= (maxLng - minLng) * pad; maxLng += (maxLng - minLng) * pad
+    minLat -= (maxLat - minLat) * pad; maxLat += (maxLat - minLat) * pad
     const centerLng = (minLng + maxLng) / 2
     const centerLat = (minLat + maxLat) / 2
     const maxDiff = Math.max(maxLat - minLat, maxLng - minLng)
     const zoom = maxDiff > 0.1 ? 11 : maxDiff > 0.05 ? 12 : maxDiff > 0.02 ? 13 : maxDiff > 0.01 ? 14 : 15
 
-    // Tamaño reducido para evitar crash en @vercel/og
     const mapWidth = 600
     const mapHeight = 375
     const headerHeight = 55
@@ -80,8 +73,8 @@ export async function GET(request: NextRequest) {
     const legendHeight = potreros.length * legendRowHeight + legendPadding
     const totalHeight = headerHeight + mapHeight + legendHeight
 
-    // Mapbox satelital (más chico)
-    console.log('🗺️ Solicitando mapa satelital...')
+    // Mapbox satelital
+    console.log('🗺️ Solicitando mapa satelital a Mapbox...')
     const mapboxUrl = `https://api.mapbox.com/styles/v1/mapbox/satellite-v9/static/${centerLng},${centerLat},${zoom},0/${mapWidth}x${mapHeight}@2x?access_token=${process.env.MAPBOX_ACCESS_TOKEN}`
     const mapRes = await fetch(mapboxUrl)
     if (!mapRes.ok) {
@@ -89,19 +82,23 @@ export async function GET(request: NextRequest) {
       return new Response('Error obteniendo mapa', { status: 500 })
     }
 
-    // Conversión a base64 sin Buffer (compatible con todos los runtimes)
+    // Conversión a base64 sin Buffer
     const arrayBuffer = await mapRes.arrayBuffer()
     const uint8 = new Uint8Array(arrayBuffer)
     let binary = ''
-    uint8.forEach(byte => binary += String.fromCharCode(byte))
+    for (let i = 0; i < uint8.length; i++) {
+      binary += String.fromCharCode(uint8[i])
+    }
     const mapBase64 = btoa(binary)
-    console.log('✅ Mapa convertido a base64')
+    console.log('✅ Mapa satelital recibido')
 
     // Polígonos overlay
     const toPixelX = (lng: number) => ((lng - minLng) / (maxLng - minLng)) * mapWidth
     const toPixelY = (lat: number) => mapHeight - ((lat - minLat) / (maxLat - minLat)) * mapHeight
     const polygonsSvg = potreros.map(p => {
-      const points = p.coordinates.map(([lng, lat]) => `${toPixelX(lng).toFixed(1)},${toPixelY(lat).toFixed(1)}`).join(' ')
+      const points = p.coordinates.map(([lng, lat]) => 
+        `${toPixelX(lng).toFixed(1)},${toPixelY(lat).toFixed(1)}`
+      ).join(' ')
       return `<polygon points="${points}" fill="${p.color}" fill-opacity="0.4" stroke="${p.color}" stroke-width="3"/>`
     }).join('')
 
@@ -113,8 +110,6 @@ export async function GET(request: NextRequest) {
       fetch('https://fonts.gstatic.com/s/inter/v13/UcC73FwrK3iLTeHuS_fvQtMwCp50SjIa1ZL7W0Q5n-wU.woff2').then(r => r.arrayBuffer())
     ])
 
-    console.log('🔄 Generando imagen final...')
-
     return new ImageResponse(
       (
         <div style={{ width: mapWidth, height: totalHeight, background: '#f1f5f9', display: 'flex', flexDirection: 'column', fontFamily: 'Inter' }}>
@@ -125,7 +120,7 @@ export async function GET(request: NextRequest) {
 
           {/* Mapa + polígonos */}
           <div style={{ position: 'relative', height: mapHeight }}>
-            <img src={`data:image/png;base64,${mapBase64}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Mapa satelital" />
+            <img src={`data:image/png;base64,${mapBase64}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             <svg style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }} viewBox={`0 0 ${mapWidth} ${mapHeight}`}>
               <g dangerouslySetInnerHTML={{ __html: polygonsSvg }} />
             </svg>
@@ -134,12 +129,10 @@ export async function GET(request: NextRequest) {
           {/* Leyenda */}
           <div style={{ padding: '20px 15px', display: 'flex', flexDirection: 'column', gap: 10 }}>
             <span style={{ fontSize: 16, fontWeight: 700, color: '#1e293b' }}>Detalle por Potrero:</span>
-
             {potreros.map(p => {
               const totalAnimales = p.animales.reduce((s, a) => s + a.cantidad, 0)
               const animalesTexto = totalAnimales ? p.animales.map(a => `${a.cantidad} ${a.categoria}`).join(', ') : '(sin animales)'
               const cultivosTexto = p.cultivos.length ? p.cultivos.map(c => c.tipoCultivo).join(' + ') : ''
-
               return (
                 <div key={p.nombre} style={{ display: 'flex', alignItems: 'center', background: 'white', borderRadius: 8, padding: '12px', borderLeft: `6px solid ${p.color}` }}>
                   <div style={{ width: 24, height: 24, borderRadius: 12, background: p.color, marginRight: 15 }} />
@@ -154,7 +147,6 @@ export async function GET(request: NextRequest) {
                 </div>
               )
             })}
-
             <div style={{ marginTop: 'auto', paddingTop: 15, textAlign: 'center', fontSize: 11, color: '#64748b', borderTop: '1px solid #e2e8f0' }}>
               Bot Rural - {fecha}
             </div>
@@ -172,7 +164,7 @@ export async function GET(request: NextRequest) {
     )
 
   } catch (error) {
-    console.error('❌ Error generando mapa:', error)
-    return new Response('Error interno al generar la imagen', { status: 500 })
+    console.error('❌ Error:', error)
+    return new Response('Error interno', { status: 500 })
   }
 }

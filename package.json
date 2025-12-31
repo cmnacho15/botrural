@@ -17,6 +17,7 @@
     "@turf/turf": "^7.3.1",
     "@vercel/og": "^0.8.6",
     "bcryptjs": "^3.0.3",
+    "canvas": "^3.2.0",
     "date-fns": "^4.1.0",
     "esri-leaflet": "^3.0.19",
     "geotiff": "^2.1.4-beta.0",
