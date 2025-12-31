@@ -181,10 +181,7 @@ export async function GET(request: NextRequest) {
     const buffer = canvas.toBuffer('png')
 
 return new Response(buffer as any, {
-  headers: {
-    'Content-Type': 'image/png',
-    'Cache-Control': 'public, max-age=300'
-  }
+  headers: { 'Content-Type': 'image/png' }
 })
 
   } catch (error) {
