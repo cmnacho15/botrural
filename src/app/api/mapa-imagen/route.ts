@@ -3,8 +3,7 @@
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { initWasm, Resvg } from '@resvg/resvg-wasm'
-// @ts-ignore - Next.js soporta este import
-import wasmBuffer from '@resvg/resvg-wasm/index_bg.wasm?arraybuffer'
+import wasmUrl from '@resvg/resvg-wasm/index_bg.wasm?url'
 
 const COLORES_POTREROS = [
   '#E53E3E', '#3182CE', '#38A169', '#D69E2E', '#805AD5',
@@ -31,7 +30,9 @@ let boldFont: Uint8Array | null = null
 
 async function initWasmIfNeeded() {
   if (!isWasmInitialized) {
-    await initWasm(new Uint8Array(wasmBuffer as ArrayBuffer))
+    const response = await fetch(wasmUrl)
+    const wasmBytes = await response.arrayBuffer()
+    await initWasm(new Uint8Array(wasmBytes))
     isWasmInitialized = true
   }
 }
