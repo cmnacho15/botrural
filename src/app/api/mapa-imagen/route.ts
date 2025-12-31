@@ -3,7 +3,6 @@
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { initWasm, Resvg } from '@resvg/resvg-wasm'
-import wasmUrl from '@resvg/resvg-wasm/index_bg.wasm?url'
 
 const COLORES_POTREROS = [
   '#E53E3E', '#3182CE', '#38A169', '#D69E2E', '#805AD5',
@@ -30,7 +29,9 @@ let boldFont: Uint8Array | null = null
 
 async function initWasmIfNeeded() {
   if (!isWasmInitialized) {
+    const wasmUrl = 'https://unpkg.com/@resvg/resvg-wasm@2.6.2/index_bg.wasm'
     const response = await fetch(wasmUrl)
+    if (!response.ok) throw new Error('Failed to fetch resvg wasm')
     const wasmBytes = await response.arrayBuffer()
     await initWasm(new Uint8Array(wasmBytes))
     isWasmInitialized = true
