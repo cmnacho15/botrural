@@ -79,6 +79,8 @@ export async function GET() {
       hectareas: potrero.hectareas,
       coordinates: potrero.poligono ? (potrero.poligono as any) : [],
       color: '#10b981',
+      isEditing: false,  // 🔥 AGREGAR ESTA LÍNEA
+  isDashed: false,   // 🔥 AGREGAR ESTA LÍNEA
       info: {
         hectareas: potrero.hectareas,
         animales: potrero.animalesLote.map(a => ({
