@@ -1,34 +1,18 @@
-
-
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Ignora ESLint durante build (opcional, pero útil si tenés lint errors)
+  // Ignora ESLint SOLO durante el build (ideal para tu caso)
   eslint: {
     ignoreDuringBuilds: true,
   },
 
-  // NO ignores TypeScript errors (mantiene calidad de código)
+  // Mantiene los errores de TypeScript (importante para calidad)
   typescript: {
     ignoreBuildErrors: false,
   },
 
+  // Config básico para Next 15 (sin turbopack experimental)
   reactStrictMode: true,
-
-  // ==================== FIX PARA SKIA-CANVAS ====================
-  // Marca skia-canvas como paquete externo en server (evita que webpack intente procesar el .node binario)
-  serverExternalPackages: ["skia-canvas"],
-
-  webpack: (config, { isServer }) => {
-    // Solo en el lado server (donde se ejecuta la API route)
-    if (isServer) {
-      // Agrega skia-canvas a los externals para que no sea bundled
-      config.externals = [...(config.externals || []), "skia-canvas"];
-    }
-    return config;
-  },
-  // ============================================================
-
 };
 
 export default nextConfig;
