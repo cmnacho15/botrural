@@ -2,7 +2,7 @@
 
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { Resvg } from '@resvg/resvg-js'
+import { initWasm, Resvg } from '@resvg/resvg-wasm'
 
 const COLORES_POTREROS = [
   '#E53E3E', '#3182CE', '#38A169', '#D69E2E', '#805AD5',
@@ -22,17 +22,31 @@ interface PotreroData {
   coordinates: number[][]
 }
 
-// Descargar y cachear la fuente
-let fontBuffer: Buffer | null = null
+// Cache para WASM y fuentes
+let isWasmInitialized = false
+let regularFont: Uint8Array | null = null
+let boldFont: Uint8Array | null = null
 
-async function getFont(): Promise<Buffer> {
-  if (fontBuffer) return fontBuffer
-  
-  // Descargar Inter font de Google Fonts
-  const fontUrl = 'https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hiJ-Ek-_EeA.woff2'
-  const response = await fetch(fontUrl)
-  fontBuffer = Buffer.from(await response.arrayBuffer())
-  return fontBuffer
+async function initWasmIfNeeded() {
+  if (!isWasmInitialized) {
+    await initWasm(fetch('https://unpkg.com/@resvg/resvg-wasm/index_bg.wasm'))
+    isWasmInitialized = true
+  }
+}
+
+async function getFonts(): Promise<Uint8Array[]> {
+  if (regularFont && boldFont) return [regularFont, boldFont]
+
+  const regularUrl = 'https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hiJ-Ek-_EeA.woff2'
+  const boldUrl = 'https://fonts.gstatic.com/s/inter/v13/UcC73FwrK3iLTeHuS_fvQtMwCp50SjIa1ZL7W0Q5n-wU.woff2'
+
+  const [regularRes, boldRes] = await Promise.all([fetch(regularUrl), fetch(boldUrl)])
+  const [regularBuffer, boldBuffer] = await Promise.all([regularRes.arrayBuffer(), boldRes.arrayBuffer()])
+
+  regularFont = new Uint8Array(regularBuffer)
+  boldFont = new Uint8Array(boldBuffer)
+
+  return [regularFont, boldFont]
 }
 
 export async function GET(request: NextRequest) {
@@ -170,7 +184,7 @@ export async function GET(request: NextRequest) {
         <rect x="10" y="${y}" width="780" height="${legendRowHeight - 6}" rx="8" fill="white" stroke="#e2e8f0" stroke-width="1"/>
         <rect x="10" y="${y}" width="6" height="${legendRowHeight - 6}" rx="3" fill="${p.color}"/>
         <circle cx="35" cy="${y + 24}" r="12" fill="${p.color}"/>
-        <text x="58" y="${y + 20}" fill="${p.color}" font-size="15" font-weight="bold" font-family="Inter">${escapeXml(p.nombre)}</text>
+        <text x="58" y="${y + 20}" fill="${p.color}" font-size="15" font-weight="700" font-family="Inter">${escapeXml(p.nombre)}</text>
         <text x="58" y="${y + 38}" fill="#64748b" font-size="11" font-family="Inter">${p.hectareas.toFixed(1)} ha</text>
         <text x="200" y="${y + 20}" fill="#334155" font-size="13" font-family="Inter">${escapeXml(animalesTexto)}</text>
         ${cultivosTexto ? `<text x="200" y="${y + 38}" fill="#16a34a" font-size="11" font-family="Inter">${escapeXml(cultivosTexto)}</text>` : ''}
@@ -180,43 +194,37 @@ export async function GET(request: NextRequest) {
     // SVG completo
     const fullSvg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${mapWidth}" height="${totalHeight}">
-  <!-- Fondo -->
   <rect width="${mapWidth}" height="${totalHeight}" fill="#f1f5f9"/>
   
-  <!-- Header -->
   <rect width="${mapWidth}" height="${headerHeight}" fill="#1e293b"/>
-  <text x="${mapWidth/2}" y="36" text-anchor="middle" fill="white" font-size="22" font-weight="bold" font-family="Inter">Mapa: ${escapeXml(campo.nombre)}</text>
+  <text x="${mapWidth/2}" y="36" text-anchor="middle" fill="white" font-size="22" font-weight="700" font-family="Inter">Mapa: ${escapeXml(campo.nombre)}</text>
   
-  <!-- Mapa satelital -->
   <image x="0" y="${headerHeight}" width="${mapWidth}" height="${mapHeight}" xlink:href="data:image/png;base64,${mapBase64}" preserveAspectRatio="xMidYMid slice"/>
   
-  <!-- Poligonos sobre el mapa -->
   <g transform="translate(0, ${headerHeight})">
     ${polygonsSvg}
   </g>
   
-  <!-- Leyenda titulo -->
-  <text x="15" y="${headerHeight + mapHeight + 35}" fill="#1e293b" font-size="16" font-weight="bold" font-family="Inter">Detalle por Potrero:</text>
+  <text x="15" y="${headerHeight + mapHeight + 35}" fill="#1e293b" font-size="16" font-weight="700" font-family="Inter">Detalle por Potrero:</text>
   
-  <!-- Items de leyenda -->
   ${legendItems}
   
-  <!-- Footer -->
   <rect y="${totalHeight - 35}" width="${mapWidth}" height="35" fill="#e2e8f0"/>
   <text x="${mapWidth/2}" y="${totalHeight - 12}" text-anchor="middle" fill="#64748b" font-size="11" font-family="Inter">Bot Rural - ${fecha}</text>
 </svg>`
 
-    // Obtener la fuente
-    const font = await getFont()
+    // Inicializar WASM y obtener fuentes
+    await initWasmIfNeeded()
+    const fonts = await getFonts()
 
-    // Convertir SVG a PNG usando resvg con fuente embebida
+    // Convertir SVG a PNG
     const resvg = new Resvg(fullSvg, {
       fitTo: {
         mode: 'width',
         value: mapWidth
       },
       font: {
-        fontBuffers: [font],
+        fontBuffers: fonts,
         loadSystemFonts: false,
         defaultFontFamily: 'Inter',
       }
@@ -225,7 +233,7 @@ export async function GET(request: NextRequest) {
     const pngData = resvg.render()
     const pngBuffer = pngData.asPng()
 
-    console.log('✅ Imagen final generada con resvg')
+    console.log('✅ Imagen final generada con resvg-wasm')
 
     return new Response(new Uint8Array(pngBuffer), {
       headers: {
