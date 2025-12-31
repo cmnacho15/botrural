@@ -22,6 +22,19 @@ interface PotreroData {
   coordinates: number[][]
 }
 
+// Descargar y cachear la fuente
+let fontBuffer: Buffer | null = null
+
+async function getFont(): Promise<Buffer> {
+  if (fontBuffer) return fontBuffer
+  
+  // Descargar Inter font de Google Fonts
+  const fontUrl = 'https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hiJ-Ek-_EeA.woff2'
+  const response = await fetch(fontUrl)
+  fontBuffer = Buffer.from(await response.arrayBuffer())
+  return fontBuffer
+}
+
 export async function GET(request: NextRequest) {
   try {
     const apiKey = request.headers.get('x-api-key')
@@ -157,10 +170,10 @@ export async function GET(request: NextRequest) {
         <rect x="10" y="${y}" width="780" height="${legendRowHeight - 6}" rx="8" fill="white" stroke="#e2e8f0" stroke-width="1"/>
         <rect x="10" y="${y}" width="6" height="${legendRowHeight - 6}" rx="3" fill="${p.color}"/>
         <circle cx="35" cy="${y + 24}" r="12" fill="${p.color}"/>
-        <text x="58" y="${y + 20}" fill="${p.color}" font-size="15" font-weight="bold">${escapeXml(p.nombre)}</text>
-        <text x="58" y="${y + 38}" fill="#64748b" font-size="11">${p.hectareas.toFixed(1)} ha</text>
-        <text x="200" y="${y + 20}" fill="#334155" font-size="13">${escapeXml(animalesTexto)}</text>
-        ${cultivosTexto ? `<text x="200" y="${y + 38}" fill="#16a34a" font-size="11">${escapeXml(cultivosTexto)}</text>` : ''}
+        <text x="58" y="${y + 20}" fill="${p.color}" font-size="15" font-weight="bold" font-family="Inter">${escapeXml(p.nombre)}</text>
+        <text x="58" y="${y + 38}" fill="#64748b" font-size="11" font-family="Inter">${p.hectareas.toFixed(1)} ha</text>
+        <text x="200" y="${y + 20}" fill="#334155" font-size="13" font-family="Inter">${escapeXml(animalesTexto)}</text>
+        ${cultivosTexto ? `<text x="200" y="${y + 38}" fill="#16a34a" font-size="11" font-family="Inter">${escapeXml(cultivosTexto)}</text>` : ''}
       `
     }).join('')
 
@@ -172,36 +185,40 @@ export async function GET(request: NextRequest) {
   
   <!-- Header -->
   <rect width="${mapWidth}" height="${headerHeight}" fill="#1e293b"/>
-  <text x="${mapWidth/2}" y="36" text-anchor="middle" fill="white" font-size="22" font-weight="bold">Mapa: ${escapeXml(campo.nombre)}</text>
+  <text x="${mapWidth/2}" y="36" text-anchor="middle" fill="white" font-size="22" font-weight="bold" font-family="Inter">Mapa: ${escapeXml(campo.nombre)}</text>
   
   <!-- Mapa satelital -->
   <image x="0" y="${headerHeight}" width="${mapWidth}" height="${mapHeight}" xlink:href="data:image/png;base64,${mapBase64}" preserveAspectRatio="xMidYMid slice"/>
   
-  <!-- Polígonos sobre el mapa -->
+  <!-- Poligonos sobre el mapa -->
   <g transform="translate(0, ${headerHeight})">
     ${polygonsSvg}
   </g>
   
-  <!-- Leyenda título -->
-  <text x="15" y="${headerHeight + mapHeight + 35}" fill="#1e293b" font-size="16" font-weight="bold">Detalle por Potrero:</text>
+  <!-- Leyenda titulo -->
+  <text x="15" y="${headerHeight + mapHeight + 35}" fill="#1e293b" font-size="16" font-weight="bold" font-family="Inter">Detalle por Potrero:</text>
   
   <!-- Items de leyenda -->
   ${legendItems}
   
   <!-- Footer -->
   <rect y="${totalHeight - 35}" width="${mapWidth}" height="35" fill="#e2e8f0"/>
-  <text x="${mapWidth/2}" y="${totalHeight - 12}" text-anchor="middle" fill="#64748b" font-size="11">Bot Rural - ${fecha}</text>
+  <text x="${mapWidth/2}" y="${totalHeight - 12}" text-anchor="middle" fill="#64748b" font-size="11" font-family="Inter">Bot Rural - ${fecha}</text>
 </svg>`
 
-    // Convertir SVG a PNG usando resvg
+    // Obtener la fuente
+    const font = await getFont()
+
+    // Convertir SVG a PNG usando resvg con fuente embebida
     const resvg = new Resvg(fullSvg, {
       fitTo: {
         mode: 'width',
         value: mapWidth
       },
       font: {
+        fontBuffers: [font],
         loadSystemFonts: false,
-        defaultFontFamily: 'Arial',
+        defaultFontFamily: 'Inter',
       }
     })
     
