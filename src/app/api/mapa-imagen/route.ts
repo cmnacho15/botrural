@@ -101,7 +101,7 @@ export async function GET(request: NextRequest) {
     ctx.fillText(`Mapa: ${campo.nombre}`, mapWidth / 2, headerHeight / 2)
 
     // Mapa satelital
-    const mapImage = await loadImage(mapBuffer)
+    const mapImage = await loadImage(Buffer.from(mapBuffer))
     ctx.drawImage(mapImage, 0, headerHeight, mapWidth, mapHeight)
 
     // Polígonos overlay
@@ -181,14 +181,14 @@ export async function GET(request: NextRequest) {
     ctx.textAlign = 'center'
     ctx.fillText(`Bot Rural - ${fecha}`, mapWidth / 2, totalHeight - 15)
 
-    const buffer = await canvas.toBuffer('image/png')
+    const buffer = canvas.toBuffer('png')
 
-    return new Response(buffer, {
-      headers: {
-        'Content-Type': 'image/png',
-        'Cache-Control': 'public, max-age=300'
-      }
-    })
+return new Response(buffer as any, {
+  headers: {
+    'Content-Type': 'image/png',
+    'Cache-Control': 'public, max-age=300'
+  }
+})
 
   } catch (error) {
     console.error('Error:', error)
