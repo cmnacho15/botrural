@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
       coordinates: lote.poligono as number[][]
     }))
 
-    // Bounding box y zoom (igual)
+    // Bounding box y zoom
     let minLng = Infinity, maxLng = -Infinity, minLat = Infinity, maxLat = -Infinity
     potreros.forEach(p => p.coordinates.forEach(([lng, lat]) => {
       minLng = Math.min(minLng, lng); maxLng = Math.max(maxLng, lng)
@@ -73,20 +73,16 @@ export async function GET(request: NextRequest) {
     const legendHeight = potreros.length * legendRowHeight + legendPadding
     const totalHeight = headerHeight + mapHeight + legendHeight
 
-    // Mapbox con conversión segura a base64
-    console.log('🗺️ Solicitando mapa satelital...')
+    // Mapbox sin usar Buffer
     const mapboxUrl = `https://api.mapbox.com/styles/v1/mapbox/satellite-v9/static/${centerLng},${centerLat},${zoom},0/${mapWidth}x${mapHeight}@2x?access_token=${process.env.MAPBOX_ACCESS_TOKEN}`
     const mapRes = await fetch(mapboxUrl)
-    if (!mapRes.ok) return new Response('Error Mapbox', { status: 500 })
+    if (!mapRes.ok) return new Response('Error obteniendo mapa', { status: 500 })
 
-    const mapArrayBuffer = await mapRes.arrayBuffer()
-    const mapBytes = new Uint8Array(mapArrayBuffer)
+    const arrayBuffer = await mapRes.arrayBuffer()
+    const uint8 = new Uint8Array(arrayBuffer)
     let binary = ''
-    for (let i = 0; i < mapBytes.byteLength; i++) {
-      binary += String.fromCharCode(mapBytes[i])
-    }
+    uint8.forEach(byte => binary += String.fromCharCode(byte))
     const mapBase64 = btoa(binary)
-    console.log('✅ Mapa convertido a base64')
 
     // Polígonos
     const toPixelX = (lng: number) => ((lng - minLng) / (maxLng - minLng)) * mapWidth
@@ -98,7 +94,7 @@ export async function GET(request: NextRequest) {
 
     const fecha = new Date().toLocaleDateString('es-UY')
 
-    // Fuentes
+    // Fuentes Inter
     const [regularFont, boldFont] = await Promise.all([
       fetch('https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hiJ-Ek-_EeA.woff2').then(r => r.arrayBuffer()),
       fetch('https://fonts.gstatic.com/s/inter/v13/UcC73FwrK3iLTeHuS_fvQtMwCp50SjIa1ZL7W0Q5n-wU.woff2').then(r => r.arrayBuffer())
@@ -154,7 +150,7 @@ export async function GET(request: NextRequest) {
       }
     )
   } catch (error) {
-    console.error('Error:', error)
+    console.error('Error generando mapa:', error)
     return new Response('Error interno', { status: 500 })
   }
 }
