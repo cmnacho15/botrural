@@ -396,8 +396,7 @@ export default function DashboardMejorado({ session }: { session: any }) {
     readOnly={true}
     existingPolygons={data.potreros}
     initialZoom={14}
-    
-    
+    key="dashboard-map"
   />
 </div>
           )}
