@@ -749,7 +749,7 @@ console.log('📅 Días descanso ajuste:', diasDescansoAjuste);
               </div>
               <button onClick={() => setShowMap(false)} className="text-gray-500 text-2xl">✕</button>
             </div>
-```
+            
             <div className="flex-1">
               <MapaPoligono
                 onPolygonComplete={handlePolygonComplete}
