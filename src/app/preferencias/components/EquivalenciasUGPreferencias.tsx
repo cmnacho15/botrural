@@ -53,6 +53,11 @@ export default function EquivalenciasUGPreferencias() {
   const [saving, setSaving] = useState(false)
   const [mensaje, setMensaje] = useState<{ tipo: 'success' | 'error', texto: string } | null>(null)
   const [mostrarTodos, setMostrarTodos] = useState(false)
+  const [gruposExpandidos, setGruposExpandidos] = useState<Record<string, boolean>>({
+    'Vacunos': false,
+    'Ovinos': false,
+    'Equinos': false
+  })
 
   // Inicializar pesos cuando llegan los datos
   useEffect(() => {
@@ -223,16 +228,36 @@ export default function EquivalenciasUGPreferencias() {
 
           if (!categoriasDelGrupo || categoriasDelGrupo.length === 0) return null
 
-          return (
-            <div key={grupo}>
-              <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                {grupo === 'Vacunos' && '🐄'}
-                {grupo === 'Ovinos' && '🐑'}
-                {grupo === 'Equinos' && '🐴'}
-                {grupo}
-              </h3>
+          const estaExpandido = gruposExpandidos[grupo]
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          return (
+            <div key={grupo} className="border border-gray-200 rounded-lg overflow-hidden mb-4">
+              {/* Header expandible */}
+              <button
+                onClick={() => setGruposExpandidos(prev => ({
+                  ...prev,
+                  [grupo]: !prev[grupo]
+                }))}
+                className="w-full px-6 py-4 bg-gray-50 hover:bg-gray-100 flex justify-between items-center transition"
+              >
+                <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+                  {grupo === 'Vacunos' && '🐄'}
+                  {grupo === 'Ovinos' && '🐑'}
+                  {grupo === 'Equinos' && '🐴'}
+                  {grupo}
+                  <span className="text-sm font-normal text-gray-500">
+                    ({categoriasDelGrupo.length})
+                  </span>
+                </h3>
+                <span className="text-2xl text-gray-600 transition-transform duration-200" style={{ transform: estaExpandido ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+                  ▼
+                </span>
+              </button>
+
+              {/* Contenido expandible */}
+              {estaExpandido && (
+                <div className="p-6 bg-white">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {categoriasDelGrupo.map(eq => {
                   const pesoActual = pesos[eq.categoria] ?? eq.pesoKg
                   const ugCalculada = pesoActual / PESO_REFERENCIA
@@ -289,14 +314,16 @@ export default function EquivalenciasUGPreferencias() {
                             onClick={() => handlePesoChange(eq.categoria, String(eq.pesoDefault))}
                             className="text-blue-600 hover:underline"
                           >
-                            Restaurar
+                             Restaurar
                           </button>
                         </div>
                       )}
                     </div>
                   )
                 })}
-              </div>
+                  </div>
+                </div>
+              )}
             </div>
           )
         })}
