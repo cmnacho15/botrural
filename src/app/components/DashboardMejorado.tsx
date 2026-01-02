@@ -391,7 +391,7 @@ export default function DashboardMejorado({ session }: { session: any }) {
               </div>
             </div>
           ) : (
-            <div className="w-full h-[400px] lg:h-[500px] rounded-lg overflow-hidden border border-gray-200" id="map-container-dashboard">
+            <div className="w-full h-[400px] lg:h-[500px] rounded-lg overflow-hidden border border-gray-200" id="map-container">
   <MapaPoligono
     readOnly={true}
     existingPolygons={data.potreros}
