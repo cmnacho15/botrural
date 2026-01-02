@@ -291,13 +291,31 @@ export default function MapaPoligono({
   const toggleFullscreen = () => {
     const mapContainer = document.getElementById('map-container')
     
+    if (!mapContainer) return
+    
     if (!document.fullscreenElement) {
-      // Entrar en pantalla completa
-      mapContainer?.requestFullscreen()
-        .then(() => setIsFullscreen(true))
+      mapContainer.requestFullscreen()
+        .then(() => {
+          setIsFullscreen(true)
+          
+          // FORZAR REDIMENSIONAMIENTO Y MOSTRAR TOOLTIPS
+          setTimeout(() => {
+            if (mapRef.current) {
+              mapRef.current.invalidateSize()
+              
+              // FORZAR VISIBILIDAD DE TODOS LOS TOOLTIPS EN FULLSCREEN
+              if (existingLayersRef.current) {
+                existingLayersRef.current.eachLayer((layer: any) => {
+                  if (layer instanceof (L as any).Tooltip) {
+                    layer.setOpacity(1)
+                  }
+                })
+              }
+            }
+          }, 300)
+        })
         .catch((err) => console.error('Error entrando en pantalla completa:', err))
     } else {
-      // Salir de pantalla completa
       document.exitFullscreen()
         .then(() => setIsFullscreen(false))
         .catch((err) => console.error('Error saliendo de pantalla completa:', err))
@@ -668,6 +686,16 @@ if (!potrero.isEditing) {
     // 🎯 SISTEMA INTELIGENTE: Gestionar visibilidad de tooltips según zoom
 const gestionarVisibilidadTooltips = () => {
   if (!mapRef.current) return
+  
+  // EN FULLSCREEN, MOSTRAR TODOS LOS TOOLTIPS
+  if (document.fullscreenElement) {
+    existingLayersRef.current?.eachLayer((layer: any) => {
+      if (layer instanceof (L as any).Tooltip) {
+        layer.setOpacity(1)
+      }
+    })
+    return
+  }
   
   const currentZoom = mapRef.current.getZoom()
   const mapCenter = mapRef.current.getCenter()
