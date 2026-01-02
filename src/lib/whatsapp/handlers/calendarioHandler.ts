@@ -140,12 +140,14 @@ export async function handleCalendarioConsultar(telefono: string) {
       const fecha = new Date(act.fechaProgramada)
       const diasRestantes = Math.ceil((fecha.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24))
       
-      const fechaStr = fecha.toLocaleDateString('es-UY', {
-        weekday: 'short',
-        day: 'numeric',
-        month: 'short',
-        timeZone: 'America/Montevideo'
-      })
+      // 🔥 FIX: Formatear fecha en zona horaria de Montevideo para evitar desfase
+const fechaStr = new Date(fecha.toLocaleString('en-US', { 
+  timeZone: 'America/Montevideo' 
+})).toLocaleDateString('es-UY', {
+  weekday: 'short',
+  day: 'numeric',
+  month: 'short'
+})
 
       let urgencia = ""
       if (diasRestantes === 0) {
