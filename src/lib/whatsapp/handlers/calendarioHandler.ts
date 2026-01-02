@@ -137,19 +137,21 @@ export async function handleCalendarioConsultar(telefono: string) {
     }
 
     for (const act of actividades) {
-      const fecha = new Date(act.fechaProgramada)
-      const diasRestantes = Math.ceil((fecha.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24))
-      
-      // 🔥 FIX: Formatear fecha en zona horaria de Montevideo para evitar desfase
-const fechaStr = new Date(fecha.toLocaleString('en-US', { 
-  timeZone: 'America/Montevideo' 
-})).toLocaleDateString('es-UY', {
-  weekday: 'short',
-  day: 'numeric',
-  month: 'short'
-})
+  // 🔥 FIX: Convertir fecha a timezone de Montevideo antes de formatear
+  const fechaUTC = new Date(act.fechaProgramada)
+  const fechaMontevideo = new Date(fechaUTC.toLocaleString('en-US', { 
+    timeZone: 'America/Montevideo' 
+  }))
+  
+  const diasRestantes = Math.ceil((fechaMontevideo.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24))
+  
+  const fechaStr = fechaMontevideo.toLocaleDateString('es-UY', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short'
+  })
 
-      let urgencia = ""
+  let urgencia = ""
       if (diasRestantes === 0) {
         urgencia = "🔴 HOY"
       } else if (diasRestantes === 1) {
