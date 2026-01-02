@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/prisma"
 import { sendWhatsAppMessage, sendWhatsAppDocument } from "../sendMessage"
-import { EQUIVALENCIAS_UG } from "@/lib/ugCalculator"
+import { getEquivalenciasUG } from "@/lib/getEquivalenciasUG"
 import { createClient } from "@supabase/supabase-js"
 
 // Función para obtener cliente Supabase (lazy init)
@@ -13,9 +13,13 @@ function getSupabaseClient() {
   )
 }
 
-// Obtener equivalencia UG de una categoría
-function getEquivalenciaUG(categoria: string): number {
-  return EQUIVALENCIAS_UG[categoria] || 0
+// Obtener equivalencia UG de una categoría (usa pesos personalizados si existen)
+function getEquivalenciaUGLocal(categoria: string, pesos: Record<string, number>): number {
+  if (pesos[categoria] !== undefined) {
+    return pesos[categoria] / 380
+  }
+  // Si no hay peso personalizado, usar 1 UG por defecto
+  return 1.0
 }
 
 /**
@@ -29,14 +33,17 @@ async function generarPDFCarga(campoId: string): Promise<Buffer | null> {
     const campo = await prisma.campo.findUnique({ where: { id: campoId } })
     if (!campo) return null
 
+    // Obtener equivalencias personalizadas del campo
+    const pesosPersonalizados = await getEquivalenciasUG(campoId)
+
     const categoriasDB = await prisma.categoriaAnimal.findMany({
       where: { campoId, activo: true },
       orderBy: [{ tipoAnimal: 'asc' }, { nombreSingular: 'asc' }]
     })
 
-    const categoriasBovinas = categoriasDB.filter(c => c.tipoAnimal === 'BOVINO').map(c => ({ nombre: c.nombreSingular, equivalenciaUG: getEquivalenciaUG(c.nombreSingular) }))
-    const categoriasOvinas = categoriasDB.filter(c => c.tipoAnimal === 'OVINO').map(c => ({ nombre: c.nombreSingular, equivalenciaUG: getEquivalenciaUG(c.nombreSingular) }))
-    const categoriasEquinas = categoriasDB.filter(c => c.tipoAnimal === 'EQUINO').map(c => ({ nombre: c.nombreSingular, equivalenciaUG: getEquivalenciaUG(c.nombreSingular) }))
+    const categoriasBovinas = categoriasDB.filter(c => c.tipoAnimal === 'BOVINO').map(c => ({ nombre: c.nombreSingular, equivalenciaUG: getEquivalenciaUGLocal(c.nombreSingular, pesosPersonalizados) }))
+const categoriasOvinas = categoriasDB.filter(c => c.tipoAnimal === 'OVINO').map(c => ({ nombre: c.nombreSingular, equivalenciaUG: getEquivalenciaUGLocal(c.nombreSingular, pesosPersonalizados) }))
+const categoriasEquinas = categoriasDB.filter(c => c.tipoAnimal === 'EQUINO').map(c => ({ nombre: c.nombreSingular, equivalenciaUG: getEquivalenciaUGLocal(c.nombreSingular, pesosPersonalizados) }))
 
     function procesarPotrero(lote: any) {
       const animalesPorCategoria: Record<string, number> = {}
@@ -48,7 +55,7 @@ async function generarPDFCarga(campoId: string): Promise<Buffer | null> {
         if (animalesPorCategoria[animal.categoria] !== undefined) {
           animalesPorCategoria[animal.categoria] += animal.cantidad
         }
-        ugTotales += animal.cantidad * getEquivalenciaUG(animal.categoria)
+        ugTotales += animal.cantidad * getEquivalenciaUGLocal(animal.categoria, pesosPersonalizados)
         const catDB = categoriasDB.find(c => c.nombreSingular === animal.categoria)
         if (catDB?.tipoAnimal === 'BOVINO') vacunosTotales += animal.cantidad
         else if (catDB?.tipoAnimal === 'OVINO') ovinosTotales += animal.cantidad
