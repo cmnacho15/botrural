@@ -289,51 +289,47 @@ export default function MapaPoligono({
 
   // 🖥️ Función para entrar/salir de pantalla completa
   const toggleFullscreen = () => {
-  const mapContainer = document.getElementById('map-container')
-  
-  console.log('🖥️ Toggle fullscreen clicked')
-  console.log('🔍 Container encontrado:', mapContainer)
-  console.log('🗺️ MapRef existe:', !!mapRef.current)
-  
-  if (!mapContainer) {
-    console.error('❌ NO SE ENCONTRÓ #map-container')
-    return
-  }
-  
-  if (!document.fullscreenElement) {
-    mapContainer.requestFullscreen()
-      .then(() => {
-        console.log('✅ Entrando en fullscreen')
-        setIsFullscreen(true)
-        // FORZAR REDIMENSIONAMIENTO
-        setTimeout(() => {
-          if (mapRef.current) {
-            console.log('📐 Invalidando tamaño del mapa')
-            mapRef.current.invalidateSize()
-            
-            // FORZAR REDIBUJADO DE TOOLTIPS
-            if (existingLayersRef.current) {
-              console.log('🏷️ Forzando visibilidad de tooltips')
-              existingLayersRef.current.eachLayer((layer: any) => {
-                if (layer instanceof (L as any).Tooltip) {
-                  layer.setOpacity(1)
-                  console.log('👁️ Tooltip visible:', layer.getContent())
-                }
-              })
+    // Buscar el contenedor del mapa - puede ser el propio o un padre
+    let mapContainer = document.getElementById('map-container')
+    
+    // Si estamos en un contenedor más pequeño (dashboard), usar el padre
+    if (mapContainer && mapContainer.parentElement) {
+      const parent = mapContainer.parentElement
+      // Si el padre tiene altura fija (como en dashboard), usar ese
+      if (parent.classList.contains('rounded-lg') || parent.clientHeight < window.innerHeight * 0.8) {
+        mapContainer = parent
+      }
+    }
+    
+    if (!mapContainer) return
+    
+    if (!document.fullscreenElement) {
+      mapContainer.requestFullscreen()
+        .then(() => {
+          setIsFullscreen(true)
+          
+          setTimeout(() => {
+            if (mapRef.current) {
+              mapRef.current.invalidateSize()
+              
+              // Forzar visibilidad de tooltips
+              if (existingLayersRef.current) {
+                existingLayersRef.current.eachLayer((layer: any) => {
+                  if (layer.options?.permanent === true) {
+                    layer.setOpacity(1)
+                  }
+                })
+              }
             }
-          }
-        }, 200)
-      })
-      .catch((err) => console.error('❌ Error entrando en pantalla completa:', err))
-  } else {
-    document.exitFullscreen()
-      .then(() => {
-        console.log('✅ Saliendo de fullscreen')
-        setIsFullscreen(false)
-      })
-      .catch((err) => console.error('❌ Error saliendo de pantalla completa:', err))
+          }, 300)
+        })
+        .catch((err) => console.error('Error entrando en pantalla completa:', err))
+    } else {
+      document.exitFullscreen()
+        .then(() => setIsFullscreen(false))
+        .catch((err) => console.error('Error saliendo de pantalla completa:', err))
+    }
   }
-}
 
   useEffect(() => {
     if (initialCenter) setIsReady(true)
