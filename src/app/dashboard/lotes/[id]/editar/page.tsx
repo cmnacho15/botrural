@@ -539,50 +539,62 @@ console.log('📅 Días descanso ajuste:', diasDescansoAjuste);
           </div>
 
           {/* ANIMALES */}
-          {esPastoreable && (
-          <div className="bg-blue-50 rounded-lg p-4">
-            <h3 className="font-medium text-gray-900 mb-3">🐄 Animales</h3>
-            {animales.length === 0 && (
-              <p className="text-sm text-gray-600 italic mb-3">No hay animales aún</p>
-            )}
-            <div className="space-y-3">
-              {animales.map(a => (
-                <div key={a.id} className="grid grid-cols-[100px_1fr_120px_40px] gap-2 bg-white p-3 rounded-lg items-center">
-                  <input
-                    type="number"
-                    value={a.cantidad}
-                    onChange={e => actualizarAnimal(a.id, 'cantidad', e.target.value)}
-                    placeholder="Cant."
-                    className="border border-gray-300 rounded px-3 py-2"
-                  />
-                  
-                  <select
-                    value={a.categoria}
-                    onChange={e => actualizarAnimal(a.id, 'categoria', e.target.value)}
-                    className="border border-gray-300 rounded px-3 py-2"
-                  >
-                    <option value="">Seleccionar categoría</option>
-                    
-                    {['BOVINO', 'OVINO', 'EQUINO', 'OTRO'].map(tipo => {
-                      const categoriasTipo = categoriasDisponibles.filter(c => c.tipo === tipo)
-                      if (categoriasTipo.length === 0) return null
-                      
-                      const labels = {
-                        BOVINO: '🐄 BOVINOS',
-                        OVINO: '🐑 OVINOS',
-                        EQUINO: '🐴 EQUINOS',
-                        OTRO: '📦 OTROS'
-                      }
-                      
+{esPastoreable && (
+  <div className="bg-blue-50 rounded-lg p-4">
+    <h3 className="font-medium text-gray-900 mb-3">🐄 Animales</h3>
+    {animales.length === 0 && (
+      <p className="text-sm text-gray-600 italic mb-3">No hay animales aún</p>
+    )}
+    <div className="space-y-3">
+      {animales.map(a => {
+        const categoriasYaUsadas = animales.filter(an => an.id !== a.id && an.categoria).map(an => an.categoria);
+        
+        return (
+          <div key={a.id} className="grid grid-cols-[100px_1fr_120px_40px] gap-2 bg-white p-3 rounded-lg items-center">
+            <input
+              type="number"
+              value={a.cantidad}
+              onChange={e => actualizarAnimal(a.id, 'cantidad', e.target.value)}
+              placeholder="Cant."
+              className="border border-gray-300 rounded px-3 py-2"
+            />
+            
+            <select
+              value={a.categoria}
+              onChange={e => actualizarAnimal(a.id, 'categoria', e.target.value)}
+              className="border border-gray-300 rounded px-3 py-2"
+            >
+              <option value="">Seleccionar categoría</option>
+              
+              {['BOVINO', 'OVINO', 'EQUINO', 'OTRO'].map(tipo => {
+                const categoriasTipo = categoriasDisponibles.filter(c => c.tipo === tipo)
+                if (categoriasTipo.length === 0) return null
+                
+                const labels = {
+                  BOVINO: '🐄 BOVINOS',
+                  OVINO: '🐑 OVINOS',
+                  EQUINO: '🐴 EQUINOS',
+                  OTRO: '📦 OTROS'
+                }
+                
+                return (
+                  <optgroup key={tipo} label={labels[tipo as keyof typeof labels]}>
+                    {categoriasTipo.map((cat) => {
+                      const yaUsada = categoriasYaUsadas.includes(cat.nombre);
                       return (
-                        <optgroup key={tipo} label={labels[tipo as keyof typeof labels]}>
-                          {categoriasTipo.map((cat) => (
-                            <option key={cat.nombre} value={cat.nombre}>{cat.nombre}</option>
-                          ))}
-                        </optgroup>
-                      )
+                        <option 
+                          key={cat.nombre} 
+                          value={cat.nombre}
+                          disabled={yaUsada}
+                        >
+                          {cat.nombre}{yaUsada ? ' (ya existente - editá la existente)' : ''}
+                        </option>
+                      );
                     })}
-                  </select>
+                  </optgroup>
+                )
+              })}
+            </select>
 
                   <input
                     type="number"
@@ -600,7 +612,8 @@ console.log('📅 Días descanso ajuste:', diasDescansoAjuste);
                     🗑️
                   </button>
                 </div>
-              ))}
+              );
+            })}
             </div>
             <button type="button" onClick={agregarAnimal} className="text-blue-600 text-sm mt-2 hover:underline">
               + Agregar animales
