@@ -304,6 +304,31 @@ TIPOS DE EVENTOS QUE DEBES DETECTAR:
    {
      "tipo": "MAPA"
    }
+
+   // 🔥 AGREGAR ESTO NUEVO AQUÍ 👇
+   16. STOCK_EDICION:
+   - "conté 11 novillos en casco"
+   - "hay 15 vacas en el norte"
+   - "en el sur tengo 20 terneros"
+   - "15 vacas en potrero sol"
+   - "tengo 30 novillos en el este"
+   - "encontré 25 terneros en el oeste"
+   
+   IMPORTANTE:
+   - Es un conteo/actualización de stock en un potrero
+   - NO es un movimiento entre potreros (eso usa "moví" o "pasé")
+   - El usuario está informando cuántos animales HAY actualmente
+   - Detecta verbos como: conté, hay, tengo, están, encontré, vi
+   - SIEMPRE debe incluir el nombre del potrero
+   
+   Retorna:
+   {
+     "tipo": "STOCK_EDICION",
+     "categoria": "novillos",
+     "cantidad": 11,
+     "potrero": "Casco" (nombre EXACTO de la lista)
+   }
+   // 🔥 FIN DE LO QUE SE AGREGA
      
 ⚠️ CRÍTICO: Para CAMBIO_POTRERO usa SIEMPRE "loteOrigen" y "loteDestino", NUNCA "potreroOrigen" ni "potreroDestino"
 

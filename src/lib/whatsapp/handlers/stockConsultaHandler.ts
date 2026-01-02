@@ -103,21 +103,139 @@ export async function handleStockConsulta(
   }
 }
 
+
 /**
  * FASE 2: Usuario edita una categoría
+ * Acepta tanto texto manual como datos parseados por GPT
  */
 export async function handleStockEdicion(
   phoneNumber: string,
-  messageText: string  // ← CAMBIAR nombre del parámetro
-): Promise<boolean> {  // ← AGREGAR tipo de retorno explícito
+  input: string | { categoria: string; cantidad: number; potrero?: string }
+): Promise<boolean> {
   try {
     // Obtener estado pendiente
     const pending = await prisma.pendingConfirmation.findUnique({
       where: { telefono: phoneNumber }
     })
 
-    if (!pending) {
-      return false // No hay consulta activa
+    // 🔥 CASO 1: Si viene de GPT con potrero específico (primera edición sin consulta previa)
+    if (typeof input === 'object' && input.potrero) {
+      // Buscar el campo del usuario
+      const usuario = await prisma.user.findUnique({
+        where: { telefono: phoneNumber },
+        select: { campoId: true }
+      })
+
+      if (!usuario?.campoId) {
+        await sendWhatsAppMessage(phoneNumber, "❌ No tenés un campo configurado.")
+        return true
+      }
+
+      // Buscar todos los potreros del campo
+      const potreros = await prisma.lote.findMany({
+        where: { campoId: usuario.campoId },
+        select: { id: true, nombre: true }
+      })
+
+      const potrero = buscarPotreroEnLista(input.potrero, potreros)
+
+      if (!potrero) {
+        const nombresDisponibles = potreros.map(p => p.nombre).join(', ')
+        await sendWhatsAppMessage(
+          phoneNumber,
+          `❌ No encontré el potrero "${input.potrero}".\n\nTus potreros son: ${nombresDisponibles}`
+        )
+        return true
+      }
+
+      // Obtener stock actual del potrero
+      const stock = await prisma.animalLote.findMany({
+        where: { loteId: potrero.id },
+        orderBy: { categoria: 'asc' }
+      })
+
+      // Buscar la categoría en el stock
+      const categoriaEncontrada = stock.find(a => 
+        a.categoria.toLowerCase() === input.categoria.toLowerCase() ||
+        a.categoria.toLowerCase().includes(input.categoria.toLowerCase()) ||
+        input.categoria.toLowerCase().includes(a.categoria.toLowerCase())
+      )
+
+      if (!categoriaEncontrada) {
+        if (stock.length === 0) {
+          await sendWhatsAppMessage(
+            phoneNumber,
+            `⚠️ El potrero *${potrero.nombre}* está vacío.\n\n¿Querés agregarlo ahora? Primero consultá el stock: "stock ${potrero.nombre}"`
+          )
+        } else {
+          await sendWhatsAppMessage(
+            phoneNumber,
+            `⚠️ "${input.categoria}" no está en el potrero *${potrero.nombre}*.\n\nCategorías disponibles:\n` +
+            stock.map(a => `• ${a.categoria}`).join('\n')
+          )
+        }
+        return true
+      }
+
+      // Guardar el cambio pendiente
+      const cambio = {
+        categoria: categoriaEncontrada.categoria,
+        cantidadOriginal: categoriaEncontrada.cantidad,
+        cantidadNueva: input.cantidad
+      }
+
+      await prisma.pendingConfirmation.upsert({
+        where: { telefono: phoneNumber },
+        create: {
+          telefono: phoneNumber,
+          data: JSON.stringify({
+            tipo: "STOCK_CONSULTA",
+            loteId: potrero.id,
+            loteNombre: potrero.nombre,
+            stockActual: stock.map(a => ({
+              categoria: a.categoria,
+              cantidad: a.cantidad,
+              peso: a.peso
+            })),
+            cambiosPendientes: [cambio]
+          })
+        },
+        update: {
+          data: JSON.stringify({
+            tipo: "STOCK_CONSULTA",
+            loteId: potrero.id,
+            loteNombre: potrero.nombre,
+            stockActual: stock.map(a => ({
+              categoria: a.categoria,
+              cantidad: a.cantidad,
+              peso: a.peso
+            })),
+            cambiosPendientes: [cambio]
+          })
+        }
+      })
+
+      // Mostrar confirmación
+      const cambioTexto = cambio.cantidadNueva === 0 
+        ? `• ${cambio.categoria}: ~~${cambio.cantidadOriginal}~~ → **ELIMINAR**`
+        : `• ${cambio.categoria}: ${cambio.cantidadOriginal} → **${cambio.cantidadNueva}**`
+
+      const mensaje = 
+        `*Cambio en ${potrero.nombre}:*\n\n` +
+        `${cambioTexto}\n\n` +
+        `¿Confirmar?`
+
+      await sendCustomButtons(phoneNumber, mensaje, [
+        { id: "stock_confirm", title: "✅ Confirmar" },
+        { id: "stock_cancel", title: "❌ Cancelar" }
+      ])
+
+      return true
+    }
+
+    // 🔥 CASO 2: Edición manual después de consulta activa (el flujo original)
+    if (!pending || typeof input !== 'string') {
+      return false // No hay consulta activa o no es texto manual
     }
 
     const data = JSON.parse(pending.data)
@@ -126,8 +244,8 @@ export async function handleStockEdicion(
       return false // No es una consulta de stock
     }
 
-    // Parsear edición: "Vacas 12" o "12 Vacas"
-    const match = messageText.match(/^(\d+)\s+(.+)|(.+)\s+(\d+)$/i)
+    // Parsear edición manual: "Vacas 12" o "12 Vacas"
+    const match = input.match(/^(\d+)\s+(.+)|(.+)\s+(\d+)$/i)
 
     if (!match) {
       return false // No es una edición válida

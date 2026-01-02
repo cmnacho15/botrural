@@ -342,6 +342,16 @@ const parsedData = await parseMessageWithAI(messageText, potreros, categorias)
     return NextResponse.json({ status: "tacto processed" })
   }
 
+  // 🔥 AGREGAR ESTO AQUÍ 👇
+  // ========================================
+  // 📝 STOCK EDICIÓN (conteo directo)
+  // ========================================
+  if (parsedData.tipo === "STOCK_EDICION") {
+    await handleStockEdicion(from, parsedData)
+    return NextResponse.json({ status: "stock edicion processed" })
+  }
+  // 🔥 FIN DE LO QUE SE AGREGA
+
   // ========================================
   // 📅 CALENDARIO - Crear actividad
   // ========================================
