@@ -570,7 +570,7 @@ L.control.layers({ 'Satélite': satelitalLayer, 'Mapa': osmLayer }).addTo(map)
   map.remove()
   mapRef.current = null
 }
-  }, [isReady, initialCenter, initialZoom, readOnly, existingPolygons])
+  }, [isReady])
 
   /**
    * 🔄 Redibujar polígonos cuando cambian
