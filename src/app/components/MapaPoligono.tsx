@@ -355,13 +355,23 @@ export default function MapaPoligono({
   // 🖥️ Detectar cuando el usuario sale de pantalla completa (ESC)
 useEffect(() => {
   const handleFullscreenChange = () => {
-    setIsFullscreen(!!document.fullscreenElement)
+    const isNowFullscreen = !!document.fullscreenElement
+    setIsFullscreen(isNowFullscreen)
     
-    // 🔥 FORZAR RECALCULO DE DIMENSIONES DEL MAPA
+    // 🔥 FORZAR RECALCULO Y MOSTRAR TOOLTIPS
     if (mapRef.current) {
       setTimeout(() => {
         mapRef.current.invalidateSize()
-      }, 100)
+        
+        // Si entramos en fullscreen, forzar visibilidad de tooltips
+        if (isNowFullscreen && existingLayersRef.current) {
+          existingLayersRef.current.eachLayer((layer: any) => {
+            if (layer instanceof (L as any).Tooltip) {
+              layer.setOpacity(1)
+            }
+          })
+        }
+      }, 200)
     }
   }
   
