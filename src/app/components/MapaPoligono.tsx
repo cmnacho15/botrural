@@ -309,17 +309,24 @@ export default function MapaPoligono({
   }, [initialCenter])
 
   // 🖥️ Detectar cuando el usuario sale de pantalla completa (ESC)
-  useEffect(() => {
-    const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement)
-    }
+useEffect(() => {
+  const handleFullscreenChange = () => {
+    setIsFullscreen(!!document.fullscreenElement)
     
-    document.addEventListener('fullscreenchange', handleFullscreenChange)
-    
-    return () => {
-      document.removeEventListener('fullscreenchange', handleFullscreenChange)
+    // 🔥 FORZAR RECALCULO DE DIMENSIONES DEL MAPA
+    if (mapRef.current) {
+      setTimeout(() => {
+        mapRef.current.invalidateSize()
+      }, 100)
     }
-  }, [])
+  }
+  
+  document.addEventListener('fullscreenchange', handleFullscreenChange)
+  
+  return () => {
+    document.removeEventListener('fullscreenchange', handleFullscreenChange)
+  }
+}, [])
 
   /** Crear mapa */
   useEffect(() => {
