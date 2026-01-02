@@ -137,15 +137,15 @@ export async function handleCalendarioConsultar(telefono: string) {
     }
 
     for (const act of actividades) {
-  // 🔥 FIX: Convertir fecha a timezone de Montevideo antes de formatear
-  const fechaUTC = new Date(act.fechaProgramada)
-  const fechaMontevideo = new Date(fechaUTC.toLocaleString('en-US', { 
-    timeZone: 'America/Montevideo' 
-  }))
+  const fecha = new Date(act.fechaProgramada)
   
-  const diasRestantes = Math.ceil((fechaMontevideo.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24))
+  // Ajustar a timezone de Montevideo sumando offset UTC-3
+  const offset = fecha.getTimezoneOffset() * 60000 // en milisegundos
+  const fechaAjustada = new Date(fecha.getTime() - offset - (3 * 60 * 60 * 1000))
   
-  const fechaStr = fechaMontevideo.toLocaleDateString('es-UY', {
+  const diasRestantes = Math.ceil((fechaAjustada.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24))
+  
+  const fechaStr = fechaAjustada.toLocaleDateString('es-UY', {
     weekday: 'short',
     day: 'numeric',
     month: 'short'
