@@ -197,7 +197,27 @@ export default function EquivalenciasUGPreferencias() {
         )}
       </div>
 
-      
+      {/* BANNER STICKY DE CAMBIOS SIN GUARDAR */}
+      {hayCambios && (
+        <div className="sticky top-0 z-20 bg-red-50 border-l-4 border-red-500 p-4 shadow-md">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">⚠️</span>
+              <div>
+                <p className="text-red-800 font-semibold">Hay cambios sin guardar</p>
+                <p className="text-red-600 text-sm">Guardá los cambios para que se apliquen en el sistema</p>
+              </div>
+            </div>
+            <button
+              onClick={handleGuardar}
+              disabled={saving}
+              className="px-6 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 font-medium transition shadow-sm"
+            >
+              {saving ? 'Guardando...' : 'Guardar Ahora'}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Contenido */}
       <div className="p-6 space-y-8">
