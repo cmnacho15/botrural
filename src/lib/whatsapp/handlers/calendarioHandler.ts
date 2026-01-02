@@ -127,16 +127,60 @@ export async function handleCalendarioConsultar(telefono: string) {
     })
 
     if (actividades.length === 0) {
-      await sendWhatsAppMessage(
-        telefono,
-        "📅 *Calendario*\n\n" +
-        "No tenés actividades pendientes.\n\n" +
-        "_Podés agendar diciendo por ejemplo: \"en 5 días vacunar\"_"
-      )
-      return
-    }
+  await sendWhatsAppMessage(
+    telefono,
+    "📅 *Calendario*\n\n" +
+    "No tenés actividades pendientes.\n\n" +
+    "_Podés agendar diciendo por ejemplo: \"en 5 días vacunar\"_"
+  )
+  return
+}
 
-    for (const act of actividades) {
+// 🔥 NUEVO: Verificar si hay actividades lejanas (más de 7 días)
+const ahora7dias = new Date(hoy)
+ahora7dias.setDate(ahora7dias.getDate() + 7)
+
+const actividadesCercanas = actividades.filter(act => {
+  const fecha = new Date(act.fechaProgramada)
+  return fecha <= ahora7dias
+})
+
+const actividadesLejanas = actividades.filter(act => {
+  const fecha = new Date(act.fechaProgramada)
+  return fecha > ahora7dias
+})
+
+// Si hay ambas, preguntar qué quiere ver
+if (actividadesCercanas.length > 0 && actividadesLejanas.length > 0) {
+  await prisma.pendingConfirmation.create({
+    data: {
+      telefono,
+      data: JSON.stringify({
+        tipo: "CALENDARIO_FILTRO",
+        cercanas: actividadesCercanas.length,
+        lejanas: actividadesLejanas.length
+      })
+    }
+  })
+
+  await sendWhatsAppButtons(
+    telefono,
+    `📅 *Calendario*\n\n` +
+    `Tenés *${actividadesCercanas.length}* actividad${actividadesCercanas.length !== 1 ? 'es' : ''} en los próximos 7 días\n` +
+    `y *${actividadesLejanas.length}* más adelante.\n\n` +
+    `¿Qué querés ver?`,
+    [
+      { id: "cal_filter_7dias", title: "📍 Próximos 7 días" },
+      { id: "cal_filter_todas", title: "📋 Todas" }
+    ]
+  )
+  return
+}
+
+// Si solo hay cercanas o solo lejanas, mostrar directamente
+const actividadesAMostrar = actividadesCercanas.length > 0 ? actividadesCercanas : actividades
+
+for (const act of actividadesAMostrar) {
   // Leer directamente los componentes UTC (porque guardaste a mediodía UTC)
   const fecha = new Date(act.fechaProgramada)
   const año = fecha.getUTCFullYear()
@@ -195,6 +239,98 @@ export async function handleCalendarioButtonResponse(
   buttonId: string
 ) {
   try {
+    // 🔥 NUEVO: Manejar filtros de calendario
+    if (buttonId === "cal_filter_7dias" || buttonId === "cal_filter_todas") {
+      const pendiente = await prisma.pendingConfirmation.findUnique({
+        where: { telefono }
+      })
+
+      if (pendiente) {
+        await prisma.pendingConfirmation.delete({
+          where: { telefono }
+        })
+      }
+
+      const user = await prisma.user.findUnique({
+        where: { telefono },
+        select: { campoId: true }
+      })
+
+      if (!user?.campoId) {
+        await sendWhatsAppMessage(telefono, "❌ Error: usuario no encontrado")
+        return
+      }
+
+      const hoy = new Date()
+      hoy.setHours(0, 0, 0, 0)
+
+      const actividades = await prisma.actividadCalendario.findMany({
+        where: {
+          campoId: user.campoId,
+          realizada: false,
+          fechaProgramada: {
+            gte: hoy
+          }
+        },
+        orderBy: {
+          fechaProgramada: 'asc'
+        },
+        take: buttonId === "cal_filter_7dias" ? 10 : 50
+      })
+
+      // Filtrar solo próximos 7 días si eligió esa opción
+      let actividadesAMostrar = actividades
+      if (buttonId === "cal_filter_7dias") {
+        const limite7dias = new Date(hoy)
+        limite7dias.setDate(limite7dias.getDate() + 7)
+        actividadesAMostrar = actividades.filter(act => {
+          const fecha = new Date(act.fechaProgramada)
+          return fecha <= limite7dias
+        })
+      }
+
+      // Mostrar actividades
+      for (const act of actividadesAMostrar) {
+        const fecha = new Date(act.fechaProgramada)
+        const año = fecha.getUTCFullYear()
+        const mes = fecha.getUTCMonth() 
+        const dia = fecha.getUTCDate()
+        const fechaCorrecta = new Date(año, mes, dia)
+        
+        const diasRestantes = Math.ceil((fechaCorrecta.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24))
+        
+        const fechaStr = fechaCorrecta.toLocaleDateString('es-UY', {
+          weekday: 'short',
+          day: 'numeric',
+          month: 'short'
+        })
+
+        let urgencia = ""
+        if (diasRestantes === 0) {
+          urgencia = "🔴 HOY"
+        } else if (diasRestantes === 1) {
+          urgencia = "🟠 Mañana"
+        } else if (diasRestantes <= 3) {
+          urgencia = `🟡 En ${diasRestantes} días`
+        } else {
+          urgencia = `📅 En ${diasRestantes} días`
+        }
+
+        const notasTexto = act.notas ? `\n_${act.notas}_` : ""
+
+        await sendWhatsAppButtons(
+          telefono,
+          `*${act.titulo}*\n${fechaStr} (${urgencia})${notasTexto}`,
+          [
+            { id: `cal_done_${act.id}`, title: "✅ Realizada" },
+            { id: `cal_delete_${act.id}`, title: "🗑️ Eliminar" }
+          ]
+        )
+      }
+
+      return
+    }
+
     const parts = buttonId.split('_')
     const accion = parts[1] // "done", "delete", "edit"
     const actividadId = parts[2]
