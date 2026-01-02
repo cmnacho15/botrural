@@ -137,15 +137,18 @@ export async function handleCalendarioConsultar(telefono: string) {
     }
 
     for (const act of actividades) {
+  // Leer directamente los componentes UTC (porque guardaste a mediodía UTC)
   const fecha = new Date(act.fechaProgramada)
+  const año = fecha.getUTCFullYear()
+  const mes = fecha.getUTCMonth() 
+  const dia = fecha.getUTCDate()
   
-  // Ajustar a timezone de Montevideo sumando offset UTC-3
-  const offset = fecha.getTimezoneOffset() * 60000 // en milisegundos
-  const fechaAjustada = new Date(fecha.getTime() - offset - (3 * 60 * 60 * 1000))
+  // Crear fecha local con esos componentes
+  const fechaCorrecta = new Date(año, mes, dia)
   
-  const diasRestantes = Math.ceil((fechaAjustada.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24))
+  const diasRestantes = Math.ceil((fechaCorrecta.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24))
   
-  const fechaStr = fechaAjustada.toLocaleDateString('es-UY', {
+  const fechaStr = fechaCorrecta.toLocaleDateString('es-UY', {
     weekday: 'short',
     day: 'numeric',
     month: 'short'
