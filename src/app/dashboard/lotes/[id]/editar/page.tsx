@@ -743,9 +743,13 @@ console.log('📅 Días descanso ajuste:', diasDescansoAjuste);
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
           <div className="bg-white w-full h-full md:rounded-xl md:w-full md:max-w-5xl md:h-[85vh] flex flex-col">
             <div className="p-4 border-b flex justify-between items-center">
-              <h2 className="text-lg font-bold">Ubicación de {nombre}</h2>
+              <div>
+                <h2 className="text-lg font-bold">Ubicación de {nombre}</h2>
+                <p className="text-sm text-gray-500 mt-1">📍 El poligono gris es la ubicación actual • Dibujá de nuevo para modificar</p>
+              </div>
               <button onClick={() => setShowMap(false)} className="text-gray-500 text-2xl">✕</button>
             </div>
+```
             <div className="flex-1">
               <MapaPoligono
                 onPolygonComplete={handlePolygonComplete}
