@@ -52,7 +52,6 @@ export default function EquivalenciasUGPreferencias() {
   const [pesos, setPesos] = useState<Record<string, number>>({})
   const [saving, setSaving] = useState(false)
   const [mensaje, setMensaje] = useState<{ tipo: 'success' | 'error', texto: string } | null>(null)
-  const [mostrarTodos, setMostrarTodos] = useState(false)
   const [gruposExpandidos, setGruposExpandidos] = useState<Record<string, boolean>>({
     'Vacunos': false,
     'Ovinos': false,
@@ -157,10 +156,8 @@ export default function EquivalenciasUGPreferencias() {
     )
   }
 
-  // Filtrar categorías modificadas si no se muestran todas
-  const equivalenciasFiltradas = mostrarTodos 
-    ? data?.equivalencias 
-    : data?.equivalencias?.filter(eq => eq.esPersonalizada || pesos[eq.categoria] !== eq.pesoDefault)
+  // Mostrar siempre todas las categorías
+  const equivalenciasFiltradas = data?.equivalencias
 
   return (
     <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
@@ -200,31 +197,13 @@ export default function EquivalenciasUGPreferencias() {
         )}
       </div>
 
-      {/* Toggle mostrar todos */}
-      <div className="px-6 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
-        <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={mostrarTodos}
-            onChange={(e) => setMostrarTodos(e.target.checked)}
-            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-          />
-          Mostrar todas las categorías
-        </label>
-        
-        {!mostrarTodos && equivalenciasFiltradas?.length === 0 && (
-          <span className="text-sm text-gray-500 italic">
-            No hay categorías personalizadas. Activá el checkbox para ver todas.
-          </span>
-        )}
-      </div>
+      
 
       {/* Contenido */}
       <div className="p-6 space-y-8">
         {Object.entries(GRUPOS).map(([grupo, categorias]) => {
           // Filtrar categorías de este grupo
-          const categoriasDelGrupo = (mostrarTodos ? data?.equivalencias : equivalenciasFiltradas)
-            ?.filter(eq => categorias.includes(eq.categoria))
+          const categoriasDelGrupo = data?.equivalencias?.filter(eq => categorias.includes(eq.categoria))
 
           if (!categoriasDelGrupo || categoriasDelGrupo.length === 0) return null
 
