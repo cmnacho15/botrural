@@ -1,3 +1,5 @@
+//src/app/components/EvolucionUGDashboard.tsx
+
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -385,7 +387,7 @@ export default function EvolucionUGDashboard() {
               <option value="">Campo completo (SPG)</option>
               {datos.lotes.map((lote) => (
                 <option key={lote.loteId} value={lote.loteId}>
-                  {lote.nombre} ({lote.hectareas} ha)
+                  {lote.nombre} ({lote.hectareas.toFixed(2)} ha)
                 </option>
               ))}
             </select>
