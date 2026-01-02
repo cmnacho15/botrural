@@ -296,15 +296,18 @@ export default function MapaPoligono({
     console.log('  - existingLayersRef:', !!existingLayersRef.current)
     
     if (existingLayersRef.current) {
-      let tooltipCount = 0
-      existingLayersRef.current.eachLayer((layer: any) => {
-        if (layer.options?.permanent === true) {
-          tooltipCount++
-          console.log('  - Tooltip encontrado:', layer.getContent?.()?.substring?.(0, 50) || 'sin contenido')
-        }
-      })
-      console.log('  - Total tooltips permanentes:', tooltipCount)
+  let tooltipCount = 0
+  existingLayersRef.current.eachLayer((layer: any) => {
+    const isTooltip = layer instanceof (L as any).Tooltip || 
+                      layer._tooltip || 
+                      (layer.getContent && typeof layer.getContent === 'function')
+    if (isTooltip) {
+      tooltipCount++
+      console.log('  - Tooltip encontrado, opacity actual:', layer.options?.opacity)
     }
+  })
+  console.log('  - Total tooltips:', tooltipCount)
+}
     
     if (!mapContainer) return
     
@@ -320,15 +323,20 @@ export default function MapaPoligono({
               console.log('📐 invalidateSize ejecutado')
               
               if (existingLayersRef.current) {
-                let count = 0
-                existingLayersRef.current.eachLayer((layer: any) => {
-                  if (layer.options?.permanent === true) {
-                    layer.setOpacity(1)
-                    count++
-                  }
-                })
-                console.log('👁️ Tooltips forzados a visible:', count)
-              }
+  let count = 0
+  existingLayersRef.current.eachLayer((layer: any) => {
+    // Detectar tooltips de cualquier forma
+    if (layer instanceof (L as any).Tooltip || 
+        layer._tooltip || 
+        layer.options?.permanent === true ||
+        (layer.getContent && typeof layer.getContent === 'function')) {
+      layer.setOpacity(1)
+      count++
+      console.log('  👁️ Tooltip mostrado')
+    }
+  })
+  console.log('👁️ Tooltips forzados a visible:', count)
+}
             }
           }, 300)
         })
