@@ -239,6 +239,7 @@ const guardarNombreGrupo = async (grupoId: string) => {
         { href: "/dashboard/datos", icon: "📝", label: "Datos", roles: ["ADMIN_GENERAL", "COLABORADOR"], requiresFinance: false },
         { href: "/dashboard/mapa", icon: "🗺️", label: "Mapa", roles: ["ADMIN_GENERAL", "COLABORADOR"], requiresFinance: false },
         { href: "/dashboard/lotes", icon: "🏞️", label: "Potreros", roles: ["ADMIN_GENERAL", "COLABORADOR"], requiresFinance: false },
+        { href: "/dashboard/gastos", icon: "💸", label: "Finanzas", roles: ["ADMIN_GENERAL", "COLABORADOR", "CONTADOR"], requiresFinance: true },
         { href: "/dashboard/indicadores", icon: "📈", label: "Indicadores", roles: ["ADMIN_GENERAL", "COLABORADOR", "CONTADOR"], requiresFinance: true },
       ],
     },
@@ -256,7 +257,6 @@ const guardarNombreGrupo = async (grupoId: string) => {
     {
       title: "Otros",
       items: [
-        { href: "/dashboard/gastos", icon: "💸", label: "Finanzas", roles: ["ADMIN_GENERAL", "COLABORADOR", "CONTADOR"], requiresFinance: true },
         { href: "/dashboard/insumos", icon: "📦", label: "Insumos", roles: ["ADMIN_GENERAL", "COLABORADOR"], requiresFinance: false },
         { href: "/dashboard/calendario", icon: "📅", label: "Calendario", roles: ["ADMIN_GENERAL", "COLABORADOR", "EMPLEADO"], requiresFinance: false },
         { href: "/dashboard/mano-de-obra", icon: "👷", label: "Mano de Obra", roles: ["ADMIN_GENERAL", "COLABORADOR", "CONTADOR"], requiresFinance: false },
