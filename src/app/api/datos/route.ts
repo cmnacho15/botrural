@@ -228,9 +228,9 @@ eventos
       // Construir descripción más completa
       let descripcion = ''
       if (esEgreso) {
-        descripcion = `Envío de ${traslado.cantidad} ${traslado.categoria} desde ${traslado.potreroOrigen.nombre} hacia ${traslado.campoDestino.nombre} (${traslado.potreroDestino.nombre})`
+        descripcion = `Egreso de ${traslado.cantidad} ${traslado.categoria} desde ${traslado.potreroOrigen.nombre} hacia ${traslado.campoDestino.nombre} (${traslado.potreroDestino.nombre})`
       } else {
-        descripcion = `Recepción de ${traslado.cantidad} ${traslado.categoria} en ${traslado.potreroDestino.nombre} desde ${traslado.campoOrigen.nombre} (${traslado.potreroOrigen.nombre})`
+        descripcion = `Ingreso de ${traslado.cantidad} ${traslado.categoria} en ${traslado.potreroDestino.nombre} desde ${traslado.campoOrigen.nombre} (${traslado.potreroOrigen.nombre})`
       }
       
       // Agregar info de peso y valor si existe
