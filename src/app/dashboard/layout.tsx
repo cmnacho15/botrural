@@ -11,6 +11,7 @@ import { InsumosProvider } from "@/app/contexts/InsumosContext";
 import { GastosProvider } from "@/app/contexts/GastosContext";
 
 import ModalNuevoDato from "@/app/components/modales/ModalNuevoDato";
+import ModalExportExcel from "@/app/components/modales/ModalExportExcel";
 import OnboardingIndicator from "@/app/components/OnboardingIndicator";
 
 import { SuperficieProvider } from "@/app/contexts/SuperficieContext";
@@ -37,6 +38,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [modalTipo, setModalTipo] = useState<string | null>(null);
+  const [showExportModal, setShowExportModal] = useState(false);
   
   const userMenuRef = useRef<HTMLDivElement>(null);
 
@@ -313,6 +315,17 @@ const guardarNombreGrupo = async (grupoId: string) => {
         </div>
 
         <div className="flex items-center gap-2 sm:gap-3">
+          {/* Botón Descargar Excel */}
+          <button
+            onClick={() => setShowExportModal(true)}
+            className="p-2 sm:px-3 sm:py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-600 transition"
+            title="Descargar a Excel"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          </button>
+
           {/* Botón Nuevo Dato */}
           {!isContador && (
             <button
@@ -844,6 +857,12 @@ const guardarNombreGrupo = async (grupoId: string) => {
           onSuccess={closeModal}
         />
       )}
+
+      {/* MODAL EXPORTAR EXCEL */}
+      <ModalExportExcel
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+      />
     </div>
   );
 }

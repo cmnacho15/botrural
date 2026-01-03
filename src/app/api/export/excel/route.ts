@@ -1,0 +1,896 @@
+import { NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '../../auth/[...nextauth]/route'
+import { prisma } from '@/lib/prisma'
+import ExcelJS from 'exceljs'
+
+// Tipos para las hojas seleccionadas
+type HojasSeleccionadas = {
+  tratamientos?: boolean
+  movimientosGanaderos?: boolean
+  cambiosPotrero?: boolean
+  tactos?: boolean
+  recategorizaciones?: boolean
+  siembras?: boolean
+  pulverizaciones?: boolean
+  fertilizaciones?: boolean
+  cosechas?: boolean
+  riegos?: boolean
+  monitoreos?: boolean
+  otrasLabores?: boolean
+  lluvia?: boolean
+  heladas?: boolean
+  insumos?: boolean
+  gastosIngresos?: boolean
+  traslados?: boolean
+}
+
+// Estilos reutilizables
+const estiloEncabezado: Partial<ExcelJS.Style> = {
+  font: { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 },
+  fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2563EB' } },
+  alignment: { horizontal: 'center', vertical: 'middle' },
+  border: {
+    top: { style: 'thin', color: { argb: 'FF000000' } },
+    left: { style: 'thin', color: { argb: 'FF000000' } },
+    bottom: { style: 'thin', color: { argb: 'FF000000' } },
+    right: { style: 'thin', color: { argb: 'FF000000' } },
+  },
+}
+
+const estiloCelda: Partial<ExcelJS.Style> = {
+  alignment: { vertical: 'middle' },
+  border: {
+    top: { style: 'thin', color: { argb: 'FFD1D5DB' } },
+    left: { style: 'thin', color: { argb: 'FFD1D5DB' } },
+    bottom: { style: 'thin', color: { argb: 'FFD1D5DB' } },
+    right: { style: 'thin', color: { argb: 'FFD1D5DB' } },
+  },
+}
+
+// Función para formatear fecha
+function formatearFecha(fecha: Date | null): string {
+  if (!fecha) return ''
+  const d = new Date(fecha)
+  return d.toISOString().split('T')[0]
+}
+
+// Función para aplicar estilo a encabezados
+function aplicarEstiloEncabezado(row: ExcelJS.Row) {
+  row.eachCell((cell) => {
+    cell.style = estiloEncabezado
+  })
+  row.height = 25
+}
+
+// Función para aplicar estilo a filas de datos
+function aplicarEstiloDatos(sheet: ExcelJS.Worksheet, startRow: number) {
+  for (let i = startRow; i <= sheet.rowCount; i++) {
+    const row = sheet.getRow(i)
+    row.eachCell((cell) => {
+      cell.style = { ...estiloCelda }
+    })
+    // Alternar color de fondo
+    if (i % 2 === 0) {
+      row.eachCell((cell) => {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF9FAFB' } }
+      })
+    }
+  }
+}
+
+// Función para auto-ajustar columnas
+function autoAjustarColumnas(sheet: ExcelJS.Worksheet, columnas: { header: string; key: string; width?: number }[]) {
+  columnas.forEach((col, index) => {
+    const column = sheet.getColumn(index + 1)
+    column.width = col.width || 15
+  })
+}
+
+export async function POST(request: Request) {
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
+    }
+
+    const usuario = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { campoId: true },
+    })
+
+    if (!usuario?.campoId) {
+      return NextResponse.json({ error: 'Usuario sin campo asignado' }, { status: 400 })
+    }
+
+    const body = await request.json()
+    const { hojas, fechaDesde, fechaHasta } = body as {
+      hojas: HojasSeleccionadas
+      fechaDesde?: string
+      fechaHasta?: string
+    }
+
+    // Filtro de fechas
+    const filtroFecha: any = {}
+    if (fechaDesde) filtroFecha.gte = new Date(fechaDesde)
+    if (fechaHasta) filtroFecha.lte = new Date(fechaHasta + 'T23:59:59')
+
+    const whereFecha = fechaDesde || fechaHasta ? { fecha: filtroFecha } : {}
+
+    // Crear workbook
+    const workbook = new ExcelJS.Workbook()
+    workbook.creator = 'BotRural'
+    workbook.created = new Date()
+
+    // ========================================
+    // HOJA: TRATAMIENTOS
+    // ========================================
+    if (hojas.tratamientos) {
+      const eventos = await prisma.evento.findMany({
+        where: { campoId: usuario.campoId, tipo: 'TRATAMIENTO', ...whereFecha },
+        include: {
+          usuario: { select: { name: true } },
+          lote: { select: { nombre: true } },
+        },
+        orderBy: { fecha: 'desc' },
+      })
+
+      const sheet = workbook.addWorksheet('Tratamientos')
+      const columnas = [
+        { header: 'Fecha', key: 'fecha', width: 12 },
+        { header: 'Tratamiento', key: 'descripcion', width: 30 },
+        { header: 'Potrero', key: 'potrero', width: 18 },
+        { header: 'Cantidad', key: 'cantidad', width: 12 },
+        { header: 'Categoría', key: 'categoria', width: 18 },
+        { header: 'Usuario', key: 'usuario', width: 18 },
+        { header: 'Notas', key: 'notas', width: 30 },
+      ]
+      sheet.columns = columnas
+
+      eventos.forEach((e) => {
+        sheet.addRow({
+          fecha: formatearFecha(e.fecha),
+          descripcion: e.descripcion || '',
+          potrero: e.lote?.nombre || '',
+          cantidad: e.cantidad || '',
+          categoria: e.categoria || '',
+          usuario: e.usuario?.name || '',
+          notas: e.notas || '',
+        })
+      })
+
+      aplicarEstiloEncabezado(sheet.getRow(1))
+      aplicarEstiloDatos(sheet, 2)
+      autoAjustarColumnas(sheet, columnas)
+    }
+
+    // ========================================
+    // HOJA: MOVIMIENTOS GANADEROS
+    // ========================================
+    if (hojas.movimientosGanaderos) {
+      const eventos = await prisma.evento.findMany({
+        where: {
+          campoId: usuario.campoId,
+          tipo: { in: ['NACIMIENTO', 'MORTANDAD', 'COMPRA', 'VENTA', 'CONSUMO', 'ABORTO', 'DESTETE'] },
+          ...whereFecha,
+        },
+        include: {
+          usuario: { select: { name: true } },
+          lote: { select: { nombre: true } },
+        },
+        orderBy: { fecha: 'desc' },
+      })
+
+      const sheet = workbook.addWorksheet('Movimientos Ganaderos')
+      const columnas = [
+        { header: 'Fecha', key: 'fecha', width: 12 },
+        { header: 'Tipo', key: 'tipo', width: 15 },
+        { header: 'Cantidad', key: 'cantidad', width: 12 },
+        { header: 'Categoría', key: 'categoria', width: 18 },
+        { header: 'Potrero', key: 'potrero', width: 18 },
+        { header: 'Monto', key: 'monto', width: 15 },
+        { header: 'Usuario', key: 'usuario', width: 18 },
+        { header: 'Notas', key: 'notas', width: 30 },
+      ]
+      sheet.columns = columnas
+
+      const tiposLegibles: Record<string, string> = {
+        NACIMIENTO: 'Nacimiento',
+        MORTANDAD: 'Mortandad',
+        COMPRA: 'Compra',
+        VENTA: 'Venta',
+        CONSUMO: 'Consumo',
+        ABORTO: 'Aborto',
+        DESTETE: 'Destete',
+      }
+
+      eventos.forEach((e) => {
+        sheet.addRow({
+          fecha: formatearFecha(e.fecha),
+          tipo: tiposLegibles[e.tipo] || e.tipo,
+          cantidad: e.cantidad || '',
+          categoria: e.categoria || '',
+          potrero: e.lote?.nombre || '',
+          monto: e.monto ? `$${e.monto.toLocaleString('es-UY')}` : '',
+          usuario: e.usuario?.name || '',
+          notas: e.notas || '',
+        })
+      })
+
+      aplicarEstiloEncabezado(sheet.getRow(1))
+      aplicarEstiloDatos(sheet, 2)
+      autoAjustarColumnas(sheet, columnas)
+    }
+
+    // ========================================
+    // HOJA: CAMBIOS DE POTRERO
+    // ========================================
+    if (hojas.cambiosPotrero) {
+      const eventos = await prisma.evento.findMany({
+        where: { campoId: usuario.campoId, tipo: 'CAMBIO_POTRERO', ...whereFecha },
+        include: {
+          usuario: { select: { name: true } },
+          lote: { select: { nombre: true } },
+        },
+        orderBy: { fecha: 'desc' },
+      })
+
+      // Obtener nombres de potreros destino
+      const loteDestinoIds = eventos.map(e => e.loteDestinoId).filter(Boolean) as string[]
+      const lotesDestino = await prisma.lote.findMany({
+        where: { id: { in: loteDestinoIds } },
+        select: { id: true, nombre: true },
+      })
+      const lotesDestinoMap = new Map(lotesDestino.map(l => [l.id, l.nombre]))
+
+      const sheet = workbook.addWorksheet('Cambios de Potrero')
+      const columnas = [
+        { header: 'Fecha', key: 'fecha', width: 12 },
+        { header: 'Potrero Origen', key: 'origen', width: 18 },
+        { header: 'Potrero Destino', key: 'destino', width: 18 },
+        { header: 'Cantidad', key: 'cantidad', width: 12 },
+        { header: 'Categoría', key: 'categoria', width: 18 },
+        { header: 'Usuario', key: 'usuario', width: 18 },
+        { header: 'Notas', key: 'notas', width: 30 },
+      ]
+      sheet.columns = columnas
+
+      eventos.forEach((e) => {
+        sheet.addRow({
+          fecha: formatearFecha(e.fecha),
+          origen: e.lote?.nombre || '',
+          destino: e.loteDestinoId ? lotesDestinoMap.get(e.loteDestinoId) || '' : '',
+          cantidad: e.cantidad || '',
+          categoria: e.categoria || '',
+          usuario: e.usuario?.name || '',
+          notas: e.notas || '',
+        })
+      })
+
+      aplicarEstiloEncabezado(sheet.getRow(1))
+      aplicarEstiloDatos(sheet, 2)
+      autoAjustarColumnas(sheet, columnas)
+    }
+
+    // ========================================
+    // HOJA: TACTOS
+    // ========================================
+    if (hojas.tactos) {
+      const eventos = await prisma.evento.findMany({
+        where: { campoId: usuario.campoId, tipo: 'TACTO', ...whereFecha },
+        include: {
+          usuario: { select: { name: true } },
+          lote: { select: { nombre: true } },
+          rodeo: { select: { nombre: true } },
+        },
+        orderBy: { fecha: 'desc' },
+      })
+
+      const sheet = workbook.addWorksheet('Tactos')
+      const columnas = [
+        { header: 'Fecha', key: 'fecha', width: 12 },
+        { header: 'Potrero', key: 'potrero', width: 18 },
+        { header: 'Rodeo', key: 'rodeo', width: 18 },
+        { header: 'Animales Tactados', key: 'tactados', width: 18 },
+        { header: 'Descripción', key: 'descripcion', width: 40 },
+        { header: 'Usuario', key: 'usuario', width: 18 },
+        { header: 'Notas', key: 'notas', width: 30 },
+      ]
+      sheet.columns = columnas
+
+      eventos.forEach((e) => {
+        sheet.addRow({
+          fecha: formatearFecha(e.fecha),
+          potrero: e.lote?.nombre || '',
+          rodeo: e.rodeo?.nombre || '',
+          tactados: e.cantidad || '',
+          descripcion: e.descripcion || '',
+          usuario: e.usuario?.name || '',
+          notas: e.notas || '',
+        })
+      })
+
+      aplicarEstiloEncabezado(sheet.getRow(1))
+      aplicarEstiloDatos(sheet, 2)
+      autoAjustarColumnas(sheet, columnas)
+    }
+
+    // ========================================
+    // HOJA: RECATEGORIZACIONES
+    // ========================================
+    if (hojas.recategorizaciones) {
+      const eventos = await prisma.evento.findMany({
+        where: { campoId: usuario.campoId, tipo: 'RECATEGORIZACION', ...whereFecha },
+        include: {
+          usuario: { select: { name: true } },
+          lote: { select: { nombre: true } },
+        },
+        orderBy: { fecha: 'desc' },
+      })
+
+      const sheet = workbook.addWorksheet('Recategorizaciones')
+      const columnas = [
+        { header: 'Fecha', key: 'fecha', width: 12 },
+        { header: 'Potrero', key: 'potrero', width: 18 },
+        { header: 'Cantidad', key: 'cantidad', width: 12 },
+        { header: 'Categoría Origen', key: 'categoriaOrigen', width: 20 },
+        { header: 'Categoría Destino', key: 'categoriaDestino', width: 20 },
+        { header: 'Descripción', key: 'descripcion', width: 40 },
+        { header: 'Usuario', key: 'usuario', width: 18 },
+      ]
+      sheet.columns = columnas
+
+      eventos.forEach((e) => {
+        sheet.addRow({
+          fecha: formatearFecha(e.fecha),
+          potrero: e.lote?.nombre || '',
+          cantidad: e.cantidad || '',
+          categoriaOrigen: e.categoria || '',
+          categoriaDestino: e.categoriaNueva || '',
+          descripcion: e.descripcion || '',
+          usuario: e.usuario?.name || '',
+        })
+      })
+
+      aplicarEstiloEncabezado(sheet.getRow(1))
+      aplicarEstiloDatos(sheet, 2)
+      autoAjustarColumnas(sheet, columnas)
+    }
+
+    // ========================================
+    // HOJA: SIEMBRAS
+    // ========================================
+    if (hojas.siembras) {
+      const eventos = await prisma.evento.findMany({
+        where: { campoId: usuario.campoId, tipo: 'SIEMBRA', ...whereFecha },
+        include: {
+          usuario: { select: { name: true } },
+          lote: { select: { nombre: true } },
+        },
+        orderBy: { fecha: 'desc' },
+      })
+
+      const sheet = workbook.addWorksheet('Siembras')
+      const columnas = [
+        { header: 'Fecha', key: 'fecha', width: 12 },
+        { header: 'Potrero', key: 'potrero', width: 18 },
+        { header: 'Descripción', key: 'descripcion', width: 40 },
+        { header: 'Usuario', key: 'usuario', width: 18 },
+        { header: 'Notas', key: 'notas', width: 30 },
+      ]
+      sheet.columns = columnas
+
+      eventos.forEach((e) => {
+        sheet.addRow({
+          fecha: formatearFecha(e.fecha),
+          potrero: e.lote?.nombre || '',
+          descripcion: e.descripcion || '',
+          usuario: e.usuario?.name || '',
+          notas: e.notas || '',
+        })
+      })
+
+      aplicarEstiloEncabezado(sheet.getRow(1))
+      aplicarEstiloDatos(sheet, 2)
+      autoAjustarColumnas(sheet, columnas)
+    }
+
+    // ========================================
+    // HOJA: PULVERIZACIONES
+    // ========================================
+    if (hojas.pulverizaciones) {
+      const eventos = await prisma.evento.findMany({
+        where: { campoId: usuario.campoId, tipo: 'PULVERIZACION', ...whereFecha },
+        include: {
+          usuario: { select: { name: true } },
+          lote: { select: { nombre: true } },
+        },
+        orderBy: { fecha: 'desc' },
+      })
+
+      const sheet = workbook.addWorksheet('Pulverizaciones')
+      const columnas = [
+        { header: 'Fecha', key: 'fecha', width: 12 },
+        { header: 'Potrero', key: 'potrero', width: 18 },
+        { header: 'Descripción', key: 'descripcion', width: 40 },
+        { header: 'Usuario', key: 'usuario', width: 18 },
+        { header: 'Notas', key: 'notas', width: 30 },
+      ]
+      sheet.columns = columnas
+
+      eventos.forEach((e) => {
+        sheet.addRow({
+          fecha: formatearFecha(e.fecha),
+          potrero: e.lote?.nombre || '',
+          descripcion: e.descripcion || '',
+          usuario: e.usuario?.name || '',
+          notas: e.notas || '',
+        })
+      })
+
+      aplicarEstiloEncabezado(sheet.getRow(1))
+      aplicarEstiloDatos(sheet, 2)
+      autoAjustarColumnas(sheet, columnas)
+    }
+
+    // ========================================
+    // HOJA: FERTILIZACIONES
+    // ========================================
+    if (hojas.fertilizaciones) {
+      const eventos = await prisma.evento.findMany({
+        where: { campoId: usuario.campoId, tipo: 'REFERTILIZACION', ...whereFecha },
+        include: {
+          usuario: { select: { name: true } },
+          lote: { select: { nombre: true } },
+        },
+        orderBy: { fecha: 'desc' },
+      })
+
+      const sheet = workbook.addWorksheet('Fertilizaciones')
+      const columnas = [
+        { header: 'Fecha', key: 'fecha', width: 12 },
+        { header: 'Potrero', key: 'potrero', width: 18 },
+        { header: 'Descripción', key: 'descripcion', width: 40 },
+        { header: 'Usuario', key: 'usuario', width: 18 },
+        { header: 'Notas', key: 'notas', width: 30 },
+      ]
+      sheet.columns = columnas
+
+      eventos.forEach((e) => {
+        sheet.addRow({
+          fecha: formatearFecha(e.fecha),
+          potrero: e.lote?.nombre || '',
+          descripcion: e.descripcion || '',
+          usuario: e.usuario?.name || '',
+          notas: e.notas || '',
+        })
+      })
+
+      aplicarEstiloEncabezado(sheet.getRow(1))
+      aplicarEstiloDatos(sheet, 2)
+      autoAjustarColumnas(sheet, columnas)
+    }
+
+    // ========================================
+    // HOJA: COSECHAS
+    // ========================================
+    if (hojas.cosechas) {
+      const eventos = await prisma.evento.findMany({
+        where: { campoId: usuario.campoId, tipo: 'COSECHA', ...whereFecha },
+        include: {
+          usuario: { select: { name: true } },
+          lote: { select: { nombre: true } },
+        },
+        orderBy: { fecha: 'desc' },
+      })
+
+      const sheet = workbook.addWorksheet('Cosechas')
+      const columnas = [
+        { header: 'Fecha', key: 'fecha', width: 12 },
+        { header: 'Potrero', key: 'potrero', width: 18 },
+        { header: 'Descripción', key: 'descripcion', width: 40 },
+        { header: 'Monto', key: 'monto', width: 15 },
+        { header: 'Usuario', key: 'usuario', width: 18 },
+        { header: 'Notas', key: 'notas', width: 30 },
+      ]
+      sheet.columns = columnas
+
+      eventos.forEach((e) => {
+        sheet.addRow({
+          fecha: formatearFecha(e.fecha),
+          potrero: e.lote?.nombre || '',
+          descripcion: e.descripcion || '',
+          monto: e.monto ? `$${e.monto.toLocaleString('es-UY')}` : '',
+          usuario: e.usuario?.name || '',
+          notas: e.notas || '',
+        })
+      })
+
+      aplicarEstiloEncabezado(sheet.getRow(1))
+      aplicarEstiloDatos(sheet, 2)
+      autoAjustarColumnas(sheet, columnas)
+    }
+
+    // ========================================
+    // HOJA: RIEGOS
+    // ========================================
+    if (hojas.riegos) {
+      const eventos = await prisma.evento.findMany({
+        where: { campoId: usuario.campoId, tipo: 'RIEGO', ...whereFecha },
+        include: {
+          usuario: { select: { name: true } },
+          lote: { select: { nombre: true } },
+        },
+        orderBy: { fecha: 'desc' },
+      })
+
+      const sheet = workbook.addWorksheet('Riegos')
+      const columnas = [
+        { header: 'Fecha', key: 'fecha', width: 12 },
+        { header: 'Potrero', key: 'potrero', width: 18 },
+        { header: 'Descripción', key: 'descripcion', width: 40 },
+        { header: 'Usuario', key: 'usuario', width: 18 },
+        { header: 'Notas', key: 'notas', width: 30 },
+      ]
+      sheet.columns = columnas
+
+      eventos.forEach((e) => {
+        sheet.addRow({
+          fecha: formatearFecha(e.fecha),
+          potrero: e.lote?.nombre || '',
+          descripcion: e.descripcion || '',
+          usuario: e.usuario?.name || '',
+          notas: e.notas || '',
+        })
+      })
+
+      aplicarEstiloEncabezado(sheet.getRow(1))
+      aplicarEstiloDatos(sheet, 2)
+      autoAjustarColumnas(sheet, columnas)
+    }
+
+    // ========================================
+    // HOJA: MONITOREOS
+    // ========================================
+    if (hojas.monitoreos) {
+      const eventos = await prisma.evento.findMany({
+        where: { campoId: usuario.campoId, tipo: 'MONITOREO', ...whereFecha },
+        include: {
+          usuario: { select: { name: true } },
+          lote: { select: { nombre: true } },
+        },
+        orderBy: { fecha: 'desc' },
+      })
+
+      const sheet = workbook.addWorksheet('Monitoreos')
+      const columnas = [
+        { header: 'Fecha', key: 'fecha', width: 12 },
+        { header: 'Potrero', key: 'potrero', width: 18 },
+        { header: 'Descripción', key: 'descripcion', width: 40 },
+        { header: 'Usuario', key: 'usuario', width: 18 },
+        { header: 'Notas', key: 'notas', width: 30 },
+      ]
+      sheet.columns = columnas
+
+      eventos.forEach((e) => {
+        sheet.addRow({
+          fecha: formatearFecha(e.fecha),
+          potrero: e.lote?.nombre || '',
+          descripcion: e.descripcion || '',
+          usuario: e.usuario?.name || '',
+          notas: e.notas || '',
+        })
+      })
+
+      aplicarEstiloEncabezado(sheet.getRow(1))
+      aplicarEstiloDatos(sheet, 2)
+      autoAjustarColumnas(sheet, columnas)
+    }
+
+    // ========================================
+    // HOJA: OTRAS LABORES
+    // ========================================
+    if (hojas.otrasLabores) {
+      const eventos = await prisma.evento.findMany({
+        where: { campoId: usuario.campoId, tipo: 'OTROS_LABORES', ...whereFecha },
+        include: {
+          usuario: { select: { name: true } },
+          lote: { select: { nombre: true } },
+        },
+        orderBy: { fecha: 'desc' },
+      })
+
+      const sheet = workbook.addWorksheet('Otras Labores')
+      const columnas = [
+        { header: 'Fecha', key: 'fecha', width: 12 },
+        { header: 'Potrero', key: 'potrero', width: 18 },
+        { header: 'Descripción', key: 'descripcion', width: 40 },
+        { header: 'Usuario', key: 'usuario', width: 18 },
+        { header: 'Notas', key: 'notas', width: 30 },
+      ]
+      sheet.columns = columnas
+
+      eventos.forEach((e) => {
+        sheet.addRow({
+          fecha: formatearFecha(e.fecha),
+          potrero: e.lote?.nombre || '',
+          descripcion: e.descripcion || '',
+          usuario: e.usuario?.name || '',
+          notas: e.notas || '',
+        })
+      })
+
+      aplicarEstiloEncabezado(sheet.getRow(1))
+      aplicarEstiloDatos(sheet, 2)
+      autoAjustarColumnas(sheet, columnas)
+    }
+
+    // ========================================
+    // HOJA: LLUVIA
+    // ========================================
+    if (hojas.lluvia) {
+      const eventos = await prisma.evento.findMany({
+        where: { campoId: usuario.campoId, tipo: 'LLUVIA', ...whereFecha },
+        include: {
+          usuario: { select: { name: true } },
+        },
+        orderBy: { fecha: 'desc' },
+      })
+
+      const sheet = workbook.addWorksheet('Lluvia')
+      const columnas = [
+        { header: 'Fecha', key: 'fecha', width: 12 },
+        { header: 'Milímetros', key: 'mm', width: 15 },
+        { header: 'Descripción', key: 'descripcion', width: 40 },
+        { header: 'Usuario', key: 'usuario', width: 18 },
+        { header: 'Notas', key: 'notas', width: 30 },
+      ]
+      sheet.columns = columnas
+
+      eventos.forEach((e) => {
+        sheet.addRow({
+          fecha: formatearFecha(e.fecha),
+          mm: e.cantidad || '',
+          descripcion: e.descripcion || '',
+          usuario: e.usuario?.name || '',
+          notas: e.notas || '',
+        })
+      })
+
+      aplicarEstiloEncabezado(sheet.getRow(1))
+      aplicarEstiloDatos(sheet, 2)
+      autoAjustarColumnas(sheet, columnas)
+    }
+
+    // ========================================
+    // HOJA: HELADAS
+    // ========================================
+    if (hojas.heladas) {
+      const eventos = await prisma.evento.findMany({
+        where: { campoId: usuario.campoId, tipo: 'HELADA', ...whereFecha },
+        include: {
+          usuario: { select: { name: true } },
+        },
+        orderBy: { fecha: 'desc' },
+      })
+
+      const sheet = workbook.addWorksheet('Heladas')
+      const columnas = [
+        { header: 'Fecha', key: 'fecha', width: 12 },
+        { header: 'Descripción', key: 'descripcion', width: 40 },
+        { header: 'Usuario', key: 'usuario', width: 18 },
+        { header: 'Notas', key: 'notas', width: 30 },
+      ]
+      sheet.columns = columnas
+
+      eventos.forEach((e) => {
+        sheet.addRow({
+          fecha: formatearFecha(e.fecha),
+          descripcion: e.descripcion || '',
+          usuario: e.usuario?.name || '',
+          notas: e.notas || '',
+        })
+      })
+
+      aplicarEstiloEncabezado(sheet.getRow(1))
+      aplicarEstiloDatos(sheet, 2)
+      autoAjustarColumnas(sheet, columnas)
+    }
+
+    // ========================================
+    // HOJA: INSUMOS
+    // ========================================
+    if (hojas.insumos) {
+      const movimientos = await prisma.movimientoInsumo.findMany({
+        where: {
+          insumo: { campoId: usuario.campoId },
+          ...(fechaDesde || fechaHasta ? { fecha: filtroFecha } : {}),
+        },
+        include: {
+          insumo: { select: { nombre: true, unidad: true } },
+          lote: { select: { nombre: true } },
+        },
+        orderBy: { fecha: 'desc' },
+      })
+
+      const sheet = workbook.addWorksheet('Insumos')
+      const columnas = [
+        { header: 'Fecha', key: 'fecha', width: 12 },
+        { header: 'Tipo', key: 'tipo', width: 12 },
+        { header: 'Insumo', key: 'insumo', width: 25 },
+        { header: 'Cantidad', key: 'cantidad', width: 12 },
+        { header: 'Unidad', key: 'unidad', width: 12 },
+        { header: 'Potrero', key: 'potrero', width: 18 },
+        { header: 'Notas', key: 'notas', width: 30 },
+      ]
+      sheet.columns = columnas
+
+      movimientos.forEach((m) => {
+        sheet.addRow({
+          fecha: formatearFecha(m.fecha),
+          tipo: m.tipo === 'INGRESO' ? 'Ingreso' : 'Uso',
+          insumo: m.insumo.nombre,
+          cantidad: m.cantidad,
+          unidad: m.insumo.unidad,
+          potrero: m.lote?.nombre || '',
+          notas: m.notas || '',
+        })
+      })
+
+      aplicarEstiloEncabezado(sheet.getRow(1))
+      aplicarEstiloDatos(sheet, 2)
+      autoAjustarColumnas(sheet, columnas)
+    }
+
+    // ========================================
+    // HOJA: GASTOS E INGRESOS
+    // ========================================
+    if (hojas.gastosIngresos) {
+      const gastos = await prisma.gasto.findMany({
+        where: {
+          campoId: usuario.campoId,
+          ...(fechaDesde || fechaHasta ? { fecha: filtroFecha } : {}),
+        },
+        include: {
+          lote: { select: { nombre: true } },
+        },
+        orderBy: { fecha: 'desc' },
+      })
+
+      const sheet = workbook.addWorksheet('Gastos e Ingresos')
+      const columnas = [
+        { header: 'Fecha', key: 'fecha', width: 12 },
+        { header: 'Tipo', key: 'tipo', width: 12 },
+        { header: 'Descripción', key: 'descripcion', width: 35 },
+        { header: 'Categoría', key: 'categoria', width: 18 },
+        { header: 'Monto', key: 'monto', width: 15 },
+        { header: 'Moneda', key: 'moneda', width: 10 },
+        { header: 'Monto UYU', key: 'montoUYU', width: 15 },
+        { header: 'Monto USD', key: 'montoUSD', width: 15 },
+        { header: 'IVA', key: 'iva', width: 12 },
+        { header: 'Proveedor/Comprador', key: 'contraparte', width: 20 },
+        { header: 'Método Pago', key: 'metodoPago', width: 15 },
+        { header: 'Pagado', key: 'pagado', width: 10 },
+        { header: 'Potrero', key: 'potrero', width: 18 },
+      ]
+      sheet.columns = columnas
+
+      gastos.forEach((g) => {
+        sheet.addRow({
+          fecha: formatearFecha(g.fecha),
+          tipo: g.tipo === 'INGRESO' ? 'Ingreso' : 'Gasto',
+          descripcion: g.descripcion || '',
+          categoria: g.categoria || '',
+          monto: g.monto ? Number(g.monto) : '',
+          moneda: g.moneda || 'UYU',
+          montoUYU: g.montoEnUYU ? Number(g.montoEnUYU) : '',
+          montoUSD: g.montoEnUSD ? Number(g.montoEnUSD) : '',
+          iva: g.iva ? Number(g.iva) : '',
+          contraparte: g.proveedor || g.comprador || '',
+          metodoPago: g.metodoPago || '',
+          pagado: g.pagado ? 'Sí' : 'No',
+          potrero: g.lote?.nombre || '',
+        })
+      })
+
+      aplicarEstiloEncabezado(sheet.getRow(1))
+      aplicarEstiloDatos(sheet, 2)
+      autoAjustarColumnas(sheet, columnas)
+    }
+
+    // ========================================
+    // HOJA: TRASLADOS
+    // ========================================
+    if (hojas.traslados) {
+      const traslados = await prisma.traslado.findMany({
+        where: {
+          OR: [
+            { campoOrigenId: usuario.campoId },
+            { campoDestinoId: usuario.campoId },
+          ],
+          ...(fechaDesde || fechaHasta ? { fecha: filtroFecha } : {}),
+        },
+        include: {
+          campoOrigen: { select: { nombre: true } },
+          campoDestino: { select: { nombre: true } },
+          potreroOrigen: { select: { nombre: true } },
+          potreroDestino: { select: { nombre: true } },
+        },
+        orderBy: { fecha: 'desc' },
+      })
+
+      const sheet = workbook.addWorksheet('Traslados')
+      const columnas = [
+        { header: 'Fecha', key: 'fecha', width: 12 },
+        { header: 'Tipo', key: 'tipoMov', width: 12 },
+        { header: 'Campo Origen', key: 'campoOrigen', width: 18 },
+        { header: 'Potrero Origen', key: 'potreroOrigen', width: 18 },
+        { header: 'Campo Destino', key: 'campoDestino', width: 18 },
+        { header: 'Potrero Destino', key: 'potreroDestino', width: 18 },
+        { header: 'Categoría', key: 'categoria', width: 18 },
+        { header: 'Cantidad', key: 'cantidad', width: 12 },
+        { header: 'Peso Prom (kg)', key: 'peso', width: 15 },
+        { header: 'Precio USD/kg', key: 'precioKg', width: 15 },
+        { header: 'Total USD', key: 'totalUSD', width: 15 },
+        { header: 'Notas', key: 'notas', width: 30 },
+      ]
+      sheet.columns = columnas
+
+      traslados.forEach((t) => {
+        const esEgreso = t.campoOrigenId === usuario.campoId
+        sheet.addRow({
+          fecha: formatearFecha(t.fecha),
+          tipoMov: esEgreso ? 'Egreso' : 'Ingreso',
+          campoOrigen: t.campoOrigen.nombre,
+          potreroOrigen: t.potreroOrigen.nombre,
+          campoDestino: t.campoDestino.nombre,
+          potreroDestino: t.potreroDestino.nombre,
+          categoria: t.categoria,
+          cantidad: t.cantidad,
+          peso: t.pesoPromedio || '',
+          precioKg: t.precioKgUSD || '',
+          totalUSD: t.totalUSD ? Number(t.totalUSD) : '',
+          notas: t.notas || '',
+        })
+      })
+
+      aplicarEstiloEncabezado(sheet.getRow(1))
+      aplicarEstiloDatos(sheet, 2)
+      autoAjustarColumnas(sheet, columnas)
+    }
+
+    // ========================================
+    // GENERAR ARCHIVO
+    // ========================================
+    
+    // Si no hay hojas, agregar una vacía
+    if (workbook.worksheets.length === 0) {
+      const sheet = workbook.addWorksheet('Sin datos')
+      sheet.addRow(['No se seleccionaron datos para exportar'])
+    }
+
+    const buffer = await workbook.xlsx.writeBuffer()
+
+    // Generar nombre del archivo
+    const campo = await prisma.campo.findUnique({
+      where: { id: usuario.campoId },
+      select: { nombre: true },
+    })
+    const fechaHoy = new Date().toISOString().split('T')[0]
+    const nombreArchivo = `${campo?.nombre || 'Campo'}-${fechaHoy}.xlsx`
+
+    return new NextResponse(buffer, {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'Content-Disposition': `attachment; filename="${encodeURIComponent(nombreArchivo)}"`,
+      },
+    })
+  } catch (error) {
+    console.error('Error generando Excel:', error)
+    return NextResponse.json(
+      { error: 'Error al generar el archivo Excel', details: (error as Error).message },
+      { status: 500 }
+    )
+  }
+}
