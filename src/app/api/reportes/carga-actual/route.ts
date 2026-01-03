@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 import { prisma } from '@/lib/prisma'
-import { EQUIVALENCIAS_UG, PESOS_DEFAULT, PESO_REFERENCIA_UG } from '@/lib/ugCalculator'
+import { EQUIVALENCIAS_UG, PESOS_DEFAULT, PESO_REFERENCIA_UG, calcularUGTotales } from '@/lib/ugCalculator'
 import { getEquivalenciasUG } from '@/lib/getEquivalenciasUG'
 
 export const dynamic = 'force-dynamic'
@@ -32,7 +32,6 @@ export async function GET() {
       return NextResponse.json({ error: 'Usuario sin campo' }, { status: 400 })
     }
     
-
     // Obtener equivalencias personalizadas del campo
     const pesosPersonalizados = await getEquivalenciasUG(usuario.campoId)
 
@@ -59,17 +58,23 @@ export async function GET() {
       const animalesPorCategoria: Record<string, number> = {}
       categoriasDB.forEach(cat => { animalesPorCategoria[cat.nombreSingular] = 0 })
 
-      let ugTotales = 0
       let vacunosTotales = 0
       let ovinosTotales = 0
       let equinosTotales = 0
+
+      // 🔥 Convertir animalesLote a formato que espera calcularUGTotales
+      const animalesParaCalculo = lote.animalesLote.map((animal: any) => ({
+        categoria: animal.categoria,
+        cantidad: animal.cantidad
+      }))
+
+      // 🎯 USAR LA FUNCIÓN QUE APLICA LA LÓGICA ESPECIAL DE VACAS CON TERNEROS
+      const ugTotales = calcularUGTotales(animalesParaCalculo, pesosPersonalizados)
 
       lote.animalesLote.forEach((animal: any) => {
         if (animalesPorCategoria[animal.categoria] !== undefined) {
           animalesPorCategoria[animal.categoria] += animal.cantidad
         }
-        const eq = getEquivalenciaUG(animal.categoria, pesosPersonalizados)
-        ugTotales += animal.cantidad * eq
 
         const catDB = categoriasDB.find(c => c.nombreSingular === animal.categoria)
         if (catDB?.tipoAnimal === 'BOVINO') vacunosTotales += animal.cantidad
@@ -124,57 +129,57 @@ export async function GET() {
 
       // Procesar módulos
       const modulosData = modulosConPotreros.map(modulo => {
-  const potrerosProcesados = modulo.lotes.map(procesarPotrero)
-  const potrerosConAnimales = potrerosProcesados.filter(p => p.tieneAnimales)
-  const hectareasModulo = potrerosProcesados.reduce((sum, p) => sum + p.hectareas, 0)
-  const ugModulo = potrerosProcesados.reduce((sum, p) => sum + p.ugTotales, 0)
-  const ugPorHaModulo = hectareasModulo > 0 ? ugModulo / hectareasModulo : 0
+        const potrerosProcesados = modulo.lotes.map(procesarPotrero)
+        const potrerosConAnimales = potrerosProcesados.filter(p => p.tieneAnimales)
+        const hectareasModulo = potrerosProcesados.reduce((sum, p) => sum + p.hectareas, 0)
+        const ugModulo = potrerosProcesados.reduce((sum, p) => sum + p.ugTotales, 0)
+        const ugPorHaModulo = hectareasModulo > 0 ? ugModulo / hectareasModulo : 0
 
-  return {
-    id: modulo.id,
-    nombre: modulo.nombre,
-    hectareas: hectareasModulo,
-    ugPorHa: ugPorHaModulo,
-    cantidadPotreros: modulo.lotes.length, // 👈 TOTAL REAL DE POTREROS
-    potreros: potrerosConAnimales
-  }
-}).filter(m => m.potreros.length > 0)
+        return {
+          id: modulo.id,
+          nombre: modulo.nombre,
+          hectareas: hectareasModulo,
+          ugPorHa: ugPorHaModulo,
+          cantidadPotreros: modulo.lotes.length,
+          potreros: potrerosConAnimales
+        }
+      }).filter(m => m.potreros.length > 0)
 
       // Procesar "Resto del campo"
-const potrerosRestoProcesados = potrerosSinModulo.map(procesarPotrero)
+      const potrerosRestoProcesados = potrerosSinModulo.map(procesarPotrero)
 
-let restoDelCampo = null
-if (potrerosRestoProcesados.length > 0) {
-  const hectareasResto = potrerosRestoProcesados.reduce((sum, p) => sum + p.hectareas, 0)
-  const ugResto = potrerosRestoProcesados.reduce((sum, p) => sum + p.ugTotales, 0)
-  const ugPorHaResto = hectareasResto > 0 ? ugResto / hectareasResto : 0
+      let restoDelCampo = null
+      if (potrerosRestoProcesados.length > 0) {
+        const hectareasResto = potrerosRestoProcesados.reduce((sum, p) => sum + p.hectareas, 0)
+        const ugResto = potrerosRestoProcesados.reduce((sum, p) => sum + p.ugTotales, 0)
+        const ugPorHaResto = hectareasResto > 0 ? ugResto / hectareasResto : 0
 
-  restoDelCampo = {
-    id: 'resto-del-campo',
-    nombre: 'Resto del campo',
-    descripcion: 'Potreros sin módulo de pastoreo asignado',
-    hectareas: hectareasResto,
-    ugPorHa: ugPorHaResto,
-    cantidadPotreros: potrerosSinModulo.length, // 👈 TOTAL REAL DE POTREROS
-    potreros: potrerosRestoProcesados // 👈 TODOS LOS POTREROS (vacíos y con animales)
-  }
-}
+        restoDelCampo = {
+          id: 'resto-del-campo',
+          nombre: 'Resto del campo',
+          descripcion: 'Potreros sin módulo de pastoreo asignado',
+          hectareas: hectareasResto,
+          ugPorHa: ugPorHaResto,
+          cantidadPotreros: potrerosSinModulo.length,
+          potreros: potrerosRestoProcesados
+        }
+      }
 
-      // Totales globales - 🔥 INCLUIR TODOS LOS POTREROS (no solo los que tienen animales)
-const todosLosPotrerosPastoreables = [
-  ...modulosConPotreros.flatMap(m => m.lotes.map(procesarPotrero)),
-  ...potrerosRestoProcesados
-]
+      // Totales globales - INCLUIR TODOS LOS POTREROS
+      const todosLosPotrerosPastoreables = [
+        ...modulosConPotreros.flatMap(m => m.lotes.map(procesarPotrero)),
+        ...potrerosRestoProcesados
+      ]
 
-const todosLosPotreros = [
-  ...modulosData.flatMap(m => m.potreros),
-  ...(restoDelCampo?.potreros || [])
-]
+      const todosLosPotreros = [
+        ...modulosData.flatMap(m => m.potreros),
+        ...(restoDelCampo?.potreros || [])
+      ]
 
-const totales = {
-  hectareas: todosLosPotrerosPastoreables.reduce((sum, p) => sum + p.hectareas, 0),
-  porCategoria: {} as Record<string, number>,
-  ugTotales: todosLosPotrerosPastoreables.reduce((sum, p) => sum + p.ugTotales, 0),
+      const totales = {
+        hectareas: todosLosPotrerosPastoreables.reduce((sum, p) => sum + p.hectareas, 0),
+        porCategoria: {} as Record<string, number>,
+        ugTotales: todosLosPotrerosPastoreables.reduce((sum, p) => sum + p.ugTotales, 0),
         vacunosTotales: todosLosPotreros.reduce((sum, p) => sum + p.vacunosTotales, 0),
         ovinosTotales: todosLosPotreros.reduce((sum, p) => sum + p.ovinosTotales, 0),
         equinosTotales: todosLosPotreros.reduce((sum, p) => sum + p.equinosTotales, 0),
@@ -203,13 +208,11 @@ const totales = {
     } else {
       // ========== FORMATO ORIGINAL: SIN MÓDULOS ==========
       
-      
-
-const lotes = await prisma.lote.findMany({
-  where: { campoId: usuario.campoId, esPastoreable: true },
-  include: { animalesLote: true },
-  orderBy: { nombre: 'asc' }
-})
+      const lotes = await prisma.lote.findMany({
+        where: { campoId: usuario.campoId, esPastoreable: true },
+        include: { animalesLote: true },
+        orderBy: { nombre: 'asc' }
+      })
 
       const potreros = lotes.map(procesarPotrero)
 
