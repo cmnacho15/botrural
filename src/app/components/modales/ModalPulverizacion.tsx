@@ -137,20 +137,14 @@ export default function ModalPulverizacion({ onClose, onSuccess }: ModalPulveriz
       const potreroNombre = potreros.find(p => p.id === potreroSeleccionado)?.nombre
       const hectareasNum = hectareas ? parseFloat(hectareas) : cultivoSeleccionado.hectareas
 
-      // Construir descripción con los productos
+     // Construir descripción (SIN productos, van solo en notas)
       let descripcionFinal = `Pulverización de ${cultivoSeleccionado.tipoCultivo} en potrero ${potreroNombre}`
       
       if (hectareas) {
         descripcionFinal += ` - ${hectareasNum} ha`
       }
       
-      // Agregar lista de productos
-      if (productosValidos.length > 0) {
-        const listaProductos = productosValidos.map(
-          p => `${p.producto}: ${p.dosis} ${p.unidad}`
-        ).join(', ')
-        descripcionFinal += ` - Productos: ${listaProductos}`
-      }
+      // NO agregar productos aquí, van solo en las notas
 
       // Construir notas con detalles de productos
       let notasCompletas = ''

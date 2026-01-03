@@ -137,20 +137,14 @@ export default function ModalRefertilizacion({ onClose, onSuccess }: ModalRefert
       const potreroNombre = potreros.find(p => p.id === potreroSeleccionado)?.nombre
       const hectareasNum = hectareas ? parseFloat(hectareas) : cultivoSeleccionado.hectareas
 
-      // Construir descripción con los fertilizantes
+      // Construir descripción (SIN fertilizantes, van solo en notas)
       let descripcionFinal = `Refertilización de ${cultivoSeleccionado.tipoCultivo} en potrero ${potreroNombre}`
       
       if (hectareas) {
         descripcionFinal += ` - ${hectareasNum} ha`
       }
       
-      // Agregar lista de fertilizantes
-      if (fertilizantesValidos.length > 0) {
-        const listaFertilizantes = fertilizantesValidos.map(
-          f => `${f.fuente}: ${f.dosis} ${f.unidad}`
-        ).join(', ')
-        descripcionFinal += ` - Fertilizantes: ${listaFertilizantes}`
-      }
+      // NO agregar fertilizantes aquí, van solo en las notas
 
       // Construir notas con detalles de fertilizantes
       let notasCompletas = ''
