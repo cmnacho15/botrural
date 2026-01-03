@@ -291,21 +291,41 @@ export async function POST(request: Request) {
         { header: 'Fecha', key: 'fecha', width: 12 },
         { header: 'Potrero', key: 'potrero', width: 18 },
         { header: 'Rodeo', key: 'rodeo', width: 18 },
-        { header: 'Animales Tactados', key: 'tactados', width: 18 },
-        { header: 'Descripción', key: 'descripcion', width: 40 },
-        { header: 'Usuario', key: 'usuario', width: 18 },
+        { header: 'Animales Tactados', key: 'tactados', width: 16 },
+        { header: 'Preñados (n)', key: 'prenados', width: 14 },
+        { header: 'Preñados (%)', key: 'prenadosPct', width: 14 },
+        { header: 'Fallados (n)', key: 'fallados', width: 14 },
+        { header: 'Fallados (%)', key: 'falladosPct', width: 14 },
         { header: 'Notas', key: 'notas', width: 30 },
       ]
       sheet.columns = columnas
 
       eventos.forEach((e) => {
+        const tactados = e.cantidad || 0
+        
+        // 🔍 Parsear la descripción para extraer preñados
+        let prenados = 0
+        if (e.descripcion) {
+          // Buscar patrón: "95 preñados" o "95 preñados ("
+          const match = e.descripcion.match(/(\d+)\s+preñados/i)
+          if (match) {
+            prenados = parseInt(match[1])
+          }
+        }
+        
+        const fallados = tactados > 0 ? tactados - prenados : 0
+        const prenadosPct = tactados > 0 ? ((prenados / tactados) * 100).toFixed(1) : '0.0'
+        const falladosPct = tactados > 0 ? ((fallados / tactados) * 100).toFixed(1) : '0.0'
+
         sheet.addRow({
           fecha: formatearFecha(e.fecha),
           potrero: e.lote?.nombre || '',
           rodeo: e.rodeo?.nombre || '',
-          tactados: e.cantidad || '',
-          descripcion: e.descripcion || '',
-          usuario: e.usuario?.name || '',
+          tactados: tactados,
+          prenados: prenados,
+          prenadosPct: `${prenadosPct}%`,
+          fallados: fallados,
+          falladosPct: `${falladosPct}%`,
           notas: e.notas || '',
         })
       })
