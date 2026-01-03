@@ -15,6 +15,8 @@ function obtenerIcono(tipo: string): string {
     VENTA: '🐄',
     COMPRA: '🛒',
     TRASLADO: '🚛',
+    TRASLADO_EGRESO: '📤',
+    TRASLADO_INGRESO: '📥',
     CAMBIO_POTRERO: '⊞',
     NACIMIENTO: '➕',
     MORTANDAD: '➖',
@@ -47,6 +49,8 @@ function obtenerColor(tipo: string): string {
     VENTA: 'green',
     COMPRA: 'orange',
     TRASLADO: 'indigo',
+    TRASLADO_EGRESO: 'indigo',
+    TRASLADO_INGRESO: 'indigo',
     CAMBIO_POTRERO: 'amber',
     NACIMIENTO: 'pink',
     MORTANDAD: 'gray',
@@ -534,6 +538,8 @@ function FiltrosActivos() {
       VENTA: 'Venta',
       COMPRA: 'Compra',
       TRASLADO: 'Traslado',
+      TRASLADO_EGRESO: 'Traslado (Egreso)',
+      TRASLADO_INGRESO: 'Traslado (Ingreso)',
       NACIMIENTO: 'Nacimiento',
       MORTANDAD: 'Mortandad',
       CONSUMO: 'Consumo',
@@ -1107,6 +1113,50 @@ function TarjetaDato({ dato }: { dato: any }) {
       detalles.push(
         <span key="insumo" className="bg-purple-50 text-purple-700 px-3 py-1.5 rounded-md border border-purple-200 text-sm font-medium">
           📦 {dato.insumo}
+        </span>
+      )
+    }
+
+    // Datos de traslado (peso y precio)
+    if (dato.pesoPromedio) {
+      detalles.push(
+        <span key="peso" className="bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-md border border-indigo-200 text-sm font-medium">
+          ⚖️ {dato.pesoPromedio} kg/animal
+        </span>
+      )
+    }
+
+    if (dato.precioKgUSD) {
+      detalles.push(
+        <span key="precioKg" className="bg-green-50 text-green-700 px-3 py-1.5 rounded-md border border-green-200 text-sm font-medium">
+          💲 {dato.precioKgUSD} USD/kg
+        </span>
+      )
+    }
+
+    // Si tiene ambos, mostrar el total calculado
+    if (dato.pesoPromedio && dato.precioKgUSD && dato.cantidad) {
+      const totalUSD = dato.cantidad * dato.pesoPromedio * dato.precioKgUSD
+      detalles.push(
+        <span key="totalTraslado" className="bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-md border border-emerald-200 text-sm font-semibold">
+          💰 Total: ${totalUSD.toLocaleString('es-UY', { minimumFractionDigits: 2 })} USD
+        </span>
+      )
+    }
+
+    // Campo destino/origen para traslados
+    if (dato.campoDestino) {
+      detalles.push(
+        <span key="campoDestino" className="bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-md border border-indigo-200 text-sm font-medium">
+          📤 → {dato.campoDestino}
+        </span>
+      )
+    }
+
+    if (dato.campoOrigen) {
+      detalles.push(
+        <span key="campoOrigen" className="bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-md border border-indigo-200 text-sm font-medium">
+          📥 ← {dato.campoOrigen}
         </span>
       )
     }
