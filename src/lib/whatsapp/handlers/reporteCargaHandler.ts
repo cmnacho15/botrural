@@ -1,6 +1,7 @@
 // src/lib/whatsapp/handlers/reporteCargaHandler.ts
 
 import { prisma } from "@/lib/prisma"
+import { calcularUGTotales } from "@/lib/ugCalculator"
 import { sendWhatsAppMessage, sendWhatsAppDocument } from "../sendMessage"
 import { getEquivalenciasUG } from "@/lib/getEquivalenciasUG"
 import { createClient } from "@supabase/supabase-js"
@@ -46,21 +47,29 @@ const categoriasOvinas = categoriasDB.filter(c => c.tipoAnimal === 'OVINO').map(
 const categoriasEquinas = categoriasDB.filter(c => c.tipoAnimal === 'EQUINO').map(c => ({ nombre: c.nombreSingular, equivalenciaUG: getEquivalenciaUGLocal(c.nombreSingular, pesosPersonalizados) }))
 
     function procesarPotrero(lote: any) {
-      const animalesPorCategoria: Record<string, number> = {}
-      categoriasDB.forEach(cat => { animalesPorCategoria[cat.nombreSingular] = 0 })
+  const animalesPorCategoria: Record<string, number> = {}
+  categoriasDB.forEach(cat => { animalesPorCategoria[cat.nombreSingular] = 0 })
 
-      let ugTotales = 0, vacunosTotales = 0, ovinosTotales = 0, equinosTotales = 0
+  let vacunosTotales = 0, ovinosTotales = 0, equinosTotales = 0
 
-      lote.animalesLote.forEach((animal: any) => {
-        if (animalesPorCategoria[animal.categoria] !== undefined) {
-          animalesPorCategoria[animal.categoria] += animal.cantidad
-        }
-        ugTotales += animal.cantidad * getEquivalenciaUGLocal(animal.categoria, pesosPersonalizados)
-        const catDB = categoriasDB.find(c => c.nombreSingular === animal.categoria)
-        if (catDB?.tipoAnimal === 'BOVINO') vacunosTotales += animal.cantidad
-        else if (catDB?.tipoAnimal === 'OVINO') ovinosTotales += animal.cantidad
-        else if (catDB?.tipoAnimal === 'EQUINO') equinosTotales += animal.cantidad
-      })
+  // 🔥 Convertir animalesLote a formato para calcularUGTotales
+  const animalesParaCalculo = lote.animalesLote.map((animal: any) => ({
+    categoria: animal.categoria,
+    cantidad: animal.cantidad
+  }))
+
+  // 🎯 USAR LA FUNCIÓN QUE APLICA LA LÓGICA ESPECIAL DE VACAS CON TERNEROS
+  const ugTotales = calcularUGTotales(animalesParaCalculo, pesosPersonalizados)
+
+  lote.animalesLote.forEach((animal: any) => {
+    if (animalesPorCategoria[animal.categoria] !== undefined) {
+      animalesPorCategoria[animal.categoria] += animal.cantidad
+    }
+    const catDB = categoriasDB.find(c => c.nombreSingular === animal.categoria)
+    if (catDB?.tipoAnimal === 'BOVINO') vacunosTotales += animal.cantidad
+    else if (catDB?.tipoAnimal === 'OVINO') ovinosTotales += animal.cantidad
+    else if (catDB?.tipoAnimal === 'EQUINO') equinosTotales += animal.cantidad
+  })
 
       return {
         nombre: lote.nombre,
