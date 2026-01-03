@@ -225,9 +225,21 @@ eventos
       const esEgreso = traslado.campoOrigenId === usuario.campoId
       const tipo = esEgreso ? 'TRASLADO_EGRESO' : 'TRASLADO_INGRESO'
       
-      const descripcion = esEgreso
-        ? `Traslado de ${traslado.cantidad} ${traslado.categoria} a ${traslado.campoDestino.nombre} (${traslado.potreroDestino.nombre})`
-        : `Ingreso de ${traslado.cantidad} ${traslado.categoria} desde ${traslado.campoOrigen.nombre} (${traslado.potreroOrigen.nombre})`
+      // Construir descripción más completa
+      let descripcion = ''
+      if (esEgreso) {
+        descripcion = `Envío de ${traslado.cantidad} ${traslado.categoria} desde ${traslado.potreroOrigen.nombre} hacia ${traslado.campoDestino.nombre} (${traslado.potreroDestino.nombre})`
+      } else {
+        descripcion = `Recepción de ${traslado.cantidad} ${traslado.categoria} en ${traslado.potreroDestino.nombre} desde ${traslado.campoOrigen.nombre} (${traslado.potreroOrigen.nombre})`
+      }
+      
+      // Agregar info de peso y valor si existe
+      if (traslado.pesoPromedio && traslado.precioKgUSD) {
+        const totalUSD = traslado.cantidad * traslado.pesoPromedio * traslado.precioKgUSD
+        descripcion += ` — ${traslado.pesoPromedio}kg/cab a USD ${traslado.precioKgUSD}/kg = USD ${totalUSD.toLocaleString('es-UY', { minimumFractionDigits: 0 })}`
+      } else if (traslado.pesoPromedio) {
+        descripcion += ` — ${traslado.pesoPromedio}kg/cab`
+      }
 
       datosUnificados.push({
         id: traslado.id,
