@@ -237,7 +237,7 @@ eventos
         categoria: 'animales',
         categoriaAnimal: traslado.categoria,
         descripcion,
-        icono: esEgreso ? '📤' : '📥',
+        icono: '🚛',
         usuario: null,
         lote: esEgreso ? traslado.potreroOrigen.nombre : traslado.potreroDestino.nombre,
         cantidad: traslado.cantidad,
