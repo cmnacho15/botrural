@@ -42,6 +42,8 @@ const iconoPorTipo: Record<string, string> = {
   VENTA: '🐄',
   COMPRA: '🛒',
   TRASLADO: '🚛',
+  TRASLADO_EGRESO: '📤',
+  TRASLADO_INGRESO: '📥',
   NACIMIENTO: '➕',
   MORTANDAD: '➖',
   CONSUMO: '🍖',
@@ -128,6 +130,27 @@ export async function GET(request: Request) {
     })
     console.log('✅ Gastos/Ingresos encontrados:', gastos.length)
 
+    console.log('🚚 Consultando traslados...')
+    const traslados = await prisma.traslado.findMany({
+      where: {
+        OR: [
+          { campoOrigenId: usuario.campoId },
+          { campoDestinoId: usuario.campoId }
+        ]
+      },
+      include: {
+        campoOrigen: { select: { nombre: true } },
+        campoDestino: { select: { nombre: true } },
+        potreroOrigen: { select: { nombre: true } },
+        potreroDestino: { select: { nombre: true } },
+      },
+      orderBy: [
+        { fecha: 'desc' },
+        { createdAt: 'desc' },
+      ],
+    })
+    console.log('✅ Traslados encontrados:', traslados.length)
+
     console.log('📦 Consultando movimientos de insumos...')
     const movimientosInsumos = await prisma.movimientoInsumo.findMany({
       where: { insumo: { campoId: usuario.campoId } },
@@ -194,6 +217,37 @@ eventos
         iva: gasto.iva ? parseFloat(gasto.iva.toString()) : null,
         diasPlazo: gasto.diasPlazo,
         pagado: gasto.pagado,
+      })
+    })
+
+    // 🚚 TRASLADOS ENTRE CAMPOS
+    traslados.forEach((traslado) => {
+      const esEgreso = traslado.campoOrigenId === usuario.campoId
+      const tipo = esEgreso ? 'TRASLADO_EGRESO' : 'TRASLADO_INGRESO'
+      
+      const descripcion = esEgreso
+        ? `Traslado de ${traslado.cantidad} ${traslado.categoria} a ${traslado.campoDestino.nombre} (${traslado.potreroDestino.nombre})`
+        : `Ingreso de ${traslado.cantidad} ${traslado.categoria} desde ${traslado.campoOrigen.nombre} (${traslado.potreroOrigen.nombre})`
+
+      datosUnificados.push({
+        id: traslado.id,
+        fecha: traslado.fecha,
+        createdAt: traslado.createdAt,
+        tipo,
+        categoria: 'animales',
+        categoriaAnimal: traslado.categoria,
+        descripcion,
+        icono: esEgreso ? '📤' : '📥',
+        usuario: null,
+        lote: esEgreso ? traslado.potreroOrigen.nombre : traslado.potreroDestino.nombre,
+        cantidad: traslado.cantidad,
+        monto: traslado.totalUSD,
+        notas: traslado.notas,
+        // Datos extra para traslados
+        campoDestino: esEgreso ? traslado.campoDestino.nombre : null,
+        campoOrigen: !esEgreso ? traslado.campoOrigen.nombre : null,
+        pesoPromedio: traslado.pesoPromedio,
+        precioKgUSD: traslado.precioKgUSD,
       })
     })
 
