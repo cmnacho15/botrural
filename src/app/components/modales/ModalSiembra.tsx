@@ -119,29 +119,13 @@ useEffect(() => {
     try {
       const potreroNombre = potreros.find(p => p.id === potreroSeleccionado)?.nombre
 
-      // Construir descripción
+      // Construir descripción (SIN fertilizantes aquí, van solo en notas)
       let descripcionFinal = `Siembra de ${cultivo} en potrero ${potreroNombre} - ${hectareas} ha`
-      
-      if (genetica) {
-        descripcionFinal += ` - Genética: ${genetica}`
-      }
-      
-      if (espaciamiento) {
-        descripcionFinal += ` - Espaciamiento: ${espaciamiento} cm`
-      }
 
-      if (densidad) {
-        descripcionFinal += ` - Densidad: ${densidad} ${unidadDensidad}`
-      }
-
-      // Fertilizantes en descripción
+      // NO agregar genética, espaciamiento, densidad ni fertilizantes a la descripción
+      // Todo eso va en las notas
+      
       const fertilizantesValidos = fertilizantes.filter(f => f.fuente.trim() && f.dosis.trim())
-      if (fertilizantesValidos.length > 0) {
-        const listaFertilizantes = fertilizantesValidos.map(
-          f => `${f.fuente}: ${f.dosis} ${f.unidad}`
-        ).join(', ')
-        descripcionFinal += ` - Fertilizantes: ${listaFertilizantes}`
-      }
 
       // Construir notas con detalles
       let notasCompletas = ''
