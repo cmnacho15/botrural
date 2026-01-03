@@ -318,7 +318,7 @@ const guardarNombreGrupo = async (grupoId: string) => {
           {/* Botón Descargar Excel */}
           <button
   onClick={() => setShowExportModal(true)}
-  className="p-2 sm:px-3 sm:py-2 border border-green-300 rounded-lg hover:bg-green-50 text-green-600 transition"
+  className="p-2 sm:px-3 sm:py-2 bg-green-100 border border-green-300 rounded-lg hover:bg-green-200 text-green-600 transition"
   title="Descargar a Excel"
 >
   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
