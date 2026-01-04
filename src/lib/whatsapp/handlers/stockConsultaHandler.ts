@@ -332,6 +332,7 @@ export async function handleStockEdicion(
 
 /**
  * FASE 3: Botones de confirmación
+ * 🆕 AHORA CREA EVENTOS EN LA TABLA Evento
  */
 export async function handleStockButtonResponse(
   phoneNumber: string,
@@ -361,7 +362,29 @@ export async function handleStockButtonResponse(
 
   if (buttonId === "stock_confirm") {
     try {
-      // Aplicar cambios
+      // 🔍 Obtener información del usuario para los eventos
+      const usuario = await prisma.user.findUnique({
+        where: { telefono: phoneNumber },
+        select: { id: true, campoId: true }
+      })
+
+      if (!usuario?.id || !usuario?.campoId) {
+        await sendWhatsAppMessage(phoneNumber, "❌ Error: Usuario no encontrado.")
+        return
+      }
+
+      // 🔍 Obtener información del potrero
+      const potrero = await prisma.lote.findUnique({
+        where: { id: data.loteId },
+        select: { nombre: true, campoId: true }
+      })
+
+      if (!potrero) {
+        await sendWhatsAppMessage(phoneNumber, "❌ Error: Potrero no encontrado.")
+        return
+      }
+
+      // ✅ Aplicar cambios Y crear eventos
       await prisma.$transaction(async (tx) => {
         for (const cambio of data.cambiosPendientes) {
           const animalLote = await tx.animalLote.findFirst({
@@ -373,6 +396,9 @@ export async function handleStockButtonResponse(
 
           if (!animalLote) continue
 
+          const diferencia = cambio.cantidadNueva - cambio.cantidadOriginal
+
+          // 🔥 ACTUALIZAR animalLote
           if (cambio.cantidadNueva === 0) {
             // Eliminar
             await tx.animalLote.delete({
@@ -384,6 +410,44 @@ export async function handleStockButtonResponse(
               where: { id: animalLote.id },
               data: { cantidad: cambio.cantidadNueva }
             })
+          }
+
+          // 🆕 CREAR EVENTO DE AJUSTE
+          let descripcion = `Se realizaron los siguientes ajustes en ${potrero.nombre}: `
+          
+          if (diferencia > 0) {
+            // Ajuste positivo
+            descripcion += `+${diferencia} ${cambio.categoria}`
+            if (animalLote.peso) {
+              descripcion += ` (${animalLote.peso} kg promedio)`
+            }
+            descripcion += ` (ajuste positivo vía WhatsApp)`
+          } else if (diferencia < 0) {
+            // Ajuste negativo
+            descripcion += `${diferencia} ${cambio.categoria}`
+            if (animalLote.peso) {
+              descripcion += ` (${animalLote.peso} kg promedio)`
+            }
+            descripcion += ` (ajuste negativo vía WhatsApp)`
+          }
+
+          // Solo crear evento si hubo cambio real
+          if (diferencia !== 0) {
+            await tx.evento.create({
+              data: {
+                tipo: 'AJUSTE',
+                fecha: new Date(),
+                descripcion,
+                campoId: usuario.campoId,
+                loteId: data.loteId,
+                usuarioId: usuario.id,
+                cantidad: Math.abs(diferencia),
+                categoria: cambio.categoria,
+                notas: 'Ajuste realizado desde WhatsApp'
+              }
+            })
+
+            console.log(`✅ Evento AJUSTE creado: ${diferencia > 0 ? '+' : ''}${diferencia} ${cambio.categoria} en ${potrero.nombre}`)
           }
         }
       })
