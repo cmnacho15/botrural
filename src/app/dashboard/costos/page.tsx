@@ -44,12 +44,11 @@ interface CostosData {
       sinAsignar: number
     }>
     agricultura: Array<{
-      categoria: string
+      cultivo: string
       totalUSD: number
-      vacunos: number
-      ovinos: number
-      equinos: number
-      sinAsignar: number
+      hectareas: number
+      usdPorHa: number
+      gastos: number
     }>
     mixtos: Array<{
       categoria: string
@@ -506,36 +505,71 @@ console.log('🔍 COSTOS - usarSPG desde Context:', usarSPG)
             </div>
           )}
 
-          {/* 🌾 Agricultura */}
+          {/* 🌾 Agricultura - Por Cultivo */}
           {data.costosVariables.agricultura.length > 0 && (
             <div className="mb-6">
               <h3 className="text-md font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                🌾 Agricultura
+                🌾 Agricultura (Por Cultivo)
               </h3>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Categoría</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cultivo</th>
                       <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Total USD</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Vacunos</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Ovinos</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Equinos</th>
+                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Hectáreas</th>
+                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">USD/ha</th>
+                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Gastos</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
                     {data.costosVariables.agricultura.map((item) => (
-                      <tr key={item.categoria} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 text-sm font-medium text-gray-900">{item.categoria}</td>
-                        <td className="px-4 py-3 text-sm text-right font-medium text-gray-900">{formatUSD(item.totalUSD)}</td>
-                        <td className="px-4 py-3 text-sm text-right text-blue-600">{item.vacunos > 0 ? formatUSD(item.vacunos) : '-'}</td>
-                        <td className="px-4 py-3 text-sm text-right text-green-600">{item.ovinos > 0 ? formatUSD(item.ovinos) : '-'}</td>
-                        <td className="px-4 py-3 text-sm text-right text-amber-600">{item.equinos > 0 ? formatUSD(item.equinos) : '-'}</td>
+                      <tr key={item.cultivo} className="hover:bg-gray-50">
+                        <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                          🌾 {item.cultivo}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-right font-medium text-gray-900">
+                          {formatUSD(item.totalUSD)}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-right text-gray-600">
+                          {item.hectareas.toFixed(1)} ha
+                        </td>
+                        <td className="px-4 py-3 text-sm text-right text-green-600 font-semibold">
+                          {formatUSD(item.usdPorHa)}/ha
+                        </td>
+                        <td className="px-4 py-3 text-sm text-right text-gray-500">
+                          {item.gastos} {item.gastos === 1 ? 'gasto' : 'gastos'}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
+              
+              {/* Totales de Agricultura */}
+              {data.costosVariables.agricultura.length > 1 && (
+                <div className="mt-3 bg-green-50 rounded-lg p-3">
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="font-semibold text-gray-700">Total Agricultura:</span>
+                    <div className="flex gap-6">
+                      <span className="text-gray-600">
+                        {formatUSD(
+                          data.costosVariables.agricultura.reduce((sum, c) => sum + c.totalUSD, 0)
+                        )}
+                      </span>
+                      <span className="text-gray-600">
+                        {data.costosVariables.agricultura.reduce((sum, c) => sum + c.hectareas, 0).toFixed(1)} ha
+                      </span>
+                      <span className="text-green-600 font-semibold">
+                        {formatUSD(
+                          data.costosVariables.agricultura.reduce((sum, c) => sum + c.totalUSD, 0) /
+                          data.costosVariables.agricultura.reduce((sum, c) => sum + c.hectareas, 0)
+                        )}/ha promedio
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
