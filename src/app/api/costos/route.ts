@@ -3,7 +3,8 @@ import { prisma } from "@/lib/prisma"
 import { requireAuth, canAccessFinanzas } from "@/lib/auth-helpers"
 import { calcularEstadisticasCampo } from "@/lib/ugCalculator"
 import { getEquivalenciasUG } from "@/lib/getEquivalenciasUG"
-import { CATEGORIAS_VARIABLES } from "@/lib/costos/categoriasCostos"
+import { esCategoriaVariable, esCategoriaFija, esCategoriaFinanciera } from "@/lib/costos/categoriasCostos"
+import { CATEGORIAS_GASTOS_DEFAULT } from "@/lib/constants"
 
 /**
  * GET /api/costos
@@ -132,9 +133,20 @@ console.log('API COSTOS - superficieParaCalculo:', superficieParaCalculo)
         costosVariables: {
           totalUSD: 0,
           porEspecie: { vacunos: 0, ovinos: 0, equinos: 0, sinAsignar: 0 },
+          ganaderia: [],
+          agricultura: [],
+          mixtos: [],
+          automaticos: [],
           detalle: [],
         },
         costosFijos: {
+          totalUSD: 0,
+          porEspecie: { vacunos: 0, ovinos: 0, equinos: 0 },
+          puros: [],
+          asignables: [],
+          detalle: [],
+        },
+        costosFinancieros: {
           totalUSD: 0,
           porEspecie: { vacunos: 0, ovinos: 0, equinos: 0 },
           detalle: [],
@@ -150,15 +162,11 @@ console.log('API COSTOS - superficieParaCalculo:', superficieParaCalculo)
     }
     
     // ---------------------------------------------------------
-    // 4️⃣ Separar gastos en Variables y Fijos
+    // 4️⃣ Separar gastos en Variables, Fijos y Financieros
     // ---------------------------------------------------------
-    const gastosVariables = gastos.filter(g => 
-      CATEGORIAS_VARIABLES.includes(g.categoria as any)
-    )
-    
-    const gastosFijos = gastos.filter(g => 
-      !CATEGORIAS_VARIABLES.includes(g.categoria as any)
-    )
+    const gastosVariables = gastos.filter(g => esCategoriaVariable(g.categoria))
+    const gastosFijos = gastos.filter(g => esCategoriaFija(g.categoria))
+    const gastosFinancieros = gastos.filter(g => esCategoriaFinanciera(g.categoria))
 
     // ---------------------------------------------------------
     // 5️⃣ Calcular Costos Variables Directos (asignación 100% por especie)
@@ -211,13 +219,42 @@ console.log('API COSTOS - superficieParaCalculo:', superficieParaCalculo)
     )
 
     // ---------------------------------------------------------
-    // 6️⃣ Calcular Costos Fijos (distribución automática por % UG)
+    // 5️⃣ SUBDIVIDIR COSTOS VARIABLES POR SUBTIPO
+    // ---------------------------------------------------------
+    const getSubtipo = (categoria: string) => {
+      const config = CATEGORIAS_GASTOS_DEFAULT.find(c => c.nombre === categoria)
+      return config?.subtipo || 'OTRO'
+    }
+
+    const variablesGanaderia = variablesDetalle
+      ? Object.values(variablesDetalle).filter(d => getSubtipo(d.categoria) === 'GANADERIA')
+      : []
+    
+    const variablesAgricultura = variablesDetalle
+      ? Object.values(variablesDetalle).filter(d => getSubtipo(d.categoria) === 'AGRICULTURA')
+      : []
+    
+    const variablesMixtos = variablesDetalle
+      ? Object.values(variablesDetalle).filter(d => getSubtipo(d.categoria) === 'MIXTO')
+      : []
+    
+    const variablesAutomaticos = variablesDetalle
+      ? Object.values(variablesDetalle).filter(d => getSubtipo(d.categoria) === 'AUTOMATICO')
+      : []
+
+    // ---------------------------------------------------------
+    // 7 Calcular Costos Fijos (distribución automática por % UG)
     // ---------------------------------------------------------
     const totalFijosUSD = gastosFijos.reduce(
       (sum, g) => sum + g.montoEnUSD, 
       0
     )
     
+    // ---------------------------------------------------------
+    // 6️⃣ SUBDIVIDIR COSTOS FIJOS POR SUBTIPO
+    // ---------------------------------------------------------
+    
+
     const costosFijosPorEspecie = {
       vacunos: (totalFijosUSD * porcentajes.vacunos) / 100,
       ovinos: (totalFijosUSD * porcentajes.ovinos) / 100,
@@ -246,13 +283,67 @@ console.log('API COSTOS - superficieParaCalculo:', superficieParaCalculo)
     })
 
     // ---------------------------------------------------------
-    // 7️⃣ Calcular Totales
+    // 🔧 PREPARAR SUBDIVISIONES PARA RESPUESTA
+    // ---------------------------------------------------------
+    const fijosPuros: Array<{
+      categoria: string
+      totalUSD: number
+      vacunos: number
+      ovinos: number
+      equinos: number
+    }> = Object.values(fijosDetalle).filter(d => getSubtipo(d.categoria) === 'PURO')
+    
+    const fijosAsignables: Array<{
+      categoria: string
+      totalUSD: number
+      vacunos: number
+      ovinos: number
+      equinos: number
+    }> = Object.values(fijosDetalle).filter(d => getSubtipo(d.categoria) === 'ASIGNABLE')
+
+    // ---------------------------------------------------------
+    // 8️⃣ Calcular Costos Financieros
+    // ---------------------------------------------------------
+    const totalFinancierosUSD = gastosFinancieros.reduce(
+      (sum, g) => sum + g.montoEnUSD, 
+      0
+    )
+    
+    const costosFinancierosPorEspecie = {
+      vacunos: (totalFinancierosUSD * porcentajes.vacunos) / 100,
+      ovinos: (totalFinancierosUSD * porcentajes.ovinos) / 100,
+      equinos: (totalFinancierosUSD * porcentajes.equinos) / 100,
+    }
+
+    const financierosDetalle: Record<string, any> = {}
+
+    gastosFinancieros.forEach(gasto => {
+      if (!financierosDetalle[gasto.categoria]) {
+        financierosDetalle[gasto.categoria] = {
+          categoria: gasto.categoria,
+          totalUSD: 0,
+          vacunos: 0,
+          ovinos: 0,
+          equinos: 0,
+        }
+      }
+
+      financierosDetalle[gasto.categoria].totalUSD += gasto.montoEnUSD
+      
+      // Distribución automática por % UG
+      financierosDetalle[gasto.categoria].vacunos += (gasto.montoEnUSD * porcentajes.vacunos) / 100
+      financierosDetalle[gasto.categoria].ovinos += (gasto.montoEnUSD * porcentajes.ovinos) / 100
+      financierosDetalle[gasto.categoria].equinos += (gasto.montoEnUSD * porcentajes.equinos) / 100
+    })
+
+    // ---------------------------------------------------------
+    // 9️⃣ Calcular Totales
     // ---------------------------------------------------------
     const totales = {
-      vacunos: costosVariablesPorEspecie.vacunos + costosFijosPorEspecie.vacunos,
-      ovinos: costosVariablesPorEspecie.ovinos + costosFijosPorEspecie.ovinos,
-      equinos: costosVariablesPorEspecie.equinos + costosFijosPorEspecie.equinos,
-      general: totalVariablesUSD + totalFijosUSD,
+      vacunos: costosVariablesPorEspecie.vacunos + costosFijosPorEspecie.vacunos + costosFinancierosPorEspecie.vacunos,
+      ovinos: costosVariablesPorEspecie.ovinos + costosFijosPorEspecie.ovinos + costosFinancierosPorEspecie.ovinos,
+      equinos: costosVariablesPorEspecie.equinos + costosFijosPorEspecie.equinos + costosFinancierosPorEspecie.equinos,
+      general: totalVariablesUSD + totalFijosUSD + totalFinancierosUSD,
     }
 
     // ---------------------------------------------------------
@@ -297,6 +388,39 @@ console.log('API COSTOS - superficieParaCalculo:', superficieParaCalculo)
           equinos: Math.round(costosVariablesPorEspecie.equinos * 100) / 100,
           sinAsignar: Math.round(costosVariablesPorEspecie.sinAsignar * 100) / 100,
         },
+        // Subdivisión por subtipo
+        ganaderia: variablesGanaderia.map(d => ({
+          categoria: d.categoria,
+          totalUSD: Math.round(d.totalUSD * 100) / 100,
+          vacunos: Math.round(d.vacunos * 100) / 100,
+          ovinos: Math.round(d.ovinos * 100) / 100,
+          equinos: Math.round(d.equinos * 100) / 100,
+          sinAsignar: Math.round(d.sinAsignar * 100) / 100,
+        })),
+        agricultura: variablesAgricultura.map(d => ({
+          categoria: d.categoria,
+          totalUSD: Math.round(d.totalUSD * 100) / 100,
+          vacunos: Math.round(d.vacunos * 100) / 100,
+          ovinos: Math.round(d.ovinos * 100) / 100,
+          equinos: Math.round(d.equinos * 100) / 100,
+          sinAsignar: Math.round(d.sinAsignar * 100) / 100,
+        })),
+        mixtos: variablesMixtos.map(d => ({
+          categoria: d.categoria,
+          totalUSD: Math.round(d.totalUSD * 100) / 100,
+          vacunos: Math.round(d.vacunos * 100) / 100,
+          ovinos: Math.round(d.ovinos * 100) / 100,
+          equinos: Math.round(d.equinos * 100) / 100,
+          sinAsignar: Math.round(d.sinAsignar * 100) / 100,
+        })),
+        automaticos: variablesAutomaticos.map(d => ({
+          categoria: d.categoria,
+          totalUSD: Math.round(d.totalUSD * 100) / 100,
+          vacunos: Math.round(d.vacunos * 100) / 100,
+          ovinos: Math.round(d.ovinos * 100) / 100,
+          equinos: Math.round(d.equinos * 100) / 100,
+          sinAsignar: Math.round(d.sinAsignar * 100) / 100,
+        })),
         detalle: Object.values(variablesDetalle).map(d => ({
           categoria: d.categoria,
           totalUSD: Math.round(d.totalUSD * 100) / 100,
@@ -314,7 +438,38 @@ console.log('API COSTOS - superficieParaCalculo:', superficieParaCalculo)
           ovinos: Math.round(costosFijosPorEspecie.ovinos * 100) / 100,
           equinos: Math.round(costosFijosPorEspecie.equinos * 100) / 100,
         },
+        // Subdivisión por subtipo
+        puros: fijosPuros.map(d => ({
+          categoria: d.categoria,
+          totalUSD: Math.round(d.totalUSD * 100) / 100,
+          vacunos: Math.round(d.vacunos * 100) / 100,
+          ovinos: Math.round(d.ovinos * 100) / 100,
+          equinos: Math.round(d.equinos * 100) / 100,
+        })),
+        asignables: fijosAsignables.map(d => ({
+          categoria: d.categoria,
+          totalUSD: Math.round(d.totalUSD * 100) / 100,
+          vacunos: Math.round(d.vacunos * 100) / 100,
+          ovinos: Math.round(d.ovinos * 100) / 100,
+          equinos: Math.round(d.equinos * 100) / 100,
+        })),
         detalle: Object.values(fijosDetalle).map(d => ({
+          categoria: d.categoria,
+          totalUSD: Math.round(d.totalUSD * 100) / 100,
+          vacunos: Math.round(d.vacunos * 100) / 100,
+          ovinos: Math.round(d.ovinos * 100) / 100,
+          equinos: Math.round(d.equinos * 100) / 100,
+        })),
+      },
+
+      costosFinancieros: {
+        totalUSD: Math.round(totalFinancierosUSD * 100) / 100,
+        porEspecie: {
+          vacunos: Math.round(costosFinancierosPorEspecie.vacunos * 100) / 100,
+          ovinos: Math.round(costosFinancierosPorEspecie.ovinos * 100) / 100,
+          equinos: Math.round(costosFinancierosPorEspecie.equinos * 100) / 100,
+        },
+        detalle: Object.values(financierosDetalle).map(d => ({
           categoria: d.categoria,
           totalUSD: Math.round(d.totalUSD * 100) / 100,
           vacunos: Math.round(d.vacunos * 100) / 100,

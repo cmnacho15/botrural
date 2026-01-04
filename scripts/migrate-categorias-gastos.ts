@@ -57,7 +57,13 @@ const CATEGORIAS_GASTOS_DEFAULT = [
 async function main() {
   console.log('🚀 Iniciando migración de categorías de gastos...\n')
 
-  const campos = await prisma.campo.findMany()
+  const campos = await prisma.campo.findMany({
+    where: {
+      nombre: {
+        in: ['El Estribo', 'Don Pepe', 'Manya', 'Mirasol']
+      }
+    }
+  })
   
   for (const campo of campos) {
     console.log(`\n📂 Procesando campo: ${campo.nombre} (ID: ${campo.id})`)
