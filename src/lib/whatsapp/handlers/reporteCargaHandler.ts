@@ -42,7 +42,17 @@ async function generarPDFCarga(campoId: string): Promise<Buffer | null> {
       orderBy: [{ tipoAnimal: 'asc' }, { nombreSingular: 'asc' }]
     })
 
-    const categoriasBovinas = categoriasDB.filter(c => c.tipoAnimal === 'BOVINO').map(c => ({ nombre: c.nombreSingular, equivalenciaUG: getEquivalenciaUGLocal(c.nombreSingular, pesosPersonalizados) }))
+    const categoriasBovinas = categoriasDB
+  .filter(c => c.tipoAnimal === 'BOVINO')
+  .map(c => ({ nombre: c.nombreSingular, equivalenciaUG: getEquivalenciaUGLocal(c.nombreSingular, pesosPersonalizados) }))
+  .sort((a, b) => {
+    const orden = [
+      'Vacas gordas', 'Vacas', 'Vaquillonas +2', 'Vaquillonas 1-2', 
+      'Terneras', 'Terneros', 'Terneros nacidos', 'Toros', 
+      'Nov 1-2', 'Nov 2-3', 'Nov +3'
+    ];
+    return orden.indexOf(a.nombre) - orden.indexOf(b.nombre);
+  })
 const categoriasOvinas = categoriasDB.filter(c => c.tipoAnimal === 'OVINO').map(c => ({ nombre: c.nombreSingular, equivalenciaUG: getEquivalenciaUGLocal(c.nombreSingular, pesosPersonalizados) }))
 const categoriasEquinas = categoriasDB.filter(c => c.tipoAnimal === 'EQUINO').map(c => ({ nombre: c.nombreSingular, equivalenciaUG: getEquivalenciaUGLocal(c.nombreSingular, pesosPersonalizados) }))
 
@@ -196,7 +206,16 @@ startY += 5
         // VACUNOS
         if (catBov.length > 0) {
           const headers = ['Potrero', 'Ha', ...catBov.map(c => c.nombre), 'Total', 'UG/Ha']
-          const filaEq = ['UG x Cat', '', ...catBov.map(c => c.equivalenciaUG.toFixed(2)), '', '']
+          const tieneTermerosNacidos = modulo.potreros.some((p: any) => 
+  (p.animalesPorCategoria['Terneros nacidos'] || 0) > 0
+);
+
+const filaEq = ['UG x Cat', '', ...catBov.map(c => {
+  if (c.nombre === 'Vacas' && tieneTermerosNacidos) {
+    return `${c.equivalenciaUG.toFixed(2)} (+0.20 con ter.nac.)`;
+  }
+  return c.equivalenciaUG.toFixed(2);
+}), '', '']
           const filasDatos = modulo.potreros.map((p: any) => [p.nombre, p.hectareas.toFixed(0), ...catBov.map(c => { const cant = p.animalesPorCategoria[c.nombre] || 0; return cant > 0 ? cant.toString() : '' }), p.vacunosTotales.toString(), p.ugPorHa.toFixed(2)])
           const totMod = { ha: modulo.potreros.reduce((s: number, p: any) => s + p.hectareas, 0), vac: modulo.potreros.reduce((s: number, p: any) => s + p.vacunosTotales, 0), cat: {} as Record<string, number> }
           catBov.forEach(c => { totMod.cat[c.nombre] = modulo.potreros.reduce((s: number, p: any) => s + (p.animalesPorCategoria[c.nombre] || 0), 0) })
@@ -312,7 +331,16 @@ startY += 5
       // VACUNOS
       const catBovFiltradas = categoriasBovinas.filter(c => totalesPorCategoria[c.nombre] > 0)
       const headersBovinos = ['Potreros', 'Ha', ...catBovFiltradas.map(c => c.nombre), 'Total Vacunos', 'UG/Ha (Vac+Ovi+Equ)']
-      const filaEquivalenciasBovinos = ['UG x Categoría', '', ...catBovFiltradas.map(c => c.equivalenciaUG.toFixed(2)), '', '']
+      const tieneTermerosNacidosOriginal = potrerosData.some(p => 
+  (p.animalesPorCategoria['Terneros nacidos'] || 0) > 0
+);
+
+const filaEquivalenciasBovinos = ['UG x Categoría', '', ...catBovFiltradas.map(c => {
+  if (c.nombre === 'Vacas' && tieneTermerosNacidosOriginal) {
+    return `${c.equivalenciaUG.toFixed(2)} (+0.20 con ter.nac.)`;
+  }
+  return c.equivalenciaUG.toFixed(2);
+}), '', '']
       const filasDatosBovinos = potrerosData.map(p => [p.nombre, p.hectareas.toFixed(0), ...catBovFiltradas.map(c => { const cant = p.animalesPorCategoria[c.nombre] || 0; return cant > 0 ? cant.toString() : '' }), p.vacunosTotales.toString(), p.ugPorHa.toFixed(2)])
       const filaTotalesBovinos = ['TOTAL:', totalHectareas.toFixed(0), ...catBovFiltradas.map(c => { const total = totalesPorCategoria[c.nombre] || 0; return total > 0 ? total.toString() : '' }), totalVacunos.toString(), ugPorHaGlobal.toFixed(2)]
 

@@ -173,8 +173,26 @@ startY += 5
 
           // TABLA VACUNOS
           if (categoriasBovinas.length > 0) {
-            const headers = ['Potrero', 'Ha', ...categoriasBovinas.map(c => c.nombre), 'Total', 'UG/Ha']
-            const filaEq = ['UG x Cat', '', ...categoriasBovinas.map(c => c.equivalenciaUG.toFixed(2)), '', '']
+            const headers = ['Potrero', 'Ha', ...categoriasBovinas
+  .sort((a, b) => {
+    const orden = [
+      'Vacas gordas', 'Vacas', 'Vaquillonas +2', 'Vaquillonas 1-2', 
+      'Terneras', 'Terneros', 'Terneros nacidos', 'Toros', 
+      'Nov 1-2', 'Nov 2-3', 'Nov +3'
+    ];
+    return orden.indexOf(a.nombre) - orden.indexOf(b.nombre);
+  })
+  .map(c => c.nombre), 'Total', 'UG/Ha']
+            const tieneTermerosNacidos = modulo.potreros.some(p => 
+  (p.animalesPorCategoria['Terneros nacidos'] || 0) > 0
+);
+
+const filaEq = ['UG x Cat', '', ...categoriasBovinas.map(c => {
+  if (c.nombre === 'Vacas' && tieneTermerosNacidos) {
+    return `${c.equivalenciaUG.toFixed(2)} (+0.20 con ter.nac.)`;
+  }
+  return c.equivalenciaUG.toFixed(2);
+}), '', '']
 
             const filasDatos = modulo.potreros.map(p => [
               p.nombre,
@@ -395,16 +413,34 @@ startY += 5
         )
 
         const headersBovinos = [
-          'Potreros', 'Ha',
-          ...categoriasBovinas.map(c => c.nombre),
-          'Total Vacunos', 'UG/Ha (Vac+Ovi+Equ)'
-        ]
+  'Potreros', 'Ha',
+  ...categoriasBovinas
+    .sort((a, b) => {
+      const orden = [
+        'Vacas gordas', 'Vacas', 'Vaquillonas +2', 'Vaquillonas 1-2', 
+        'Terneras', 'Terneros', 'Terneros nacidos', 'Toros', 
+        'Nov 1-2', 'Nov 2-3', 'Nov +3'
+      ];
+      return orden.indexOf(a.nombre) - orden.indexOf(b.nombre);
+    })
+    .map(c => c.nombre),
+  'Total Vacunos', 'UG/Ha (Vac+Ovi+Equ)'
+]
 
-        const filaEquivalenciasBovinos = [
-          'UG x Categoría', '',
-          ...categoriasBovinas.map(c => c.equivalenciaUG.toFixed(2)),
-          '', ''
-        ]
+        const tieneTermerosNacidosOriginal = data.potreros.some(p => 
+  (p.animalesPorCategoria['Terneros nacidos'] || 0) > 0
+);
+
+const filaEquivalenciasBovinos = [
+  'UG x Categoría', '',
+  ...categoriasBovinas.map(c => {
+    if (c.nombre === 'Vacas' && tieneTermerosNacidosOriginal) {
+      return `${c.equivalenciaUG.toFixed(2)} (+0.20 con ter.nac.)`;
+    }
+    return c.equivalenciaUG.toFixed(2);
+  }),
+  '', ''
+]
 
         const filasDatosBovinos = data.potreros.map(potrero => [
           potrero.nombre,
