@@ -168,19 +168,7 @@ doc.text(
 startY += 5
 
           // Filtrar categorías con animales en este módulo
-          const categoriasBovinas = data.categorias.bovinas.filter(cat =>
-            modulo.potreros.some(p => (p.animalesPorCategoria[cat.nombre] || 0) > 0)
-          )
-          const categoriasOvinas = data.categorias.ovinas.filter(cat =>
-            modulo.potreros.some(p => (p.animalesPorCategoria[cat.nombre] || 0) > 0)
-          )
-          const categoriasEquinas = data.categorias.equinas.filter(cat =>
-            modulo.potreros.some(p => (p.animalesPorCategoria[cat.nombre] || 0) > 0)
-          )
-
-          // TABLA VACUNOS
-          if (categoriasBovinas.length > 0) {
-            const headers = ['Potrero', 'Ha', ...categoriasBovinas
+const categoriasBovinas = data.categorias.bovinas
   .sort((a, b) => {
     const orden = [
       'Vacas gordas', 'Vacas', 'Vaquillonas +2', 'Vaquillonas 1-2', 
@@ -189,7 +177,19 @@ startY += 5
     ];
     return orden.indexOf(a.nombre) - orden.indexOf(b.nombre);
   })
-  .map(c => limpiarNombreCategoria(c.nombre)), 'Total', 'UG/Ha']
+  .filter(cat => modulo.potreros.some(p => (p.animalesPorCategoria[cat.nombre] || 0) > 0))
+
+const categoriasOvinas = data.categorias.ovinas.filter(cat =>
+  modulo.potreros.some(p => (p.animalesPorCategoria[cat.nombre] || 0) > 0)
+)
+
+const categoriasEquinas = data.categorias.equinas.filter(cat =>
+  modulo.potreros.some(p => (p.animalesPorCategoria[cat.nombre] || 0) > 0)
+)
+
+          // TABLA VACUNOS
+          if (categoriasBovinas.length > 0) {
+            const headers = ['Potrero', 'Ha', ...categoriasBovinas.map(c => limpiarNombreCategoria(c.nombre)), 'Total', 'UG/Ha']
 
             const tieneTermerosNacidos = modulo.potreros.some(p => 
   (p.animalesPorCategoria['Terneros nacidos'] || 0) > 0
@@ -415,23 +415,23 @@ const filaEq = ['UG x Cat', '', ...categoriasBovinas.map(c => {
 
       } else {
         // ========== FORMATO ORIGINAL: SIN MÓDULOS ==========
-        const categoriasBovinas = data.categorias.bovinas.filter(cat =>
-          data.potreros.some(p => (p.animalesPorCategoria[cat.nombre] || 0) > 0) ||
-          (data.totales.porCategoria[cat.nombre] || 0) > 0
-        )
+        const categoriasBovinas = data.categorias.bovinas
+  .sort((a, b) => {
+    const orden = [
+      'Vacas gordas', 'Vacas', 'Vaquillonas +2', 'Vaquillonas 1-2', 
+      'Terneras', 'Terneros', 'Terneros nacidos', 'Toros', 
+      'Nov 1-2', 'Nov 2-3', 'Nov +3'
+    ];
+    return orden.indexOf(a.nombre) - orden.indexOf(b.nombre);
+  })
+  .filter(cat =>
+    data.potreros.some(p => (p.animalesPorCategoria[cat.nombre] || 0) > 0) ||
+    (data.totales.porCategoria[cat.nombre] || 0) > 0
+  )
 
         const headersBovinos = [
   'Potreros', 'Ha',
-  ...categoriasBovinas
-    .sort((a, b) => {
-      const orden = [
-        'Vacas gordas', 'Vacas', 'Vaquillonas +2', 'Vaquillonas 1-2', 
-        'Terneras', 'Terneros', 'Terneros nacidos', 'Toros', 
-        'Nov 1-2', 'Nov 2-3', 'Nov +3'
-      ];
-      return orden.indexOf(a.nombre) - orden.indexOf(b.nombre);
-    })
-    .map(c => limpiarNombreCategoria(c.nombre)),
+  ...categoriasBovinas.map(c => limpiarNombreCategoria(c.nombre)),
   'Total Vacunos', 'UG/Ha (Vac+Ovi+Equ)'
 ]
 
