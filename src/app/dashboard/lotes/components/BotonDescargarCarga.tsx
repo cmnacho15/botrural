@@ -69,6 +69,13 @@ function tieneModulos(data: ReporteCarga): data is ReporteCargaModulos {
   return 'modulos' in data
 }
 
+
+function limpiarNombreCategoria(nombre: string): string {
+  return nombre
+    .replace(' años', '')
+    .replace(' año', '')
+}
+
 export default function BotonDescargarCarga() {
   const [descargando, setDescargando] = useState(false)
 
@@ -182,7 +189,8 @@ startY += 5
     ];
     return orden.indexOf(a.nombre) - orden.indexOf(b.nombre);
   })
-  .map(c => c.nombre), 'Total', 'UG/Ha']
+  .map(c => limpiarNombreCategoria(c.nombre)), 'Total', 'UG/Ha']
+
             const tieneTermerosNacidos = modulo.potreros.some(p => 
   (p.animalesPorCategoria['Terneros nacidos'] || 0) > 0
 );
@@ -423,7 +431,7 @@ const filaEq = ['UG x Cat', '', ...categoriasBovinas.map(c => {
       ];
       return orden.indexOf(a.nombre) - orden.indexOf(b.nombre);
     })
-    .map(c => c.nombre),
+    .map(c => limpiarNombreCategoria(c.nombre)),
   'Total Vacunos', 'UG/Ha (Vac+Ovi+Equ)'
 ]
 

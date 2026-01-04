@@ -6,6 +6,13 @@ import { sendWhatsAppMessage, sendWhatsAppDocument } from "../sendMessage"
 import { getEquivalenciasUG } from "@/lib/getEquivalenciasUG"
 import { createClient } from "@supabase/supabase-js"
 
+function limpiarNombreCategoria(nombre: string): string {
+  return nombre
+    .replace(' años', '')
+    .replace(' año', '')
+}
+
+
 // Función para obtener cliente Supabase (lazy init)
 function getSupabaseClient() {
   return createClient(
@@ -205,7 +212,7 @@ startY += 5
 
         // VACUNOS
         if (catBov.length > 0) {
-          const headers = ['Potrero', 'Ha', ...catBov.map(c => c.nombre), 'Total', 'UG/Ha']
+          const headers = ['Potrero', 'Ha', ...catBov.map(c => limpiarNombreCategoria(c.nombre)), 'Total', 'UG/Ha']
           const tieneTermerosNacidos = modulo.potreros.some((p: any) => 
   (p.animalesPorCategoria['Terneros nacidos'] || 0) > 0
 );
@@ -330,7 +337,7 @@ const filaEq = ['UG x Cat', '', ...catBov.map(c => {
 
       // VACUNOS
       const catBovFiltradas = categoriasBovinas.filter(c => totalesPorCategoria[c.nombre] > 0)
-      const headersBovinos = ['Potreros', 'Ha', ...catBovFiltradas.map(c => c.nombre), 'Total Vacunos', 'UG/Ha (Vac+Ovi+Equ)']
+      const headersBovinos = ['Potreros', 'Ha', ...catBovFiltradas.map(c => limpiarNombreCategoria(c.nombre)), 'Total Vacunos', 'UG/Ha (Vac+Ovi+Equ)']
       const tieneTermerosNacidosOriginal = potrerosData.some(p => 
   (p.animalesPorCategoria['Terneros nacidos'] || 0) > 0
 );
