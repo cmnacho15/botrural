@@ -692,30 +692,8 @@ if (!potrero.isEditing) {
   tooltip.setLatLng(center)
   existingLayersRef.current.addLayer(tooltip)
 
-  // 🎯 MAGIA: Ocultar/mostrar tooltips según zoom para evitar superposición
-  if (!mapRef.current._tooltipZoomHandler) {
-    mapRef.current._tooltipZoomHandler = true
-    mapRef.current.on('zoomend', () => {
-      const currentZoom = mapRef.current.getZoom()
-      
-      existingLayersRef.current.eachLayer((layer: any) => {
-        if (layer instanceof (L as any).Tooltip) {
-          // Ocultar en zoom bajo, mostrar en zoom medio/alto
-          if (currentZoom < 13) {
-            layer.setOpacity(0) // Invisible en zoom bajo
-          } else {
-            layer.setOpacity(1) // Visible en zoom medio/alto
-          }
-        }
-      })
-    })
-  }
-
-  // Aplicar visibilidad inicial según zoom actual
-  const initialZoom = mapRef.current?.getZoom() || 14
-  if (initialZoom < 13) {
-    tooltip.setOpacity(0)
-  }
+  // ✅ La gestión de visibilidad se hace más abajo con gestionarVisibilidadTooltips()
+// No aplicar visibilidad inicial aquí para evitar conflictos
 }
     })
     
@@ -806,30 +784,19 @@ const gestionarVisibilidadTooltips = () => {
   }
 }
 
+
+
+
 // Aplicar lógica inicial
 gestionarVisibilidadTooltips()
 
-
-// RE-APLICAR CUANDO CAMBIA FULLSCREEN
-const fullscreenHandler = () => {
-  setTimeout(() => {
-    if (document.fullscreenElement && existingLayersRef.current) {
-      existingLayersRef.current.eachLayer((layer: any) => {
-        if (layer.options?.permanent === true) {
-          layer.setOpacity(1)
-        }
-      })
-    }
-  }, 300)
-}
-document.addEventListener('fullscreenchange', fullscreenHandler)
+// 🔥 REMOVER handlers anteriores antes de agregar nuevos
+mapRef.current.off('zoomend', gestionarVisibilidadTooltips)
+mapRef.current.off('moveend', gestionarVisibilidadTooltips)
 
 // Actualizar cuando cambia el zoom o se mueve el mapa
-if (!mapRef.current._tooltipZoomHandler) {
-  mapRef.current._tooltipZoomHandler = true
-  mapRef.current.on('zoomend', gestionarVisibilidadTooltips)
-  mapRef.current.on('moveend', gestionarVisibilidadTooltips)
-}
+mapRef.current.on('zoomend', gestionarVisibilidadTooltips)
+mapRef.current.on('moveend', gestionarVisibilidadTooltips)
     if (existingPolygons.length > 0 && existingLayersRef.current.getLayers().length > 0) {
       try {
         const bounds = (existingLayersRef.current as any).getBounds()
