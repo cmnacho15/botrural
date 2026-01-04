@@ -212,9 +212,9 @@ export function CargaGlobalCampo({ lotes }: CargaGlobalCampoProps) {
     const ug = animal.cantidad * equivalencia
     
     if (['Toros', 'Vacas', 'Novillos +3 años', 'Novillos 2–3 años', 
-         'Novillos 1–2 años', 'Vaquillonas +2 años', 'Vaquillonas 1–2 años', 
-         'Terneros/as'].includes(animal.categoria)) {
-      desglose.vacunos += ug
+     'Novillos 1–2 años', 'Vaquillonas +2 años', 'Vaquillonas 1–2 años', 
+     'Terneros', 'Terneras', 'Terneros nacidos'].includes(animal.categoria)) {
+  desglose.vacunos += ug
     } else if (['Carneros', 'Ovejas', 'Capones', 'Borregas 2–4 dientes', 
                 'Corderas DL', 'Corderos DL', 'Corderos/as Mamones'].includes(animal.categoria)) {
       desglose.ovinos += ug

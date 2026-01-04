@@ -33,10 +33,9 @@ const CATEGORIAS_VACUNOS = [
   "Novillos 1–2 años",
   "Novillos",
   "Novillitos",
-  "Terneros/as Mamones",
-  "Terneros/as",
   "Terneros",
   "Terneras",
+  "Terneros nacidos",
   "Toros",
   "Toritos",
 ];

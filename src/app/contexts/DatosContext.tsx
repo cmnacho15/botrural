@@ -47,12 +47,11 @@ type DatosContextType = {
 const AGRUPACION_ANIMALES: Record<string, string[]> = {
   'Novillos': ['Novillos +3 años', 'Novillos 2–3 años', 'Novillos 1–2 años', 'Novillos', 'Novillitos'],
   'Vaquillonas': ['Vaquillonas +2 años', 'Vaquillonas 1–2 años', 'Vaquillonas'],
-  'Terneros/as': ['Terneros/as', 'Terneros', 'Terneras', 'Terneros/as Mamones'],
-  'Terneros': ['Terneros'],  // ✅ AGREGADO
-  'Terneras': ['Terneras'],  // ✅ AGREGADO
-  'Terneros nacidos': ['Terneros nacidos'],  // ✅ AGREGADO
+  'Terneros': ['Terneros', 'Terneros nacidos'],
+  'Terneras': ['Terneras', 'Terneros nacidos'],
+  'Terneros nacidos': ['Terneros nacidos'],
   'Corderos': ['Corderos DL', 'Corderas DL', 'Corderos/as Mamones', 'Corderos', 'Corderas'],
-  'Corderos/as Mamones': ['Corderos/as Mamones'],  // ✅ AGREGADO
+  'Corderos/as Mamones': ['Corderos/as Mamones'],
   'Borregas': ['Borregas 2–4 dientes', 'Borregas', 'Borregos'],
   'Vacas': ['Vacas'],
   'Vacas Gordas': ['Vacas Gordas'],
