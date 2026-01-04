@@ -1,58 +1,85 @@
 // lib/costos/categoriasCostos.ts
 
 /**
- * Categorías de COSTOS VARIABLES
- * Se distribuyen automáticamente según % de UG de cada especie
- * ⚠️ NO EDITABLE - Configuración interna del sistema
+ * ✅ CATEGORÍAS DE COSTOS VARIABLES DIRECTOS
+ * Se asignan 100% a la especie indicada (campo especie en gasto)
  */
 export const CATEGORIAS_VARIABLES = [
-  'Sanidad',
+  // 🐄 GANADERÍA
   'Alimentación',
-  'Insumos Agrícolas',
-  'Fertilizantes',
+  'Genética',
+  'Sanidad y Manejo',
+  'Insumos Pasturas',
+  
+  // 🌾 AGRICULTURA
+  'Insumos de Cultivos',
+  
+  // 🔀 MIXTOS
+  'Combustible',
+  'Flete',
   'Labores',
-  'Fitosanitarios',
+  
+  // 🤖 AUTOMÁTICOS
+  'Gastos Comerciales',
 ] as const
 
 /**
- * Categorías de COSTOS FIJOS
- * Se asignan manualmente a cada especie o quedan como "global"
- * ⚠️ NO EDITABLE - Configuración interna del sistema
+ * ✅ CATEGORÍAS DE COSTOS FIJOS
+ * Se distribuyen automáticamente según % UG
  */
 export const CATEGORIAS_FIJAS = [
-  'Impuestos',
+  // 🏢 FIJOS PUROS
   'Administración',
-  'Sueldos',
-  'Seguros',
-  'Maquinaria',
-  'Combustible',
-  'Renta',
   'Asesoramiento',
+  'Impuestos',
+  'Seguros',
   'Estructuras',
   'Otros',
+  
+  // 🔧 FIJOS ASIGNABLES
+  'Sueldos',
+  'Maquinaria',
+  'Electricidad',
+  'Mantenimiento',
 ] as const
 
 /**
- * Tipos de especie válidos para asignación de costos fijos
+ * ✅ CATEGORÍAS DE COSTOS FINANCIEROS
+ */
+export const CATEGORIAS_FINANCIERAS = [
+  'Renta',
+  'Intereses',
+] as const
+
+/**
+ * Tipos de especie válidos para asignación de costos variables
  */
 export const ESPECIES_VALIDAS = ['VACUNOS', 'OVINOS', 'EQUINOS'] as const
 
 export type CategoriaVariable = typeof CATEGORIAS_VARIABLES[number]
 export type CategoriaFija = typeof CATEGORIAS_FIJAS[number]
+export type CategoriaFinanciera = typeof CATEGORIAS_FINANCIERAS[number]
 export type EspecieValida = typeof ESPECIES_VALIDAS[number]
 
 /**
- * Verifica si una categoría es variable (se distribuye automáticamente)
+ * Verifica si una categoría es variable (requiere especie)
  */
 export function esCategoriaVariable(categoria: string): boolean {
   return CATEGORIAS_VARIABLES.includes(categoria as CategoriaVariable)
 }
 
 /**
- * Verifica si una categoría es fija (requiere asignación manual)
+ * Verifica si una categoría es fija (se distribuye automáticamente)
  */
 export function esCategoriaFija(categoria: string): boolean {
   return CATEGORIAS_FIJAS.includes(categoria as CategoriaFija)
+}
+
+/**
+ * Verifica si una categoría es financiera
+ */
+export function esCategoriaFinanciera(categoria: string): boolean {
+  return CATEGORIAS_FINANCIERAS.includes(categoria as CategoriaFinanciera)
 }
 
 /**
@@ -65,6 +92,9 @@ export function getColorTipoCosto(categoria: string): string {
   if (esCategoriaFija(categoria)) {
     return 'bg-blue-100 text-blue-800'
   }
+  if (esCategoriaFinanciera(categoria)) {
+    return 'bg-purple-100 text-purple-800'
+  }
   return 'bg-gray-100 text-gray-800'
 }
 
@@ -73,10 +103,13 @@ export function getColorTipoCosto(categoria: string): string {
  */
 export function getLabelTipoCosto(categoria: string): string {
   if (esCategoriaVariable(categoria)) {
-    return 'Variable'
+    return 'Variable Directo'
   }
   if (esCategoriaFija(categoria)) {
     return 'Fijo'
+  }
+  if (esCategoriaFinanciera(categoria)) {
+    return 'Financiero'
   }
   return 'Otro'
 }

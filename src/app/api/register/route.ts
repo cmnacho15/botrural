@@ -5,27 +5,7 @@ import { prisma } from "@/lib/prisma"
 import bcrypt from "bcryptjs"
 import { CATEGORIAS_ANIMALES_DEFAULT } from "@/lib/constants"
 
-const CATEGORIAS_GASTOS_DEFAULT = [
-  { nombre: 'Alimentación', color: '#ef4444' },
-  { nombre: 'Otros', color: '#6b7280' },
-  { nombre: 'Administración', color: '#3b82f6' },
-  { nombre: 'Renta', color: '#8b5cf6' },
-  { nombre: 'Asesoramiento', color: '#06b6d4' },
-  { nombre: 'Combustible', color: '#f97316' },
-  { nombre: 'Compras de Hacienda', color: '#84cc16' },
-  { nombre: 'Estructuras', color: '#64748b' },
-  { nombre: 'Fertilizantes', color: '#22c55e' },
-  { nombre: 'Fitosanitarios', color: '#14b8a6' },
-  { nombre: 'Gastos Comerciales', color: '#a855f7' },
-  { nombre: 'Impuestos', color: '#ec4899' },
-  { nombre: 'Insumos Agrícolas', color: '#eab308' },
-  { nombre: 'Labores', color: '#f59e0b' },
-  { nombre: 'Maquinaria', color: '#78716c' },
-  { nombre: 'Sanidad', color: '#dc2626' },
-  { nombre: 'Seguros', color: '#0ea5e9' },
-  { nombre: 'Semillas', color: '#65a30d' },
-  { nombre: 'Sueldos', color: '#7c3aed' },
-]
+import { CATEGORIAS_GASTOS_DEFAULT } from '@/lib/constants'
 
 export async function POST(request: Request) {
   try {
@@ -102,13 +82,13 @@ export async function POST(request: Request) {
         },
       })
 
-      // 6. Crear categorías de gastos predeterminadas
+      // 6. Crear categorías de gastos predeterminadas (21 categorías nuevas)
       await tx.categoriaGasto.createMany({
-        data: CATEGORIAS_GASTOS_DEFAULT.map((cat, index) => ({
+        data: CATEGORIAS_GASTOS_DEFAULT.map((cat) => ({
           nombre: cat.nombre,
           color: cat.color,
           campoId: campo.id,
-          orden: index,
+          orden: cat.orden,
           activo: true,
         })),
         skipDuplicates: true,
@@ -134,7 +114,7 @@ export async function POST(request: Request) {
     console.log(`   - Grupo: ${result.grupo.nombre}`)
     console.log(`   - Campo: ${result.campo.nombre}`)
     console.log(`   - Usuario: ${result.user.email}`)
-    console.log(`   - ${CATEGORIAS_GASTOS_DEFAULT.length} categorías de gastos`)
+    console.log(`   - 21 categorías de gastos`)
     console.log(`   - ${CATEGORIAS_ANIMALES_DEFAULT.length} categorías de animales`)
 
     return NextResponse.json(
