@@ -215,6 +215,8 @@ model Lote {
   
   @@index([moduloPastoreoId])  // ← índice para búsquedas rápidas
   @@index([esPastoreable])  // 🆕 ÍNDICE para filtrar rápido
+
+  
 }
 
 model Cultivo {

@@ -17,7 +17,8 @@ type ItemGasto = {
   precio: number
   iva: number
   precioFinal: number
-  especie: string | null // ✅ NUEVO CAMPO
+  especie: string | null
+  loteId: string | null  // 🆕 NUEVO CAMPO
 }
 
 export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
@@ -38,6 +39,13 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
   // 🆕 CATEGORÍAS DINÁMICAS
   const [categorias, setCategorias] = useState<string[]>([])
 
+  // 🌾 Lotes agrícolas (no pastoreables con cultivo)
+  const [lotesAgricolas, setLotesAgricolas] = useState<Array<{
+    id: string
+    nombre: string
+    cultivos: Array<{ tipoCultivo: string }>
+  }>>([])
+
   const [items, setItems] = useState<ItemGasto[]>([
     {
       id: '1',
@@ -46,7 +54,8 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
       precio: 0,
       iva: 0,
       precioFinal: 0,
-      especie: null, // ✅ NUEVO
+      especie: null,
+      loteId: null,  // 🆕 NUEVO
     },
   ])
 
@@ -77,6 +86,32 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
       }
     }
     cargarProveedores()
+  }, [])
+
+  
+
+  // 🌾 Cargar lotes agrícolas (no pastoreables con cultivo)
+  useEffect(() => {
+    const cargarLotesAgricolas = async () => {
+      try {
+        const res = await fetch('/api/lotes')
+        if (res.ok) {
+          const lotes = await res.json()
+          
+          // Filtrar solo lotes NO pastoreables que tengan cultivos
+          const agricolas = lotes.filter((l: any) => 
+            l.esPastoreable === false && 
+            l.cultivos && 
+            l.cultivos.length > 0
+          )
+          
+          setLotesAgricolas(agricolas)
+        }
+      } catch (err) {
+        console.error('Error cargando lotes agrícolas:', err)
+      }
+    }
+    cargarLotesAgricolas()
   }, [])
 
   // 🆕 CARGAR CATEGORÍAS DINÁMICAS DESDE BACKEND
@@ -124,10 +159,12 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
           updated.iva = isNaN(numValue) ? 0 : numValue
           updated.precioFinal = calcularPrecioFinal(updated.precio, updated.iva)
         } else if (field === 'categoria') {
-          // ✅ Si cambia a categoría variable, resetear especie
+          // ✅ Si cambia categoría, resetear especie y lote
           updated.categoria = value
           if (esCategoriaVariable(value)) {
             updated.especie = null
+          } else {
+            updated.loteId = null
           }
         } else {
           updated = { ...updated, [field]: value }
@@ -147,7 +184,8 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
         precio: 0,
         iva: 0,
         precioFinal: 0,
-        especie: null, // ✅ NUEVO
+        especie: null,
+        loteId: null,  // 🆕 NUEVO
       },
     ])
   }
@@ -177,6 +215,16 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
     return
   }
 
+  // ✅ VALIDACIÓN: Agricultura requiere lote
+  const itemSinLote = items.find(item => 
+    item.categoria === 'Insumos de Cultivos' && !item.loteId
+  )
+  
+  if (itemSinLote) {
+    alert(`El item "${itemSinLote.item}" es de agricultura y requiere que asignes un lote agrícola`)
+    return
+  }
+
   if (esPlazo && diasPlazo < 1) {
     alert('Si es pago a plazo, ingresá una cantidad de días válida')
     return
@@ -203,7 +251,8 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
             diasPlazo: esPlazo ? diasPlazo : null,
             pagado: esPlazo ? pagado : true,
             proveedor: proveedor.trim() || null,
-            especie: item.especie, // ✅ NUEVO CAMPO
+            especie: item.especie,
+            loteId: item.loteId,  // 🆕 NUEVO CAMPO
           }),
         })
 
@@ -496,6 +545,47 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
                         </option>
                       ))}
                     </select>
+                  </div>
+                )}
+              
+
+              {/* 🌾 CAMPO LOTE (solo si es Agricultura) */}
+                {item.categoria === 'Insumos de Cultivos' && (
+                  <div className="mb-3">
+                    <label className="block text-xs text-gray-600 mb-1">
+                      Lote Agrícola (requerido)
+                      <span className="ml-2 text-green-600 text-[10px] font-semibold">
+                        AGRICULTURA
+                      </span>
+                    </label>
+                    <select
+                      value={item.loteId || ''}
+                      onChange={e =>
+                        handleItemChange(
+                          item.id,
+                          'loteId',
+                          e.target.value || null
+                        )
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+                      required
+                    >
+                      <option value="">Seleccionar lote...</option>
+                      {lotesAgricolas.map(lote => (
+                        <option key={lote.id} value={lote.id}>
+                          {lote.nombre} ({lote.cultivos.map(c => c.tipoCultivo).join(', ')})
+                        </option>
+                      ))}
+                    </select>
+                    
+                    {lotesAgricolas.length === 0 && (
+                      <p className="text-xs text-amber-600 mt-1">
+                        ⚠️ No hay lotes agrícolas. 
+                        <a href="/dashboard/lotes" className="underline ml-1" target="_blank">
+                          Creá uno primero
+                        </a>
+                      </p>
+                    )}
                   </div>
                 )}
 

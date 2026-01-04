@@ -119,6 +119,19 @@ console.log('API COSTOS - superficieParaCalculo:', superficieParaCalculo)
         fecha: true,
         descripcion: true,
         especie: true,
+        loteId: true,  // 🆕 NUEVO
+        lote: {        // 🆕 NUEVO - Incluir info del lote
+          select: {
+            nombre: true,
+            hectareas: true,
+            cultivos: {
+              select: {
+                tipoCultivo: true,
+                hectareas: true,
+              }
+            }
+          }
+        }
       },
       orderBy: { fecha: 'asc' },
     })
@@ -230,9 +243,51 @@ console.log('API COSTOS - superficieParaCalculo:', superficieParaCalculo)
       ? Object.values(variablesDetalle).filter(d => getSubtipo(d.categoria) === 'GANADERIA')
       : []
     
-    const variablesAgricultura = variablesDetalle
-      ? Object.values(variablesDetalle).filter(d => getSubtipo(d.categoria) === 'AGRICULTURA')
-      : []
+    // 🌾 Agricultura - Agrupar por cultivo
+    const agriculturaPorCultivo: Record<string, {
+      cultivo: string
+      totalUSD: number
+      hectareas: number
+      gastos: number
+    }> = {}
+
+    const gastosAgricultura = gastosVariables.filter(g => 
+      getSubtipo(g.categoria) === 'AGRICULTURA'
+    )
+
+    gastosAgricultura.forEach(gasto => {
+      if (gasto.lote && gasto.lote.cultivos && gasto.lote.cultivos.length > 0) {
+        // Agrupar por cada cultivo del lote
+        gasto.lote.cultivos.forEach(cultivo => {
+          const key = cultivo.tipoCultivo
+          
+          if (!agriculturaPorCultivo[key]) {
+            agriculturaPorCultivo[key] = {
+              cultivo: cultivo.tipoCultivo,
+              totalUSD: 0,
+              hectareas: cultivo.hectareas,
+              gastos: 0,
+            }
+          }
+          
+          agriculturaPorCultivo[key].totalUSD += gasto.montoEnUSD
+          agriculturaPorCultivo[key].gastos += 1
+        })
+      }
+    })
+
+    const variablesAgricultura = Object.values(agriculturaPorCultivo).map(c => ({
+      categoria: c.cultivo,
+      totalUSD: c.totalUSD,
+      hectareas: c.hectareas,
+      usdPorHa: c.hectareas > 0 ? c.totalUSD / c.hectareas : 0,
+      gastos: c.gastos,
+      // Para mantener compatibilidad con el formato existente
+      vacunos: 0,
+      ovinos: 0,
+      equinos: 0,
+      sinAsignar: 0,
+    }))
     
     const variablesMixtos = variablesDetalle
       ? Object.values(variablesDetalle).filter(d => getSubtipo(d.categoria) === 'MIXTO')
@@ -398,12 +453,11 @@ console.log('API COSTOS - superficieParaCalculo:', superficieParaCalculo)
           sinAsignar: Math.round(d.sinAsignar * 100) / 100,
         })),
         agricultura: variablesAgricultura.map(d => ({
-          categoria: d.categoria,
+          cultivo: d.categoria,  // Nombre del cultivo (Soja, Trigo, etc)
           totalUSD: Math.round(d.totalUSD * 100) / 100,
-          vacunos: Math.round(d.vacunos * 100) / 100,
-          ovinos: Math.round(d.ovinos * 100) / 100,
-          equinos: Math.round(d.equinos * 100) / 100,
-          sinAsignar: Math.round(d.sinAsignar * 100) / 100,
+          hectareas: Math.round((d.hectareas || 0) * 100) / 100,
+          usdPorHa: Math.round((d.usdPorHa || 0) * 100) / 100,
+          gastos: d.gastos || 0,
         })),
         mixtos: variablesMixtos.map(d => ({
           categoria: d.categoria,
