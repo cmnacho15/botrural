@@ -206,7 +206,16 @@ doc.text(`${modulo.cantidadPotreros} potrero${modulo.cantidadPotreros !== 1 ? 's
 
 startY += 5
 
-        const catBov = categoriasBovinas.filter(cat => modulo.potreros.some((p: any) => (p.animalesPorCategoria[cat.nombre] || 0) > 0))
+        const catBov = categoriasBovinas
+  .sort((a, b) => {
+    const orden = [
+      'Vacas gordas', 'Vacas', 'Vaquillonas +2', 'Vaquillonas 1-2', 
+      'Terneras', 'Terneros', 'Terneros nacidos', 'Toros', 
+      'Nov 1-2', 'Nov 2-3', 'Nov +3'
+    ];
+    return orden.indexOf(a.nombre) - orden.indexOf(b.nombre);
+  })
+  .filter(cat => modulo.potreros.some((p: any) => (p.animalesPorCategoria[cat.nombre] || 0) > 0))
         const catOvi = categoriasOvinas.filter(cat => modulo.potreros.some((p: any) => (p.animalesPorCategoria[cat.nombre] || 0) > 0))
         const catEqu = categoriasEquinas.filter(cat => modulo.potreros.some((p: any) => (p.animalesPorCategoria[cat.nombre] || 0) > 0))
 
