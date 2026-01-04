@@ -630,10 +630,10 @@ if (potrero.info?.animales?.length) {
 const getFontSizes = () => {
   const currentZoom = mapRef.current?.getZoom() || 14
   
-  if (currentZoom >= 16) return { nombre: '24px', animales: '22px' }
-  if (currentZoom >= 14) return { nombre: '22px', animales: '20px' }
-  if (currentZoom >= 13) return { nombre: '20px', animales: '18px' }
-  return { nombre: '18px', animales: '16px' }
+  if (currentZoom >= 16) return { nombre: '20px', animales: '18px' }
+  if (currentZoom >= 14) return { nombre: '18px', animales: '16px' }
+  if (currentZoom >= 13) return { nombre: '16px', animales: '14px' }
+  return { nombre: '14px', animales: '12px' }
 }
 
 const sizes = getFontSizes()
