@@ -191,17 +191,21 @@ async function main() {
     // ---------------------------------------------------------
     // 5️⃣ ACTUALIZAR ORDEN DE TODAS LAS CATEGORÍAS
     // ---------------------------------------------------------
+    console.log('  🔢 Actualizando orden de categorías...')
     const categoriasExistentes = await prisma.categoriaGasto.findMany({
       where: { campoId: campo.id }
     })
     
+    console.log(`  📊 Encontradas ${categoriasExistentes.length} categorías`)
+    
     for (const cat of categoriasExistentes) {
       const config = CATEGORIAS_GASTOS_DEFAULT.find(c => c.nombre === cat.nombre)
-      if (config) {
+      if (config && cat.orden !== config.orden) {
         await prisma.categoriaGasto.update({
           where: { id: cat.id },
           data: { orden: config.orden }
         })
+        console.log(`    ✓ Actualizado orden de "${cat.nombre}"`)
       }
     }
     
