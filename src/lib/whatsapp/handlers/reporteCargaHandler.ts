@@ -213,7 +213,9 @@ startY += 5
       'Terneras', 'Terneros', 'Terneros nacidos', 'Toros', 
       'Nov 1-2', 'Nov 2-3', 'Nov +3'
     ];
-    return orden.indexOf(a.nombre) - orden.indexOf(b.nombre);
+    const nombreA = a.nombre.replace(' años', '').replace(' año', '');
+    const nombreB = b.nombre.replace(' años', '').replace(' año', '');
+    return orden.indexOf(nombreA) - orden.indexOf(nombreB);
   })
   .filter(cat => modulo.potreros.some((p: any) => (p.animalesPorCategoria[cat.nombre] || 0) > 0))
         const catOvi = categoriasOvinas.filter(cat => modulo.potreros.some((p: any) => (p.animalesPorCategoria[cat.nombre] || 0) > 0))
@@ -345,7 +347,18 @@ const filaEq = ['UG x Cat', '', ...catBov.map(c => {
       doc.text(`Generado: ${fecha.toLocaleDateString('es-UY', { day: '2-digit', month: '2-digit', year: 'numeric' })}`, pageWidth - margin - 50, 22)
 
       // VACUNOS
-      const catBovFiltradas = categoriasBovinas.filter(c => totalesPorCategoria[c.nombre] > 0)
+      const catBovFiltradas = categoriasBovinas
+  .sort((a, b) => {
+    const orden = [
+      'Vacas gordas', 'Vacas', 'Vaquillonas +2', 'Vaquillonas 1-2', 
+      'Terneras', 'Terneros', 'Terneros nacidos', 'Toros', 
+      'Nov 1-2', 'Nov 2-3', 'Nov +3'
+    ];
+    const nombreA = a.nombre.replace(' años', '').replace(' año', '');
+    const nombreB = b.nombre.replace(' años', '').replace(' año', '');
+    return orden.indexOf(nombreA) - orden.indexOf(nombreB);
+  })
+  .filter(c => totalesPorCategoria[c.nombre] > 0)
       const headersBovinos = ['Potreros', 'Ha', ...catBovFiltradas.map(c => limpiarNombreCategoria(c.nombre)), 'Total Vacunos', 'UG/Ha (Vac+Ovi+Equ)']
       const tieneTermerosNacidosOriginal = potrerosData.some(p => 
   (p.animalesPorCategoria['Terneros nacidos'] || 0) > 0
