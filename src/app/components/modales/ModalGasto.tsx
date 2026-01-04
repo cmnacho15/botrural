@@ -205,9 +205,11 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
     return
   }
 
-  // ✅ VALIDACIÓN: Variables requieren especie
+  // ✅ VALIDACIÓN: Variables de ganadería requieren especie
   const itemSinEspecie = items.find(item => 
-    esCategoriaVariable(item.categoria) && !item.especie
+    esCategoriaVariable(item.categoria) && 
+    item.categoria !== 'Insumos de Cultivos' && 
+    !item.especie
   )
   
   if (itemSinEspecie) {
@@ -517,8 +519,8 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
                   </select>
                 </div>
 
-                {/* ✅ CAMPO ESPECIE (solo si es VARIABLE) */}
-                {esVariable && (
+                {/* ✅ CAMPO ESPECIE (solo si es VARIABLE de GANADERÍA) */}
+                {esVariable && item.categoria !== 'Insumos de Cultivos' && (
                   <div className="mb-3">
                     <label className="block text-xs text-gray-600 mb-1">
                       Especie (requerido para variables)
