@@ -49,6 +49,11 @@ export async function processInvoiceImage(
   imageUrl: string
 ): Promise<ParsedInvoice | null> {
   try {
+    console.log('🔍 [VISION-GASTO] Iniciando procesamiento')
+    console.log('📸 [VISION-GASTO] URL:', imageUrl)
+    console.log('🔑 [VISION-GASTO] API Key presente:', !!process.env.OPENAI_API_KEY)
+    console.log('🔑 [VISION-GASTO] API Key (10 chars):', process.env.OPENAI_API_KEY?.substring(0, 10))
+    
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
@@ -183,7 +188,18 @@ EJEMPLOS:
     });
 
     const content = response.choices[0].message.content;
-    if (!content) return null;
+    
+    console.log('✅ [VISION-GASTO] Respuesta OpenAI recibida')
+    console.log('📝 [VISION-GASTO] Content:', content?.substring(0, 200))
+    console.log('📊 [VISION-GASTO] Metadata:', {
+      model: response.model,
+      finish_reason: response.choices[0].finish_reason
+    })
+    
+    if (!content) {
+      console.log('❌ [VISION-GASTO] Content vacío')
+      return null;
+    }
 
     const jsonStr = content
       .replace(/```json/g, "")
