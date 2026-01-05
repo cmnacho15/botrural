@@ -83,6 +83,24 @@ export function esCategoriaFinanciera(categoria: string): boolean {
 }
 
 /**
+ * Categorías MIXTAS: Se distribuyen entre ganadería Y agricultura por hectáreas
+ */
+export function esCategoriaMixta(categoria: string): boolean {
+  return [
+    'Combustible',
+    'Labores',
+    'Mantenimiento', 
+    'Electricidad',
+    'Administración',
+    'Asesoramiento',
+    'Renta',
+    'Impuestos',
+    'Intereses',
+    'Gastos Comerciales',
+  ].includes(categoria)
+}
+
+/**
  * Obtiene el color de badge según el tipo de costo
  */
 export function getColorTipoCosto(categoria: string): string {
