@@ -22,6 +22,11 @@ type ModalEditarGastoProps = {
     diasPlazo?: number
     proveedor?: string
     especie?: string | null
+    // 🏢 GASTOS COMPARTIDOS
+    esGastoGrupo?: boolean
+    grupoId?: string | null
+    montoTotalGrupo?: number | null
+    porcentajeDistribuido?: number | null
   }
   onClose: () => void
   onSuccess: () => void
@@ -273,6 +278,42 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
           ✕
         </button>
       </div>
+      
+      {/* 🏢 ALERTA DE GASTO COMPARTIDO */}
+      {gasto.esGastoGrupo && (
+        <div className="mb-6 p-4 bg-purple-50 border-2 border-purple-400 rounded-xl">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 bg-purple-400 rounded-full flex items-center justify-center flex-shrink-0">
+              <span className="text-white text-xl">🏢</span>
+            </div>
+            <div className="flex-1">
+              <h3 className="font-bold text-purple-900 mb-1">Gasto Compartido Entre Campos</h3>
+              <p className="text-sm text-purple-800 mb-2">
+                Este gasto fue distribuido proporcionalmente entre múltiples campos del grupo.
+              </p>
+              <div className="bg-white rounded-lg p-3 border border-purple-200">
+                <div className="flex justify-between text-sm mb-1">
+                  <span className="text-gray-600">Monto total del grupo:</span>
+                  <span className="font-bold text-purple-700">
+                    ${gasto.montoTotalGrupo?.toFixed(2)} {gasto.moneda || 'USD'}
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Asignado a este campo:</span>
+                  <span className="font-bold text-purple-700">
+                    {gasto.porcentajeDistribuido?.toFixed(1)}% = ${gasto.monto?.toFixed(2)}
+                  </span>
+                </div>
+              </div>
+              <p className="text-xs text-purple-600 mt-2 font-medium">
+                ⚠️ No podés editar el monto de este gasto. Para modificarlo, eliminalo y creá uno nuevo.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      
 
       {/* ALERTA DE PAGO PENDIENTE */}
       {esPlazoYPendiente && (
