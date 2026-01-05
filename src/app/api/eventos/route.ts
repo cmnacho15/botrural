@@ -52,7 +52,12 @@ async function crearGastoFinanciero({
   loteId,
   diasPlazo,
   pagado,
-  especie
+  especie,
+  // 🏢 NUEVO: Gastos compartidos
+  esGastoGrupo,
+  grupoId,
+  montoTotalGrupo,
+  porcentajeDistribuido,
 }: {
   tipo: "GASTO" | "INGRESO"
   monto: number
@@ -69,6 +74,11 @@ async function crearGastoFinanciero({
   diasPlazo?: number | null
   pagado?: boolean
   especie?: string | null
+  // 🏢 NUEVO
+  esGastoGrupo?: boolean
+  grupoId?: string | null
+  montoTotalGrupo?: number | null
+  porcentajeDistribuido?: number | null
 }) {
   const tasaCambio = await obtenerTasaCambio(moneda)
   const montoEnUYU = await convertirAUYU(monto, moneda)
@@ -86,8 +96,8 @@ async function crearGastoFinanciero({
       moneda,
       tasaCambio,
       montoEnUYU,
-      montoEnUSD,  // ✅ NUEVO
-      especie: especie || null,  // ✅ ESTO  // ✅ NUEVO (eventos del sistema no asignan especie)
+      montoEnUSD,
+      especie: especie || null,
       fecha,
       descripcion,
       categoria: categoria || "Otros",
@@ -99,6 +109,11 @@ async function crearGastoFinanciero({
       pagado: metodoPago === "Contado" ? true : (pagado ?? false),
       campoId,
       loteId: loteId || null,
+      // 🏢 NUEVO: Gastos compartidos
+      esGastoGrupo: esGastoGrupo || false,
+      grupoId: grupoId || null,
+      montoTotalGrupo: montoTotalGrupo || null,
+      porcentajeDistribuido: porcentajeDistribuido || null,
     }
   })
 }
@@ -147,7 +162,12 @@ export async function POST(request: Request) {
       especie,
       especies, // <- AGREGA ESTA LÍNEA
       rodeoId,
+      // 🏢 NUEVO: Gastos compartidos
+      esGastoGrupo,
+      grupoId,
+      camposDelGrupo,
     } = body;
+    
     
     console.log('🔥 ESPECIES RECIBIDAS:', especies) // <- AGREGA ESTO
 console.log('🔥 ESPECIE RECIBIDA:', especie)     // <- AGREGA ESTO
@@ -200,23 +220,63 @@ console.log('🔥 ESPECIE RECIBIDA:', especie)     // <- AGREGA ESTO
         });
 
         if (monto && parseFloat(monto) > 0) {
-          await crearGastoFinanciero({
-            tipo: "GASTO",
-            monto: parseFloat(monto),
-            descripcion: descripcion || `Gasto en ${categoria}`,
-            categoria: categoria || "Otros",
-            fecha: crearFechaConHoraActual(fecha),
-            moneda,
-            metodoPago,
-            iva: iva !== undefined ? parseFloat(String(iva)) : null,
-            proveedor,
-            comprador: null,
-            campoId: usuario.campoId,
-            loteId,
-            diasPlazo: metodoPago === "Plazo" ? parseInt(diasPlazo || "0") : null,
-            pagado: metodoPago === "Contado" ? true : pagado ?? false,
-            especie: especies ? especies.join(',') : (especie || null),  // 🔥 CAMBIADO
-          });
+          // 🏢 GASTOS COMPARTIDOS ENTRE CAMPOS DEL GRUPO
+          if (esGastoGrupo && camposDelGrupo && camposDelGrupo.length > 1) {
+            const montoTotal = parseFloat(monto)
+            const totalHectareas = camposDelGrupo.reduce((sum: number, c: any) => sum + c.hectareas, 0)
+            
+            // Crear un gasto por cada campo con su porcentaje
+            for (const campo of camposDelGrupo) {
+              const porcentaje = (campo.hectareas / totalHectareas) * 100
+              const montoAsignado = montoTotal * (porcentaje / 100)
+              
+              await crearGastoFinanciero({
+                tipo: "GASTO",
+                monto: montoAsignado,
+                descripcion: descripcion || `Gasto en ${categoria}`,
+                categoria: categoria || "Otros",
+                fecha: crearFechaConHoraActual(fecha),
+                moneda,
+                metodoPago,
+                iva: iva !== undefined ? parseFloat(String(iva)) : null,
+                proveedor,
+                comprador: null,
+                campoId: campo.id,
+                loteId: null, // Los gastos compartidos no tienen lote específico
+                diasPlazo: metodoPago === "Plazo" ? parseInt(diasPlazo || "0") : null,
+                pagado: metodoPago === "Contado" ? true : pagado ?? false,
+                especie: especies ? especies.join(',') : (especie || null),
+                // 🏢 Metadata de gasto compartido
+                esGastoGrupo: true,
+                grupoId: grupoId,
+                montoTotalGrupo: montoTotal,
+                porcentajeDistribuido: porcentaje,
+              });
+            }
+          } else {
+            // 🎯 GASTO NORMAL (un solo campo)
+            await crearGastoFinanciero({
+              tipo: "GASTO",
+              monto: parseFloat(monto),
+              descripcion: descripcion || `Gasto en ${categoria}`,
+              categoria: categoria || "Otros",
+              fecha: crearFechaConHoraActual(fecha),
+              moneda,
+              metodoPago,
+              iva: iva !== undefined ? parseFloat(String(iva)) : null,
+              proveedor,
+              comprador: null,
+              campoId: usuario.campoId,
+              loteId,
+              diasPlazo: metodoPago === "Plazo" ? parseInt(diasPlazo || "0") : null,
+              pagado: metodoPago === "Contado" ? true : pagado ?? false,
+              especie: especies ? especies.join(',') : (especie || null),
+              esGastoGrupo: false,
+              grupoId: null,
+              montoTotalGrupo: null,
+              porcentajeDistribuido: null,
+            });
+          }
         }
         break;
 

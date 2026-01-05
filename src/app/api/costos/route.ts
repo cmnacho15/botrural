@@ -253,9 +253,11 @@ console.log('API COSTOS - superficieParaCalculo:', superficieParaCalculo)
         }
         
       } else {
-        // 🎯 SIN ESPECIE ASIGNADA
-        variablesDetalle[cat].sinAsignar += gasto.montoEnUSD
-        costosVariablesPorEspecie.sinAsignar += gasto.montoEnUSD
+        // 🎯 SIN ESPECIE ASIGNADA (pero solo si NO es agricultura)
+        if (getSubtipo(gasto.categoria) !== 'AGRICULTURA') {
+          variablesDetalle[cat].sinAsignar += gasto.montoEnUSD
+          costosVariablesPorEspecie.sinAsignar += gasto.montoEnUSD
+        }
       }
     })
 
@@ -471,11 +473,15 @@ console.log('API COSTOS - superficieParaCalculo:', superficieParaCalculo)
       costosVariables: {
         totalUSD: Math.round(totalVariablesUSD * 100) / 100,
         porEspecie: {
-          vacunos: Math.round(costosVariablesPorEspecie.vacunos * 100) / 100,
-          ovinos: Math.round(costosVariablesPorEspecie.ovinos * 100) / 100,
-          equinos: Math.round(costosVariablesPorEspecie.equinos * 100) / 100,
-          sinAsignar: Math.round(costosVariablesPorEspecie.sinAsignar * 100) / 100,
-        },
+        vacunos: Math.round(costosVariablesPorEspecie.vacunos * 100) / 100,
+        ovinos: Math.round(costosVariablesPorEspecie.ovinos * 100) / 100,
+        equinos: Math.round(costosVariablesPorEspecie.equinos * 100) / 100,
+        sinAsignar: Math.round(costosVariablesPorEspecie.sinAsignar * 100) / 100,
+      },
+      // 🆕 AGREGAR ADVERTENCIA SOLO SI HAY GASTOS SIN ASIGNAR DE GANADERÍA
+      ...(costosVariablesPorEspecie.sinAsignar > 0 && {
+        advertenciaSinEspecie: `Hay $${costosVariablesPorEspecie.sinAsignar.toFixed(2)} en costos variables de ganadería sin especie asignada.`
+      }),
         // Subdivisión por subtipo
         ganaderia: variablesGanaderia.map(d => ({
           categoria: d.categoria,

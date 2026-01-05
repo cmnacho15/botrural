@@ -136,6 +136,7 @@ interface CostosData {
     hasta: string
   }
   advertencia?: string
+  advertenciaSinEspecie?: string  // 🆕 AGREGA ESTA LÍNEA
 }
 
 // ✅ Función para calcular el ejercicio fiscal actual
@@ -462,12 +463,11 @@ console.log('🔍 COSTOS - usarSPG desde Context:', usarSPG)
           <CardTitle>💰 Costos de Producción (Variables Directos)</CardTitle>
         </CardHeader>
         <CardContent>
-          {data.costosVariables.porEspecie.sinAsignar > 0 && (
+          {data.advertenciaSinEspecie && (
             <Alert className="mb-4">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                Hay {formatUSD(data.costosVariables.porEspecie.sinAsignar)} en costos
-                variables sin especie asignada.
+                {data.advertenciaSinEspecie}
               </AlertDescription>
             </Alert>
           )}
