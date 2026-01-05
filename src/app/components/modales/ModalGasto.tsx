@@ -46,6 +46,15 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
     cultivos: Array<{ tipoCultivo: string }>
   }>>([])
 
+  // 🏢 Multicampo - Gastos compartidos
+  const [camposDelGrupo, setCamposDelGrupo] = useState<Array<{
+    id: string
+    nombre: string
+    hectareas: number
+  }>>([])
+  const [esGastoGrupo, setEsGastoGrupo] = useState(false)
+  const [grupoId, setGrupoId] = useState<string | null>(null)
+
   const [items, setItems] = useState<ItemGasto[]>([
     {
       id: '1',
@@ -112,7 +121,27 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
       }
     }
     cargarLotesAgricolas()
-  }, [])
+  }, [])  // ← CIERRA ACÁ
+
+  // 🏢 Cargar campos del grupo (si tiene multicampo)
+  useEffect(() => {
+    const cargarCamposGrupo = async () => {
+      try {
+        const res = await fetch('/api/campos-grupo')
+        if (res.ok) {
+          const data = await res.json()
+          
+          if (data.camposDelGrupo && data.camposDelGrupo.length > 1) {
+            setCamposDelGrupo(data.camposDelGrupo)
+            setGrupoId(data.grupoId)
+          }
+        }
+      } catch (err) {
+        console.error('Error cargando campos del grupo:', err)
+      }
+    }
+    cargarCamposGrupo()
+  }, [])  // ← CIERRA ACÁ
 
   // 🆕 CARGAR CATEGORÍAS DINÁMICAS DESDE BACKEND
   useEffect(() => {
@@ -253,8 +282,12 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
             diasPlazo: esPlazo ? diasPlazo : null,
             pagado: esPlazo ? pagado : true,
             proveedor: proveedor.trim() || null,
-            especies: item.especies,  // 🔥 CAMBIADO: array de especies
+            especies: item.especies,
             loteId: item.loteId,
+            // 🏢 NUEVO: Gastos compartidos
+            esGastoGrupo: esGastoGrupo,
+            grupoId: grupoId,
+            camposDelGrupo: esGastoGrupo ? camposDelGrupo : null,
           }),
         })
 
@@ -457,6 +490,53 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
           </div>
         </div>
       </div>
+      
+
+
+      {/* 🏢 GASTO COMPARTIDO ENTRE CAMPOS */}
+        {camposDelGrupo.length > 1 && (
+          <div className="mt-4 p-4 bg-purple-50 rounded-lg border-2 border-purple-200">
+            <div className="flex items-start gap-3">
+              <input
+                type="checkbox"
+                checked={esGastoGrupo}
+                onChange={(e) => setEsGastoGrupo(e.target.checked)}
+                className="mt-1 w-5 h-5 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+              />
+              <div className="flex-1">
+                <label className="font-semibold text-gray-900 cursor-pointer">
+                  ¿Es un gasto general del grupo?
+                </label>
+                <p className="text-xs text-gray-600 mt-1">
+                  Este gasto se distribuirá proporcionalmente entre los {camposDelGrupo.length} campos del grupo según hectáreas.
+                </p>
+                
+                {esGastoGrupo && (
+                  <div className="mt-3 bg-white rounded-lg p-3 border border-purple-200">
+                    <p className="text-xs font-semibold text-purple-800 mb-2">Distribución:</p>
+                    <div className="space-y-1">
+                      {(() => {
+                        const totalHectareas = camposDelGrupo.reduce((sum, c) => sum + c.hectareas, 0)
+                        return camposDelGrupo.map(campo => {
+                          const porcentaje = (campo.hectareas / totalHectareas) * 100
+                          const montoAsignado = montoTotal * (porcentaje / 100)
+                          return (
+                            <div key={campo.id} className="flex justify-between text-xs">
+                              <span className="text-gray-700">{campo.nombre} ({campo.hectareas.toFixed(1)} ha)</span>
+                              <span className="font-medium text-purple-700">
+                                {porcentaje.toFixed(1)}% = ${montoAsignado.toFixed(2)}
+                              </span>
+                            </div>
+                          )
+                        })
+                      })()}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
       {/* ITEMS */}
       <div className="mb-6">

@@ -358,6 +358,15 @@ model Gasto {
   @@index([fecha])
   @@index([tipo])
   @@index([especie])  // ✅ índice para filtrar por especie
+
+  // 🏢 GASTOS COMPARTIDOS ENTRE CAMPOS DEL MISMO GRUPO
+  esGastoGrupo          Boolean   @default(false)  // 🆕
+  grupoId               String?                     // 🆕
+  montoTotalGrupo       Float?                      // 🆕 monto original antes de distribuir
+  porcentajeDistribuido Float?                      // 🆕 % que corresponde a este campo
+  
+  @@index([grupoId])          // 🆕
+  @@index([esGastoGrupo])     // 🆕
 }
 
 model Invitation {
