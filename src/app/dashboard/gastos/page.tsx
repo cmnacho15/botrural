@@ -42,6 +42,12 @@ type Gasto = {
   tasaCambio?: number | null
   montoEnUYU?: number
   iva?: number | null
+
+  // 🏢 GASTOS COMPARTIDOS
+  esGastoGrupo?: boolean
+  grupoId?: string | null
+  montoTotalGrupo?: number | null
+  porcentajeDistribuido?: number | null
 }
 
 type Categoria = {
@@ -1444,8 +1450,22 @@ const handleEditarGasto = (gasto: Gasto) => {
   })()}
 </td>
 
-                      {/* ÍTEM */}
-                      <td className="px-3 py-3">{t.item}</td>
+                       {/* ÍTEM */}
+                      <td className="px-3 py-3">
+                        <div className="flex flex-col gap-1">
+                          <span>{t.item}</span>
+                          {t.gastoCompleto?.esGastoGrupo && (
+                            <div className="flex items-center gap-2">
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-100 text-purple-700 rounded-md text-xs font-medium">
+                                🏢 Gasto compartido
+                              </span>
+                              <span className="text-xs text-gray-500">
+                                {t.gastoCompleto.porcentajeDistribuido?.toFixed(1)}% de ${t.gastoCompleto.montoTotalGrupo?.toFixed(0)}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </td>
 
                       {/* CATEGORÍA - Popover */}
                       <td className="px-3 py-3 relative">
