@@ -174,6 +174,12 @@ console.log('API COSTOS - superficieParaCalculo:', superficieParaCalculo)
       })
     }
     
+    // 🔧 FUNCIÓN AUXILIAR
+    const getSubtipo = (categoria: string) => {
+      const config = CATEGORIAS_GASTOS_DEFAULT.find(c => c.nombre === categoria)
+      return config?.subtipo || 'OTRO'
+    }
+    
     // ---------------------------------------------------------
     // 4️⃣ Separar gastos en Variables, Fijos y Financieros
     // ---------------------------------------------------------
@@ -269,10 +275,7 @@ console.log('API COSTOS - superficieParaCalculo:', superficieParaCalculo)
     // ---------------------------------------------------------
     // 5️⃣ SUBDIVIDIR COSTOS VARIABLES POR SUBTIPO
     // ---------------------------------------------------------
-    const getSubtipo = (categoria: string) => {
-      const config = CATEGORIAS_GASTOS_DEFAULT.find(c => c.nombre === categoria)
-      return config?.subtipo || 'OTRO'
-    }
+    
 
     const variablesGanaderia = variablesDetalle
       ? Object.values(variablesDetalle).filter(d => getSubtipo(d.categoria) === 'GANADERIA')
