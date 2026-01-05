@@ -49,6 +49,7 @@ interface CostosData {
       hectareas: number
       usdPorHa: number
       gastos: number
+      costosFijos: number
     }>
     mixtos: Array<{
       categoria: string
@@ -137,6 +138,11 @@ interface CostosData {
   }
   advertencia?: string
   advertenciaSinEspecie?: string  // 🆕 AGREGA ESTA LÍNEA
+  agriculturaInfo?: {
+    hectareas: number
+    pctDelTotal: number
+    costosFijos: number
+  }
 }
 
 // ✅ Función para calcular el ejercicio fiscal actual
@@ -439,6 +445,45 @@ console.log('🔍 COSTOS - usarSPG desde Context:', usarSPG)
           </CardContent>
         </Card>
 
+        {/* 🌾 TARJETAS DE AGRICULTURA */}
+        {data.agriculturaInfo && data.agriculturaInfo.hectareas > 0 && (
+          <>
+            {data.costosVariables.agricultura.map((cultivo) => (
+              <Card 
+                key={cultivo.cultivo}
+                className="bg-gradient-to-br from-green-50 to-emerald-100 border-green-200"
+              >
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <p className="text-sm text-green-600 font-medium flex items-center gap-1">
+                        <span>🌾</span>
+                        {cultivo.cultivo}
+                      </p>
+                      <p className="text-2xl font-bold text-green-900">
+                        {formatUSD(cultivo.totalUSD)}
+                      </p>
+                      <div className="mt-2 space-y-1">
+                        <p className="text-xs text-green-700">
+                          <span className="font-medium">{cultivo.hectareas.toFixed(1)} ha</span>
+                          {' • '}
+                          <span className="font-semibold">{formatUSD(cultivo.usdPorHa)}/ha</span>
+                        </p>
+                        <p className="text-xs text-gray-600">
+                          Variables: {formatUSD(cultivo.totalUSD - cultivo.costosFijos)}
+                          {' • '}
+                          Fijos: {formatUSD(cultivo.costosFijos)}
+                        </p>
+                      </div>
+                    </div>
+                    <DollarSign className="h-8 w-8 text-green-200" />
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </>
+        )}
+
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
@@ -516,10 +561,11 @@ console.log('🔍 COSTOS - usarSPG desde Context:', usarSPG)
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cultivo</th>
+                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Variables</th>
+                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Fijos</th>
                       <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Total USD</th>
                       <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Hectáreas</th>
                       <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">USD/ha</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Gastos</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
@@ -528,7 +574,13 @@ console.log('🔍 COSTOS - usarSPG desde Context:', usarSPG)
                         <td className="px-4 py-3 text-sm font-medium text-gray-900">
                           🌾 {item.cultivo}
                         </td>
-                        <td className="px-4 py-3 text-sm text-right font-medium text-gray-900">
+                        <td className="px-4 py-3 text-sm text-right text-green-600">
+                          {formatUSD(item.totalUSD - item.costosFijos)}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-right text-blue-600">
+                          {formatUSD(item.costosFijos)}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-right font-semibold text-gray-900">
                           {formatUSD(item.totalUSD)}
                         </td>
                         <td className="px-4 py-3 text-sm text-right text-gray-600">
@@ -537,39 +589,35 @@ console.log('🔍 COSTOS - usarSPG desde Context:', usarSPG)
                         <td className="px-4 py-3 text-sm text-right text-green-600 font-semibold">
                           {formatUSD(item.usdPorHa)}/ha
                         </td>
-                        <td className="px-4 py-3 text-sm text-right text-gray-500">
-                          {item.gastos} {item.gastos === 1 ? 'gasto' : 'gastos'}
-                        </td>
                       </tr>
                     ))}
                   </tbody>
+                  <tfoot className="bg-green-100 font-semibold border-t-2 border-green-200">
+                    <tr>
+                      <td className="px-4 py-3 text-sm">TOTAL AGRICULTURA</td>
+                      <td className="px-4 py-3 text-sm text-right text-green-700">
+                        {formatUSD(data.costosVariables.agricultura.reduce((sum, c) => sum + c.totalUSD - c.costosFijos, 0))}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-right text-blue-700">
+                        {formatUSD(data.agriculturaInfo?.costosFijos || 0)}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-right text-green-800">
+                        {formatUSD(data.costosVariables.agricultura.reduce((sum, c) => sum + c.totalUSD, 0))}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-right text-gray-700">
+                        {data.agriculturaInfo?.hectareas.toFixed(1) || 0} ha
+                      </td>
+                      <td className="px-4 py-3 text-sm text-right text-green-700">
+                        {formatUSD(
+                          data.agriculturaInfo && data.agriculturaInfo.hectareas > 0
+                            ? data.costosVariables.agricultura.reduce((sum, c) => sum + c.totalUSD, 0) / data.agriculturaInfo.hectareas
+                            : 0
+                        )}/ha
+                      </td>
+                    </tr>
+                  </tfoot>
                 </table>
               </div>
-              
-              {/* Totales de Agricultura */}
-              {data.costosVariables.agricultura.length > 1 && (
-                <div className="mt-3 bg-green-50 rounded-lg p-3">
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="font-semibold text-gray-700">Total Agricultura:</span>
-                    <div className="flex gap-6">
-                      <span className="text-gray-600">
-                        {formatUSD(
-                          data.costosVariables.agricultura.reduce((sum, c) => sum + c.totalUSD, 0)
-                        )}
-                      </span>
-                      <span className="text-gray-600">
-                        {data.costosVariables.agricultura.reduce((sum, c) => sum + c.hectareas, 0).toFixed(1)} ha
-                      </span>
-                      <span className="text-green-600 font-semibold">
-                        {formatUSD(
-                          data.costosVariables.agricultura.reduce((sum, c) => sum + c.totalUSD, 0) /
-                          data.costosVariables.agricultura.reduce((sum, c) => sum + c.hectareas, 0)
-                        )}/ha promedio
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
           )}
 

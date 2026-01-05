@@ -17,7 +17,7 @@ type ItemGasto = {
   precio: number
   iva: number
   precioFinal: number
-  especies: string[]  // 🔥 CAMBIADO: Array de especies en lugar de una sola
+  especies: string[]
   loteId: string | null
 }
 
@@ -46,6 +46,14 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
     cultivos: Array<{ tipoCultivo: string }>
   }>>([])
 
+  // 🌾 Cultivos seleccionados para Insumos de Cultivos
+  const [cultivosDisponibles, setCultivosDisponibles] = useState<Array<{
+    tipoCultivo: string
+    hectareas: number
+    lotes: string[]
+  }>>([])
+  const [cultivosSeleccionados, setCultivosSeleccionados] = useState<string[]>([])
+
   // 🏢 Multicampo - Gastos compartidos
   const [camposDelGrupo, setCamposDelGrupo] = useState<Array<{
     id: string
@@ -63,7 +71,7 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
       precio: 0,
       iva: 0,
       precioFinal: 0,
-      especies: [],  // 🔥 CAMBIADO
+      especies: [],
       loteId: null,
     },
   ])
@@ -97,8 +105,6 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
     cargarProveedores()
   }, [])
 
-  
-
   // 🌾 Cargar lotes agrícolas (no pastoreables con cultivo)
   useEffect(() => {
     const cargarLotesAgricolas = async () => {
@@ -115,13 +121,38 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
           )
           
           setLotesAgricolas(agricolas)
+          
+          // 🌾 Agrupar cultivos por tipo con sus hectáreas totales
+          const cultivosMap = new Map<string, { hectareas: number; lotes: string[] }>()
+          
+          agricolas.forEach((lote: any) => {
+            lote.cultivos.forEach((cultivo: any) => {
+              const tipo = cultivo.tipoCultivo
+              if (!cultivosMap.has(tipo)) {
+                cultivosMap.set(tipo, { hectareas: 0, lotes: [] })
+              }
+              const data = cultivosMap.get(tipo)!
+              data.hectareas += cultivo.hectareas || 0
+              if (!data.lotes.includes(lote.nombre)) {
+                data.lotes.push(lote.nombre)
+              }
+            })
+          })
+          
+          const cultivosArray = Array.from(cultivosMap.entries()).map(([tipo, data]) => ({
+            tipoCultivo: tipo,
+            hectareas: data.hectareas,
+            lotes: data.lotes
+          }))
+          
+          setCultivosDisponibles(cultivosArray)
         }
       } catch (err) {
         console.error('Error cargando lotes agrícolas:', err)
       }
     }
     cargarLotesAgricolas()
-  }, [])  // ← CIERRA ACÁ
+  }, [])
 
   // 🏢 Cargar campos del grupo (si tiene multicampo)
   useEffect(() => {
@@ -141,7 +172,7 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
       }
     }
     cargarCamposGrupo()
-  }, [])  // ← CIERRA ACÁ
+  }, [])
 
   // 🆕 CARGAR CATEGORÍAS DINÁMICAS DESDE BACKEND
   useEffect(() => {
@@ -191,7 +222,7 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
           // ✅ Si cambia categoría, resetear especies y lote
           updated.categoria = value
           if (esCategoriaVariable(value)) {
-            updated.especies = []  // 🔥 CAMBIADO
+            updated.especies = []
           } else {
             updated.loteId = null
           }
@@ -213,7 +244,7 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
         precio: 0,
         iva: 0,
         precioFinal: 0,
-        especies: [],  // 🔥 CAMBIADO
+        especies: [],
         loteId: null,
       },
     ])
@@ -224,42 +255,58 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
     setItems(prev => prev.filter(item => item.id !== id))
   }
 
+  // 🌾 Toggle selección de cultivo
+  const toggleCultivo = (tipoCultivo: string) => {
+    setCultivosSeleccionados(prev => 
+      prev.includes(tipoCultivo)
+        ? prev.filter(c => c !== tipoCultivo)
+        : [...prev, tipoCultivo]
+    )
+  }
+
+  // 🌾 Seleccionar/deseleccionar todos
+  const toggleTodosCultivos = () => {
+    if (cultivosSeleccionados.length === cultivosDisponibles.length) {
+      setCultivosSeleccionados([])
+    } else {
+      setCultivosSeleccionados(cultivosDisponibles.map(c => c.tipoCultivo))
+    }
+  }
+
   const montoTotal = items.reduce((sum, item) => sum + item.precioFinal, 0)
 
   const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault()
+    e.preventDefault()
 
-  if (items.some(item => !item.item || item.precio <= 0)) {
-    alert('Completá todos los ítems con nombre y precio válido')
-    return
-  }
+    if (items.some(item => !item.item || item.precio <= 0)) {
+      alert('Completá todos los ítems con nombre y precio válido')
+      return
+    }
 
-  // ✅ VALIDACIÓN: Variables de ganadería requieren al menos una especie
-  const itemSinEspecie = items.find(item => 
-    esCategoriaVariable(item.categoria) && 
-    item.categoria !== 'Insumos de Cultivos' && 
-    item.especies.length === 0  // 🔥 CAMBIADO
-  )
-  
-  if (itemSinEspecie) {
-    alert(`El item "${itemSinEspecie.item}" es un costo variable y requiere que asignes al menos una especie (Vacunos/Ovinos/Equinos)`)
-    return
-  }
+    // ✅ VALIDACIÓN: Variables de ganadería requieren al menos una especie
+    const itemSinEspecie = items.find(item => 
+      esCategoriaVariable(item.categoria) && 
+      item.categoria !== 'Insumos de Cultivos' && 
+      item.especies.length === 0
+    )
+    
+    if (itemSinEspecie) {
+      alert(`El item "${itemSinEspecie.item}" es un costo variable y requiere que asignes al menos una especie (Vacunos/Ovinos/Equinos)`)
+      return
+    }
 
-  // ✅ VALIDACIÓN: Agricultura requiere lote
-  const itemSinLote = items.find(item => 
-    item.categoria === 'Insumos de Cultivos' && !item.loteId
-  )
-  
-  if (itemSinLote) {
-    alert(`El item "${itemSinLote.item}" es de agricultura y requiere que asignes un lote agrícola`)
-    return
-  }
+    // ✅ VALIDACIÓN: Agricultura requiere cultivos seleccionados
+    const tieneInsumoCultivos = items.some(item => item.categoria === 'Insumos de Cultivos')
+    
+    if (tieneInsumoCultivos && cultivosSeleccionados.length === 0) {
+      alert('Debes seleccionar al menos un cultivo para "Insumos de Cultivos"')
+      return
+    }
 
-  if (esPlazo && diasPlazo < 1) {
-    alert('Si es pago a plazo, ingresá una cantidad de días válida')
-    return
-  }
+    if (esPlazo && diasPlazo < 1) {
+      alert('Si es pago a plazo, ingresá una cantidad de días válida')
+      return
+    }
 
     setLoading(true)
 
@@ -267,33 +314,72 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
       for (let i = 0; i < items.length; i++) {
         const item = items[i]
 
-        const response = await fetch('/api/eventos', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            tipo: 'GASTO',
-            fecha: fecha,
-            descripcion: `${item.item}${notas ? ` - ${notas}` : ''}`,
-            categoria: item.categoria,
-            monto: item.precioFinal,
-            moneda: moneda,
-            metodoPago: esPlazo ? 'Plazo' : 'Contado',
-            iva: item.iva,
-            diasPlazo: esPlazo ? diasPlazo : null,
-            pagado: esPlazo ? pagado : true,
-            proveedor: proveedor.trim() || null,
-            especies: item.especies,
-            loteId: item.loteId,
-            // 🏢 NUEVO: Gastos compartidos
-            esGastoGrupo: esGastoGrupo,
-            grupoId: grupoId,
-            camposDelGrupo: esGastoGrupo ? camposDelGrupo : null,
-          }),
-        })
+        // 🌾 Si es "Insumos de Cultivos" con múltiples cultivos
+        if (item.categoria === 'Insumos de Cultivos' && cultivosSeleccionados.length > 0) {
+          const totalHectareas = cultivosDisponibles
+            .filter(c => cultivosSeleccionados.includes(c.tipoCultivo))
+            .reduce((sum, c) => sum + c.hectareas, 0)
+          
+          // Crear un gasto por cada cultivo seleccionado
+          for (const tipoCultivo of cultivosSeleccionados) {
+            const cultivo = cultivosDisponibles.find(c => c.tipoCultivo === tipoCultivo)
+            if (!cultivo) continue
+            
+            const porcentaje = (cultivo.hectareas / totalHectareas) * 100
+            const montoAsignado = item.precioFinal * (porcentaje / 100)
+            
+            const response = await fetch('/api/eventos', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                tipo: 'GASTO',
+                fecha: fecha,
+                descripcion: `${item.item} - ${tipoCultivo}${notas ? ` - ${notas}` : ''}`,
+                categoria: item.categoria,
+                monto: montoAsignado,
+                moneda: moneda,
+                metodoPago: esPlazo ? 'Plazo' : 'Contado',
+                iva: item.iva,
+                diasPlazo: esPlazo ? diasPlazo : null,
+                pagado: esPlazo ? pagado : true,
+                proveedor: proveedor.trim() || null,
+                especies: [],
+                loteId: null,
+              }),
+            })
+            
+            if (!response.ok) throw new Error('Error al crear gasto para ' + tipoCultivo)
+          }
+        } else {
+          // Gasto normal
+          const response = await fetch('/api/eventos', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              tipo: 'GASTO',
+              fecha: fecha,
+              descripcion: `${item.item}${notas ? ` - ${notas}` : ''}`,
+              categoria: item.categoria,
+              monto: item.precioFinal,
+              moneda: moneda,
+              metodoPago: esPlazo ? 'Plazo' : 'Contado',
+              iva: item.iva,
+              diasPlazo: esPlazo ? diasPlazo : null,
+              pagado: esPlazo ? pagado : true,
+              proveedor: proveedor.trim() || null,
+              especies: item.especies,
+              loteId: item.loteId,
+              // 🏢 Gastos compartidos
+              esGastoGrupo: esGastoGrupo,
+              grupoId: grupoId,
+              camposDelGrupo: esGastoGrupo ? camposDelGrupo : null,
+            }),
+          })
 
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => null)
-          throw new Error(errorData?.error || 'Error al guardar')
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => null)
+            throw new Error(errorData?.error || 'Error al guardar')
+          }
         }
 
         if (i < items.length - 1) {
@@ -490,53 +576,51 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
           </div>
         </div>
       </div>
-      
-
 
       {/* 🏢 GASTO COMPARTIDO ENTRE CAMPOS */}
-        {camposDelGrupo.length > 1 && (
-          <div className="mt-4 p-4 bg-purple-50 rounded-lg border-2 border-purple-200">
-            <div className="flex items-start gap-3">
-              <input
-                type="checkbox"
-                checked={esGastoGrupo}
-                onChange={(e) => setEsGastoGrupo(e.target.checked)}
-                className="mt-1 w-5 h-5 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
-              />
-              <div className="flex-1">
-                <label className="font-semibold text-gray-900 cursor-pointer">
-                  ¿Es un gasto general del grupo?
-                </label>
-                <p className="text-xs text-gray-600 mt-1">
-                  Este gasto se distribuirá proporcionalmente entre los {camposDelGrupo.length} campos del grupo según hectáreas.
-                </p>
-                
-                {esGastoGrupo && (
-                  <div className="mt-3 bg-white rounded-lg p-3 border border-purple-200">
-                    <p className="text-xs font-semibold text-purple-800 mb-2">Distribución:</p>
-                    <div className="space-y-1">
-                      {(() => {
-                        const totalHectareas = camposDelGrupo.reduce((sum, c) => sum + c.hectareas, 0)
-                        return camposDelGrupo.map(campo => {
-                          const porcentaje = (campo.hectareas / totalHectareas) * 100
-                          const montoAsignado = montoTotal * (porcentaje / 100)
-                          return (
-                            <div key={campo.id} className="flex justify-between text-xs">
-                              <span className="text-gray-700">{campo.nombre} ({campo.hectareas.toFixed(1)} ha)</span>
-                              <span className="font-medium text-purple-700">
-                                {porcentaje.toFixed(1)}% = ${montoAsignado.toFixed(2)}
-                              </span>
-                            </div>
-                          )
-                        })
-                      })()}
-                    </div>
+      {camposDelGrupo.length > 1 && (
+        <div className="mt-4 p-4 bg-purple-50 rounded-lg border-2 border-purple-200">
+          <div className="flex items-start gap-3">
+            <input
+              type="checkbox"
+              checked={esGastoGrupo}
+              onChange={(e) => setEsGastoGrupo(e.target.checked)}
+              className="mt-1 w-5 h-5 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+            />
+            <div className="flex-1">
+              <label className="font-semibold text-gray-900 cursor-pointer">
+                ¿Es un gasto general del grupo?
+              </label>
+              <p className="text-xs text-gray-600 mt-1">
+                Este gasto se distribuirá proporcionalmente entre los {camposDelGrupo.length} campos del grupo según hectáreas.
+              </p>
+              
+              {esGastoGrupo && (
+                <div className="mt-3 bg-white rounded-lg p-3 border border-purple-200">
+                  <p className="text-xs font-semibold text-purple-800 mb-2">Distribución:</p>
+                  <div className="space-y-1">
+                    {(() => {
+                      const totalHectareas = camposDelGrupo.reduce((sum, c) => sum + c.hectareas, 0)
+                      return camposDelGrupo.map(campo => {
+                        const porcentaje = (campo.hectareas / totalHectareas) * 100
+                        const montoAsignado = montoTotal * (porcentaje / 100)
+                        return (
+                          <div key={campo.id} className="flex justify-between text-xs">
+                            <span className="text-gray-700">{campo.nombre} ({campo.hectareas.toFixed(1)} ha)</span>
+                            <span className="font-medium text-purple-700">
+                              {porcentaje.toFixed(1)}% = ${montoAsignado.toFixed(2)}
+                            </span>
+                          </div>
+                        )
+                      })
+                    })()}
                   </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           </div>
-        )}
+        </div>
+      )}
 
       {/* ITEMS */}
       <div className="mb-6">
@@ -635,44 +719,119 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
                     )}
                   </div>
                 )}
-              
 
-              {/* 🌾 CAMPO LOTE (solo si es Agricultura) */}
+                {/* 🌾 SELECCIÓN DE CULTIVOS (solo si es Agricultura) */}
                 {item.categoria === 'Insumos de Cultivos' && (
-                  <div className="mb-3">
-                    <label className="block text-xs text-gray-600 mb-1">
-                      Lote Agrícola (requerido)
-                      <span className="ml-2 text-green-600 text-[10px] font-semibold">
-                        AGRICULTURA
-                      </span>
-                    </label>
-                    <select
-                      value={item.loteId || ''}
-                      onChange={e =>
-                        handleItemChange(
-                          item.id,
-                          'loteId',
-                          e.target.value || null
-                        )
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
-                      required
-                    >
-                      <option value="">Seleccionar lote...</option>
-                      {lotesAgricolas.map(lote => (
-                        <option key={lote.id} value={lote.id}>
-                          {lote.nombre} ({lote.cultivos.map(c => c.tipoCultivo).join(', ')})
-                        </option>
-                      ))}
-                    </select>
-                    
-                    {lotesAgricolas.length === 0 && (
-                      <p className="text-xs text-amber-600 mt-1">
-                        ⚠️ No hay lotes agrícolas. 
-                        <a href="/dashboard/lotes" className="underline ml-1" target="_blank">
-                          Creá uno primero
+                  <div className="mb-3 p-4 bg-green-50 rounded-lg border-2 border-green-200">
+                    <div className="flex items-center justify-between mb-3">
+                      <label className="text-sm font-medium text-gray-900">
+                        🌾 ¿Para qué cultivos es este gasto?
+                      </label>
+                      {cultivosDisponibles.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={toggleTodosCultivos}
+                          className="text-xs text-green-600 hover:text-green-700 font-medium"
+                        >
+                          {cultivosSeleccionados.length === cultivosDisponibles.length 
+                            ? '✓ Deseleccionar todos' 
+                            : 'Seleccionar todos'}
+                        </button>
+                      )}
+                    </div>
+
+                    {cultivosDisponibles.length === 0 ? (
+                      <div className="text-center py-4">
+                        <p className="text-sm text-amber-600 mb-2">
+                          ⚠️ No hay lotes agrícolas con cultivos
+                        </p>
+                        <a 
+                          href="/dashboard/lotes"
+                          className="text-xs text-blue-600 hover:underline" 
+                          target="_blank"
+                        >
+                          Crear lote agrícola →
                         </a>
-                      </p>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="space-y-2 mb-3">
+                          {cultivosDisponibles.map((cultivo) => {
+                            const isSelected = cultivosSeleccionados.includes(cultivo.tipoCultivo)
+                            return (
+                              <div
+                                key={cultivo.tipoCultivo}
+                                className={`flex items-center gap-3 p-3 rounded-lg border-2 transition cursor-pointer ${
+                                  isSelected 
+                                    ? 'bg-green-100 border-green-400' 
+                                    : 'bg-white border-gray-200 hover:border-green-300'
+                                }`}
+                                onClick={() => toggleCultivo(cultivo.tipoCultivo)}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={() => {}}
+                                  className="w-5 h-5 text-green-600 border-gray-300 rounded focus:ring-green-500 pointer-events-none"
+                                />
+                                <div className="flex-1">
+                                  <div className="font-medium text-gray-900">
+                                    🌾 {cultivo.tipoCultivo}
+                                  </div>
+                                  <div className="text-xs text-gray-600">
+                                    {cultivo.hectareas.toFixed(1)} ha • {cultivo.lotes.length} lote{cultivo.lotes.length !== 1 ? 's' : ''}
+                                    {cultivo.lotes.length <= 2 && (
+                                      <span className="ml-1">({cultivo.lotes.join(', ')})</span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+
+                        {/* Vista previa de distribución */}
+                        {cultivosSeleccionados.length > 1 && (
+                          <div className="p-3 bg-white rounded-lg border border-green-300">
+                            <p className="text-xs font-semibold text-green-800 mb-2">
+                              📊 Distribución del gasto:
+                            </p>
+                            <div className="space-y-1">
+                              {(() => {
+                                const totalHectareas = cultivosDisponibles
+                                  .filter(c => cultivosSeleccionados.includes(c.tipoCultivo))
+                                  .reduce((sum, c) => sum + c.hectareas, 0)
+                                
+                                return cultivosDisponibles
+                                  .filter(c => cultivosSeleccionados.includes(c.tipoCultivo))
+                                  .map(cultivo => {
+                                    const porcentaje = (cultivo.hectareas / totalHectareas) * 100
+                                    const montoAsignado = item.precioFinal * (porcentaje / 100)
+                                    return (
+                                      <div key={cultivo.tipoCultivo} className="flex justify-between text-xs">
+                                        <span className="text-gray-700">
+                                          {cultivo.tipoCultivo} ({cultivo.hectareas.toFixed(1)} ha)
+                                        </span>
+                                        <span className="font-medium text-green-700">
+                                          {porcentaje.toFixed(1)}% = ${montoAsignado.toFixed(2)}
+                                        </span>
+                                      </div>
+                                    )
+                                  })
+                              })()}
+                            </div>
+                            <p className="text-xs text-gray-500 mt-2 italic">
+                              Se crearán {cultivosSeleccionados.length} gastos separados
+                            </p>
+                          </div>
+                        )}
+
+                        {cultivosSeleccionados.length === 0 && (
+                          <p className="text-xs text-red-600 mt-2">
+                            ⚠️ Debes seleccionar al menos un cultivo
+                          </p>
+                        )}
+                      </>
                     )}
                   </div>
                 )}
