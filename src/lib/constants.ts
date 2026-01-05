@@ -21,7 +21,7 @@ export const CATEGORIAS_GASTOS_DEFAULT = [
   { nombre: 'Administración', color: '#3b82f6', tipo: 'FIJO', subtipo: 'PURO', orden: 9 },
   { nombre: 'Asesoramiento', color: '#06b6d4', tipo: 'FIJO', subtipo: 'PURO', orden: 10 },
   { nombre: 'Impuestos', color: '#8b5cf6', tipo: 'FIJO', subtipo: 'PURO', orden: 11 },
-  { nombre: 'Seguros', color: '#0ea5e9', tipo: 'FIJO', subtipo: 'PURO', orden: 12 },
+  { nombre: 'Seguro/Patente', color: '#0ea5e9', tipo: 'FIJO', subtipo: 'PURO', orden: 12 },
   { nombre: 'Estructuras', color: '#64748b', tipo: 'FIJO', subtipo: 'PURO', orden: 13 },
   { nombre: 'Otros', color: '#6b7280', tipo: 'FIJO', subtipo: 'PURO', orden: 14 },
 
