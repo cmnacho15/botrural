@@ -17,8 +17,8 @@ type ItemGasto = {
   precio: number
   iva: number
   precioFinal: number
-  especie: string | null
-  loteId: string | null  // 🆕 NUEVO CAMPO
+  especies: string[]  // 🔥 CAMBIADO: Array de especies en lugar de una sola
+  loteId: string | null
 }
 
 export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
@@ -54,8 +54,8 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
       precio: 0,
       iva: 0,
       precioFinal: 0,
-      especie: null,
-      loteId: null,  // 🆕 NUEVO
+      especies: [],  // 🔥 CAMBIADO
+      loteId: null,
     },
   ])
 
@@ -159,10 +159,10 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
           updated.iva = isNaN(numValue) ? 0 : numValue
           updated.precioFinal = calcularPrecioFinal(updated.precio, updated.iva)
         } else if (field === 'categoria') {
-          // ✅ Si cambia categoría, resetear especie y lote
+          // ✅ Si cambia categoría, resetear especies y lote
           updated.categoria = value
           if (esCategoriaVariable(value)) {
-            updated.especie = null
+            updated.especies = []  // 🔥 CAMBIADO
           } else {
             updated.loteId = null
           }
@@ -184,8 +184,8 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
         precio: 0,
         iva: 0,
         precioFinal: 0,
-        especie: null,
-        loteId: null,  // 🆕 NUEVO
+        especies: [],  // 🔥 CAMBIADO
+        loteId: null,
       },
     ])
   }
@@ -205,15 +205,15 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
     return
   }
 
-  // ✅ VALIDACIÓN: Variables de ganadería requieren especie
+  // ✅ VALIDACIÓN: Variables de ganadería requieren al menos una especie
   const itemSinEspecie = items.find(item => 
     esCategoriaVariable(item.categoria) && 
     item.categoria !== 'Insumos de Cultivos' && 
-    !item.especie
+    item.especies.length === 0  // 🔥 CAMBIADO
   )
   
   if (itemSinEspecie) {
-    alert(`El item "${itemSinEspecie.item}" es un costo variable y requiere que asignes una especie (Vacunos/Ovinos/Equinos)`)
+    alert(`El item "${itemSinEspecie.item}" es un costo variable y requiere que asignes al menos una especie (Vacunos/Ovinos/Equinos)`)
     return
   }
 
@@ -253,8 +253,8 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
             diasPlazo: esPlazo ? diasPlazo : null,
             pagado: esPlazo ? pagado : true,
             proveedor: proveedor.trim() || null,
-            especie: item.especie,
-            loteId: item.loteId,  // 🆕 NUEVO CAMPO
+            especies: item.especies,  // 🔥 CAMBIADO: array de especies
+            loteId: item.loteId,
           }),
         })
 
@@ -519,34 +519,40 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
                   </select>
                 </div>
 
-                {/* ✅ CAMPO ESPECIE (solo si es VARIABLE de GANADERÍA) */}
+                {/* ✅ CHECKBOXES ESPECIES (solo si es VARIABLE de GANADERÍA) */}
                 {esVariable && item.categoria !== 'Insumos de Cultivos' && (
                   <div className="mb-3">
-                    <label className="block text-xs text-gray-600 mb-1">
-                      Especie (requerido para variables)
+                    <label className="block text-xs text-gray-600 mb-2">
+                      Especie/s (seleccioná una o varias)
                       <span className="ml-2 text-green-600 text-[10px] font-semibold">
                         COSTO VARIABLE DIRECTO
                       </span>
                     </label>
-                    <select
-                      value={item.especie || ''}
-                      onChange={e =>
-                        handleItemChange(
-                          item.id,
-                          'especie',
-                          e.target.value || null
-                        )
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
-                      required
-                    >
-                      <option value="">Seleccionar especie...</option>
+                    <div className="flex gap-4">
                       {ESPECIES_VALIDAS.map(esp => (
-                        <option key={esp} value={esp}>
-                          {esp.charAt(0) + esp.slice(1).toLowerCase()}
-                        </option>
+                        <label key={esp} className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={item.especies.includes(esp)}
+                            onChange={e => {
+                              const nuevasEspecies = e.target.checked
+                                ? [...item.especies, esp]
+                                : item.especies.filter(e => e !== esp)
+                              handleItemChange(item.id, 'especies', nuevasEspecies)
+                            }}
+                            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                          />
+                          <span className="text-sm text-gray-700">
+                            {esp.charAt(0) + esp.slice(1).toLowerCase()}
+                          </span>
+                        </label>
                       ))}
-                    </select>
+                    </div>
+                    {item.especies.length > 1 && (
+                      <p className="text-xs text-blue-600 mt-2">
+                        💡 Se distribuirá proporcionalmente según % de UG
+                      </p>
+                    )}
                   </div>
                 )}
               
