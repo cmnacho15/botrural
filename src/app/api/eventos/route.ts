@@ -145,8 +145,12 @@ export async function POST(request: Request) {
       proveedor,
       categoriaNueva,
       especie,
+      especies, // <- AGREGA ESTA LÍNEA
       rodeoId,
     } = body;
+    
+    console.log('🔥 ESPECIES RECIBIDAS:', especies) // <- AGREGA ESTO
+console.log('🔥 ESPECIE RECIBIDA:', especie)     // <- AGREGA ESTO
 
     const moneda = body.moneda || 'UYU';
 
