@@ -210,17 +210,50 @@ console.log('API COSTOS - superficieParaCalculo:', superficieParaCalculo)
       
       variablesDetalle[cat].totalUSD += gasto.montoEnUSD
       
-      // Asignación 100% directa según especie
-      if (gasto.especie === 'VACUNOS') {
-        variablesDetalle[cat].vacunos += gasto.montoEnUSD
-        costosVariablesPorEspecie.vacunos += gasto.montoEnUSD
-      } else if (gasto.especie === 'OVINOS') {
-        variablesDetalle[cat].ovinos += gasto.montoEnUSD
-        costosVariablesPorEspecie.ovinos += gasto.montoEnUSD
-      } else if (gasto.especie === 'EQUINOS') {
-        variablesDetalle[cat].equinos += gasto.montoEnUSD
-        costosVariablesPorEspecie.equinos += gasto.montoEnUSD
+      // 🔥 DETECTAR SI TIENE MÚLTIPLES ESPECIES
+      const especies = gasto.especie ? gasto.especie.split(',') : []
+      
+      if (especies.length > 1) {
+        // 🎯 DISTRIBUCIÓN PROPORCIONAL según % UG
+        const montoVacunos = especies.includes('VACUNOS') 
+          ? (gasto.montoEnUSD * porcentajes.vacunos) / 100 
+          : 0
+        const montoOvinos = especies.includes('OVINOS') 
+          ? (gasto.montoEnUSD * porcentajes.ovinos) / 100 
+          : 0
+        const montoEquinos = especies.includes('EQUINOS') 
+          ? (gasto.montoEnUSD * porcentajes.equinos) / 100 
+          : 0
+        
+        // Normalizar para que la suma sea exactamente el monto original
+        const sumaEspecies = montoVacunos + montoOvinos + montoEquinos
+        const factor = sumaEspecies > 0 ? gasto.montoEnUSD / sumaEspecies : 0
+        
+        variablesDetalle[cat].vacunos += montoVacunos * factor
+        variablesDetalle[cat].ovinos += montoOvinos * factor
+        variablesDetalle[cat].equinos += montoEquinos * factor
+        
+        costosVariablesPorEspecie.vacunos += montoVacunos * factor
+        costosVariablesPorEspecie.ovinos += montoOvinos * factor
+        costosVariablesPorEspecie.equinos += montoEquinos * factor
+        
+      } else if (especies.length === 1) {
+        // 🎯 ASIGNACIÓN 100% a una sola especie
+        const especieUnica = especies[0]
+        
+        if (especieUnica === 'VACUNOS') {
+          variablesDetalle[cat].vacunos += gasto.montoEnUSD
+          costosVariablesPorEspecie.vacunos += gasto.montoEnUSD
+        } else if (especieUnica === 'OVINOS') {
+          variablesDetalle[cat].ovinos += gasto.montoEnUSD
+          costosVariablesPorEspecie.ovinos += gasto.montoEnUSD
+        } else if (especieUnica === 'EQUINOS') {
+          variablesDetalle[cat].equinos += gasto.montoEnUSD
+          costosVariablesPorEspecie.equinos += gasto.montoEnUSD
+        }
+        
       } else {
+        // 🎯 SIN ESPECIE ASIGNADA
         variablesDetalle[cat].sinAsignar += gasto.montoEnUSD
         costosVariablesPorEspecie.sinAsignar += gasto.montoEnUSD
       }

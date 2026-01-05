@@ -215,7 +215,7 @@ console.log('🔥 ESPECIE RECIBIDA:', especie)     // <- AGREGA ESTO
             loteId,
             diasPlazo: metodoPago === "Plazo" ? parseInt(diasPlazo || "0") : null,
             pagado: metodoPago === "Contado" ? true : pagado ?? false,
-            especie: especie || null, 
+            especie: especies ? especies.join(',') : (especie || null),  // 🔥 CAMBIADO
           });
         }
         break;
