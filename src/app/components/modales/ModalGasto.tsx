@@ -46,11 +46,13 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
     cultivos: Array<{ tipoCultivo: string }>
   }>>([])
 
-  // 🌾 Cultivos seleccionados para Insumos de Cultivos
+  // 🌾 Cultivos seleccionados para Insumos de Cultivos (por lote)
   const [cultivosDisponibles, setCultivosDisponibles] = useState<Array<{
     tipoCultivo: string
     hectareas: number
     lotes: string[]
+    loteId: string
+    nombreLote: string
   }>>([])
   const [cultivosSeleccionados, setCultivosSeleccionados] = useState<string[]>([])
 
@@ -122,28 +124,26 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
           
           setLotesAgricolas(agricolas)
           
-          // 🌾 Agrupar cultivos por tipo con sus hectáreas totales
-          const cultivosMap = new Map<string, { hectareas: number; lotes: string[] }>()
+          // 🌾 Crear lista de cultivos POR LOTE (no agrupados)
+          const cultivosArray: Array<{
+            tipoCultivo: string
+            hectareas: number
+            lotes: string[]
+            loteId: string
+            nombreLote: string
+          }> = []
           
           agricolas.forEach((lote: any) => {
             lote.cultivos.forEach((cultivo: any) => {
-              const tipo = cultivo.tipoCultivo
-              if (!cultivosMap.has(tipo)) {
-                cultivosMap.set(tipo, { hectareas: 0, lotes: [] })
-              }
-              const data = cultivosMap.get(tipo)!
-              data.hectareas += cultivo.hectareas || 0
-              if (!data.lotes.includes(lote.nombre)) {
-                data.lotes.push(lote.nombre)
-              }
+              cultivosArray.push({
+                tipoCultivo: cultivo.tipoCultivo,
+                hectareas: cultivo.hectareas || 0,
+                lotes: [lote.nombre],
+                loteId: lote.id,
+                nombreLote: lote.nombre
+              })
             })
           })
-          
-          const cultivosArray = Array.from(cultivosMap.entries()).map(([tipo, data]) => ({
-            tipoCultivo: tipo,
-            hectareas: data.hectareas,
-            lotes: data.lotes
-          }))
           
           setCultivosDisponibles(cultivosArray)
         }
@@ -255,12 +255,12 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
     setItems(prev => prev.filter(item => item.id !== id))
   }
 
-  // 🌾 Toggle selección de cultivo
-  const toggleCultivo = (tipoCultivo: string) => {
+  // 🌾 Toggle selección de cultivo (por loteId único)
+  const toggleCultivo = (loteId: string) => {
     setCultivosSeleccionados(prev => 
-      prev.includes(tipoCultivo)
-        ? prev.filter(c => c !== tipoCultivo)
-        : [...prev, tipoCultivo]
+      prev.includes(loteId)
+        ? prev.filter(c => c !== loteId)
+        : [...prev, loteId]
     )
   }
 
@@ -269,7 +269,7 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
     if (cultivosSeleccionados.length === cultivosDisponibles.length) {
       setCultivosSeleccionados([])
     } else {
-      setCultivosSeleccionados(cultivosDisponibles.map(c => c.tipoCultivo))
+      setCultivosSeleccionados(cultivosDisponibles.map(c => c.loteId))
     }
   }
 
@@ -314,15 +314,15 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
       for (let i = 0; i < items.length; i++) {
         const item = items[i]
 
-        // 🌾 Si es "Insumos de Cultivos" con múltiples cultivos
+        // 🌾 Si es "Insumos de Cultivos" con cultivos/lotes seleccionados
         if (item.categoria === 'Insumos de Cultivos' && cultivosSeleccionados.length > 0) {
           const totalHectareas = cultivosDisponibles
-            .filter(c => cultivosSeleccionados.includes(c.tipoCultivo))
+            .filter(c => cultivosSeleccionados.includes(c.loteId))
             .reduce((sum, c) => sum + c.hectareas, 0)
           
-          // Crear un gasto por cada cultivo seleccionado
-          for (const tipoCultivo of cultivosSeleccionados) {
-            const cultivo = cultivosDisponibles.find(c => c.tipoCultivo === tipoCultivo)
+          // Crear un gasto por cada lote/cultivo seleccionado
+          for (const loteId of cultivosSeleccionados) {
+            const cultivo = cultivosDisponibles.find(c => c.loteId === loteId)
             if (!cultivo) continue
             
             const porcentaje = (cultivo.hectareas / totalHectareas) * 100
@@ -334,7 +334,7 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
               body: JSON.stringify({
                 tipo: 'GASTO',
                 fecha: fecha,
-                descripcion: `${item.item} - ${tipoCultivo}${notas ? ` - ${notas}` : ''}`,
+                descripcion: `${item.item} - ${cultivo.tipoCultivo} (${cultivo.nombreLote})${notas ? ` - ${notas}` : ''}`,
                 categoria: item.categoria,
                 monto: montoAsignado,
                 moneda: moneda,
@@ -344,11 +344,11 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
                 pagado: esPlazo ? pagado : true,
                 proveedor: proveedor.trim() || null,
                 especies: [],
-                loteId: null,
+                loteId: cultivo.loteId,
               }),
             })
             
-            if (!response.ok) throw new Error('Error al crear gasto para ' + tipoCultivo)
+            if (!response.ok) throw new Error('Error al crear gasto para ' + cultivo.nombreLote)
           }
         } else {
           // Gasto normal
@@ -757,16 +757,16 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
                       <>
                         <div className="space-y-2 mb-3">
                           {cultivosDisponibles.map((cultivo) => {
-                            const isSelected = cultivosSeleccionados.includes(cultivo.tipoCultivo)
+                            const isSelected = cultivosSeleccionados.includes(cultivo.loteId)
                             return (
                               <div
-                                key={cultivo.tipoCultivo}
+                                key={cultivo.loteId}
                                 className={`flex items-center gap-3 p-3 rounded-lg border-2 transition cursor-pointer ${
                                   isSelected 
                                     ? 'bg-green-100 border-green-400' 
                                     : 'bg-white border-gray-200 hover:border-green-300'
                                 }`}
-                                onClick={() => toggleCultivo(cultivo.tipoCultivo)}
+                                onClick={() => toggleCultivo(cultivo.loteId)}
                               >
                                 <input
                                   type="checkbox"
@@ -779,10 +779,7 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
                                     🌾 {cultivo.tipoCultivo}
                                   </div>
                                   <div className="text-xs text-gray-600">
-                                    {cultivo.hectareas.toFixed(1)} ha • {cultivo.lotes.length} lote{cultivo.lotes.length !== 1 ? 's' : ''}
-                                    {cultivo.lotes.length <= 2 && (
-                                      <span className="ml-1">({cultivo.lotes.join(', ')})</span>
-                                    )}
+                                    📍 {cultivo.nombreLote} • {cultivo.hectareas.toFixed(1)} ha
                                   </div>
                                 </div>
                               </div>
@@ -799,18 +796,18 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
                             <div className="space-y-1">
                               {(() => {
                                 const totalHectareas = cultivosDisponibles
-                                  .filter(c => cultivosSeleccionados.includes(c.tipoCultivo))
+                                  .filter(c => cultivosSeleccionados.includes(c.loteId))
                                   .reduce((sum, c) => sum + c.hectareas, 0)
                                 
                                 return cultivosDisponibles
-                                  .filter(c => cultivosSeleccionados.includes(c.tipoCultivo))
+                                  .filter(c => cultivosSeleccionados.includes(c.loteId))
                                   .map(cultivo => {
                                     const porcentaje = (cultivo.hectareas / totalHectareas) * 100
                                     const montoAsignado = item.precioFinal * (porcentaje / 100)
                                     return (
-                                      <div key={cultivo.tipoCultivo} className="flex justify-between text-xs">
+                                      <div key={cultivo.loteId} className="flex justify-between text-xs">
                                         <span className="text-gray-700">
-                                          {cultivo.tipoCultivo} ({cultivo.hectareas.toFixed(1)} ha)
+                                          {cultivo.tipoCultivo} - {cultivo.nombreLote} ({cultivo.hectareas.toFixed(1)} ha)
                                         </span>
                                         <span className="font-medium text-green-700">
                                           {porcentaje.toFixed(1)}% = ${montoAsignado.toFixed(2)}
