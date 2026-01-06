@@ -36,6 +36,7 @@ function obtenerIcono(tipo: string): string {
     MONITOREO: '🔍',
     COSECHA: '🌾',
     OTROS_LABORES: '🔧',
+    DAO: '🔬',
   }
   return iconos[tipo] || '📊'
 }
