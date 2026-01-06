@@ -159,6 +159,7 @@ function MenuGiganteEventos({ isOpen, onClose, onSelectTipo }: MenuEventosProps)
                 ["destete", "🍼", "Destete"],
                 ["tacto", "✋", "Tacto"],
                 ["recategorizacion", "🏷️", "Recategorización"],
+                ["dao", "🔬", "DAO"],  // ← AGREGAR ESTA LÍNEA
               ].map(([tipo, emoji, label]) => (
                 <button
                   key={tipo}

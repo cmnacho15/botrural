@@ -579,6 +579,7 @@ const guardarNombreGrupo = async (grupoId: string) => {
                     ["destete", "🍼", "Destete"],
                     ["tacto", "✋", "Tacto"],
                     ["recategorizacion", "🏷️", "Recategorización"],
+                    ["dao", "🔬", "DAO"],  // ← AGREGAR ESTA LÍNEA
                   ].map(([tipo, emoji, label]) => (
                     <button
                       key={tipo}
