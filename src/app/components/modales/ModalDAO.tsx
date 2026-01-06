@@ -143,45 +143,37 @@ export default function ModalDAO({ onClose, onSuccess }: ModalDAOProps) {
     }
 
     // Validar que haya al menos 1 categoría con datos
-const resultadosValidos = resultadosDAO.filter(r => 
-  r.categoria && 
-  r.cantidadExaminada && 
-  parseInt(r.cantidadExaminada) > 0
-)
+const resultadosValidos = resultadosDAO.filter(r => {
+  const suma = (parseInt(r.prenado) || 0) + 
+               (parseInt(r.ciclando) || 0) + 
+               (parseInt(r.anestroSuperficial) || 0) + 
+               (parseInt(r.anestroProfundo) || 0)
+  return r.categoria && suma > 0
+})
 
 if (resultadosValidos.length < 1) {
-  alert('Debe registrar al menos 1 categoría de animales')
+  alert('Debe registrar al menos 1 categoría con datos')
   return
 }
 
-    // Validar que las sumas sean correctas
-    for (const resultado of resultadosValidos) {
-      const cantExaminada = parseInt(resultado.cantidadExaminada)
-      const prenado = parseInt(resultado.prenado) || 0
-      const ciclando = parseInt(resultado.ciclando) || 0
-      const anestroSup = parseInt(resultado.anestroSuperficial) || 0
-      const anestroPro = parseInt(resultado.anestroProfundo) || 0
-      
-      const suma = prenado + ciclando + anestroSup + anestroPro
-      
-      if (suma > cantExaminada) {
-        alert(`Error en ${resultado.categoria}: la suma de resultados (${suma}) excede la cantidad examinada (${cantExaminada})`)
-        return
-      }
-    }
+    
 
     // Validar que no exceda cantidades disponibles
-    for (const resultado of resultadosValidos) {
-      const disponible = animalesDisponibles.find(d => d.categoria === resultado.categoria)
-      if (!disponible) {
-        alert(`No hay animales de tipo ${resultado.categoria} en este potrero`)
-        return
-      }
-      if (parseInt(resultado.cantidadExaminada) > disponible.cantidad) {
-        alert(`Solo hay ${disponible.cantidad} ${resultado.categoria} disponibles`)
-        return
-      }
-    }
+for (const resultado of resultadosValidos) {
+  const disponible = animalesDisponibles.find(d => d.categoria === resultado.categoria)
+  if (!disponible) {
+    alert(`No hay animales de tipo ${resultado.categoria} en este potrero`)
+    return
+  }
+  const cantidadExaminada = (parseInt(resultado.prenado) || 0) + 
+                            (parseInt(resultado.ciclando) || 0) + 
+                            (parseInt(resultado.anestroSuperficial) || 0) + 
+                            (parseInt(resultado.anestroProfundo) || 0)
+  if (cantidadExaminada > disponible.cantidad) {
+    alert(`Solo hay ${disponible.cantidad} ${resultado.categoria} disponibles`)
+    return
+  }
+}
 
     setLoading(true)
 
@@ -190,7 +182,11 @@ if (resultadosValidos.length < 1) {
       
       // Construir descripción con todos los resultados
       const detallesResultados = resultadosValidos.map(r => {
-  return `${r.categoria}: ${r.cantidadExaminada} examinadas (Preñadas: ${r.prenado || 0}, Ciclando: ${r.ciclando || 0}, Anestro Superficial: ${r.anestroSuperficial || 0}, Anestro Profundo: ${r.anestroProfundo || 0})`
+  const cantidadExaminada = (parseInt(r.prenado) || 0) + 
+                            (parseInt(r.ciclando) || 0) + 
+                            (parseInt(r.anestroSuperficial) || 0) + 
+                            (parseInt(r.anestroProfundo) || 0)
+  return `${r.categoria}: ${cantidadExaminada} examinadas (Preñadas: ${r.prenado || 0}, Ciclando: ${r.ciclando || 0}, Anestro Superficial: ${r.anestroSuperficial || 0}, Anestro Profundo: ${r.anestroProfundo || 0})`
 }).join(' | ')
 
       const descripcionFinal = `DAO${rodeoId && rodeos.find(r => r.id === rodeoId) ? ` - Lote ${rodeos.find(r => r.id === rodeoId)?.nombre}` : ''} en potrero ${potreroNombre}: ${detallesResultados}`
@@ -311,52 +307,39 @@ if (resultadosValidos.length < 1) {
                   
                   return (
                     <div key={resultado.id} className="bg-white rounded-lg p-3 border border-purple-200">
-                      {/* Primera fila: Categoría y Cantidad Examinada */}
-                      <div className="grid grid-cols-12 gap-2 mb-3">
-                        <div className="col-span-6">
-                          <label className="block text-xs text-gray-600 mb-1">Categoría</label>
-                          <select
-                            value={resultado.categoria}
-                            onChange={(e) => actualizarResultado(resultado.id, 'categoria', e.target.value)}
-                            className="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-sm"
-                            required
-                          >
-                            <option value="">Seleccionar...</option>
-                            {animalesDisponibles.map((a) => (
-                              <option key={a.id} value={a.categoria}>
-                                {a.categoria} ({a.cantidad} disponibles)
-                              </option>
-                            ))}
-                          </select>
-                        </div>
+  {/* Primera fila: Categoría y botón eliminar */}
+  <div className="grid grid-cols-12 gap-2 mb-3">
+    <div className="col-span-11">
+      <label className="block text-xs text-gray-600 mb-1">Categoría</label>
+      <select
+        value={resultado.categoria}
+        onChange={(e) => actualizarResultado(resultado.id, 'categoria', e.target.value)}
+        className="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-sm"
+        required
+      >
+        <option value="">Seleccionar...</option>
+        {animalesDisponibles.map((a) => (
+          <option key={a.id} value={a.categoria}>
+            {a.categoria} ({a.cantidad} disponibles)
+          </option>
+        ))}
+      </select>
+    </div>
 
-                        <div className="col-span-5">
-                          <label className="block text-xs text-gray-600 mb-1">Cantidad Examinada</label>
-                          <input
-                            type="number"
-                            value={resultado.cantidadExaminada}
-                            onChange={(e) => actualizarResultado(resultado.id, 'cantidadExaminada', e.target.value)}
-                            min="1"
-                            placeholder="0"
-                            className="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-sm"
-                            required
-                          />
-                        </div>
+    <div className="col-span-1 flex items-end pb-2">
+      <button
+        type="button"
+        onClick={() => eliminarCategoria(resultado.id)}
+        className="text-red-500 hover:text-red-700 text-xl"
+        disabled={resultadosDAO.length === 1}
+      >
+        🗑️
+      </button>
+    </div>
+  </div>
 
-                        <div className="col-span-1 flex items-end pb-2">
-                          <button
-                            type="button"
-                            onClick={() => eliminarCategoria(resultado.id)}
-                            className="text-red-500 hover:text-red-700 text-xl"
-                            disabled={resultadosDAO.length === 1}
-                          >
-                            🗑️
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Segunda fila: Resultados */}
-<div className="grid grid-cols-4 gap-2">
+  {/* Segunda fila: Los 4 campos de resultados */}
+  <div className="grid grid-cols-4 gap-2 mb-3">
                         <div>
                           <label className="block text-xs text-gray-600 mb-1">Preñado</label>
                           <input
@@ -394,20 +377,29 @@ if (resultadosValidos.length < 1) {
                         </div>
 
                         <div>
-                          <label className="block text-xs text-gray-600 mb-1">Anestro Prof.</label>
-                          <input
-                            type="number"
-                            value={resultado.anestroProfundo}
-                            onChange={(e) => actualizarResultado(resultado.id, 'anestroProfundo', e.target.value)}
-                            min="0"
-                            placeholder="0"
-                            className="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-sm"
-                          />
-                        </div>
+          <label className="block text-xs text-gray-600 mb-1">Anestro Prof.</label>
+          <input
+            type="number"
+            value={resultado.anestroProfundo}
+            onChange={(e) => actualizarResultado(resultado.id, 'anestroProfundo', e.target.value)}
+            min="0"
+            placeholder="0"
+            className="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-sm"
+          />
+        </div>
+      </div>
 
-                        
-                      </div>
-                    </div>
+      {/* Tercera fila: Cantidad Examinada (calculada) */}
+      <div className="mt-3 pt-3 border-t border-purple-100">
+        <label className="block text-xs text-gray-600 mb-1">Cantidad Examinada (Total)</label>
+        <div className="w-full px-3 py-2 border border-purple-200 rounded-lg bg-purple-50 text-sm font-semibold text-purple-900">
+          {(parseInt(resultado.prenado) || 0) + 
+           (parseInt(resultado.ciclando) || 0) + 
+           (parseInt(resultado.anestroSuperficial) || 0) + 
+           (parseInt(resultado.anestroProfundo) || 0)}
+        </div>
+      </div>
+    </div>
                   )
                 })}
 

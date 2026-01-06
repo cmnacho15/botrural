@@ -75,7 +75,7 @@ model Campo {
   id          String       @id @default(cuid())
   nombre      String
   tipoCampo         String   @default("MIXTO")  // "GANADERO" o "MIXTO"
-  
+
   modoRodeo   String       @default("OPCIONAL") // ← AGREGAR ESTA LÍNEA
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
@@ -463,6 +463,7 @@ enum TipoEvento {
   GASTO
   AJUSTE
   CAMBIO_POTRERO
+  DAO           // <-- AGREGAR ESTA LÍNEA
   
   SNIG_STOCK_INICIAL           // ✅ AGREGAR ESTOS
   SNIG_NACIMIENTO_CARAVANEO    // ✅
