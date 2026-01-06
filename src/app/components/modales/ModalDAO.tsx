@@ -280,9 +280,10 @@ for (const resultado of resultadosValidos) {
           >
             <option value="">Seleccionar potrero...</option>
             {potreros.map((lote: any) => {
+              const categoriasDAO = ['Vaquillonas +2 años', 'Vaquillonas 1–2 años', 'Vacas', 'Vacas Gordas']
               const resumen = lote.animalesLote && lote.animalesLote.length > 0
                 ? lote.animalesLote
-                    .filter((a: any) => a.cantidad > 0)
+                    .filter((a: any) => categoriasDAO.includes(a.categoria) && a.cantidad > 0)
                     .map((a: any) => `${a.categoria} ${a.cantidad}`)
                     .join(', ')
                 : 'Sin animales'
