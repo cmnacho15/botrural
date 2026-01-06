@@ -57,6 +57,7 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
     nombreLote: string
   }>>([])
   const [cultivosSeleccionados, setCultivosSeleccionados] = useState<string[]>([])
+  const [tiposCultivo, setTiposCultivo] = useState<string[]>([])
 
   // 🏢 Multicampo - Gastos compartidos
   const [camposDelGrupo, setCamposDelGrupo] = useState<Array<{
@@ -155,7 +156,25 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
     }
     cargarLotesAgricolas()
   }, [])
+  
 
+  // 🆕 CARGAR TIPOS DE CULTIVO DISPONIBLES
+  useEffect(() => {
+    const cargarTiposCultivo = async () => {
+      try {
+        const res = await fetch('/api/tipos-cultivo')
+        if (res.ok) {
+          const data = await res.json()
+          const nombres = data.map((c: any) => c.nombre)
+          setTiposCultivo(nombres)
+        }
+      } catch (err) {
+        console.error('Error cargando tipos de cultivo:', err)
+      }
+    }
+    cargarTiposCultivo()
+  }, [])
+  
   // 🏢 Cargar campos del grupo (si tiene multicampo)
   useEffect(() => {
     const cargarCamposGrupo = async () => {
