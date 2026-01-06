@@ -126,17 +126,7 @@ export default function ModalDAO({ onClose, onSuccess }: ModalDAOProps) {
     ))
   }
 
-  // Calcular falta automáticamente
-  const calcularFalta = (resultado: ResultadoDAO): number => {
-    const cantExaminada = parseInt(resultado.cantidadExaminada) || 0
-    const prenado = parseInt(resultado.prenado) || 0
-    const ciclando = parseInt(resultado.ciclando) || 0
-    const anestroSup = parseInt(resultado.anestroSuperficial) || 0
-    const anestroPro = parseInt(resultado.anestroProfundo) || 0
-    
-    const sumaCategorias = prenado + ciclando + anestroSup + anestroPro
-    return Math.max(0, cantExaminada - sumaCategorias)
-  }
+  
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -152,17 +142,17 @@ export default function ModalDAO({ onClose, onSuccess }: ModalDAOProps) {
       return
     }
 
-    // Validar que haya al menos 2 categorías con datos
-    const resultadosValidos = resultadosDAO.filter(r => 
-      r.categoria && 
-      r.cantidadExaminada && 
-      parseInt(r.cantidadExaminada) > 0
-    )
+    // Validar que haya al menos 1 categoría con datos
+const resultadosValidos = resultadosDAO.filter(r => 
+  r.categoria && 
+  r.cantidadExaminada && 
+  parseInt(r.cantidadExaminada) > 0
+)
 
-    if (resultadosValidos.length < 2) {
-      alert('Debe registrar al menos 2 categorías de animales')
-      return
-    }
+if (resultadosValidos.length < 1) {
+  alert('Debe registrar al menos 1 categoría de animales')
+  return
+}
 
     // Validar que las sumas sean correctas
     for (const resultado of resultadosValidos) {
@@ -200,9 +190,8 @@ export default function ModalDAO({ onClose, onSuccess }: ModalDAOProps) {
       
       // Construir descripción con todos los resultados
       const detallesResultados = resultadosValidos.map(r => {
-        const falta = calcularFalta(r)
-        return `${r.categoria}: ${r.cantidadExaminada} examinadas (Preñadas: ${r.prenado || 0}, Ciclando: ${r.ciclando || 0}, Anestro Superficial: ${r.anestroSuperficial || 0}, Anestro Profundo: ${r.anestroProfundo || 0}, Falta: ${falta})`
-      }).join(' | ')
+  return `${r.categoria}: ${r.cantidadExaminada} examinadas (Preñadas: ${r.prenado || 0}, Ciclando: ${r.ciclando || 0}, Anestro Superficial: ${r.anestroSuperficial || 0}, Anestro Profundo: ${r.anestroProfundo || 0})`
+}).join(' | ')
 
       const descripcionFinal = `DAO${rodeoId && rodeos.find(r => r.id === rodeoId) ? ` - Lote ${rodeos.find(r => r.id === rodeoId)?.nombre}` : ''} en potrero ${potreroNombre}: ${detallesResultados}`
 
@@ -306,9 +295,8 @@ export default function ModalDAO({ onClose, onSuccess }: ModalDAOProps) {
         {potreroSeleccionado && (
           <div className="bg-purple-50 rounded-lg p-4">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="font-semibold text-gray-900">Resultados del Monitoreo</h3>
-              <span className="text-xs text-purple-600 font-medium">Mínimo 2 categorías requeridas</span>
-            </div>
+  <h3 className="font-semibold text-gray-900">Resultados del Monitoreo</h3>
+</div>
 
             {loadingAnimales ? (
               <p className="text-sm text-gray-600 italic">Cargando animales...</p>
@@ -319,7 +307,7 @@ export default function ModalDAO({ onClose, onSuccess }: ModalDAOProps) {
             ) : (
               <div className="space-y-4">
                 {resultadosDAO.map((resultado, index) => {
-                  const falta = calcularFalta(resultado)
+                  
                   
                   return (
                     <div key={resultado.id} className="bg-white rounded-lg p-3 border border-purple-200">
@@ -368,7 +356,7 @@ export default function ModalDAO({ onClose, onSuccess }: ModalDAOProps) {
                       </div>
 
                       {/* Segunda fila: Resultados */}
-                      <div className="grid grid-cols-5 gap-2">
+<div className="grid grid-cols-4 gap-2">
                         <div>
                           <label className="block text-xs text-gray-600 mb-1">Preñado</label>
                           <input
@@ -417,12 +405,7 @@ export default function ModalDAO({ onClose, onSuccess }: ModalDAOProps) {
                           />
                         </div>
 
-                        <div>
-                          <label className="block text-xs text-gray-600 mb-1">Falta</label>
-                          <div className="w-full px-2 py-2 border border-gray-200 rounded-lg bg-gray-50 text-sm font-medium text-center">
-                            {falta}
-                          </div>
-                        </div>
+                        
                       </div>
                     </div>
                   )
