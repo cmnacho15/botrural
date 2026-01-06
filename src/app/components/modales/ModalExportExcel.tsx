@@ -22,6 +22,7 @@ const GRUPOS_HOJAS: GrupoHojas[] = [
       { key: 'movimientosGanaderos', label: 'Movimientos Ganaderos' },
       { key: 'cambiosPotrero', label: 'Cambios de Potrero' },
       { key: 'tactos', label: 'Tactos' },
+      { key: 'dao', label: '🔬 DAO' },
       { key: 'recategorizaciones', label: 'Recategorizaciones' },
     ],
   },

@@ -357,12 +357,15 @@ export async function POST(request: Request) {
         { header: 'Potrero', key: 'potrero', width: 18 },
         { header: 'Lote', key: 'loteNombre', width: 18 },
         { header: 'Categoría', key: 'categoria', width: 20 },
-        { header: 'Cant. Examinada', key: 'examinada', width: 14 },
-        { header: 'Preñado', key: 'prenado', width: 12 },
-        { header: 'Ciclando', key: 'ciclando', width: 12 },
-        { header: 'Anestro Sup.', key: 'anestroSup', width: 12 },
-        { header: 'Anestro Prof.', key: 'anestroProf', width: 12 },
-        { header: 'Preñado %', key: 'prenadoPct', width: 12 },
+        { header: 'Cant. Exam.', key: 'examinada', width: 12 },
+        { header: 'Preñado (n)', key: 'prenado', width: 14 },
+        { header: 'Preñado (%)', key: 'prenadoPct', width: 14 },
+        { header: 'Ciclando (n)', key: 'ciclando', width: 14 },
+        { header: 'Ciclando (%)', key: 'ciclandoPct', width: 14 },
+        { header: 'Anestro Sup. (n)', key: 'anestroSup', width: 16 },
+        { header: 'Anestro Sup. (%)', key: 'anestroSupPct', width: 16 },
+        { header: 'Anestro Prof. (n)', key: 'anestroProf', width: 17 },
+        { header: 'Anestro Prof. (%)', key: 'anestroProfPct', width: 17 },
         { header: 'Notas', key: 'notas', width: 30 },
       ]
       sheet.columns = columnas
@@ -383,7 +386,12 @@ export async function POST(request: Request) {
             const ciclando = parseInt(matchCategoria[4])
             const anestroSup = parseInt(matchCategoria[5])
             const anestroProf = parseInt(matchCategoria[6])
+            
+            // Calcular todos los porcentajes
             const prenadoPct = examinada > 0 ? ((prenado / examinada) * 100).toFixed(1) : '0.0'
+            const ciclandoPct = examinada > 0 ? ((ciclando / examinada) * 100).toFixed(1) : '0.0'
+            const anestroSupPct = examinada > 0 ? ((anestroSup / examinada) * 100).toFixed(1) : '0.0'
+            const anestroProfPct = examinada > 0 ? ((anestroProf / examinada) * 100).toFixed(1) : '0.0'
 
             sheet.addRow({
               fecha: formatearFecha(e.fecha),
@@ -392,10 +400,13 @@ export async function POST(request: Request) {
               categoria: categoria,
               examinada: examinada,
               prenado: prenado,
-              ciclando: ciclando,
-              anestroSup: anestroSup,
-              anestroProf: anestroProf,
               prenadoPct: `${prenadoPct}%`,
+              ciclando: ciclando,
+              ciclandoPct: `${ciclandoPct}%`,
+              anestroSup: anestroSup,
+              anestroSupPct: `${anestroSupPct}%`,
+              anestroProf: anestroProf,
+              anestroProfPct: `${anestroProfPct}%`,
               notas: e.notas || '',
             })
           }
