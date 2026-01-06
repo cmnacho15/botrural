@@ -10,6 +10,7 @@ type HojasSeleccionadas = {
   movimientosGanaderos?: boolean
   cambiosPotrero?: boolean
   tactos?: boolean
+  dao?: boolean
   recategorizaciones?: boolean
   siembras?: boolean
   pulverizaciones?: boolean
@@ -327,6 +328,77 @@ export async function POST(request: Request) {
           fallados: fallados,
           falladosPct: `${falladosPct}%`,
           notas: e.notas || '',
+        })
+      })
+
+      aplicarEstiloEncabezado(sheet.getRow(1))
+      aplicarEstiloDatos(sheet, 2)
+      autoAjustarColumnas(sheet, columnas)
+    }
+    
+
+    // ========================================
+    // HOJA: DAO
+    // ========================================
+    if (hojas.dao) {
+      const eventos = await prisma.evento.findMany({
+        where: { campoId: usuario.campoId, tipo: 'DAO' as any, ...whereFecha },
+        include: {
+          usuario: { select: { name: true } },
+          lote: { select: { nombre: true } },
+          rodeo: { select: { nombre: true } },
+        },
+        orderBy: { fecha: 'desc' },
+      })
+
+      const sheet = workbook.addWorksheet('DAO')
+      const columnas = [
+        { header: 'Fecha', key: 'fecha', width: 12 },
+        { header: 'Potrero', key: 'potrero', width: 18 },
+        { header: 'Lote', key: 'loteNombre', width: 18 },
+        { header: 'Categoría', key: 'categoria', width: 20 },
+        { header: 'Cant. Examinada', key: 'examinada', width: 14 },
+        { header: 'Preñado', key: 'prenado', width: 12 },
+        { header: 'Ciclando', key: 'ciclando', width: 12 },
+        { header: 'Anestro Sup.', key: 'anestroSup', width: 12 },
+        { header: 'Anestro Prof.', key: 'anestroProf', width: 12 },
+        { header: 'Preñado %', key: 'prenadoPct', width: 12 },
+        { header: 'Notas', key: 'notas', width: 30 },
+      ]
+      sheet.columns = columnas
+
+      eventos.forEach((e: any) => {
+        if (!e.descripcion) return
+
+        // Parsear descripción: "DAO en potrero X: Vacas: 50 examinadas (Preñadas: 30, Ciclando: 10...)"
+        const categorias = e.descripcion.split(' | ')
+        
+        categorias.forEach((catText: string) => {
+          const matchCategoria = catText.match(/([^:]+):\s*(\d+)\s*examinadas\s*\(Preñadas?:\s*(\d+),\s*Ciclando:\s*(\d+),\s*Anestro Superficial:\s*(\d+),\s*Anestro Profundo:\s*(\d+)\)/)
+          
+          if (matchCategoria) {
+            const categoria = matchCategoria[1].replace(/^.*en potrero[^:]*:\s*/, '').trim()
+            const examinada = parseInt(matchCategoria[2])
+            const prenado = parseInt(matchCategoria[3])
+            const ciclando = parseInt(matchCategoria[4])
+            const anestroSup = parseInt(matchCategoria[5])
+            const anestroProf = parseInt(matchCategoria[6])
+            const prenadoPct = examinada > 0 ? ((prenado / examinada) * 100).toFixed(1) : '0.0'
+
+            sheet.addRow({
+              fecha: formatearFecha(e.fecha),
+              potrero: e.lote?.nombre || '',
+              loteNombre: e.rodeo?.nombre || '',
+              categoria: categoria,
+              examinada: examinada,
+              prenado: prenado,
+              ciclando: ciclando,
+              anestroSup: anestroSup,
+              anestroProf: anestroProf,
+              prenadoPct: `${prenadoPct}%`,
+              notas: e.notas || '',
+            })
+          }
         })
       })
 
