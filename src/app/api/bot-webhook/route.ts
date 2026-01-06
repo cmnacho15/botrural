@@ -34,6 +34,7 @@ import {
   handleTacto,
   handleMapa,
   handleDAO,
+  handleReporteDAO,
 } from "@/lib/whatsapp"
 
 const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || "mi_token_secreto"
@@ -327,6 +328,14 @@ const parsedData = await parseMessageWithAI(messageText, potreros, categorias)
     return NextResponse.json({ status: "reporte pastoreo initiated" })
   }
 
+  // ========================================
+  // 🔬 REPORTE DE DAO (PDF)
+  // ========================================
+  if (parsedData.tipo === "REPORTE_DAO") {
+    await handleReporteDAO(from)
+    return NextResponse.json({ status: "reporte dao sent" })
+  }
+  
   // ========================================
   // 🗺️ MAPA DEL CAMPO
   // ========================================

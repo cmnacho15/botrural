@@ -190,7 +190,7 @@ TIPOS DE EVENTOS QUE DEBES DETECTAR:
    }
    
    NOTA: Si el usuario NO menciona el potrero, retorna error pidiendo que lo especifique.
-   
+
 6. CONSUMO:
    - "consumí 2 vacas"
    - "faené un novillo del norte"
@@ -317,7 +317,21 @@ TIPOS DE EVENTOS QUE DEBES DETECTAR:
    {
      "tipo": "REPORTE_PASTOREO"
    }
-
+ 
+   15. REPORTE_DAO:
+   - "reporte dao"
+   - "reporte de dao"
+   - "pdf dao"
+   - "pdf de dao"
+   - "historial dao"
+   - "historial de dao"
+   - "daos registrados"
+   - "ver daos"
+   Retorna:
+   {
+     "tipo": "REPORTE_DAO"
+   }
+     
    15. MAPA:
    - "mapa"
    - "mapa del campo"

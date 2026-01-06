@@ -43,6 +43,7 @@ export {
 
 export { handleTacto } from './handlers/tactoHandler'  // ← CAMBIAR AQUÍ
 export { handleDAO } from './handlers/daoHandler'
+export { handleReporteDAO } from './handlers/reporteDAOHandler'
 
 export { handleMapa } from "./handlers/mapaHandler"
 export { sendWhatsAppImage } from "./sendMessage"
