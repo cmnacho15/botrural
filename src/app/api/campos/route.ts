@@ -18,6 +18,7 @@ const CATEGORIAS_GASTOS_DEFAULT = [
   { nombre: 'Gastos Comerciales', color: '#a855f7' },
   { nombre: 'Impuestos', color: '#ec4899' },
   { nombre: 'Insumos Agrícolas', color: '#eab308' },
+  { nombre: 'Insumos de Cultivos', color: '#10b981' },  // 🆕 NUEVO
   { nombre: 'Labores', color: '#f59e0b' },
   { nombre: 'Maquinaria', color: '#78716c' },
   { nombre: 'Sanidad', color: '#dc2626' },
@@ -34,7 +35,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
     }
 
-    const { nombre, grupoId, nuevoGrupoNombre } = await req.json();
+    const { nombre, grupoId, nuevoGrupoNombre, tipoCampo } = await req.json();
 
     if (!nombre || nombre.trim().length < 2) {
       return NextResponse.json(
@@ -80,6 +81,7 @@ export async function POST(req: Request) {
       const nuevoCampo = await tx.campo.create({
         data: {
           nombre: nombre.trim(),
+          tipoCampo: tipoCampo || 'MIXTO',  // 🆕 NUEVO
           grupoId: grupoIdFinal,
           usuarios: {
             connect: { id: session.user.id },
@@ -87,9 +89,13 @@ export async function POST(req: Request) {
         },
       });
 
-      // 2. Crear categorías de gastos predeterminadas
+      // 2. Crear categorías de gastos predeterminadas (según tipo de campo)
+      const categoriasFiltradas = tipoCampo === 'GANADERO'
+        ? CATEGORIAS_GASTOS_DEFAULT.filter(cat => cat.nombre !== 'Insumos de Cultivos')
+        : CATEGORIAS_GASTOS_DEFAULT;
+
       await tx.categoriaGasto.createMany({
-        data: CATEGORIAS_GASTOS_DEFAULT.map((cat, index) => ({
+        data: categoriasFiltradas.map((cat, index) => ({
           nombre: cat.nombre,
           color: cat.color,
           campoId: nuevoCampo.id,
@@ -236,11 +242,21 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
     }
 
-    const { nombre } = await req.json();
+    const body = await req.json();
+    const { nombre, tipoCampo } = body;
 
-    if (!nombre || nombre.trim().length < 2) {
+    // Validar nombre si se envía
+    if (nombre !== undefined && (!nombre || nombre.trim().length < 2)) {
       return NextResponse.json(
         { error: "El nombre del campo es requerido (mínimo 2 caracteres)" },
+        { status: 400 }
+      );
+    }
+
+    // Validar tipoCampo si se envía
+    if (tipoCampo !== undefined && !['GANADERO', 'MIXTO'].includes(tipoCampo)) {
+      return NextResponse.json(
+        { error: "Tipo de campo inválido" },
         { status: 400 }
       );
     }
@@ -257,16 +273,45 @@ export async function PATCH(req: Request) {
       );
     }
 
+    // Construir objeto de actualización dinámicamente
+    const dataToUpdate: any = {};
+    if (nombre !== undefined) dataToUpdate.nombre = nombre.trim();
+    if (tipoCampo !== undefined) {
+      dataToUpdate.tipoCampo = tipoCampo;
+      
+      // 🆕 Si cambia a GANADERO, desactivar "Insumos de Cultivos"
+      if (tipoCampo === 'GANADERO') {
+        await prisma.categoriaGasto.updateMany({
+          where: {
+            campoId: usuario.campoId,
+            nombre: 'Insumos de Cultivos'
+          },
+          data: { activo: false }
+        });
+      }
+      
+      // 🆕 Si cambia a MIXTO, reactivar "Insumos de Cultivos" si existe
+      if (tipoCampo === 'MIXTO') {
+        await prisma.categoriaGasto.updateMany({
+          where: {
+            campoId: usuario.campoId,
+            nombre: 'Insumos de Cultivos'
+          },
+          data: { activo: true }
+        });
+      }
+    }
+
     const campoActualizado = await prisma.campo.update({
       where: { id: usuario.campoId },
-      data: { nombre: nombre.trim() },
+      data: dataToUpdate,
     });
 
-    console.log(`✅ Campo actualizado: ${campoActualizado.nombre}`);
+    console.log(`✅ Campo actualizado:`, dataToUpdate);
 
     return NextResponse.json({
       success: true,
-      message: "Nombre del campo actualizado correctamente ✅",
+      message: "Campo actualizado correctamente ✅",
       campo: campoActualizado,
     });
   } catch (error) {

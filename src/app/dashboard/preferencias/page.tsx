@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { useTipoCampo } from '@/app/contexts/TipoCampoContext'
 import GastosPreferencias from '@/app/preferencias/components/GastosPreferencias'
 import ModulosPreferencias from '@/app/preferencias/components/ModulosPreferencias'
 import EquivalenciasUGPreferencias from '@/app/preferencias/components/EquivalenciasUGPreferencias'
@@ -24,6 +25,8 @@ type CategoriaAnimal = {
 export default function PreferenciasPage() {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<'campo' | 'cultivos' | 'animales' | 'gastos' | 'rodeos' | 'modulos' | 'firmas' | 'equivalencias'>('campo')
+  const { tipoCampo, esMixto, actualizarTipo } = useTipoCampo()
+  const [guardandoTipo, setGuardandoTipo] = useState(false)
 
   
   // Estados de campo
@@ -675,6 +678,139 @@ async function handleEliminarFirma(id: string) {
                   </button>
                 </div>
               </div>
+             
+
+
+             {/* 🏭 TIPO DE CAMPO */}
+              <div className="max-w-4xl mb-8">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Tipo de Campo</h3>
+                <p className="text-sm text-gray-500 mb-6">Define qué tipo de producción realizás en tu campo</p>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* GANADERO */}
+                  <button
+                    onClick={async () => {
+                      if (tipoCampo === 'GANADERO') return
+                      
+                      if (!confirm('¿Cambiar a campo ganadero?\n\nSe ocultarán las funciones de agricultura (los datos no se eliminan).')) {
+                        return
+                      }
+                      
+                      setGuardandoTipo(true)
+                      try {
+                        await actualizarTipo('GANADERO')
+                        alert('✅ Tipo de campo actualizado')
+                        window.location.reload()
+                      } catch (error) {
+                        alert('Error al actualizar')
+                      } finally {
+                        setGuardandoTipo(false)
+                      }
+                    }}
+                    disabled={guardandoTipo}
+                    className={`p-8 rounded-xl border-2 transition text-left ${
+                      tipoCampo === 'GANADERO'
+                        ? 'border-blue-500 bg-blue-50'
+                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                    } ${guardandoTipo ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    <div className="text-5xl mb-4">🐄</div>
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">Ganadero</h3>
+                    <p className="text-sm text-gray-600 mb-4">
+                      Solo producción ganadera (vacunos, ovinos, equinos)
+                    </p>
+                    <ul className="text-sm text-gray-700 space-y-2">
+                      <li className="flex items-start gap-2">
+                        <span className="text-green-600 mt-0.5">✓</span>
+                        <span>Gestión de hacienda y pasturas</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-green-600 mt-0.5">✓</span>
+                        <span>Costos por especie animal</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-green-600 mt-0.5">✓</span>
+                        <span>Ventas de hacienda</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-red-600 mt-0.5">✗</span>
+                        <span className="text-gray-500">Sin funciones de agricultura</span>
+                      </li>
+                    </ul>
+                    {tipoCampo === 'GANADERO' && (
+                      <div className="mt-4 px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg text-center">
+                        ✓ Activo
+                      </div>
+                    )}
+                  </button>
+
+                  {/* MIXTO */}
+                  <button
+                    onClick={async () => {
+                      if (tipoCampo === 'MIXTO') return
+                      
+                      if (!confirm('¿Cambiar a campo mixto?\n\nSe habilitarán las funciones de agricultura.')) {
+                        return
+                      }
+                      
+                      setGuardandoTipo(true)
+                      try {
+                        await actualizarTipo('MIXTO')
+                        alert('✅ Tipo de campo actualizado')
+                        window.location.reload()
+                      } catch (error) {
+                        alert('Error al actualizar')
+                      } finally {
+                        setGuardandoTipo(false)
+                      }
+                    }}
+                    disabled={guardandoTipo}
+                    className={`p-8 rounded-xl border-2 transition text-left ${
+                      tipoCampo === 'MIXTO'
+                        ? 'border-blue-500 bg-blue-50'
+                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                    } ${guardandoTipo ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    <div className="text-5xl mb-4">🌾🐄</div>
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">Mixto (Ganadería + Agricultura)</h3>
+                    <p className="text-sm text-gray-600 mb-4">
+                      Producción ganadera y agrícola
+                    </p>
+                    <ul className="text-sm text-gray-700 space-y-2">
+                      <li className="flex items-start gap-2">
+                        <span className="text-green-600 mt-0.5">✓</span>
+                        <span>Todo lo de ganadería</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-green-600 mt-0.5">✓</span>
+                        <span>Gestión de cultivos agrícolas</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-green-600 mt-0.5">✓</span>
+                        <span>Costos por cultivo y lote</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-green-600 mt-0.5">✓</span>
+                        <span>Ventas de hacienda y granos</span>
+                      </li>
+                    </ul>
+                    {tipoCampo === 'MIXTO' && (
+                      <div className="mt-4 px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg text-center">
+                        ✓ Activo
+                      </div>
+                    )}
+                  </button>
+                </div>
+
+                {/* INFO ADICIONAL */}
+                <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-sm text-gray-700">
+                    <strong>💡 Nota:</strong> Cambiar el tipo de campo solo oculta o muestra funcionalidades. 
+                    Tus datos (lotes, gastos, cultivos) no se eliminan y seguirán disponibles si volvés a cambiar.
+                  </p>
+                </div>
+              </div>
+
 
               {/* ZONA DE PELIGRO */}
               <div className="max-w-2xl">

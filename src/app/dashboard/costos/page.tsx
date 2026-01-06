@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { useSuperficie } from '@/app/contexts/SuperficieContext'
+import { useTipoCampo } from '@/app/contexts/TipoCampoContext'
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card'
 import { Badge } from '@/app/components/ui/badge'
 import { Alert, AlertDescription } from '@/app/components/ui/alert'
@@ -192,6 +193,7 @@ function ejercicioAFechas(inicio: number, fin: number): { desde: string; hasta: 
 
 export default function CostosPage() {
   const [loading, setLoading] = useState(true)
+  const { esMixto } = useTipoCampo()
   const [error, setError] = useState<string | null>(null)
   const [data, setData] = useState<CostosData | null>(null)
 
@@ -448,7 +450,7 @@ console.log('🔍 COSTOS - usarSPG desde Context:', usarSPG)
         </Card>
 
         {/* 🌾 TARJETAS DE AGRICULTURA */}
-        {data.agriculturaInfo && data.agriculturaInfo.hectareas > 0 && (
+          {esMixto && data.agriculturaInfo && data.agriculturaInfo.hectareas > 0 && (
           <>
             {data.costosVariables.agricultura.map((cultivo) => (
               <Card 
@@ -556,7 +558,7 @@ console.log('🔍 COSTOS - usarSPG desde Context:', usarSPG)
           )}
 
           {/* 🌾 Agricultura - Por Cultivo */}
-          {data.costosVariables.agricultura.length > 0 && (
+          {esMixto && data.costosVariables.agricultura.length > 0 && (
             <div className="mb-6">
               <h3 className="text-md font-semibold text-gray-700 mb-3 flex items-center gap-2">
                 🌾 Agricultura (Por Cultivo)

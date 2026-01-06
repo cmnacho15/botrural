@@ -15,18 +15,21 @@ import ModalExportExcel from "@/app/components/modales/ModalExportExcel";
 import OnboardingIndicator from "@/app/components/OnboardingIndicator";
 
 import { SuperficieProvider } from "@/app/contexts/SuperficieContext";
+import { TipoCampoProvider } from "@/app/contexts/TipoCampoContext";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
-    <SuperficieProvider>
-      <DatosProvider>
-        <InsumosProvider>
-          <GastosProvider>
-            <LayoutContent>{children}</LayoutContent>
-          </GastosProvider>
-        </InsumosProvider>
-      </DatosProvider>
-    </SuperficieProvider>
+    <TipoCampoProvider>
+      <SuperficieProvider>
+        <DatosProvider>
+          <InsumosProvider>
+            <GastosProvider>
+              <LayoutContent>{children}</LayoutContent>
+            </GastosProvider>
+          </InsumosProvider>
+        </DatosProvider>
+      </SuperficieProvider>
+    </TipoCampoProvider>
   );
 }
 

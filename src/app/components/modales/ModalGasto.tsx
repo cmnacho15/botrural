@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { METODOS_PAGO } from '@/lib/constants'
 import { obtenerFechaLocal } from '@/lib/fechas'
 import { esCategoriaVariable, ESPECIES_VALIDAS } from '@/lib/costos/categoriasCostos'
+import { useTipoCampo } from '@/app/contexts/TipoCampoContext'
 
 type ModalGastoProps = {
   onClose: () => void
@@ -23,6 +24,7 @@ type ItemGasto = {
 
 export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
   const [fecha, setFecha] = useState(obtenerFechaLocal())
+  const { esMixto } = useTipoCampo()
   const [proveedor, setProveedor] = useState('')
   const [proveedoresPrevios, setProveedoresPrevios] = useState<string[]>([])
   const [mostrarSugerencias, setMostrarSugerencias] = useState(false)
@@ -181,7 +183,13 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
         const res = await fetch('/api/categorias-gasto')
         if (res.ok) {
           const data = await res.json()
-          const nombres = data.map((cat: any) => cat.nombre)
+          let nombres = data.map((cat: any) => cat.nombre)
+          
+          // 🔥 Filtrar "Insumos de Cultivos" si es campo GANADERO
+          if (!esMixto) {
+            nombres = nombres.filter((n: string) => n !== 'Insumos de Cultivos')
+          }
+          
           setCategorias(nombres)
 
           // Setear primera categoría en el primer item
@@ -295,8 +303,8 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
       return
     }
 
-    // ✅ VALIDACIÓN: Agricultura requiere cultivos seleccionados
-    const tieneInsumoCultivos = items.some(item => item.categoria === 'Insumos de Cultivos')
+    // ✅ VALIDACIÓN: Agricultura requiere cultivos seleccionados (solo si es MIXTO)
+    const tieneInsumoCultivos = esMixto && items.some(item => item.categoria === 'Insumos de Cultivos')
     
     if (tieneInsumoCultivos && cultivosSeleccionados.length === 0) {
       alert('Debes seleccionar al menos un cultivo para "Insumos de Cultivos"')
