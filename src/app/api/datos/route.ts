@@ -22,6 +22,7 @@ const categoriaPorTipo: Record<string, string> = {
   DESTETE: 'animales',
   TACTO: 'animales',
   RECATEGORIZACION: 'animales',
+  DAO: 'animales',  // ← AGREGAR ESTA LÍNEA
   SIEMBRA: 'agricultura',
   PULVERIZACION: 'agricultura',
   REFERTILIZACION: 'agricultura',
@@ -51,6 +52,7 @@ const iconoPorTipo: Record<string, string> = {
   DESTETE: '🔀',
   TACTO: '✋',
   RECATEGORIZACION: '🏷️',
+  DAO: '🔬',  // ← AGREGAR ESTA LÍNEA
   SIEMBRA: '🌱',
   PULVERIZACION: '💦',
   REFERTILIZACION: '🌿',

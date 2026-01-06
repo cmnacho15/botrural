@@ -981,6 +981,21 @@ case "TRASLADO": {
       }
 
       // ======================================================================
+      // DAO (Diagnóstico de Actividad Ovárica)
+      // ======================================================================
+      case "DAO": {
+        // El DAO solo registra información, no modifica stock de animales
+        // Los datos se almacenan en la descripción del evento
+        await prisma.evento.update({
+          where: { id: evento.id },
+          data: {
+            notas: notas || null,
+          },
+        });
+        break;
+      }
+
+      // ======================================================================
       // DEFAULT
       // ======================================================================
       default:
