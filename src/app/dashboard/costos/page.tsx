@@ -54,14 +54,7 @@ interface CostosData {
       gastos: number
       costosFijos: number
     }>
-    mixtos: Array<{
-      categoria: string
-      totalUSD: number
-      vacunos: number
-      ovinos: number
-      equinos: number
-      sinAsignar: number
-    }>
+    
     automaticos: Array<{
       categoria: string
       totalUSD: number
@@ -79,27 +72,13 @@ interface CostosData {
       sinAsignar: number
     }>
   }
-  costosFijos: {
+  costosEstructura: {
     totalUSD: number
     porEspecie: {
       vacunos: number
       ovinos: number
       equinos: number
     }
-    puros: Array<{
-      categoria: string
-      totalUSD: number
-      vacunos: number
-      ovinos: number
-      equinos: number
-    }>
-    asignables: Array<{
-      categoria: string
-      totalUSD: number
-      vacunos: number
-      ovinos: number
-      equinos: number
-    }>
     detalle: Array<{
       categoria: string
       totalUSD: number
@@ -629,38 +608,7 @@ console.log('🔍 COSTOS - usarSPG desde Context:', usarSPG)
             </div>
           )}
 
-          {/* 🔀 Mixtos */}
-          {data.costosVariables.mixtos.length > 0 && (
-            <div className="mb-6">
-              <h3 className="text-md font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                🔀 Mixtos (Ganadería + Agricultura)
-              </h3>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Categoría</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Total USD</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Vacunos</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Ovinos</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Equinos</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {data.costosVariables.mixtos.map((item) => (
-                      <tr key={item.categoria} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 text-sm font-medium text-gray-900">{item.categoria}</td>
-                        <td className="px-4 py-3 text-sm text-right font-medium text-gray-900">{formatUSD(item.totalUSD)}</td>
-                        <td className="px-4 py-3 text-sm text-right text-blue-600">{item.vacunos > 0 ? formatUSD(item.vacunos) : '-'}</td>
-                        <td className="px-4 py-3 text-sm text-right text-green-600">{item.ovinos > 0 ? formatUSD(item.ovinos) : '-'}</td>
-                        <td className="px-4 py-3 text-sm text-right text-amber-600">{item.equinos > 0 ? formatUSD(item.equinos) : '-'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
+          
 
           {/* Total Variables */}
           <div className="border-t-2 border-green-200 pt-3">
@@ -681,18 +629,14 @@ console.log('🔍 COSTOS - usarSPG desde Context:', usarSPG)
         </CardContent>
       </Card>
 
-      {/* 🏗️ COSTOS DE ESTRUCTURA (Fijos) */}
+      {/* 🏗️ COSTOS DE ESTRUCTURA */}
       <Card>
         <CardHeader>
           <CardTitle>🏗️ Costos de Estructura (Fijos)</CardTitle>
         </CardHeader>
         <CardContent>
-          {/* Fijos Puros */}
-          {data.costosFijos.puros.length > 0 && (
+          {data.costosEstructura.detalle.length > 0 && (
             <div className="mb-6">
-              <h3 className="text-md font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                📋 Fijos Puros
-              </h3>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead className="bg-gray-50">
@@ -705,7 +649,7 @@ console.log('🔍 COSTOS - usarSPG desde Context:', usarSPG)
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
-                    {data.costosFijos.puros.map((item) => (
+                    {data.costosEstructura.detalle.map((item) => (
                       <tr key={item.categoria} className="hover:bg-gray-50">
                         <td className="px-4 py-3 text-sm font-medium text-gray-900">{item.categoria}</td>
                         <td className="px-4 py-3 text-sm text-right font-medium text-gray-900">{formatUSD(item.totalUSD)}</td>
@@ -720,50 +664,17 @@ console.log('🔍 COSTOS - usarSPG desde Context:', usarSPG)
             </div>
           )}
 
-          {/* Fijos Asignables */}
-          {data.costosFijos.asignables.length > 0 && (
-            <div className="mb-6">
-              <h3 className="text-md font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                🔧 Fijos Asignables
-              </h3>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Categoría</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Total USD</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Vacunos</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Ovinos</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Equinos</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {data.costosFijos.asignables.map((item) => (
-                      <tr key={item.categoria} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 text-sm font-medium text-gray-900">{item.categoria}</td>
-                        <td className="px-4 py-3 text-sm text-right font-medium text-gray-900">{formatUSD(item.totalUSD)}</td>
-                        <td className="px-4 py-3 text-sm text-right text-blue-600">{formatUSD(item.vacunos)}</td>
-                        <td className="px-4 py-3 text-sm text-right text-green-600">{formatUSD(item.ovinos)}</td>
-                        <td className="px-4 py-3 text-sm text-right text-amber-600">{formatUSD(item.equinos)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {/* Total Fijos */}
+          {/* Total Estructura */}
           <div className="border-t-2 border-blue-200 pt-3">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <tbody>
                   <tr className="bg-blue-50 font-bold">
                     <td className="px-4 py-3 text-sm">TOTAL ESTRUCTURA</td>
-                    <td className="px-4 py-3 text-sm text-right">{formatUSD(data.costosFijos.totalUSD)}</td>
-                    <td className="px-4 py-3 text-sm text-right text-blue-700">{formatUSD(data.costosFijos.porEspecie.vacunos)}</td>
-                    <td className="px-4 py-3 text-sm text-right text-green-700">{formatUSD(data.costosFijos.porEspecie.ovinos)}</td>
-                    <td className="px-4 py-3 text-sm text-right text-amber-700">{formatUSD(data.costosFijos.porEspecie.equinos)}</td>
+                    <td className="px-4 py-3 text-sm text-right">{formatUSD(data.costosEstructura.totalUSD)}</td>
+                    <td className="px-4 py-3 text-sm text-right text-blue-700">{formatUSD(data.costosEstructura.porEspecie.vacunos)}</td>
+                    <td className="px-4 py-3 text-sm text-right text-green-700">{formatUSD(data.costosEstructura.porEspecie.ovinos)}</td>
+                    <td className="px-4 py-3 text-sm text-right text-amber-700">{formatUSD(data.costosEstructura.porEspecie.equinos)}</td>
                   </tr>
                 </tbody>
               </table>
