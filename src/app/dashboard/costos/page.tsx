@@ -45,6 +45,8 @@ interface CostosData {
     }>
     agricultura: Array<{
       cultivo: string
+      loteId: string
+      loteNombre: string
       totalUSD: number
       hectareas: number
       usdPorHa: number
@@ -450,7 +452,7 @@ console.log('🔍 COSTOS - usarSPG desde Context:', usarSPG)
           <>
             {data.costosVariables.agricultura.map((cultivo) => (
               <Card 
-                key={cultivo.cultivo}
+                key={`${cultivo.cultivo}-${cultivo.loteId}`}
                 className="bg-gradient-to-br from-green-50 to-emerald-100 border-green-200"
               >
                 <CardContent className="pt-6">
@@ -459,6 +461,9 @@ console.log('🔍 COSTOS - usarSPG desde Context:', usarSPG)
                       <p className="text-sm text-green-600 font-medium flex items-center gap-1">
                         <span>🌾</span>
                         {cultivo.cultivo}
+                      </p>
+                      <p className="text-xs text-green-700 mt-0.5">
+                        📍 {cultivo.loteNombre}
                       </p>
                       <p className="text-2xl font-bold text-green-900">
                         {formatUSD(cultivo.totalUSD)}
@@ -570,9 +575,10 @@ console.log('🔍 COSTOS - usarSPG desde Context:', usarSPG)
                   </thead>
                   <tbody className="divide-y divide-gray-200">
                     {data.costosVariables.agricultura.map((item) => (
-                      <tr key={item.cultivo} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                          🌾 {item.cultivo}
+                      <tr key={`${item.cultivo}-${item.loteId}`} className="border-b border-gray-200 hover:bg-green-50">
+                        <td className="p-3 font-medium text-sm text-gray-900">
+                          <div>🌾 {item.cultivo}</div>
+                          <div className="text-xs text-gray-500 mt-0.5">📍 {item.loteNombre}</div>
                         </td>
                         <td className="px-4 py-3 text-sm text-right text-green-600">
                           {formatUSD(item.totalUSD - item.costosFijos)}
