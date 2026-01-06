@@ -1,3 +1,5 @@
+//src/app/register/page.tsx
+
 "use client"
 
 import { useState, useEffect, Suspense } from "react"
@@ -17,6 +19,7 @@ function RegisterFormContent() {
   const [campoNombre, setCampoNombre] = useState("")
   const [telefono, setTelefono] = useState("")
   const [error, setError] = useState("")
+  const [tipoCampo, setTipoCampo] = useState<'GANADERO' | 'MIXTO'>('MIXTO')
   const [loading, setLoading] = useState(false)
 
   // Determinar si es registro por invitación o primer usuario
@@ -55,7 +58,7 @@ function RegisterFormContent() {
       
       const body = esInvitacion
   ? { token, name, email, password }
-  : { name, email, password, campoNombre, telefono } // ✅ Agregar telefono
+  : { name, email, password, campoNombre, telefono, tipoCampo }
 
       const res = await fetch(endpoint, {
         method: "POST",
@@ -205,6 +208,49 @@ function RegisterFormContent() {
       <p className="text-xs text-gray-500 mt-1">
         Para usar el bot de WhatsApp (opcional)
       </p>
+    </div>
+
+    {/* ✅ SELECTOR DE TIPO DE CAMPO */}
+    <div className="space-y-3">
+      <label className="block text-sm font-medium text-gray-700">
+        ¿Qué tipo de producción realizás?
+      </label>
+      
+      <div className="grid grid-cols-2 gap-3">
+        {/* GANADERO */}
+        <button
+          type="button"
+          onClick={() => setTipoCampo('GANADERO')}
+          className={`p-4 rounded-lg border-2 transition text-left ${
+            tipoCampo === 'GANADERO'
+              ? 'border-blue-500 bg-blue-50'
+              : 'border-gray-200 hover:border-gray-300'
+          }`}
+        >
+          <div className="text-3xl mb-2">🐄</div>
+          <h3 className="font-bold text-gray-900 text-sm">Ganadero</h3>
+          <p className="text-xs text-gray-600 mt-1">
+            Solo producción ganadera
+          </p>
+        </button>
+
+        {/* MIXTO */}
+        <button
+          type="button"
+          onClick={() => setTipoCampo('MIXTO')}
+          className={`p-4 rounded-lg border-2 transition text-left ${
+            tipoCampo === 'MIXTO'
+              ? 'border-blue-500 bg-blue-50'
+              : 'border-gray-200 hover:border-gray-300'
+          }`}
+        >
+          <div className="text-3xl mb-2">🌾🐄</div>
+          <h3 className="font-bold text-gray-900 text-sm">Mixto</h3>
+          <p className="text-xs text-gray-600 mt-1">
+            Ganadería + Agricultura
+          </p>
+        </button>
+      </div>
     </div>
   </>
 )}

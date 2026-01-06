@@ -9,7 +9,7 @@ import { CATEGORIAS_GASTOS_DEFAULT } from '@/lib/constants'
 
 export async function POST(request: Request) {
   try {
-    const { name, email, password, campoNombre, telefono } = await request.json()
+    const { name, email, password, campoNombre, telefono, tipoCampo } = await request.json()
 
     if (!name || !email || !password || !campoNombre) {
       return NextResponse.json(
@@ -44,6 +44,7 @@ export async function POST(request: Request) {
       const campo = await tx.campo.create({
         data: { 
           nombre: campoNombre,
+          tipoCampo: tipoCampo || 'MIXTO',
           grupoId: grupo.id,
         },
       })
@@ -82,9 +83,13 @@ export async function POST(request: Request) {
         },
       })
 
-      // 6. Crear categorías de gastos predeterminadas (21 categorías nuevas)
+      // 6. Crear categorías de gastos predeterminadas según tipo de campo
+      const categoriasFiltradas = tipoCampo === 'GANADERO'
+        ? CATEGORIAS_GASTOS_DEFAULT.filter(cat => cat.nombre !== 'Insumos de Cultivos')
+        : CATEGORIAS_GASTOS_DEFAULT
+
       await tx.categoriaGasto.createMany({
-        data: CATEGORIAS_GASTOS_DEFAULT.map((cat) => ({
+        data: categoriasFiltradas.map((cat) => ({
           nombre: cat.nombre,
           color: cat.color,
           campoId: campo.id,
@@ -110,11 +115,16 @@ export async function POST(request: Request) {
       return { user, campo, grupo }
     })
 
+    // Calcular cuántas categorías se crearon
+    const cantidadCategorias = tipoCampo === 'GANADERO'
+      ? CATEGORIAS_GASTOS_DEFAULT.length - 1
+      : CATEGORIAS_GASTOS_DEFAULT.length
+
     console.log(`✅ Registro completo:`)
     console.log(`   - Grupo: ${result.grupo.nombre}`)
     console.log(`   - Campo: ${result.campo.nombre}`)
     console.log(`   - Usuario: ${result.user.email}`)
-    console.log(`   - 21 categorías de gastos`)
+    console.log(`   - ${cantidadCategorias} categorías de gastos`)
     console.log(`   - ${CATEGORIAS_ANIMALES_DEFAULT.length} categorías de animales`)
 
     return NextResponse.json(
