@@ -58,11 +58,19 @@ export default function ModalDAO({ onClose, onSuccess }: ModalDAOProps) {
     }
   ])
 
-  // Cargar potreros al montar
+  // Cargar potreros al montar (solo los que tengan vacunos)
   useEffect(() => {
     fetch('/api/lotes')
       .then((res) => res.json())
-      .then((data) => setPotreros(data))
+      .then((data) => {
+        // Filtrar solo potreros con animales bovinos
+        const potrerosConVacunos = data.filter((lote: Lote) => 
+          lote.animalesLote && lote.animalesLote.some((a: AnimalLote) => 
+            ['Vaquillonas +2 años', 'Vaquillonas 1–2 años', 'Vacas', 'Vacas Gordas'].includes(a.categoria) && a.cantidad > 0
+          )
+        )
+        setPotreros(potrerosConVacunos)
+      })
       .catch(() => alert('Error al cargar potreros'))
   }, [])
 
@@ -79,7 +87,7 @@ export default function ModalDAO({ onClose, onSuccess }: ModalDAOProps) {
       .catch(err => console.error('Error cargando rodeos:', err))
   }, [])
 
-  // Cargar animales cuando se selecciona potrero
+ // Cargar animales cuando se selecciona potrero (solo categorías aptas para DAO)
   useEffect(() => {
     if (!potreroSeleccionado) {
       setAnimalesDisponibles([])
@@ -90,7 +98,11 @@ export default function ModalDAO({ onClose, onSuccess }: ModalDAOProps) {
     fetch(`/api/lotes/${potreroSeleccionado}/animales`)
       .then((res) => res.json())
       .then((data) => {
-        setAnimalesDisponibles(data)
+        // Filtrar solo categorías femeninas aptas para DAO
+        const categoriasDAO = data.filter((a: AnimalLote) => 
+          ['Vaquillonas +2 años', 'Vaquillonas 1–2 años', 'Vacas', 'Vacas Gordas'].includes(a.categoria)
+        )
+        setAnimalesDisponibles(categoriasDAO)
         setLoadingAnimales(false)
       })
       .catch(() => {
