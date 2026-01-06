@@ -62,6 +62,7 @@ function obtenerColor(tipo: string): string {
     COSECHA: 'yellow',
     TRATAMIENTO: 'pink',
     MOVIMIENTO: 'blue',
+    DAO: 'purple',
   }
   return colores[tipo] || 'gray'
 }
