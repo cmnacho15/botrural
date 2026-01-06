@@ -165,6 +165,32 @@ TIPOS DE EVENTOS QUE DEBES DETECTAR:
      "preñadas": 83
    }
 
+   6. DAO (Diagnóstico de Actividad Ovárica):
+   - "hice dao en potrero norte a 98 vacas: 20 preñadas, 30 ciclando, 25 anestro superficial, 23 anestro profundo"
+   - "dao en sol, 92 vaquillonas: 50 preñadas, 20 ciclando, 15 anestro superficial, 7 anestro profundo"
+   - "dao en casco, 100 vacas: 60 preñadas, 40 ciclando"
+   - "resultados dao potrero este, 80 vaquillonas +2 años: preñadas 45, ciclando 20"
+   
+   IMPORTANTE:
+   - SIEMPRE debe incluir potrero y categoría
+   - SIEMPRE debe tener al menos UN resultado (preñadas, ciclando, anestro superficial o anestro profundo)
+   - Si NO menciona un estado, ese valor es 0
+   - La cantidad examinada se calcula automáticamente sumando todos los estados
+   - Solo aplica a categorías femeninas bovinas: Vacas, Vacas Gordas, Vaquillonas +2 años, Vaquillonas 1-2 años
+   
+   Retorna:
+   {
+     "tipo": "DAO",
+     "potrero": "Norte" (nombre EXACTO de la lista),
+     "categoria": "Vacas" (nombre EXACTO de la lista),
+     "prenado": 20,
+     "ciclando": 30,
+     "anestroSuperficial": 25,
+     "anestroProfundo": 23
+   }
+   
+   NOTA: Si el usuario NO menciona el potrero, retorna error pidiendo que lo especifique.
+   
 6. CONSUMO:
    - "consumí 2 vacas"
    - "faené un novillo del norte"

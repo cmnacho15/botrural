@@ -33,6 +33,7 @@ import {
   handleSeleccionGrupo,
   handleTacto,
   handleMapa,
+  handleDAO,
 } from "@/lib/whatsapp"
 
 const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || "mi_token_secreto"
@@ -340,6 +341,14 @@ const parsedData = await parseMessageWithAI(messageText, potreros, categorias)
   if (parsedData.tipo === "TACTO") {
     await handleTacto(from, parsedData)
     return NextResponse.json({ status: "tacto processed" })
+  }
+
+  // ========================================
+  // 🔬 DAO
+  // ========================================
+  if (parsedData.tipo === "DAO") {
+    await handleDAO(from, parsedData)
+    return NextResponse.json({ status: "dao processed" })
   }
 
   // 🔥 AGREGAR ESTO AQUÍ 👇
