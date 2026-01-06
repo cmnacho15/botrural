@@ -5,6 +5,7 @@ import { getUSDToUYU } from "@/lib/currency"
 import { sendWhatsAppMessage, sendWhatsAppMessageWithButtons } from "../services/messageService"
 import { ejecutarCambioPotrero } from "./potreroHandler"
 import { handleAwaitingInvoiceType } from "./imageHandler"
+import { confirmarDAO } from "./daoHandler"
 
 /**
  * Solicita confirmación para datos de texto/audio (excepto CAMBIO_POTRERO que tiene su propio flujo)
@@ -116,6 +117,11 @@ export async function handleConfirmacion(
       } else if (data.tipo === "MOVER_POTRERO_MODULO") {
         const { handleMoverPotreroModuloConfirmacion } = await import("./moverPotreroModuloHandler")
         await handleMoverPotreroModuloConfirmacion(data)
+      } else if (data.tipo === "DAO") {
+        await confirmarDAO(phone, data)
+      } else if (data.tipo === "TACTO") {
+        const { confirmarTacto } = await import("./tactoHandler")
+        await confirmarTacto(phone, data)
       } else {
         await handleDataEntry(data)
       }

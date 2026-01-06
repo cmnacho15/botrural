@@ -1,10 +1,10 @@
 // 📁 src/lib/whatsapp/handlers/daoHandler.ts
 
 import { prisma } from "@/lib/prisma"
-import { sendWhatsAppMessage } from "../sendMessage"
+import { sendWhatsAppMessage, sendWhatsAppButtons } from "../sendMessage"
 
 /**
- * 🔬 Registrar DAO (Diagnóstico de Actividad Ovárica)
+ * 🔬 Solicitar confirmación para registrar DAO
  */
 export async function handleDAO(
   telefono: string,
@@ -115,44 +115,123 @@ export async function handleDAO(
 
     // Calcular porcentajes
     const porcentajePrenado = Math.round((parsedData.prenado / cantidadExaminada) * 100)
+    const porcentajeCiclando = Math.round((parsedData.ciclando / cantidadExaminada) * 100)
+    const porcentajeAnestroSup = Math.round((parsedData.anestroSuperficial / cantidadExaminada) * 100)
+    const porcentajeAnestroProf = Math.round((parsedData.anestroProfundo / cantidadExaminada) * 100)
 
-    // Construir descripción detallada
-    const descripcion = `DAO en potrero ${potrero.nombre}: ${parsedData.categoria}: ${cantidadExaminada} examinadas ` +
-                       `(Preñadas: ${parsedData.prenado}, Ciclando: ${parsedData.ciclando}, ` +
-                       `Anestro Superficial: ${parsedData.anestroSuperficial}, Anestro Profundo: ${parsedData.anestroProfundo})`
-
-    // Crear evento
-    await prisma.evento.create({
-      data: {
-        campoId: user.campoId,
-        tipo: 'DAO' as any,
-        fecha: new Date(),
-        descripcion: descripcion,
-        loteId: potrero.id,
-        cantidad: cantidadExaminada,
-        categoria: parsedData.categoria,
-        usuarioId: user.id
+    // Guardar en pending confirmation
+    await prisma.pendingConfirmation.upsert({
+      where: { telefono },
+      create: {
+        telefono,
+        data: JSON.stringify({
+          tipo: 'DAO',
+          potrero: potrero.nombre,
+          potreroId: potrero.id,
+          categoria: parsedData.categoria,
+          cantidadExaminada,
+          prenado: parsedData.prenado,
+          ciclando: parsedData.ciclando,
+          anestroSuperficial: parsedData.anestroSuperficial,
+          anestroProfundo: parsedData.anestroProfundo,
+          campoId: user.campoId,
+          usuarioId: user.id
+        })
+      },
+      update: {
+        data: JSON.stringify({
+          tipo: 'DAO',
+          potrero: potrero.nombre,
+          potreroId: potrero.id,
+          categoria: parsedData.categoria,
+          cantidadExaminada,
+          prenado: parsedData.prenado,
+          ciclando: parsedData.ciclando,
+          anestroSuperficial: parsedData.anestroSuperficial,
+          anestroProfundo: parsedData.anestroProfundo,
+          campoId: user.campoId,
+          usuarioId: user.id
+        })
       }
     })
 
-    // Mensaje de confirmación
-    await sendWhatsAppMessage(
-      telefono,
-      `✅ *DAO registrado*\n\n` +
+    // Enviar mensaje con botones
+    const mensaje = 
+      `🔬 *DAO - Confirmá los datos*\n\n` +
       `📍 Potrero: ${potrero.nombre}\n` +
       `🐄 Categoría: ${parsedData.categoria}\n` +
       `🔬 Examinadas: ${cantidadExaminada}\n\n` +
       `📊 *Resultados:*\n` +
       `✅ Preñadas: ${parsedData.prenado} (${porcentajePrenado}%)\n` +
-      `🔄 Ciclando: ${parsedData.ciclando}\n` +
-      `⚠️ Anestro Sup.: ${parsedData.anestroSuperficial}\n` +
-      `❌ Anestro Prof.: ${parsedData.anestroProfundo}`
+      `🔄 Ciclando: ${parsedData.ciclando} (${porcentajeCiclando}%)\n` +
+      `⚠️ Anestro Sup.: ${parsedData.anestroSuperficial} (${porcentajeAnestroSup}%)\n` +
+      `❌ Anestro Prof.: ${parsedData.anestroProfundo} (${porcentajeAnestroProf}%)\n\n` +
+      `_Escribí "editar" para modificar o clickeá confirmar_`
+
+    await sendWhatsAppButtons(
+      telefono,
+      mensaje,
+      [
+        { id: 'confirmar_dao', title: '✅ Confirmar' },
+        { id: 'cancelar', title: '❌ Cancelar' }
+      ]
     )
 
-    console.log("✅ DAO registrado:", potrero.nombre, parsedData.categoria, porcentajePrenado + "% preñez")
+    console.log("✅ Solicitud de confirmación DAO enviada")
 
   } catch (error) {
-    console.error("❌ Error registrando DAO:", error)
+    console.error("❌ Error solicitando confirmación DAO:", error)
+    await sendWhatsAppMessage(
+      telefono,
+      "❌ Error al procesar el DAO. Intentá de nuevo."
+    )
+  }
+}
+
+/**
+ * 🔬 Confirmar y registrar el DAO
+ */
+export async function confirmarDAO(telefono: string, data: any) {
+  try {
+    const { potreroId, categoria, cantidadExaminada, prenado, ciclando, 
+            anestroSuperficial, anestroProfundo, campoId, usuarioId, potrero } = data
+
+    // Construir descripción detallada
+    const descripcion = `DAO en potrero ${potrero}: ${categoria}: ${cantidadExaminada} examinadas ` +
+                       `(Preñadas: ${prenado}, Ciclando: ${ciclando}, ` +
+                       `Anestro Superficial: ${anestroSuperficial}, Anestro Profundo: ${anestroProfundo})`
+
+    // Crear evento
+    await prisma.evento.create({
+      data: {
+        campoId,
+        tipo: 'DAO' as any,
+        fecha: new Date(),
+        descripcion,
+        loteId: potreroId,
+        cantidad: cantidadExaminada,
+        categoria,
+        usuarioId
+      }
+    })
+
+    // Calcular porcentajes
+    const porcentajePrenado = Math.round((prenado / cantidadExaminada) * 100)
+
+    // Mensaje de confirmación
+    await sendWhatsAppMessage(
+      telefono,
+      `✅ *DAO registrado correctamente*\n\n` +
+      `📍 Potrero: ${potrero}\n` +
+      `🐄 Categoría: ${categoria}\n` +
+      `🔬 Examinadas: ${cantidadExaminada}\n` +
+      `📊 Preñez: ${porcentajePrenado}%`
+    )
+
+    console.log("✅ DAO registrado:", potrero, categoria, porcentajePrenado + "% preñez")
+
+  } catch (error) {
+    console.error("❌ Error confirmando DAO:", error)
     await sendWhatsAppMessage(
       telefono,
       "❌ Error al registrar el DAO. Intentá de nuevo."

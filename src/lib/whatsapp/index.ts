@@ -41,8 +41,8 @@ export {
   handleSeleccionGrupo,
 } from "./handlers/campoHandler"
 
-export { handleTacto } from './handlers/tactoHandler'  // ← CAMBIAR AQUÍ
-export { handleDAO } from './handlers/daoHandler'
+export { handleTacto, confirmarTacto } from './handlers/tactoHandler'
+export { handleDAO, confirmarDAO } from './handlers/daoHandler'
 export { handleReporteDAO } from './handlers/reporteDAOHandler'
 
 export { handleMapa } from "./handlers/mapaHandler"
