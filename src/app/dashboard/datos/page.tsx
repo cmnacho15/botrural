@@ -101,6 +101,7 @@ function ModalFiltroTipoDato({
         { value: 'DESTETE', label: 'Destete', icon: '🥛' },
         { value: 'TACTO', label: 'Tacto', icon: '✋' },
         { value: 'RECATEGORIZACION', label: 'Recategorización', icon: '🏷️' },
+        { value: 'DAO', label: 'DAO', icon: '🔬' },
       ],
     },
     {
