@@ -54,11 +54,29 @@ async function generarPDFCarga(campoId: string): Promise<Buffer | null> {
   .map(c => ({ nombre: c.nombreSingular, equivalenciaUG: getEquivalenciaUGLocal(c.nombreSingular, pesosPersonalizados) }))
   .sort((a, b) => {
     const orden = [
-      'Vacas gordas', 'Vacas', 'Vaquillonas +2', 'Vaquillonas 1-2', 
-      'Terneras', 'Terneros', 'Terneros nacidos', 'Toros', 
-      'Nov 1-2', 'Nov 2-3', 'Nov +3'
+      'Vacas Gordas',
+      'Vacas',
+      'Vaquillonas +2',
+      'Vaquillonas 1–2',
+      'Terneras',
+      'Terneros',
+      'Terneros nacidos',
+      'Toros',
+      'Novillos 1–2',
+      'Novillos 2–3',
+      'Novillos +3'
     ];
-    return orden.indexOf(a.nombre) - orden.indexOf(b.nombre);
+    const nombreA = limpiarNombreCategoria(a.nombre);
+    const nombreB = limpiarNombreCategoria(b.nombre);
+    
+    const indexA = orden.indexOf(nombreA);
+    const indexB = orden.indexOf(nombreB);
+    
+    if (indexA === -1 && indexB === -1) return 0;
+    if (indexA === -1) return 1;
+    if (indexB === -1) return -1;
+    
+    return indexA - indexB;
   })
 const categoriasOvinas = categoriasDB.filter(c => c.tipoAnimal === 'OVINO').map(c => ({ nombre: c.nombreSingular, equivalenciaUG: getEquivalenciaUGLocal(c.nombreSingular, pesosPersonalizados) }))
 const categoriasEquinas = categoriasDB.filter(c => c.tipoAnimal === 'EQUINO').map(c => ({ nombre: c.nombreSingular, equivalenciaUG: getEquivalenciaUGLocal(c.nombreSingular, pesosPersonalizados) }))
@@ -206,18 +224,7 @@ doc.text(`${modulo.cantidadPotreros} potrero${modulo.cantidadPotreros !== 1 ? 's
 
 startY += 5
 
-        const catBov = categoriasBovinas
-  .sort((a, b) => {
-    const orden = [
-      'Vacas gordas', 'Vacas', 'Vaquillonas +2', 'Vaquillonas 1-2', 
-      'Terneras', 'Terneros', 'Terneros nacidos', 'Toros', 
-      'Nov 1-2', 'Nov 2-3', 'Nov +3'
-    ];
-    const nombreA = a.nombre.replace(' años', '').replace(' año', '');
-    const nombreB = b.nombre.replace(' años', '').replace(' año', '');
-    return orden.indexOf(nombreA) - orden.indexOf(nombreB);
-  })
-  .filter(cat => modulo.potreros.some((p: any) => (p.animalesPorCategoria[cat.nombre] || 0) > 0))
+        const catBov = categoriasBovinas.filter(cat => modulo.potreros.some((p: any) => (p.animalesPorCategoria[cat.nombre] || 0) > 0))
         const catOvi = categoriasOvinas.filter(cat => modulo.potreros.some((p: any) => (p.animalesPorCategoria[cat.nombre] || 0) > 0))
         const catEqu = categoriasEquinas.filter(cat => modulo.potreros.some((p: any) => (p.animalesPorCategoria[cat.nombre] || 0) > 0))
 
@@ -347,18 +354,7 @@ const filaEq = ['UG x Cat', '', ...catBov.map(c => {
       doc.text(`Generado: ${fecha.toLocaleDateString('es-UY', { day: '2-digit', month: '2-digit', year: 'numeric' })}`, pageWidth - margin - 50, 22)
 
       // VACUNOS
-      const catBovFiltradas = categoriasBovinas
-  .sort((a, b) => {
-    const orden = [
-      'Vacas gordas', 'Vacas', 'Vaquillonas +2', 'Vaquillonas 1-2', 
-      'Terneras', 'Terneros', 'Terneros nacidos', 'Toros', 
-      'Nov 1-2', 'Nov 2-3', 'Nov +3'
-    ];
-    const nombreA = a.nombre.replace(' años', '').replace(' año', '');
-    const nombreB = b.nombre.replace(' años', '').replace(' año', '');
-    return orden.indexOf(nombreA) - orden.indexOf(nombreB);
-  })
-  .filter(c => totalesPorCategoria[c.nombre] > 0)
+      const catBovFiltradas = categoriasBovinas.filter(c => totalesPorCategoria[c.nombre] > 0)
       const headersBovinos = ['Potreros', 'Ha', ...catBovFiltradas.map(c => limpiarNombreCategoria(c.nombre)), 'Total Vacunos', 'UG/Ha (Vac+Ovi+Equ)']
       const tieneTermerosNacidosOriginal = potrerosData.some(p => 
   (p.animalesPorCategoria['Terneros nacidos'] || 0) > 0
