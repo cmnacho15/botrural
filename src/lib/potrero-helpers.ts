@@ -558,3 +558,75 @@ export async function actualizarUltimoCambioSiVacio(loteId: string) {
     console.log(`✅ Potrero "${lote.nombre}" aún tiene animales → manteniendo ultimoCambio`)
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * 🔍 Buscar potrero considerando MÓDULOS si hay nombres duplicados
+ */
+export async function buscarPotreroConModulos(
+  nombreBuscado: string,
+  campoId: string
+): Promise<{
+  unico: boolean
+  lote?: { id: string; nombre: string; moduloNombre?: string }
+  opciones?: Array<{ id: string; nombre: string; moduloNombre: string | null }>
+}> {
+  const potreros = await prisma.lote.findMany({
+    where: { campoId },
+    select: { 
+      id: true, 
+      nombre: true,
+      moduloPastoreo: { select: { nombre: true } }
+    },
+  })
+
+  const nombreNorm = normalizarNombrePotrero(nombreBuscado)
+  const matches: Array<{ id: string; nombre: string; moduloNombre: string | null }> = []
+
+  for (const potrero of potreros) {
+    if (normalizarNombrePotrero(potrero.nombre) === nombreNorm) {
+      matches.push({
+        id: potrero.id,
+        nombre: potrero.nombre,
+        moduloNombre: potrero.moduloPastoreo?.nombre || null
+      })
+    }
+  }
+
+  if (matches.length === 0) return { unico: false, opciones: [] }
+  if (matches.length === 1) return { unico: true, lote: matches[0] }
+  
+  // Hay duplicados - verificar si tienen módulos
+  const conModulos = matches.filter(m => m.moduloNombre !== null)
+  
+  if (conModulos.length > 0) {
+    return { unico: false, opciones: matches }
+  }
+  
+  // Duplicados sin módulos, tomar el primero
+  return { unico: true, lote: matches[0] }
+}

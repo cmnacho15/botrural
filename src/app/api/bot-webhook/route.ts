@@ -31,6 +31,7 @@ import {
   handleCambiarCampo,
   handleCambiarCampoSeleccion,
   handleSeleccionGrupo,
+  handleSeleccionPotreroModulo,
   handleTacto,
   handleMapa,
   handleDAO,
@@ -209,6 +210,12 @@ export async function POST(request: Request) {
     if (confirmacionPendiente) {
       const data = JSON.parse(confirmacionPendiente.data)
       
+      // 🆕 Si está eligiendo potrero con módulos
+      if (data.tipo === "ELEGIR_POTRERO_ORIGEN" || data.tipo === "ELEGIR_POTRERO_DESTINO") {
+        await handleSeleccionPotreroModulo(from, messageText, data)
+        return NextResponse.json({ status: "modulo selection processed" })
+      }
+      
       // Si está eligiendo grupo, procesar número
       if (data.tipo === "CAMBIAR_GRUPO") {
         const numero = parseInt(messageText.trim())
@@ -335,7 +342,7 @@ const parsedData = await parseMessageWithAI(messageText, potreros, categorias)
     await handleReporteDAO(from)
     return NextResponse.json({ status: "reporte dao sent" })
   }
-  
+
   // ========================================
   // 🗺️ MAPA DEL CAMPO
   // ========================================

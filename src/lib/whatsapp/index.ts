@@ -47,3 +47,5 @@ export { handleReporteDAO } from './handlers/reporteDAOHandler'
 
 export { handleMapa } from "./handlers/mapaHandler"
 export { sendWhatsAppImage } from "./sendMessage"
+
+export { handleSeleccionPotreroModulo } from './handlers/moduloSelectionHandler'
