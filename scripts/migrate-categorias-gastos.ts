@@ -61,9 +61,7 @@ async function main() {
   where: {
     nombre: {
       in: [
-        'SAN PEDRO', 'Los alamoss', 'SANTA MARIAA', 'El Estribo', 
-        'Viento', 'NACHO CAMPO', 'JP CAMPO', 'TON CAMPO', 'Rosa', 
-        'Panalio', 'Azul', 'Nuevo', 'Don Pepe', 'Olavo', 'Mirasol', 'Manya'
+        'TON CAMPO', 'Rosa', 'Panalio', 'Azul', 'Nuevo', 'Mirasol', 'Manya'
       ]
     }
   }
