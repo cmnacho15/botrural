@@ -370,6 +370,13 @@ export async function POST(request: Request) {
       ]
       sheet.columns = columnas
 
+      // Variables para totales
+      let totalExaminada = 0
+      let totalPrenado = 0
+      let totalCiclando = 0
+      let totalAnestroSup = 0
+      let totalAnestroProf = 0
+
       eventos.forEach((e: any) => {
         if (!e.descripcion) return
 
@@ -386,6 +393,13 @@ export async function POST(request: Request) {
             const ciclando = parseInt(matchCategoria[4])
             const anestroSup = parseInt(matchCategoria[5])
             const anestroProf = parseInt(matchCategoria[6])
+            
+            // Acumular totales
+            totalExaminada += examinada
+            totalPrenado += prenado
+            totalCiclando += ciclando
+            totalAnestroSup += anestroSup
+            totalAnestroProf += anestroProf
             
             // Calcular todos los porcentajes
             const prenadoPct = examinada > 0 ? ((prenado / examinada) * 100).toFixed(1) : '0.0'
@@ -411,6 +425,36 @@ export async function POST(request: Request) {
             })
           }
         })
+      })
+
+      // Calcular porcentajes totales
+      const totalPrenadoPct = totalExaminada > 0 ? ((totalPrenado / totalExaminada) * 100).toFixed(1) : '0.0'
+      const totalCiclandoPct = totalExaminada > 0 ? ((totalCiclando / totalExaminada) * 100).toFixed(1) : '0.0'
+      const totalAnestroSupPct = totalExaminada > 0 ? ((totalAnestroSup / totalExaminada) * 100).toFixed(1) : '0.0'
+      const totalAnestroProfPct = totalExaminada > 0 ? ((totalAnestroProf / totalExaminada) * 100).toFixed(1) : '0.0'
+
+      // Agregar fila TOTAL
+      const filaTotal = sheet.addRow({
+        fecha: '',
+        potrero: '',
+        loteNombre: '',
+        categoria: 'TOTAL',
+        examinada: totalExaminada,
+        prenado: totalPrenado,
+        prenadoPct: `${totalPrenadoPct}%`,
+        ciclando: totalCiclando,
+        ciclandoPct: `${totalCiclandoPct}%`,
+        anestroSup: totalAnestroSup,
+        anestroSupPct: `${totalAnestroSupPct}%`,
+        anestroProf: totalAnestroProf,
+        anestroProfPct: `${totalAnestroProfPct}%`,
+        notas: '',
+      })
+
+      // Estilo para fila TOTAL
+      filaTotal.eachCell((cell) => {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC8FFC8' } }
+        cell.font = { bold: true }
       })
 
       aplicarEstiloEncabezado(sheet.getRow(1))

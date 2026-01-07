@@ -72,50 +72,84 @@ async function generarPDFDAO(campoId: string): Promise<Buffer | null> {
     // Preparar datos para la tabla
     const filasDatos: any[] = []
 
-    eventos.forEach((e) => {
-      if (!e.descripcion) return
+    // Variables para totales
+      let totalExaminada = 0
+      let totalPrenado = 0
+      let totalCiclando = 0
+      let totalAnestroSup = 0
+      let totalAnestroProf = 0
 
-      // Parsear descripción: "DAO en potrero X: Vacas: 50 examinadas (Preñadas: 30, Ciclando: 10...)"
-      const categorias = e.descripcion.split(' | ')
-      
-      categorias.forEach(catText => {
-        const matchCategoria = catText.match(/([^:]+):\s*(\d+)\s*examinadas\s*\(Preñadas?:\s*(\d+),\s*Ciclando:\s*(\d+),\s*Anestro Superficial:\s*(\d+),\s*Anestro Profundo:\s*(\d+)\)/)
+      eventos.forEach((e) => {
+        if (!e.descripcion) return
+
+        // Parsear descripción: "DAO en potrero X: Vacas: 50 examinadas (Preñadas: 30, Ciclando: 10...)"
+        const categorias = e.descripcion.split(' | ')
         
-        if (matchCategoria) {
-          const categoria = matchCategoria[1].replace(/^.*en potrero[^:]*:\s*/, '').trim()
-          const examinada = parseInt(matchCategoria[2])
-          const prenado = parseInt(matchCategoria[3])
-          const ciclando = parseInt(matchCategoria[4])
-          const anestroSup = parseInt(matchCategoria[5])
-          const anestroProf = parseInt(matchCategoria[6])
+        categorias.forEach(catText => {
+          const matchCategoria = catText.match(/([^:]+):\s*(\d+)\s*examinadas\s*\(Preñadas?:\s*(\d+),\s*Ciclando:\s*(\d+),\s*Anestro Superficial:\s*(\d+),\s*Anestro Profundo:\s*(\d+)\)/)
           
-          // Calcular porcentajes
-          const prenadoPct = examinada > 0 ? ((prenado / examinada) * 100).toFixed(1) : '0.0'
-          const ciclandoPct = examinada > 0 ? ((ciclando / examinada) * 100).toFixed(1) : '0.0'
-          const anestroSupPct = examinada > 0 ? ((anestroSup / examinada) * 100).toFixed(1) : '0.0'
-          const anestroProfPct = examinada > 0 ? ((anestroProf / examinada) * 100).toFixed(1) : '0.0'
+          if (matchCategoria) {
+            const categoria = matchCategoria[1].replace(/^.*en potrero[^:]*:\s*/, '').trim()
+            const examinada = parseInt(matchCategoria[2])
+            const prenado = parseInt(matchCategoria[3])
+            const ciclando = parseInt(matchCategoria[4])
+            const anestroSup = parseInt(matchCategoria[5])
+            const anestroProf = parseInt(matchCategoria[6])
+            
+            // Acumular totales
+            totalExaminada += examinada
+            totalPrenado += prenado
+            totalCiclando += ciclando
+            totalAnestroSup += anestroSup
+            totalAnestroProf += anestroProf
+            
+            // Calcular porcentajes
+            const prenadoPct = examinada > 0 ? ((prenado / examinada) * 100).toFixed(1) : '0.0'
+            const ciclandoPct = examinada > 0 ? ((ciclando / examinada) * 100).toFixed(1) : '0.0'
+            const anestroSupPct = examinada > 0 ? ((anestroSup / examinada) * 100).toFixed(1) : '0.0'
+            const anestroProfPct = examinada > 0 ? ((anestroProf / examinada) * 100).toFixed(1) : '0.0'
 
-          const fechaFormato = new Date(e.fecha).toLocaleDateString('es-UY', { 
-            day: '2-digit', 
-            month: '2-digit', 
-            year: 'numeric' 
-          })
+            const fechaFormato = new Date(e.fecha).toLocaleDateString('es-UY', { 
+              day: '2-digit', 
+              month: '2-digit', 
+              year: 'numeric' 
+            })
 
-          filasDatos.push([
-            fechaFormato,
-            e.lote?.nombre || '',
-            e.rodeo?.nombre || '',
-            categoria,
-            examinada.toString(),
-            `${prenado} (${prenadoPct}%)`,
-            `${ciclando} (${ciclandoPct}%)`,
-            `${anestroSup} (${anestroSupPct}%)`,
-            `${anestroProf} (${anestroProfPct}%)`,
-            e.notas || ''
-          ])
-        }
+            filasDatos.push([
+              fechaFormato,
+              e.lote?.nombre || '',
+              e.rodeo?.nombre || '',
+              categoria,
+              examinada.toString(),
+              `${prenado} (${prenadoPct}%)`,
+              `${ciclando} (${ciclandoPct}%)`,
+              `${anestroSup} (${anestroSupPct}%)`,
+              `${anestroProf} (${anestroProfPct}%)`,
+              e.notas || ''
+            ])
+          }
+        })
       })
-    })
+
+      // Calcular porcentajes totales
+      const totalPrenadoPct = totalExaminada > 0 ? ((totalPrenado / totalExaminada) * 100).toFixed(1) : '0.0'
+      const totalCiclandoPct = totalExaminada > 0 ? ((totalCiclando / totalExaminada) * 100).toFixed(1) : '0.0'
+      const totalAnestroSupPct = totalExaminada > 0 ? ((totalAnestroSup / totalExaminada) * 100).toFixed(1) : '0.0'
+      const totalAnestroProfPct = totalExaminada > 0 ? ((totalAnestroProf / totalExaminada) * 100).toFixed(1) : '0.0'
+
+      // Agregar fila de TOTAL
+      filasDatos.push([
+        '',
+        '',
+        '',
+        'TOTAL',
+        totalExaminada.toString(),
+        `${totalPrenado} (${totalPrenadoPct}%)`,
+        `${totalCiclando} (${totalCiclandoPct}%)`,
+        `${totalAnestroSup} (${totalAnestroSupPct}%)`,
+        `${totalAnestroProf} (${totalAnestroProfPct}%)`,
+        ''
+      ])
 
     // Crear tabla
     const columnas = [
@@ -162,11 +196,19 @@ async function generarPDFDAO(campoId: string): Promise<Buffer | null> {
         9: { cellWidth: 40, halign: 'left' }   // Notas
       },
       alternateRowStyles: {
-        fillColor: [249, 250, 251]
-      },
-      didDrawPage: function() {
-        dibujarMarcaAgua()
-      },
+          fillColor: [249, 250, 251]
+        },
+        didParseCell: function(data: any) {
+          // Estilo para la fila TOTAL (última fila)
+          if (data.section === 'body' && data.row.index === filasDatos.length - 1) {
+            data.cell.styles.fillColor = [200, 255, 200]
+            data.cell.styles.fontStyle = 'bold'
+            data.cell.styles.fontSize = 8
+          }
+        },
+        didDrawPage: function() {
+          dibujarMarcaAgua()
+        },
       margin: { left: margin, right: margin }
     })
 
