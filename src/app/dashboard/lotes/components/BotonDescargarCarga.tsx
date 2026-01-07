@@ -96,9 +96,17 @@ export default function BotonDescargarCarga() {
 
       // 🔥 ORDENAR LAS CATEGORÍAS BOVINAS AL RECIBIRLAS
       const ordenCategorias = [
-        'Vacas gordas', 'Vacas', 'Vaquillonas +2', 'Vaquillonas 1-2', 
-        'Terneras', 'Terneros', 'Terneros nacidos', 'Toros', 
-        'Nov 1-2', 'Nov 2-3', 'Nov +3'
+        'Vacas Gordas',
+        'Vacas',
+        'Vaquillonas +2',
+        'Vaquillonas 1–2',
+        'Terneras',
+        'Terneros',
+        'Terneros nacidos',
+        'Toros',
+        'Novillos 1–2',
+        'Novillos 2–3',
+        'Novillos +3'
       ];
       
       data.categorias.bovinas.sort((a, b) => {
