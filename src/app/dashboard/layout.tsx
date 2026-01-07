@@ -1,6 +1,6 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
@@ -35,6 +35,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
 function LayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const { data: session, status } = useSession();
   
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -111,12 +112,22 @@ useEffect(() => {
     }
   }, [userMenuOpen]);
 
-  if (status === "loading" || !session?.user?.role) {
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push(`/login?callbackUrl=${encodeURIComponent(pathname)}`);
+    }
+  }, [status, pathname, router]);
+
+  if (status === "loading") {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
         <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-300 border-t-blue-600"></div>
       </div>
     );
+  }
+
+  if (!session?.user?.role) {
+    return null;
   }
 
   // Obtener inicial del campo para el avatar
