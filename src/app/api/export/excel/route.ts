@@ -348,7 +348,7 @@ export async function POST(request: Request) {
           lote: { select: { nombre: true } },
           rodeo: { select: { nombre: true } },
         },
-        orderBy: { fecha: 'desc' },
+        orderBy: { fecha: 'asc' },
       })
 
       const sheet = workbook.addWorksheet('DAO')

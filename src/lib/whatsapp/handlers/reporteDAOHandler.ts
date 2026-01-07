@@ -34,7 +34,7 @@ async function generarPDFDAO(campoId: string): Promise<Buffer | null> {
         rodeo: { select: { nombre: true } },
         usuario: { select: { name: true } }
       },
-      orderBy: { fecha: 'desc' }
+      orderBy: { fecha: 'asc' }
     })
 
     if (eventos.length === 0) {
