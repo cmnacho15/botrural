@@ -58,12 +58,15 @@ async function main() {
   console.log('🚀 Iniciando migración de categorías de gastos...\n')
 
   const campos = await prisma.campo.findMany({
-    where: {
-      nombre: {
-        in: ['El Estribo', 'Don Pepe', 'Manya', 'Mirasol']
-      }
+  where: {
+    id: {
+      in: [
+        'cmjt67t3h0004lb04rkl8066w',  // Don Pepe
+        'cmjxhtzw90005la04lacy247c'   // Olavo
+      ]
     }
-  })
+  }
+})
   
   for (const campo of campos) {
     console.log(`\n📂 Procesando campo: ${campo.nombre} (ID: ${campo.id})`)
