@@ -29,11 +29,20 @@ export async function handleSeleccionPotreroModulo(
   if (data.tipo === "ELEGIR_POTRERO_ORIGEN") {
     console.log(`✅ Usuario eligió potrero ORIGEN: ${potreroSeleccionado.nombre} (${potreroSeleccionado.moduloNombre || 'Sin módulo'})`)
 
-    // Ahora buscar el DESTINO
-    const resultadoDestino = await buscarPotreroConModulos(data.loteDestino, (await prisma.user.findUnique({
+    // 🔥 FIX: Obtener campoId del usuario de forma segura
+    const user = await prisma.user.findUnique({
       where: { telefono: phoneNumber },
       select: { campoId: true }
-    }))!.campoId!)
+    })
+    
+    if (!user?.campoId) {
+      await sendWhatsAppMessage(phoneNumber, "Error: usuario no encontrado")
+      await prisma.pendingConfirmation.delete({ where: { telefono: phoneNumber } })
+      return
+    }
+
+    // Ahora buscar el DESTINO
+    const resultadoDestino = await buscarPotreroConModulos(data.loteDestino, user.campoId)
 
     if (!resultadoDestino.unico && resultadoDestino.opciones && resultadoDestino.opciones.length > 1) {
       // También hay duplicados en DESTINO
@@ -106,6 +115,11 @@ async function procesarCambioPotreroConModulos(
   potreroOrigen: { id: string; nombre: string },
   potreroDestino: { id: string; nombre: string }
 ) {
+  // 🔥 FIX: BORRAR LA CONFIRMACIÓN PENDIENTE PRIMERO para evitar loop infinito
+  await prisma.pendingConfirmation.delete({ 
+    where: { telefono: phoneNumber } 
+  }).catch(() => {}) // Ignorar error si no existe
+
   // Llamar al handler normal con los datos completos
   await handleCambioPotrero(phoneNumber, {
     categoria,
