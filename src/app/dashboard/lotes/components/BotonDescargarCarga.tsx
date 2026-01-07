@@ -104,7 +104,16 @@ export default function BotonDescargarCarga() {
       data.categorias.bovinas.sort((a, b) => {
         const nombreA = limpiarNombreCategoria(a.nombre);
         const nombreB = limpiarNombreCategoria(b.nombre);
-        return ordenCategorias.indexOf(nombreA) - ordenCategorias.indexOf(nombreB);
+        
+        const indexA = ordenCategorias.indexOf(nombreA);
+        const indexB = ordenCategorias.indexOf(nombreB);
+        
+        // Si no está en la lista, va al final
+        if (indexA === -1 && indexB === -1) return 0;
+        if (indexA === -1) return 1;
+        if (indexB === -1) return -1;
+        
+        return indexA - indexB;
       });
 
       const jsPDFModule = await import('jspdf')
@@ -183,6 +192,17 @@ startY += 5
           // Filtrar categorías con animales en este módulo
 const categoriasBovinas = data.categorias.bovinas
   .filter(cat => modulo.potreros.some(p => (p.animalesPorCategoria[cat.nombre] || 0) > 0))
+  .sort((a, b) => {
+    const nombreA = limpiarNombreCategoria(a.nombre);
+    const nombreB = limpiarNombreCategoria(b.nombre);
+    
+    const indexA = ordenCategorias.indexOf(nombreA);
+    const indexB = ordenCategorias.indexOf(nombreB);
+    
+    if (indexA === -1) return 1;
+    if (indexB === -1) return -1;
+    return indexA - indexB;
+  })
 
 const categoriasOvinas = data.categorias.ovinas.filter(cat =>
   modulo.potreros.some(p => (p.animalesPorCategoria[cat.nombre] || 0) > 0)
@@ -425,6 +445,17 @@ const filaEq = ['UG x Cat', '', ...categoriasBovinas.map(c => {
     data.potreros.some(p => (p.animalesPorCategoria[cat.nombre] || 0) > 0) ||
     (data.totales.porCategoria[cat.nombre] || 0) > 0
   )
+  .sort((a, b) => {
+    const nombreA = limpiarNombreCategoria(a.nombre);
+    const nombreB = limpiarNombreCategoria(b.nombre);
+    
+    const indexA = ordenCategorias.indexOf(nombreA);
+    const indexB = ordenCategorias.indexOf(nombreB);
+    
+    if (indexA === -1) return 1;
+    if (indexB === -1) return -1;
+    return indexA - indexB;
+  })
 
         const headersBovinos = [
   'Potreros', 'Ha',
