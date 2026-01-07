@@ -5,7 +5,8 @@ import {
   buscarPotreroEnLista,
   buscarAnimalesEnPotrero, 
   obtenerNombresPotreros,
-  actualizarUltimoCambioSiVacio  // 🆕 AGREGAR
+  actualizarUltimoCambioSiVacio,
+  buscarPotreroConModulos  // 🆕 AGREGAR ESTA
 } from "@/lib/potrero-helpers"
 import { sendWhatsAppMessage } from "../services/messageService"
 import { sendWhatsAppMessageWithButtons } from "../services/messageService"
@@ -52,33 +53,110 @@ export async function handleCambioPotrero(phoneNumber: string, data: any) {
       select: { id: true, nombre: true },
     })
 
-    // 🔍 Buscar potreros en la lista (sin más queries a BD)
-    const potreroOrigen = buscarPotreroEnLista(loteOrigen, potreros)
+    // 🔍 Buscar potrero ORIGEN considerando módulos
+    const resultadoOrigen = await buscarPotreroConModulos(loteOrigen, user.campoId)
+
+    if (!resultadoOrigen.unico) {
+      if (resultadoOrigen.opciones && resultadoOrigen.opciones.length > 1) {
+        // HAY DUPLICADOS CON MÓDULOS
+        const mensaje = `Encontré varios "${loteOrigen}":\n\n` +
+          resultadoOrigen.opciones.map((opt, i) => 
+            `${i + 1}️⃣ ${opt.nombre}${opt.moduloNombre ? ` (${opt.moduloNombre})` : ''}`
+          ).join('\n') +
+          `\n\n¿De cuál querés mover? Respondé con el número.`
+        
+        await sendWhatsAppMessage(phoneNumber, mensaje)
+        
+        // Guardar estado pendiente
+        await prisma.pendingConfirmation.upsert({
+          where: { telefono: phoneNumber },
+          create: {
+            telefono: phoneNumber,
+            data: JSON.stringify({
+              tipo: "ELEGIR_POTRERO_ORIGEN",
+              opciones: resultadoOrigen.opciones,
+              categoria,
+              cantidad,
+              loteDestino
+            }),
+          },
+          update: {
+            data: JSON.stringify({
+              tipo: "ELEGIR_POTRERO_ORIGEN",
+              opciones: resultadoOrigen.opciones,
+              categoria,
+              cantidad,
+              loteDestino
+            }),
+          },
+        })
+        return
+      }
+      
+      const nombresDisponibles = potreros.map(p => p.nombre).join(', ')
+      await sendWhatsAppMessage(
+        phoneNumber,
+        `No encontré el potrero "${loteOrigen}".\n\nTus potreros son: ${nombresDisponibles}`
+      )
+      return
+    }
+
+    const potreroOrigen = resultadoOrigen.lote!
     console.log("🔍 BÚSQUEDA POTRERO ORIGEN:")
-console.log("  - Buscado:", loteOrigen)
-console.log("  - Encontrado:", potreroOrigen)
+    console.log("  - Buscado:", loteOrigen)
+    console.log("  - Encontrado:", potreroOrigen)
 
-    if (!potreroOrigen) {
+    // 🔍 Buscar potrero DESTINO considerando módulos
+    const resultadoDestino = await buscarPotreroConModulos(loteDestino, user.campoId)
+
+    if (!resultadoDestino.unico) {
+      if (resultadoDestino.opciones && resultadoDestino.opciones.length > 1) {
+        // HAY DUPLICADOS CON MÓDULOS
+        const mensaje = `Encontré varios "${loteDestino}":\n\n` +
+          resultadoDestino.opciones.map((opt, i) => 
+            `${i + 1}️⃣ ${opt.nombre}${opt.moduloNombre ? ` (${opt.moduloNombre})` : ''}`
+          ).join('\n') +
+          `\n\n¿A cuál querés mover? Respondé con el número.`
+        
+        await sendWhatsAppMessage(phoneNumber, mensaje)
+        
+        // Guardar estado pendiente CON el origen ya seleccionado
+        await prisma.pendingConfirmation.upsert({
+          where: { telefono: phoneNumber },
+          create: {
+            telefono: phoneNumber,
+            data: JSON.stringify({
+              tipo: "ELEGIR_POTRERO_DESTINO",
+              opciones: resultadoDestino.opciones,
+              categoria,
+              cantidad,
+              loteOrigenId: potreroOrigen.id,
+              loteOrigenNombre: potreroOrigen.nombre
+            }),
+          },
+          update: {
+            data: JSON.stringify({
+              tipo: "ELEGIR_POTRERO_DESTINO",
+              opciones: resultadoDestino.opciones,
+              categoria,
+              cantidad,
+              loteOrigenId: potreroOrigen.id,
+              loteOrigenNombre: potreroOrigen.nombre
+            }),
+          },
+        })
+        return
+      }
+      
       const nombresDisponibles = potreros.map(p => p.nombre).join(', ')
       await sendWhatsAppMessage(
         phoneNumber,
-        `No encontré el potrero "${loteOrigen}".\n\n` +
-        `Tus potreros son: ${nombresDisponibles}`
+        `No encontré el potrero "${loteDestino}".\n\nTus potreros son: ${nombresDisponibles}`
       )
       return
     }
 
-    const potreroDestino = buscarPotreroEnLista(loteDestino, potreros)
-    
-    if (!potreroDestino) {
-      const nombresDisponibles = potreros.map(p => p.nombre).join(', ')
-      await sendWhatsAppMessage(
-        phoneNumber,
-        `No encontré el potrero "${loteDestino}".\n\n` +
-        `Tus potreros son: ${nombresDisponibles}`
-      )
-      return
-    }
+    const potreroDestino = resultadoDestino.lote!
 
     if (potreroOrigen.id === potreroDestino.id) {
       await sendWhatsAppMessage(
@@ -91,9 +169,9 @@ console.log("  - Encontrado:", potreroOrigen)
     const resultadoBusqueda = await buscarAnimalesEnPotrero(categoria, potreroOrigen.id, user.campoId)
     
     console.log("🔍 BÚSQUEDA ANIMALES:")
-console.log("  - Categoría:", categoria)
-console.log("  - Potrero ID:", potreroOrigen.id)
-console.log("  - Resultado:", resultadoBusqueda)
+    console.log("  - Categoría:", categoria)
+    console.log("  - Potrero ID:", potreroOrigen.id)
+    console.log("  - Resultado:", resultadoBusqueda)
 
     if (!resultadoBusqueda.encontrado) {
       if (resultadoBusqueda.opciones && resultadoBusqueda.opciones.length > 0) {
@@ -240,7 +318,7 @@ export async function ejecutarCambioPotrero(data: any) {
       })
     }
 
-   // Verificar si el potrero origen quedó vacío después de la transacción
+    // Verificar si el potrero origen quedó vacío después de la transacción
     const loteOrigenFinal = await tx.lote.findUnique({
       where: { id: data.loteId },
       include: { animalesLote: true }
