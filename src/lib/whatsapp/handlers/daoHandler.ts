@@ -218,15 +218,7 @@ export async function confirmarDAO(telefono: string, data: any) {
     // Calcular porcentajes
     const porcentajePrenado = Math.round((prenado / cantidadExaminada) * 100)
 
-    // Mensaje de confirmación
-    await sendWhatsAppMessage(
-      telefono,
-      `✅ *DAO registrado correctamente*\n\n` +
-      `📍 Potrero: ${potrero}\n` +
-      `🐄 Categoría: ${categoria}\n` +
-      `🔬 Examinadas: ${cantidadExaminada}\n` +
-      `📊 Preñez: ${porcentajePrenado}%`
-    )
+    
 
     console.log("✅ DAO registrado:", potrero, categoria, porcentajePrenado + "% preñez")
 
