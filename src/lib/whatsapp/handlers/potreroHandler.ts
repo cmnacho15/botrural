@@ -12,7 +12,7 @@ import { sendWhatsAppMessage } from "../services/messageService"
 import { sendWhatsAppMessageWithButtons } from "../services/messageService"
 
 export async function handleCambioPotrero(phoneNumber: string, data: any) {
-  console.log("🔥 VERSION: 2024-12-14-19:00 FIX FINAL")
+  console.log("🔥 VERSION: 2024-12-14-19:00 FIX FINAL + MODULOS")
   console.log("📞 User:", phoneNumber)
   console.log("📦 Data:", data)
   try {
@@ -29,7 +29,7 @@ export async function handleCambioPotrero(phoneNumber: string, data: any) {
       return
     }
 
-    const { cantidad, categoria, loteOrigen, loteDestino } = data
+    const { cantidad, categoria, loteOrigen, loteDestino, _origenId, _destinoId } = data
 
     if (!categoria) {
       await sendWhatsAppMessage(
@@ -47,116 +47,139 @@ export async function handleCambioPotrero(phoneNumber: string, data: any) {
       return
     }
 
-    // 🔍 Obtener lista de potreros UNA SOLA VEZ
-    const potreros = await prisma.lote.findMany({
-      where: { campoId: user.campoId },
-      select: { id: true, nombre: true },
-    })
+    let potreroOrigen, potreroDestino
 
-    // 🔍 Buscar potrero ORIGEN considerando módulos
-    const resultadoOrigen = await buscarPotreroConModulos(loteOrigen, user.campoId)
+    // 🔥 Si vienen IDs explícitos (desde selección de módulos), usarlos directamente
+    if (_origenId && _destinoId) {
+      console.log("🎯 Usando IDs explícitos de módulos")
+      potreroOrigen = await prisma.lote.findUnique({
+        where: { id: _origenId },
+        select: { id: true, nombre: true }
+      })
+      potreroDestino = await prisma.lote.findUnique({
+        where: { id: _destinoId },
+        select: { id: true, nombre: true }
+      })
 
-    if (!resultadoOrigen.unico) {
-      if (resultadoOrigen.opciones && resultadoOrigen.opciones.length > 1) {
-        // HAY DUPLICADOS CON MÓDULOS
-        const mensaje = `Encontré varios "${loteOrigen}":\n\n` +
-          resultadoOrigen.opciones.map((opt, i) => 
-            `${i + 1}️⃣ ${opt.nombre}${opt.moduloNombre ? ` (${opt.moduloNombre})` : ''}`
-          ).join('\n') +
-          `\n\n¿De cuál querés mover? Respondé con el número.`
-        
-        await sendWhatsAppMessage(phoneNumber, mensaje)
-        
-        // Guardar estado pendiente
-        await prisma.pendingConfirmation.upsert({
-          where: { telefono: phoneNumber },
-          create: {
-            telefono: phoneNumber,
-            data: JSON.stringify({
-              tipo: "ELEGIR_POTRERO_ORIGEN",
-              opciones: resultadoOrigen.opciones,
-              categoria,
-              cantidad,
-              loteDestino
-            }),
-          },
-          update: {
-            data: JSON.stringify({
-              tipo: "ELEGIR_POTRERO_ORIGEN",
-              opciones: resultadoOrigen.opciones,
-              categoria,
-              cantidad,
-              loteDestino
-            }),
-          },
-        })
+      if (!potreroOrigen || !potreroDestino) {
+        await sendWhatsAppMessage(phoneNumber, "Error: potreros no encontrados")
         return
       }
+    } else {
+      // Flujo normal: buscar por nombre considerando módulos
+      console.log("🔍 Buscando potreros por nombre")
       
-      const nombresDisponibles = potreros.map(p => p.nombre).join(', ')
-      await sendWhatsAppMessage(
-        phoneNumber,
-        `No encontré el potrero "${loteOrigen}".\n\nTus potreros son: ${nombresDisponibles}`
-      )
-      return
-    }
+      // 🔍 Obtener lista de potreros UNA SOLA VEZ
+      const potreros = await prisma.lote.findMany({
+        where: { campoId: user.campoId },
+        select: { id: true, nombre: true },
+      })
 
-    const potreroOrigen = resultadoOrigen.lote!
-    console.log("🔍 BÚSQUEDA POTRERO ORIGEN:")
-    console.log("  - Buscado:", loteOrigen)
-    console.log("  - Encontrado:", potreroOrigen)
+      // 🔍 Buscar potrero ORIGEN considerando módulos
+      const resultadoOrigen = await buscarPotreroConModulos(loteOrigen, user.campoId)
 
-    // 🔍 Buscar potrero DESTINO considerando módulos
-    const resultadoDestino = await buscarPotreroConModulos(loteDestino, user.campoId)
-
-    if (!resultadoDestino.unico) {
-      if (resultadoDestino.opciones && resultadoDestino.opciones.length > 1) {
-        // HAY DUPLICADOS CON MÓDULOS
-        const mensaje = `Encontré varios "${loteDestino}":\n\n` +
-          resultadoDestino.opciones.map((opt, i) => 
-            `${i + 1}️⃣ ${opt.nombre}${opt.moduloNombre ? ` (${opt.moduloNombre})` : ''}`
-          ).join('\n') +
-          `\n\n¿A cuál querés mover? Respondé con el número.`
+      if (!resultadoOrigen.unico) {
+        if (resultadoOrigen.opciones && resultadoOrigen.opciones.length > 1) {
+          // HAY DUPLICADOS CON MÓDULOS
+          const mensaje = `Encontré varios "${loteOrigen}":\n\n` +
+            resultadoOrigen.opciones.map((opt, i) => 
+              `${i + 1}️⃣ ${opt.nombre}${opt.moduloNombre ? ` (${opt.moduloNombre})` : ''}`
+            ).join('\n') +
+            `\n\n¿De cuál querés mover? Respondé con el número.`
+          
+          await sendWhatsAppMessage(phoneNumber, mensaje)
+          
+          // Guardar estado pendiente
+          await prisma.pendingConfirmation.upsert({
+            where: { telefono: phoneNumber },
+            create: {
+              telefono: phoneNumber,
+              data: JSON.stringify({
+                tipo: "ELEGIR_POTRERO_ORIGEN",
+                opciones: resultadoOrigen.opciones,
+                categoria,
+                cantidad,
+                loteDestino
+              }),
+            },
+            update: {
+              data: JSON.stringify({
+                tipo: "ELEGIR_POTRERO_ORIGEN",
+                opciones: resultadoOrigen.opciones,
+                categoria,
+                cantidad,
+                loteDestino
+              }),
+            },
+          })
+          return
+        }
         
-        await sendWhatsAppMessage(phoneNumber, mensaje)
-        
-        // Guardar estado pendiente CON el origen ya seleccionado
-        await prisma.pendingConfirmation.upsert({
-          where: { telefono: phoneNumber },
-          create: {
-            telefono: phoneNumber,
-            data: JSON.stringify({
-              tipo: "ELEGIR_POTRERO_DESTINO",
-              opciones: resultadoDestino.opciones,
-              categoria,
-              cantidad,
-              loteOrigenId: potreroOrigen.id,
-              loteOrigenNombre: potreroOrigen.nombre
-            }),
-          },
-          update: {
-            data: JSON.stringify({
-              tipo: "ELEGIR_POTRERO_DESTINO",
-              opciones: resultadoDestino.opciones,
-              categoria,
-              cantidad,
-              loteOrigenId: potreroOrigen.id,
-              loteOrigenNombre: potreroOrigen.nombre
-            }),
-          },
-        })
+        const nombresDisponibles = potreros.map(p => p.nombre).join(', ')
+        await sendWhatsAppMessage(
+          phoneNumber,
+          `No encontré el potrero "${loteOrigen}".\n\nTus potreros son: ${nombresDisponibles}`
+        )
         return
       }
-      
-      const nombresDisponibles = potreros.map(p => p.nombre).join(', ')
-      await sendWhatsAppMessage(
-        phoneNumber,
-        `No encontré el potrero "${loteDestino}".\n\nTus potreros son: ${nombresDisponibles}`
-      )
-      return
-    }
 
-    const potreroDestino = resultadoDestino.lote!
+      potreroOrigen = resultadoOrigen.lote!
+      console.log("🔍 BÚSQUEDA POTRERO ORIGEN:")
+      console.log("  - Buscado:", loteOrigen)
+      console.log("  - Encontrado:", potreroOrigen)
+
+      // 🔍 Buscar potrero DESTINO considerando módulos
+      const resultadoDestino = await buscarPotreroConModulos(loteDestino, user.campoId)
+
+      if (!resultadoDestino.unico) {
+        if (resultadoDestino.opciones && resultadoDestino.opciones.length > 1) {
+          // HAY DUPLICADOS CON MÓDULOS
+          const mensaje = `Encontré varios "${loteDestino}":\n\n` +
+            resultadoDestino.opciones.map((opt, i) => 
+              `${i + 1}️⃣ ${opt.nombre}${opt.moduloNombre ? ` (${opt.moduloNombre})` : ''}`
+            ).join('\n') +
+            `\n\n¿A cuál querés mover? Respondé con el número.`
+          
+          await sendWhatsAppMessage(phoneNumber, mensaje)
+          
+          // Guardar estado pendiente CON el origen ya seleccionado
+          await prisma.pendingConfirmation.upsert({
+            where: { telefono: phoneNumber },
+            create: {
+              telefono: phoneNumber,
+              data: JSON.stringify({
+                tipo: "ELEGIR_POTRERO_DESTINO",
+                opciones: resultadoDestino.opciones,
+                categoria,
+                cantidad,
+                loteOrigenId: potreroOrigen.id,
+                loteOrigenNombre: potreroOrigen.nombre
+              }),
+            },
+            update: {
+              data: JSON.stringify({
+                tipo: "ELEGIR_POTRERO_DESTINO",
+                opciones: resultadoDestino.opciones,
+                categoria,
+                cantidad,
+                loteOrigenId: potreroOrigen.id,
+                loteOrigenNombre: potreroOrigen.nombre
+              }),
+            },
+          })
+          return
+        }
+        
+        const nombresDisponibles = potreros.map(p => p.nombre).join(', ')
+        await sendWhatsAppMessage(
+          phoneNumber,
+          `No encontré el potrero "${loteDestino}".\n\nTus potreros son: ${nombresDisponibles}`
+        )
+        return
+      }
+
+      potreroDestino = resultadoDestino.lote!
+    }
 
     if (potreroOrigen.id === potreroDestino.id) {
       await sendWhatsAppMessage(
