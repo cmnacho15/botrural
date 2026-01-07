@@ -109,7 +109,8 @@ export async function handleConfirmacion(
     respuestaLower === "si" ||
     respuestaLower === "sí" ||
     respuestaLower === "yes" ||
-    respuesta === "btn_confirmar"
+    respuesta === "btn_confirmar" ||
+    respuesta === "confirmar_dao"
   ) {
     try {
       if (data.tipo === "CAMBIO_POTRERO") {
