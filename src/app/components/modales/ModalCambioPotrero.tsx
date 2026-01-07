@@ -238,15 +238,16 @@ export default function ModalCambioPotrero({ onClose, onSuccess }: ModalCambioPo
       >
         <option value="">Seleccionar...</option>
         {tieneModulos ? (
-          // Agrupar por módulos
-          Object.entries(
-            potreros.reduce((acc, potrero) => {
-              const moduloNombre = potrero.modulo?.nombre || 'Sin Módulo'
-              if (!acc[moduloNombre]) acc[moduloNombre] = []
-              acc[moduloNombre].push(potrero)
-              return acc
-            }, {} as Record<string, Lote[]>)
-          ).map(([moduloNombre, lotes]) => (
+  Object.entries(
+    potreros
+      .reduce((acc, potrero) => {
+        if (!potrero.moduloId) return acc
+        const moduloNombre = potrero.modulo?.nombre || ''
+        if (!acc[moduloNombre]) acc[moduloNombre] = []
+        acc[moduloNombre].push(potrero)
+        return acc
+      }, {} as Record<string, Lote[]>)
+  ).map(([moduloNombre, lotes]) => (
             <optgroup key={moduloNombre} label={moduloNombre}>
               {lotes.map((lote) => (
                 <option key={lote.id} value={lote.id}>
@@ -278,16 +279,17 @@ export default function ModalCambioPotrero({ onClose, onSuccess }: ModalCambioPo
       >
         <option value="">Seleccionar...</option>
         {tieneModulos ? (
-          Object.entries(
-            potreros
-              .filter((p) => p.id !== potreroOrigen)
-              .reduce((acc, potrero) => {
-                const moduloNombre = potrero.modulo?.nombre || 'Sin Módulo'
-                if (!acc[moduloNombre]) acc[moduloNombre] = []
-                acc[moduloNombre].push(potrero)
-                return acc
-              }, {} as Record<string, Lote[]>)
-          ).map(([moduloNombre, lotes]) => (
+  Object.entries(
+    potreros
+      .filter((p) => p.id !== potreroOrigen)
+      .reduce((acc, potrero) => {
+        if (!potrero.moduloId) return acc
+        const moduloNombre = potrero.modulo?.nombre || ''
+        if (!acc[moduloNombre]) acc[moduloNombre] = []
+        acc[moduloNombre].push(potrero)
+        return acc
+      }, {} as Record<string, Lote[]>)
+  ).map(([moduloNombre, lotes]) => (
             <optgroup key={moduloNombre} label={moduloNombre}>
               {lotes.map((lote) => (
                 <option key={lote.id} value={lote.id}>
