@@ -94,6 +94,19 @@ export default function BotonDescargarCarga() {
       const data: ReporteCarga = await dataResponse.json()
       console.log('Datos recibidos:', data)
 
+      // 🔥 ORDENAR LAS CATEGORÍAS BOVINAS AL RECIBIRLAS
+      const ordenCategorias = [
+        'Vacas gordas', 'Vacas', 'Vaquillonas +2', 'Vaquillonas 1-2', 
+        'Terneras', 'Terneros', 'Terneros nacidos', 'Toros', 
+        'Nov 1-2', 'Nov 2-3', 'Nov +3'
+      ];
+      
+      data.categorias.bovinas.sort((a, b) => {
+        const nombreA = limpiarNombreCategoria(a.nombre);
+        const nombreB = limpiarNombreCategoria(b.nombre);
+        return ordenCategorias.indexOf(nombreA) - ordenCategorias.indexOf(nombreB);
+      });
+
       const jsPDFModule = await import('jspdf')
       const jsPDF = jsPDFModule.default
       const autoTable = (await import('jspdf-autotable')).default
