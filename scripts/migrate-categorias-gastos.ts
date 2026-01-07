@@ -59,10 +59,11 @@ async function main() {
 
   const campos = await prisma.campo.findMany({
   where: {
-    id: {
+    nombre: {
       in: [
-        'cmjt67t3h0004lb04rkl8066w',  // Don Pepe
-        'cmjxhtzw90005la04lacy247c'   // Olavo
+        'SAN PEDRO', 'Los alamoss', 'SANTA MARIAA', 'El Estribo', 
+        'Viento', 'NACHO CAMPO', 'JP CAMPO', 'TON CAMPO', 'Rosa', 
+        'Panalio', 'Azul', 'Nuevo', 'Don Pepe', 'Olavo', 'Mirasol', 'Manya'
       ]
     }
   }
