@@ -169,16 +169,6 @@ startY += 5
 
           // Filtrar categorías con animales en este módulo
 const categoriasBovinas = data.categorias.bovinas
-  .sort((a, b) => {
-    const orden = [
-      'Vacas gordas', 'Vacas', 'Vaquillonas +2', 'Vaquillonas 1-2', 
-      'Terneras', 'Terneros', 'Terneros nacidos', 'Toros', 
-      'Nov 1-2', 'Nov 2-3', 'Nov +3'
-    ];
-    const nombreA = a.nombre.replace(' años', '').replace(' año', '');
-    const nombreB = b.nombre.replace(' años', '').replace(' año', '');
-    return orden.indexOf(nombreA) - orden.indexOf(nombreB);
-  })
   .filter(cat => modulo.potreros.some(p => (p.animalesPorCategoria[cat.nombre] || 0) > 0))
 
 const categoriasOvinas = data.categorias.ovinas.filter(cat =>
@@ -418,16 +408,6 @@ const filaEq = ['UG x Cat', '', ...categoriasBovinas.map(c => {
       } else {
         // ========== FORMATO ORIGINAL: SIN MÓDULOS ==========
         const categoriasBovinas = data.categorias.bovinas
-  .sort((a, b) => {
-    const orden = [
-      'Vacas gordas', 'Vacas', 'Vaquillonas +2', 'Vaquillonas 1-2', 
-      'Terneras', 'Terneros', 'Terneros nacidos', 'Toros', 
-      'Nov 1-2', 'Nov 2-3', 'Nov +3'
-    ];
-    const nombreA = a.nombre.replace(' años', '').replace(' año', '');
-    const nombreB = b.nombre.replace(' años', '').replace(' año', '');
-    return orden.indexOf(nombreA) - orden.indexOf(nombreB);
-  })
   .filter(cat =>
     data.potreros.some(p => (p.animalesPorCategoria[cat.nombre] || 0) > 0) ||
     (data.totales.porCategoria[cat.nombre] || 0) > 0
