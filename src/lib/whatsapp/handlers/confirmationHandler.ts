@@ -135,6 +135,14 @@ export async function handleConfirmacion(
         phone,
         "❌ Error al guardar el dato. Intenta de nuevo."
       )
+      
+      await prisma.pendingConfirmation
+        .delete({
+          where: { telefono: phone },
+        })
+        .catch(() => {})
+      
+      return  // 🔥 IMPORTANTE: return aquí también en caso de error
     }
 
     await prisma.pendingConfirmation
