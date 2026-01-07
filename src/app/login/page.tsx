@@ -1,11 +1,11 @@
 "use client";
 
 import { signIn } from "next-auth/react";
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
@@ -42,20 +42,18 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 px-4">
-
       {/* CARD LOGIN */}
       <div className="bg-white p-10 rounded-2xl shadow-xl w-full max-w-md border border-gray-200">
-
-        {/* 🔥 LOGO ARRIBA ESTILO FIELDDATA */}
+        {/* 🔥 LOGO ARRIBA */}
         <div className="flex flex-col items-center mb-6">
           <Image 
-  src="/BoTRURAL.svg"
-  alt="BotRural"
-  width={180}
-  height={180}
-  className="mx-auto mb-4 w-32 sm:w-40 md:w-48"
-  priority
-/>
+            src="/BoTRURAL.svg"
+            alt="BotRural"
+            width={180}
+            height={180}
+            className="mx-auto mb-4 w-32 sm:w-40 md:w-48"
+            priority
+          />
           <h1 className="text-3xl font-bold text-gray-900">Iniciar sesión</h1>
           <p className="text-gray-500 text-sm mt-1">
             Ingresa tus credenciales para continuar
@@ -70,7 +68,6 @@ export default function LoginPage() {
 
         {/* FORMULARIO */}
         <form onSubmit={handleLogin} className="space-y-4">
-
           {/* Email */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -127,5 +124,17 @@ export default function LoginPage() {
         <a href="/terms" className="hover:text-gray-700">Términos de Uso</a>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-300 border-t-green-600"></div>
+      </div>
+    }>
+      <LoginForm />
+    </Suspense>
   );
 }
