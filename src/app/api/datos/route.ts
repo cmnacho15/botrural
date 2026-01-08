@@ -1,4 +1,5 @@
-// 🎯 COMENTARIO PARA QUE VERCEL LO TOME
+//src/app/api/datos/route.ts
+
 
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
@@ -106,14 +107,21 @@ export async function GET(request: Request) {
     // ==============================
     console.log('📊 Consultando eventos...')
     const eventos = await prisma.evento.findMany({
-      where: {
-        campoId: usuario.campoId,
-      },
-      include: {
-        usuario: { select: { name: true } },
-        lote: { select: { nombre: true } },
-        rodeo: { select: { nombre: true } }, 
-      },
+  where: {
+    campoId: usuario.campoId,
+  },
+  include: {
+    usuario: { select: { name: true } },
+    lote: { 
+      select: { 
+        nombre: true,
+        moduloPastoreo: {  // 👈 AGREGAR ESTO
+          select: { nombre: true }
+        }
+      } 
+    },
+    rodeo: { select: { nombre: true } }, 
+  },
       orderBy: [
   { fecha: 'desc' },
   { createdAt: 'desc' },

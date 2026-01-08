@@ -163,7 +163,24 @@ export default function ModalCambioPotrero({ onClose, onSuccess }: ModalCambioPo
         body: JSON.stringify({
   tipo: 'CAMBIO_POTRERO',
   fecha: fecha,
-  descripcion: `Cambio de ${animalesValidos.map(a => `${a.cantidad} ${a.categoria}`).join(', ')} del potrero "${potreros.find(p => p.id === potreroOrigen)?.nombre}" al potrero "${potreros.find(p => p.id === potreroDestino)?.nombre}"${rodeoSeleccionado && rodeos.find(r => r.id === rodeoSeleccionado) ? ` - Lote ${rodeos.find(r => r.id === rodeoSeleccionado)?.nombre}` : ''}`,
+  descripcion: (() => {
+  const potreroOrigenData = potreros.find(p => p.id === potreroOrigen)
+  const potreroDestinoData = potreros.find(p => p.id === potreroDestino)
+  
+  const nombreOrigen = potreroOrigenData?.moduloPastoreo?.nombre 
+    ? `${potreroOrigenData.nombre} (${potreroOrigenData.moduloPastoreo.nombre})`
+    : potreroOrigenData?.nombre
+    
+  const nombreDestino = potreroDestinoData?.moduloPastoreo?.nombre
+    ? `${potreroDestinoData.nombre} (${potreroDestinoData.moduloPastoreo.nombre})`
+    : potreroDestinoData?.nombre
+  
+  const rodeoTexto = rodeoSeleccionado && rodeos.find(r => r.id === rodeoSeleccionado) 
+    ? ` - Lote ${rodeos.find(r => r.id === rodeoSeleccionado)?.nombre}` 
+    : ''
+  
+  return `Cambio de ${animalesValidos.map(a => `${a.cantidad} ${a.categoria}`).join(', ')} del potrero "${nombreOrigen}" al potrero "${nombreDestino}"${rodeoTexto}`
+})(),
           loteId: potreroOrigen,
           loteDestinoId: potreroDestino,
           animales: animalesValidos.map(a => ({
