@@ -8,9 +8,16 @@ type ModalOtrosLaboresProps = {
   onSuccess: () => void
 }
 
+type Modulo = {
+  id: string
+  nombre: string
+}
+
 type Lote = {
   id: string
   nombre: string
+  moduloPastoreoId: string | null
+  moduloPastoreo?: Modulo | null
   cultivos?: Array<{
     id: string
     tipoCultivo: string
@@ -20,6 +27,7 @@ type Lote = {
 export default function ModalOtrosLabores({ onClose, onSuccess }: ModalOtrosLaboresProps) {
   const [fecha, setFecha] = useState(obtenerFechaLocal())
   const [potreros, setPotreros] = useState<Lote[]>([])
+  const [tieneModulos, setTieneModulos] = useState(false)
   const [potreroSeleccionado, setPotreroSeleccionado] = useState('')
   const [cultivosDisponibles, setCultivosDisponibles] = useState<string[]>([])
   const [laborRealizado, setLaborRealizado] = useState('')
@@ -35,12 +43,17 @@ export default function ModalOtrosLabores({ onClose, onSuccess }: ModalOtrosLabo
   const [errorCultivo, setErrorCultivo] = useState(false)
 
   // Cargar potreros al montar
-  useEffect(() => {
-    fetch('/api/lotes')
-      .then((res) => res.json())
-      .then((data) => setPotreros(data))
-      .catch(() => alert('Error al cargar potreros'))
-  }, [])
+useEffect(() => {
+  fetch('/api/lotes')
+    .then((res) => res.json())
+    .then((data) => {
+      setPotreros(data)
+      // Detectar si el campo usa módulos
+      const hayModulos = data.some((l: Lote) => l.moduloPastoreoId !== null)
+      setTieneModulos(hayModulos)
+    })
+    .catch(() => alert('Error al cargar potreros'))
+}, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -173,23 +186,42 @@ export default function ModalOtrosLabores({ onClose, onSuccess }: ModalOtrosLabo
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Potrero *</label>
               <select
-                value={potreroSeleccionado}
-                onChange={(e) => {
-                  setPotreroSeleccionado(e.target.value)
-                  setErrorPotrero(false)
-                }}
-                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
-                  errorPotrero ? 'border-red-500' : 'border-gray-300'
-                }`}
-                required
-              >
-                <option value="">Potrero *</option>
-                {potreros.map((lote) => (
-                  <option key={lote.id} value={lote.id}>
-                    {lote.nombre}
-                  </option>
-                ))}
-              </select>
+  value={potreroSeleccionado}
+  onChange={(e) => {
+    setPotreroSeleccionado(e.target.value)
+    setErrorPotrero(false)
+  }}
+  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
+    errorPotrero ? 'border-red-500' : 'border-gray-300'
+  }`}
+  required
+>
+  <option value="">Potrero *</option>
+  {tieneModulos ? (
+    Object.entries(
+      potreros.reduce((acc, potrero) => {
+        const moduloNombre = potrero.moduloPastoreo?.nombre || 'Sin Módulo'
+        if (!acc[moduloNombre]) acc[moduloNombre] = []
+        acc[moduloNombre].push(potrero)
+        return acc
+      }, {} as Record<string, Lote[]>)
+    ).map(([moduloNombre, lotes]) => (
+      <optgroup key={moduloNombre} label={moduloNombre}>
+        {lotes.map((lote) => (
+          <option key={lote.id} value={lote.id}>
+            {lote.nombre}
+          </option>
+        ))}
+      </optgroup>
+    ))
+  ) : (
+    potreros.map((lote) => (
+      <option key={lote.id} value={lote.id}>
+        {lote.nombre}
+      </option>
+    ))
+  )}
+</select>
               {errorPotrero && (
                 <p className="text-red-500 text-xs mt-1">El potrero es requerido</p>
               )}
