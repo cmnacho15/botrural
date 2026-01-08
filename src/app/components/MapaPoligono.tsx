@@ -499,9 +499,8 @@ L.control.layers({ 'Satélite': satelitalLayer, 'Mapa': osmLayer }).addTo(map)
   draw: {
     polygon: {
       allowIntersection: false,
-      showArea: false,
+      showArea: false,  // ✅ DESHABILITAR para evitar confusión
       metric: ['ha', 'm'],
-      title: '⬡ Dibujar',  // 🔥 NUEVO - Cambia el tooltip del botón
             shapeOptions: { color: '#3b82f6', weight: 3 },
             icon: new (L as any).DivIcon({
               iconSize: new (L as any).Point(8, 8),
@@ -532,14 +531,6 @@ L.control.layers({ 'Satélite': satelitalLayer, 'Mapa': osmLayer }).addTo(map)
         },
       })
       map.addControl(drawControl)
-
-// 🔥 Cambiar texto del botón después de agregarlo
-setTimeout(() => {
-  const btn = document.querySelector('.leaflet-draw-draw-polygon')
-  if (btn) {
-    btn.setAttribute('title', '⬡ Dibujar')
-  }
-}, 100)
 
       const DrawEvent = (L as any).Draw.Event
 
