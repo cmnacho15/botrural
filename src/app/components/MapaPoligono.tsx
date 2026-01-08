@@ -406,8 +406,8 @@ const curvasLayer = L.tileLayer(
   'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
   { 
     attribution: '© OpenTopoMap', 
-    maxZoom: 17,
-    maxNativeZoom: 17,  // 🔥 NUEVO - evita estiramiento
+    maxZoom: 19,  // 🔥 CAMBIADO - ahora se ve hasta zoom 19
+    maxNativeZoom: 17,  // 🔥 MANTENER - usa tiles de nivel 17 (no estira)
     opacity: opacidadCurvas / 100,
     zIndex: 1000
   }
