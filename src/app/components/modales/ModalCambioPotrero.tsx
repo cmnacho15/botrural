@@ -229,7 +229,7 @@ export default function ModalCambioPotrero({ onClose, onSuccess }: ModalCambioPo
   <div className="grid grid-cols-2 gap-4">
     {/* Potrero Origen */}
     <div>
-      <label className="block text-xs text-gray-600 mb-1">Potrero Original</label>
+      <label className="block text-xs text-gray-600 mb-1">Potrero Origen</label>
       <select
         value={potreroOrigen}
         onChange={(e) => setPotreroOrigen(e.target.value)}
