@@ -149,10 +149,14 @@ export async function POST(request: Request) {
       sheet.columns = columnas
 
       eventos.forEach((e) => {
+        const nombrePotrero = e.lote?.moduloPastoreo?.nombre
+          ? `${e.lote.nombre} (${e.lote.moduloPastoreo.nombre})`
+          : e.lote?.nombre || ''
+          
         sheet.addRow({
           fecha: formatearFecha(e.fecha),
           descripcion: e.descripcion || '',
-          potrero: e.lote?.nombre || '',
+          potrero: nombrePotrero,
           cantidad: e.cantidad || '',
           categoria: e.categoria || '',
           usuario: e.usuario?.name || '',
@@ -206,12 +210,16 @@ export async function POST(request: Request) {
       }
 
       eventos.forEach((e) => {
+        const nombrePotrero = e.lote?.moduloPastoreo?.nombre
+          ? `${e.lote.nombre} (${e.lote.moduloPastoreo.nombre})`
+          : e.lote?.nombre || ''
+          
         sheet.addRow({
           fecha: formatearFecha(e.fecha),
           tipo: tiposLegibles[e.tipo] || e.tipo,
           cantidad: e.cantidad || '',
           categoria: e.categoria || '',
-          potrero: e.lote?.nombre || '',
+          potrero: nombrePotrero,
           monto: e.monto ? `$${e.monto.toLocaleString('es-UY')}` : '',
           usuario: e.usuario?.name || '',
           notas: e.notas || '',
@@ -237,23 +245,23 @@ export async function POST(request: Request) {
       })
 
       // Obtener nombres de potreros destino CON MÓDULOS
-const loteDestinoIds = eventos.map(e => e.loteDestinoId).filter(Boolean) as string[]
-const lotesDestino = await prisma.lote.findMany({
-  where: { id: { in: loteDestinoIds } },
-  select: { 
-    id: true, 
-    nombre: true,
-    moduloPastoreo: { select: { nombre: true } }
-  },
-})
-const lotesDestinoMap = new Map(
-  lotesDestino.map(l => [
-    l.id, 
-    l.moduloPastoreo?.nombre 
-      ? `${l.nombre} (${l.moduloPastoreo.nombre})`
-      : l.nombre
-  ])
-)
+      const loteDestinoIds = eventos.map(e => e.loteDestinoId).filter(Boolean) as string[]
+      const lotesDestino = await prisma.lote.findMany({
+        where: { id: { in: loteDestinoIds } },
+        select: { 
+          id: true, 
+          nombre: true,
+          moduloPastoreo: { select: { nombre: true } }
+        },
+      })
+      const lotesDestinoMap = new Map(
+        lotesDestino.map(l => [
+          l.id, 
+          l.moduloPastoreo?.nombre 
+            ? `${l.nombre} (${l.moduloPastoreo.nombre})`
+            : l.nombre
+        ])
+      )
 
       const sheet = workbook.addWorksheet('Cambios de Potrero')
       const columnas = [
@@ -268,14 +276,14 @@ const lotesDestinoMap = new Map(
       sheet.columns = columnas
 
       eventos.forEach((e) => {
-  const nombreOrigen = e.lote?.moduloPastoreo?.nombre
-    ? `${e.lote.nombre} (${e.lote.moduloPastoreo.nombre})`
-    : e.lote?.nombre || ''
-    
-  sheet.addRow({
-    fecha: formatearFecha(e.fecha),
-    origen: nombreOrigen,
-    destino: e.loteDestinoId ? lotesDestinoMap.get(e.loteDestinoId) || '' : '',
+        const nombreOrigen = e.lote?.moduloPastoreo?.nombre
+          ? `${e.lote.nombre} (${e.lote.moduloPastoreo.nombre})`
+          : e.lote?.nombre || ''
+          
+        sheet.addRow({
+          fecha: formatearFecha(e.fecha),
+          origen: nombreOrigen,
+          destino: e.loteDestinoId ? lotesDestinoMap.get(e.loteDestinoId) || '' : '',
           cantidad: e.cantidad || '',
           categoria: e.categoria || '',
           usuario: e.usuario?.name || '',
@@ -317,6 +325,10 @@ const lotesDestinoMap = new Map(
       sheet.columns = columnas
 
       eventos.forEach((e) => {
+        const nombrePotrero = e.lote?.moduloPastoreo?.nombre
+          ? `${e.lote.nombre} (${e.lote.moduloPastoreo.nombre})`
+          : e.lote?.nombre || ''
+          
         const tactados = e.cantidad || 0
         
         // 🔍 Parsear la descripción para extraer preñados
@@ -335,7 +347,7 @@ const lotesDestinoMap = new Map(
 
         sheet.addRow({
           fecha: formatearFecha(e.fecha),
-          potrero: e.lote?.nombre || '',
+          potrero: nombrePotrero,
           rodeo: e.rodeo?.nombre || '',
           tactados: tactados,
           prenados: prenados,
@@ -393,6 +405,10 @@ const lotesDestinoMap = new Map(
       let totalAnestroProf = 0
 
       eventos.forEach((e: any) => {
+        const nombrePotrero = e.lote?.moduloPastoreo?.nombre
+          ? `${e.lote.nombre} (${e.lote.moduloPastoreo.nombre})`
+          : e.lote?.nombre || ''
+          
         if (!e.descripcion) return
 
         // Parsear descripción: "DAO en potrero X: Vacas: 50 examinadas (Preñadas: 30, Ciclando: 10...)"
@@ -424,7 +440,7 @@ const lotesDestinoMap = new Map(
 
             sheet.addRow({
               fecha: formatearFecha(e.fecha),
-              potrero: e.lote?.nombre || '',
+              potrero: nombrePotrero,
               loteNombre: e.rodeo?.nombre || '',
               categoria: categoria,
               examinada: examinada,
@@ -503,9 +519,13 @@ const lotesDestinoMap = new Map(
       sheet.columns = columnas
 
       eventos.forEach((e) => {
+        const nombrePotrero = e.lote?.moduloPastoreo?.nombre
+          ? `${e.lote.nombre} (${e.lote.moduloPastoreo.nombre})`
+          : e.lote?.nombre || ''
+          
         sheet.addRow({
           fecha: formatearFecha(e.fecha),
-          potrero: e.lote?.nombre || '',
+          potrero: nombrePotrero,
           cantidad: e.cantidad || '',
           categoriaOrigen: e.categoria || '',
           categoriaDestino: e.categoriaNueva || '',
@@ -543,9 +563,13 @@ const lotesDestinoMap = new Map(
       sheet.columns = columnas
 
       eventos.forEach((e) => {
+        const nombrePotrero = e.lote?.moduloPastoreo?.nombre
+          ? `${e.lote.nombre} (${e.lote.moduloPastoreo.nombre})`
+          : e.lote?.nombre || ''
+          
         sheet.addRow({
           fecha: formatearFecha(e.fecha),
-          potrero: e.lote?.nombre || '',
+          potrero: nombrePotrero,
           descripcion: e.descripcion || '',
           usuario: e.usuario?.name || '',
           notas: e.notas || '',
@@ -581,9 +605,13 @@ const lotesDestinoMap = new Map(
       sheet.columns = columnas
 
       eventos.forEach((e) => {
+        const nombrePotrero = e.lote?.moduloPastoreo?.nombre
+          ? `${e.lote.nombre} (${e.lote.moduloPastoreo.nombre})`
+          : e.lote?.nombre || ''
+          
         sheet.addRow({
           fecha: formatearFecha(e.fecha),
-          potrero: e.lote?.nombre || '',
+          potrero: nombrePotrero,
           descripcion: e.descripcion || '',
           usuario: e.usuario?.name || '',
           notas: e.notas || '',
@@ -619,9 +647,13 @@ const lotesDestinoMap = new Map(
       sheet.columns = columnas
 
       eventos.forEach((e) => {
+        const nombrePotrero = e.lote?.moduloPastoreo?.nombre
+          ? `${e.lote.nombre} (${e.lote.moduloPastoreo.nombre})`
+          : e.lote?.nombre || ''
+          
         sheet.addRow({
           fecha: formatearFecha(e.fecha),
-          potrero: e.lote?.nombre || '',
+          potrero: nombrePotrero,
           descripcion: e.descripcion || '',
           usuario: e.usuario?.name || '',
           notas: e.notas || '',
@@ -658,9 +690,13 @@ const lotesDestinoMap = new Map(
       sheet.columns = columnas
 
       eventos.forEach((e) => {
+        const nombrePotrero = e.lote?.moduloPastoreo?.nombre
+          ? `${e.lote.nombre} (${e.lote.moduloPastoreo.nombre})`
+          : e.lote?.nombre || ''
+          
         sheet.addRow({
           fecha: formatearFecha(e.fecha),
-          potrero: e.lote?.nombre || '',
+          potrero: nombrePotrero,
           descripcion: e.descripcion || '',
           monto: e.monto ? `$${e.monto.toLocaleString('es-UY')}` : '',
           usuario: e.usuario?.name || '',
@@ -697,9 +733,13 @@ const lotesDestinoMap = new Map(
       sheet.columns = columnas
 
       eventos.forEach((e) => {
+        const nombrePotrero = e.lote?.moduloPastoreo?.nombre
+          ? `${e.lote.nombre} (${e.lote.moduloPastoreo.nombre})`
+          : e.lote?.nombre || ''
+          
         sheet.addRow({
           fecha: formatearFecha(e.fecha),
-          potrero: e.lote?.nombre || '',
+          potrero: nombrePotrero,
           descripcion: e.descripcion || '',
           usuario: e.usuario?.name || '',
           notas: e.notas || '',
@@ -735,9 +775,13 @@ const lotesDestinoMap = new Map(
       sheet.columns = columnas
 
       eventos.forEach((e) => {
+        const nombrePotrero = e.lote?.moduloPastoreo?.nombre
+          ? `${e.lote.nombre} (${e.lote.moduloPastoreo.nombre})`
+          : e.lote?.nombre || ''
+          
         sheet.addRow({
           fecha: formatearFecha(e.fecha),
-          potrero: e.lote?.nombre || '',
+          potrero: nombrePotrero,
           descripcion: e.descripcion || '',
           usuario: e.usuario?.name || '',
           notas: e.notas || '',
@@ -773,14 +817,14 @@ const lotesDestinoMap = new Map(
       sheet.columns = columnas
 
       eventos.forEach((e) => {
-  const nombrePotrero = e.lote?.moduloPastoreo?.nombre
-    ? `${e.lote.nombre} (${e.lote.moduloPastoreo.nombre})`
-    : e.lote?.nombre || ''
-    
-  sheet.addRow({
-    fecha: formatearFecha(e.fecha),
-    potrero: nombrePotrero,
-    descripcion: e.descripcion || '',
+        const nombrePotrero = e.lote?.moduloPastoreo?.nombre
+          ? `${e.lote.nombre} (${e.lote.moduloPastoreo.nombre})`
+          : e.lote?.nombre || ''
+          
+        sheet.addRow({
+          fecha: formatearFecha(e.fecha),
+          potrero: nombrePotrero,
+          descripcion: e.descripcion || '',
           usuario: e.usuario?.name || '',
           notas: e.notas || '',
         })
@@ -892,13 +936,17 @@ const lotesDestinoMap = new Map(
       sheet.columns = columnas
 
       movimientos.forEach((m) => {
+        const nombrePotrero = m.lote?.moduloPastoreo?.nombre
+          ? `${m.lote.nombre} (${m.lote.moduloPastoreo.nombre})`
+          : m.lote?.nombre || ''
+          
         sheet.addRow({
           fecha: formatearFecha(m.fecha),
           tipo: m.tipo === 'INGRESO' ? 'Ingreso' : 'Uso',
           insumo: m.insumo.nombre,
           cantidad: m.cantidad,
           unidad: m.insumo.unidad,
-          potrero: m.lote?.nombre || '',
+          potrero: nombrePotrero,
           notas: m.notas || '',
         })
       })
@@ -942,6 +990,10 @@ const lotesDestinoMap = new Map(
       sheet.columns = columnas
 
       gastos.forEach((g) => {
+        const nombrePotrero = g.lote?.moduloPastoreo?.nombre
+          ? `${g.lote.nombre} (${g.lote.moduloPastoreo.nombre})`
+          : g.lote?.nombre || ''
+          
         sheet.addRow({
           fecha: formatearFecha(g.fecha),
           tipo: g.tipo === 'INGRESO' ? 'Ingreso' : 'Gasto',
@@ -955,7 +1007,7 @@ const lotesDestinoMap = new Map(
           contraparte: g.proveedor || g.comprador || '',
           metodoPago: g.metodoPago || '',
           pagado: g.pagado ? 'Sí' : 'No',
-          potrero: g.lote?.nombre || '',
+          potrero: nombrePotrero,
         })
       })
 
