@@ -193,7 +193,6 @@ export async function POST(request: Request) {
         { header: 'Cantidad', key: 'cantidad', width: 12 },
         { header: 'Categoría', key: 'categoria', width: 18 },
         { header: 'Potrero', key: 'potrero', width: 18 },
-        { header: 'Monto', key: 'monto', width: 15 },
         { header: 'Usuario', key: 'usuario', width: 18 },
         { header: 'Notas', key: 'notas', width: 30 },
       ]
@@ -220,7 +219,6 @@ export async function POST(request: Request) {
           cantidad: e.cantidad || '',
           categoria: e.categoria || '',
           potrero: nombrePotrero,
-          monto: e.monto ? `$${e.monto.toLocaleString('es-UY')}` : '',
           usuario: e.usuario?.name || '',
           notas: e.notas || '',
         })
