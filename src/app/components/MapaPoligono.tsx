@@ -490,7 +490,12 @@ L.control.layers({ 'Satélite': satelitalLayer, 'Mapa': osmLayer }).addTo(map)
       map.fitBounds(bounds, { padding: [100, 100], maxZoom: 16 })
     }
 
-    if (!readOnly) {
+    // 🔥 Configurar textos de Leaflet Draw en español
+if (typeof window !== 'undefined' && (L as any).drawLocal) {
+  (L as any).drawLocal.draw.toolbar.buttons.polygon = '⬡ Dibujar'
+}
+
+if (!readOnly) {
       const drawnItems = new L.FeatureGroup()
       map.addLayer(drawnItems)
       drawnItemsRef.current = drawnItems
