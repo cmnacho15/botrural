@@ -10,9 +10,16 @@ type Insumo = {
   stock: number
 }
 
+type Modulo = {
+  id: string
+  nombre: string
+}
+
 type Lote = {
   id: string
   nombre: string
+  moduloPastoreoId: string | null
+  moduloPastoreo?: Modulo | null
 }
 
 type InsumoSeleccionado = {
@@ -32,6 +39,7 @@ type ModalIngresoInsumosProps = {
 export default function ModalIngresoInsumos({ onClose, onSuccess, insumoPreseleccionadoId  }: ModalIngresoInsumosProps) {
   const [fecha, setFecha] = useState(obtenerFechaLocal())
   const [lotes, setLotes] = useState<Lote[]>([])
+  const [tieneModulos, setTieneModulos] = useState(false)
   const [loteId, setLoteId] = useState('')
   const [notas, setNotas] = useState('')
   const [loading, setLoading] = useState(false)
@@ -54,28 +62,32 @@ export default function ModalIngresoInsumos({ onClose, onSuccess, insumoPreselec
   ]
 
   // Cargar insumos y lotes
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [insumosRes, lotesRes] = await Promise.all([
-          fetch('/api/insumos'),
-          fetch('/api/lotes')
-        ])
-        
-        const insumosData = await insumosRes.json()
-        const lotesData = await lotesRes.json()
-        
-        setInsumos(insumosData)
-        setLotes(lotesData)
-      } catch (error) {
-        console.error('Error cargando datos:', error)
-      } finally {
-        setLoadingInsumos(false)
-      }
+useEffect(() => {
+  const fetchData = async () => {
+    try {
+      const [insumosRes, lotesRes] = await Promise.all([
+        fetch('/api/insumos'),
+        fetch('/api/lotes')
+      ])
+      
+      const insumosData = await insumosRes.json()
+      const lotesData = await lotesRes.json()
+      
+      setInsumos(insumosData)
+      setLotes(lotesData)
+      
+      // Detectar si el campo usa módulos
+      const hayModulos = lotesData.some((l: Lote) => l.moduloPastoreoId !== null)
+      setTieneModulos(hayModulos)
+    } catch (error) {
+      console.error('Error cargando datos:', error)
+    } finally {
+      setLoadingInsumos(false)
     }
+  }
 
-    fetchData()
-  }, [])
+  fetchData()
+}, [])
   
   // Preseleccionar insumo si viene desde la página
 useEffect(() => {
@@ -227,17 +239,36 @@ useEffect(() => {
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Potrero (Opcional)</label>
           <select
-            value={loteId}
-            onChange={(e) => setLoteId(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">Seleccioná un potrero (opcional)</option>
-            {lotes.map((lote) => (
-              <option key={lote.id} value={lote.id}>
-                {lote.nombre}
-              </option>
-            ))}
-          </select>
+  value={loteId}
+  onChange={(e) => setLoteId(e.target.value)}
+  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+>
+  <option value="">Seleccioná un potrero (opcional)</option>
+  {tieneModulos ? (
+    Object.entries(
+      lotes.reduce((acc, potrero) => {
+        const moduloNombre = potrero.moduloPastoreo?.nombre || 'Sin Módulo'
+        if (!acc[moduloNombre]) acc[moduloNombre] = []
+        acc[moduloNombre].push(potrero)
+        return acc
+      }, {} as Record<string, Lote[]>)
+    ).map(([moduloNombre, lotesGrupo]) => (
+      <optgroup key={moduloNombre} label={moduloNombre}>
+        {lotesGrupo.map((lote) => (
+          <option key={lote.id} value={lote.id}>
+            {lote.nombre}
+          </option>
+        ))}
+      </optgroup>
+    ))
+  ) : (
+    lotes.map((lote) => (
+      <option key={lote.id} value={lote.id}>
+        {lote.nombre}
+      </option>
+    ))
+  )}
+</select>
         </div>
 
         {/* INSUMOS */}
