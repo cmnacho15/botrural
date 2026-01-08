@@ -170,14 +170,17 @@ const [animalesTratados, setAnimalesTratados] = useState<AnimalTratado[]>([
     setLoading(true)
 
     try {
-      const potreroNombre = potreros.find(p => p.id === potreroSeleccionado)?.nombre
-      
-      // Construir descripción con todos los animales
-      const descripcionAnimales = animalesValidos.map(a => 
-        `${a.cantidad} ${a.tipo}${a.peso ? ` (${a.peso} kg)` : ''}`
-      ).join(', ')
+      const potreroData = potreros.find(p => p.id === potreroSeleccionado)
+const potreroNombre = potreroData?.moduloPastoreo?.nombre 
+  ? `${potreroData.nombre} (${potreroData.moduloPastoreo.nombre})`
+  : potreroData?.nombre
 
-      const descripcionFinal = `Tratamiento${rodeoId && rodeos.find(r => r.id === rodeoId) ? ` - Lote ${rodeos.find(r => r.id === rodeoId)?.nombre}` : ''}: ${tratamiento}${marca ? ` - ${marca}` : ''} aplicado a ${descripcionAnimales} en potrero ${potreroNombre}`
+// Construir descripción con todos los animales
+const descripcionAnimales = animalesValidos.map(a => 
+  `${a.cantidad} ${a.tipo}${a.peso ? ` (${a.peso} kg)` : ''}`
+).join(', ')
+
+const descripcionFinal = `Tratamiento${rodeoId && rodeos.find(r => r.id === rodeoId) ? ` - Lote ${rodeos.find(r => r.id === rodeoId)?.nombre}` : ''}: ${tratamiento}${marca ? ` - ${marca}` : ''} aplicado a ${descripcionAnimales} en potrero ${potreroNombre}`
 
       const response = await fetch('/api/eventos', {
         method: 'POST',

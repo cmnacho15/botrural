@@ -196,11 +196,13 @@ useEffect(() => {
     }
 
     const loteSeleccionado = lotes.find((l) => l.id === loteId);
-    const nombrePotrero = loteSeleccionado?.nombre || "desconocido";
+const nombrePotrero = loteSeleccionado?.moduloPastoreo?.nombre 
+  ? `${loteSeleccionado.nombre} (${loteSeleccionado.moduloPastoreo.nombre})`
+  : loteSeleccionado?.nombre || "desconocido";
 
-    const catActualLabel = cantidadNum === 1 ? categoria.replace(/s$/, "") : categoria;
-    const catNuevaLabel = cantidadNum === 1 ? categoriaNueva.replace(/s$/, "") : categoriaNueva;
-    const descripcion = `Recategorización de ${cantidadNum} ${catActualLabel} a ${catNuevaLabel} en potrero "${nombrePotrero}"`;
+const catActualLabel = cantidadNum === 1 ? categoria.replace(/s$/, "") : categoria;
+const catNuevaLabel = cantidadNum === 1 ? categoriaNueva.replace(/s$/, "") : categoriaNueva;
+const descripcion = `Recategorización de ${cantidadNum} ${catActualLabel} a ${catNuevaLabel} en potrero "${nombrePotrero}"`;
 
     onSubmit({
       tipo: "RECATEGORIZACION",

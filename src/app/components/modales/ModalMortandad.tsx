@@ -103,22 +103,25 @@ export default function ModalMortandad({ onClose, onSuccess }: ModalMortandadPro
     setLoading(true)
 
     try {
-      const potreroNombre = potreros.find(p => p.id === potreroSeleccionado)?.nombre
-      const categoriaLabel = cant === 1 ? categoriaSeleccionada.replace(/s$/, '') : categoriaSeleccionada
+      const potreroData = potreros.find(p => p.id === potreroSeleccionado)
+const potreroNombre = potreroData?.moduloPastoreo?.nombre 
+  ? `${potreroData.nombre} (${potreroData.moduloPastoreo.nombre})`
+  : potreroData?.nombre
+const categoriaLabel = cant === 1 ? categoriaSeleccionada.replace(/s$/, '') : categoriaSeleccionada
 
-      const response = await fetch('/api/eventos', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tipo: 'MORTANDAD',
-          fecha: fecha,
-          descripcion: `Mortandad de ${cant} ${categoriaLabel} en potrero ${potreroNombre}`,
-          loteId: potreroSeleccionado,
-          cantidad: cant,
-          categoria: categoriaSeleccionada,
-          notas: notas || null,
-        }),
-      })
+const response = await fetch('/api/eventos', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    tipo: 'MORTANDAD',
+    fecha: fecha,
+    descripcion: `Mortandad de ${cant} ${categoriaLabel} en potrero ${potreroNombre}`,
+    loteId: potreroSeleccionado,
+    cantidad: cant,
+    categoria: categoriaSeleccionada,
+    notas: notas || null,
+  }),
+})
 
       if (!response.ok) {
         const error = await response.json()

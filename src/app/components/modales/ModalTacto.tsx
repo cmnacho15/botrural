@@ -107,21 +107,24 @@ export default function ModalTacto({ onClose, onSuccess }: ModalTactoProps) {
     setLoading(true)
 
     try {
-      const potreroNombre = potreros.find(p => p.id === potreroSeleccionado)?.nombre
+      const potreroData = potreros.find(p => p.id === potreroSeleccionado)
+const potreroNombre = potreroData?.moduloPastoreo?.nombre 
+  ? `${potreroData.nombre} (${potreroData.moduloPastoreo.nombre})`
+  : potreroData?.nombre
 
-      const response = await fetch('/api/eventos', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tipo: 'TACTO',
-          fecha: fecha,
-          descripcion: `Tacto en potrero ${potreroNombre}${rodeoId && rodeos.find(r => r.id === rodeoId) ? ` - Lote ${rodeos.find(r => r.id === rodeoId)?.nombre}` : ''}: ${tactados} animales tactados, ${preñados} preñados (${porcentajePreñez}% de preñez)`,
-          loteId: potreroSeleccionado,
-          cantidad: tactados,
-          notas: notas || null,
-          rodeoId: rodeoId || null,
-        }),
-      })
+const response = await fetch('/api/eventos', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    tipo: 'TACTO',
+    fecha: fecha,
+    descripcion: `Tacto en potrero ${potreroNombre}${rodeoId && rodeos.find(r => r.id === rodeoId) ? ` - Lote ${rodeos.find(r => r.id === rodeoId)?.nombre}` : ''}: ${tactados} animales tactados, ${preñados} preñados (${porcentajePreñez}% de preñez)`,
+    loteId: potreroSeleccionado,
+    cantidad: tactados,
+    notas: notas || null,
+    rodeoId: rodeoId || null,
+  }),
+})
 
       if (!response.ok) {
         const error = await response.json()

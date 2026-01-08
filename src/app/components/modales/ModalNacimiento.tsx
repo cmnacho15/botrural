@@ -93,21 +93,24 @@ export default function ModalNacimiento({ onClose, onSuccess }: ModalNacimientoP
   ? 'Terneros nacidos'  // ✅ NUEVA CATEGORÍA
   : 'Corderos/as Mamones'
 
-      const potreroNombre = potreros.find(p => p.id === potreroSeleccionado)?.nombre
+      const potreroData = potreros.find(p => p.id === potreroSeleccionado)
+const potreroNombre = potreroData?.moduloPastoreo?.nombre 
+  ? `${potreroData.nombre} (${potreroData.moduloPastoreo.nombre})`
+  : potreroData?.nombre
 
-      const response = await fetch('/api/eventos', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tipo: 'NACIMIENTO',
-          fecha: fecha,
-          descripcion: `Nacimiento de ${cant} ${tipoAnimal} en potrero ${potreroNombre}`,
-          loteId: potreroSeleccionado,
-          cantidad: cant,
-          categoria: categoriaGuardar,
-          notas: notas || null,
-        }),
-      })
+const response = await fetch('/api/eventos', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    tipo: 'NACIMIENTO',
+    fecha: fecha,
+    descripcion: `Nacimiento de ${cant} ${tipoAnimal} en potrero ${potreroNombre}`,
+    loteId: potreroSeleccionado,
+    cantidad: cant,
+    categoria: categoriaGuardar,
+    notas: notas || null,
+  }),
+})
 
       if (!response.ok) {
         const error = await response.json()

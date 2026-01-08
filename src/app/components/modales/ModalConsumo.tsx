@@ -117,16 +117,19 @@ export default function ModalConsumo({ onClose, onSuccess }: ModalConsumoProps) 
     setLoading(true)
 
     try {
-      const potreroNombre = potreros.find(p => p.id === potreroSeleccionado)?.nombre
-      const categoriaLabel = cant === 1 ? categoriaSeleccionada.replace(/s$/, '') : categoriaSeleccionada
+      const potreroData = potreros.find(p => p.id === potreroSeleccionado)
+const potreroNombre = potreroData?.moduloPastoreo?.nombre 
+  ? `${potreroData.nombre} (${potreroData.moduloPastoreo.nombre})`
+  : potreroData?.nombre
+const categoriaLabel = cant === 1 ? categoriaSeleccionada.replace(/s$/, '') : categoriaSeleccionada
 
-      // Obtener el animalLoteId
-      const animalLote = animalesDisponibles.find(a => a.categoria === categoriaSeleccionada)
+// Obtener el animalLoteId
+const animalLote = animalesDisponibles.find(a => a.categoria === categoriaSeleccionada)
 
-      console.log('🐄 Animal Lote encontrado:', animalLote)
-      console.log('📦 Datos a enviar:', {
-        fecha,
-        descripcion: `Consumo de ${cant} ${categoriaLabel} del potrero ${potreroNombre}`,
+console.log('🐄 Animal Lote encontrado:', animalLote)
+console.log('📦 Datos a enviar:', {
+  fecha,
+  descripcion: `Consumo de ${cant} ${categoriaLabel} del potrero ${potreroNombre}`,
         notas: notas || null,
         renglon: {
           categoria: categoriaSeleccionada,

@@ -202,10 +202,13 @@ for (const resultado of resultadosValidos) {
     setLoading(true)
 
     try {
-      const potreroNombre = potreros.find(p => p.id === potreroSeleccionado)?.nombre
-      
-      // Construir descripción con todos los resultados
-      const detallesResultados = resultadosValidos.map(r => {
+      const potreroData = potreros.find(p => p.id === potreroSeleccionado)
+const potreroNombre = potreroData?.moduloPastoreo?.nombre 
+  ? `${potreroData.nombre} (${potreroData.moduloPastoreo.nombre})`
+  : potreroData?.nombre
+
+// Construir descripción con todos los resultados
+const detallesResultados = resultadosValidos.map(r => {
   const cantidadExaminada = (parseInt(r.prenado) || 0) + 
                             (parseInt(r.ciclando) || 0) + 
                             (parseInt(r.anestroSuperficial) || 0) + 
@@ -213,7 +216,7 @@ for (const resultado of resultadosValidos) {
   return `${r.categoria}: ${cantidadExaminada} examinadas (Preñadas: ${r.prenado || 0}, Ciclando: ${r.ciclando || 0}, Anestro Superficial: ${r.anestroSuperficial || 0}, Anestro Profundo: ${r.anestroProfundo || 0})`
 }).join(' | ')
 
-      const descripcionFinal = `DAO${rodeoId && rodeos.find(r => r.id === rodeoId) ? ` - Lote ${rodeos.find(r => r.id === rodeoId)?.nombre}` : ''} en potrero ${potreroNombre}: ${detallesResultados}`
+const descripcionFinal = `DAO${rodeoId && rodeos.find(r => r.id === rodeoId) ? ` - Lote ${rodeos.find(r => r.id === rodeoId)?.nombre}` : ''} en potrero ${potreroNombre}: ${detallesResultados}`
 
       const response = await fetch('/api/eventos', {
         method: 'POST',
