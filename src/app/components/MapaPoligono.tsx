@@ -533,6 +533,14 @@ L.control.layers({ 'Satélite': satelitalLayer, 'Mapa': osmLayer }).addTo(map)
       })
       map.addControl(drawControl)
 
+// 🔥 Cambiar texto del botón después de agregarlo
+setTimeout(() => {
+  const btn = document.querySelector('.leaflet-draw-draw-polygon')
+  if (btn) {
+    btn.setAttribute('title', '⬡ Dibujar')
+  }
+}, 100)
+
       const DrawEvent = (L as any).Draw.Event
 
       map.on(DrawEvent.CREATED, (event: any) => {
