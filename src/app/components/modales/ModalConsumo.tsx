@@ -8,9 +8,16 @@ type ModalConsumoProps = {
   onSuccess: () => void
 }
 
+type Modulo = {
+  id: string
+  nombre: string
+}
+
 type Lote = {
   id: string
   nombre: string
+  moduloPastoreoId: string | null
+  moduloPastoreo?: Modulo | null
 }
 
 type AnimalLote = {
@@ -22,6 +29,7 @@ type AnimalLote = {
 export default function ModalConsumo({ onClose, onSuccess }: ModalConsumoProps) {
   const [fecha, setFecha] = useState(obtenerFechaLocal())
   const [potreros, setPotreros] = useState<Lote[]>([])
+  const [tieneModulos, setTieneModulos] = useState(false)
   const [potreroSeleccionado, setPotreroSeleccionado] = useState('')
   const [animalesDisponibles, setAnimalesDisponibles] = useState<AnimalLote[]>([])
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState('')
@@ -35,11 +43,16 @@ export default function ModalConsumo({ onClose, onSuccess }: ModalConsumoProps) 
 
   // Cargar potreros al montar
   useEffect(() => {
-    fetch('/api/lotes')
-      .then((res) => res.json())
-      .then((data) => setPotreros(data))
-      .catch(() => alert('Error al cargar potreros'))
-  }, [])
+  fetch('/api/lotes')
+    .then((res) => res.json())
+    .then((data) => {
+      setPotreros(data)
+      // Detectar si el campo usa módulos
+      const hayModulos = data.some((l: Lote) => l.moduloPastoreoId !== null)
+      setTieneModulos(hayModulos)
+    })
+    .catch(() => alert('Error al cargar potreros'))
+}, [])
 
   // Cargar animales cuando se selecciona potrero
   useEffect(() => {
@@ -197,22 +210,41 @@ export default function ModalConsumo({ onClose, onSuccess }: ModalConsumoProps) 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Potrero</label>
           <select
-            value={potreroSeleccionado}
-            onChange={(e) => {
-              setPotreroSeleccionado(e.target.value)
-              setCategoriaSeleccionada('')
-              setCantidad('1')
-            }}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-            required
-          >
-            <option value="">Seleccionar potrero</option>
-            {potreros.map((lote) => (
-              <option key={lote.id} value={lote.id}>
-                {lote.nombre}
-              </option>
-            ))}
-          </select>
+  value={potreroSeleccionado}
+  onChange={(e) => {
+    setPotreroSeleccionado(e.target.value)
+    setCategoriaSeleccionada('')
+    setCantidad('1')
+  }}
+  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+  required
+>
+  <option value="">Seleccionar potrero...</option>
+  {tieneModulos ? (
+    Object.entries(
+      potreros.reduce((acc, potrero) => {
+        const moduloNombre = potrero.moduloPastoreo?.nombre || 'Sin Módulo'
+        if (!acc[moduloNombre]) acc[moduloNombre] = []
+        acc[moduloNombre].push(potrero)
+        return acc
+      }, {} as Record<string, Lote[]>)
+    ).map(([moduloNombre, lotes]) => (
+      <optgroup key={moduloNombre} label={moduloNombre}>
+        {lotes.map((lote) => (
+          <option key={lote.id} value={lote.id}>
+            {lote.nombre}
+          </option>
+        ))}
+      </optgroup>
+    ))
+  ) : (
+    potreros.map((lote) => (
+      <option key={lote.id} value={lote.id}>
+        {lote.nombre}
+      </option>
+    ))
+  )}
+</select>
         </div>
 
         {/* ANIMALES */}

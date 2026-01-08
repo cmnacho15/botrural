@@ -4,9 +4,16 @@ import { useState, useEffect } from "react";
 import { X } from "lucide-react";
 import { obtenerFechaLocal } from '@/lib/fechas'
 
+interface Modulo {
+  id: string;
+  nombre: string;
+}
+
 interface Lote {
   id: string;
   nombre: string;
+  moduloPastoreoId: string | null;
+  moduloPastoreo?: Modulo | null;
   animalesLote: Array<{
     id: string;
     categoria: string;
@@ -82,6 +89,7 @@ export default function ModalRecategorizacion({
   const [cantidad, setCantidad] = useState("");
   const [fecha, setFecha] = useState(obtenerFechaLocal());
   const [notas, setNotas] = useState("");
+  const [tieneModulos, setTieneModulos] = useState(false);
 
   const [categoriasDisponibles, setCategoriasDisponibles] = useState<string[]>([]);
   const [categoriasNuevasDisponibles, setCategoriasNuevasDisponibles] = useState<string[]>([]);
@@ -101,6 +109,13 @@ export default function ModalRecategorizacion({
       setCantidadMaxima(0);
     }
   }, [isOpen]);
+  
+
+  // Detectar si el campo usa módulos
+useEffect(() => {
+  const hayModulos = lotes.some((l) => l.moduloPastoreoId !== null);
+  setTieneModulos(hayModulos);
+}, [lotes]);
 
   // Actualizar categorías disponibles cuando se selecciona un lote
   useEffect(() => {
@@ -242,20 +257,41 @@ export default function ModalRecategorizacion({
               Potrero *
             </label>
             <select
-              value={loteId}
-              onChange={(e) => setLoteId(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-              required
-            >
-              <option value="">Seleccione un potrero</option>
-              {lotes
-                .filter((l) => l.animalesLote.length > 0)
-                .map((lote) => (
-                  <option key={lote.id} value={lote.id}>
-                    {lote.nombre}
-                  </option>
-                ))}
-            </select>
+  value={loteId}
+  onChange={(e) => setLoteId(e.target.value)}
+  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+  required
+>
+  <option value="">Seleccione un potrero</option>
+  {tieneModulos ? (
+    Object.entries(
+      lotes
+        .filter((l) => l.animalesLote.length > 0)
+        .reduce((acc, potrero) => {
+          const moduloNombre = potrero.moduloPastoreo?.nombre || 'Sin Módulo';
+          if (!acc[moduloNombre]) acc[moduloNombre] = [];
+          acc[moduloNombre].push(potrero);
+          return acc;
+        }, {} as Record<string, Lote[]>)
+    ).map(([moduloNombre, lotes]) => (
+      <optgroup key={moduloNombre} label={moduloNombre}>
+        {lotes.map((lote) => (
+          <option key={lote.id} value={lote.id}>
+            {lote.nombre}
+          </option>
+        ))}
+      </optgroup>
+    ))
+  ) : (
+    lotes
+      .filter((l) => l.animalesLote.length > 0)
+      .map((lote) => (
+        <option key={lote.id} value={lote.id}>
+          {lote.nombre}
+        </option>
+      ))
+  )}
+</select>
           </div>
 
           {/* Categoría Actual */}
