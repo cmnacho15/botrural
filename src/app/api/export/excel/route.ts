@@ -1029,11 +1029,11 @@ export async function POST(request: Request) {
           ...(fechaDesde || fechaHasta ? { fecha: filtroFecha } : {}),
         },
         include: {
-          campoOrigen: { select: { nombre: true } },
-          campoDestino: { select: { nombre: true } },
-          potreroOrigen: { select: { nombre: true } },
-          potreroDestino: { select: { nombre: true } },
-        },
+      campoOrigen: { select: { nombre: true } },
+      campoDestino: { select: { nombre: true } },
+      potreroOrigen: { select: { nombre: true, moduloPastoreo: { select: { nombre: true } } } },
+      potreroDestino: { select: { nombre: true, moduloPastoreo: { select: { nombre: true } } } },
+    },
         orderBy: { fecha: 'desc' },
       })
 
@@ -1056,13 +1056,22 @@ export async function POST(request: Request) {
 
       traslados.forEach((t) => {
         const esEgreso = t.campoOrigenId === usuario.campoId
+        
+        const nombrePotreroOrigen = t.potreroOrigen.moduloPastoreo?.nombre
+          ? `${t.potreroOrigen.nombre} (${t.potreroOrigen.moduloPastoreo.nombre})`
+          : t.potreroOrigen.nombre
+          
+        const nombrePotreroDestino = t.potreroDestino.moduloPastoreo?.nombre
+          ? `${t.potreroDestino.nombre} (${t.potreroDestino.moduloPastoreo.nombre})`
+          : t.potreroDestino.nombre
+        
         sheet.addRow({
           fecha: formatearFecha(t.fecha),
           tipoMov: esEgreso ? 'Egreso' : 'Ingreso',
           campoOrigen: t.campoOrigen.nombre,
-          potreroOrigen: t.potreroOrigen.nombre,
+          potreroOrigen: nombrePotreroOrigen,
           campoDestino: t.campoDestino.nombre,
-          potreroDestino: t.potreroDestino.nombre,
+          potreroDestino: nombrePotreroDestino,
           categoria: t.categoria,
           cantidad: t.cantidad,
           peso: t.pesoPromedio || '',
