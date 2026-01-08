@@ -9,7 +9,7 @@ type HojasSeleccionadas = {
   tratamientos?: boolean
   movimientosGanaderos?: boolean
   cambiosPotrero?: boolean
-  tactos?: boolean
+  tactos?: boolean 
   dao?: boolean
   recategorizaciones?: boolean
   siembras?: boolean
@@ -131,7 +131,7 @@ export async function POST(request: Request) {
         where: { campoId: usuario.campoId, tipo: 'TRATAMIENTO', ...whereFecha },
         include: {
           usuario: { select: { name: true } },
-          lote: { select: { nombre: true } },
+          lote: { select: { nombre: true, moduloPastoreo: { select: { nombre: true } } } },
         },
         orderBy: { fecha: 'desc' },
       })
@@ -177,7 +177,7 @@ export async function POST(request: Request) {
         },
         include: {
           usuario: { select: { name: true } },
-          lote: { select: { nombre: true } },
+          lote: { select: { nombre: true, moduloPastoreo: { select: { nombre: true } } } },
         },
         orderBy: { fecha: 'desc' },
       })
@@ -231,7 +231,7 @@ export async function POST(request: Request) {
         where: { campoId: usuario.campoId, tipo: 'CAMBIO_POTRERO', ...whereFecha },
         include: {
           usuario: { select: { name: true } },
-          lote: { select: { nombre: true } },
+          lote: { select: { nombre: true, moduloPastoreo: { select: { nombre: true } } } },
         },
         orderBy: { fecha: 'desc' },
       })
@@ -281,7 +281,7 @@ export async function POST(request: Request) {
         where: { campoId: usuario.campoId, tipo: 'TACTO', ...whereFecha },
         include: {
           usuario: { select: { name: true } },
-          lote: { select: { nombre: true } },
+          lote: { select: { nombre: true, moduloPastoreo: { select: { nombre: true } } } },
           rodeo: { select: { nombre: true } },
         },
         orderBy: { fecha: 'desc' },
@@ -345,7 +345,7 @@ export async function POST(request: Request) {
         where: { campoId: usuario.campoId, tipo: 'DAO' as any, ...whereFecha },
         include: {
           usuario: { select: { name: true } },
-          lote: { select: { nombre: true } },
+          lote: { select: { nombre: true, moduloPastoreo: { select: { nombre: true } } } },
           rodeo: { select: { nombre: true } },
         },
         orderBy: { fecha: 'asc' },
@@ -470,7 +470,7 @@ export async function POST(request: Request) {
         where: { campoId: usuario.campoId, tipo: 'RECATEGORIZACION', ...whereFecha },
         include: {
           usuario: { select: { name: true } },
-          lote: { select: { nombre: true } },
+          lote: { select: { nombre: true, moduloPastoreo: { select: { nombre: true } } } },
         },
         orderBy: { fecha: 'desc' },
       })
@@ -512,7 +512,7 @@ export async function POST(request: Request) {
         where: { campoId: usuario.campoId, tipo: 'SIEMBRA', ...whereFecha },
         include: {
           usuario: { select: { name: true } },
-          lote: { select: { nombre: true } },
+          lote: { select: { nombre: true, moduloPastoreo: { select: { nombre: true } } } },
         },
         orderBy: { fecha: 'desc' },
       })
@@ -550,7 +550,7 @@ export async function POST(request: Request) {
         where: { campoId: usuario.campoId, tipo: 'PULVERIZACION', ...whereFecha },
         include: {
           usuario: { select: { name: true } },
-          lote: { select: { nombre: true } },
+          lote: { select: { nombre: true, moduloPastoreo: { select: { nombre: true } } } },
         },
         orderBy: { fecha: 'desc' },
       })
@@ -588,7 +588,7 @@ export async function POST(request: Request) {
         where: { campoId: usuario.campoId, tipo: 'REFERTILIZACION', ...whereFecha },
         include: {
           usuario: { select: { name: true } },
-          lote: { select: { nombre: true } },
+          lote: { select: { nombre: true, moduloPastoreo: { select: { nombre: true } } } },
         },
         orderBy: { fecha: 'desc' },
       })
@@ -626,7 +626,7 @@ export async function POST(request: Request) {
         where: { campoId: usuario.campoId, tipo: 'COSECHA', ...whereFecha },
         include: {
           usuario: { select: { name: true } },
-          lote: { select: { nombre: true } },
+          lote: { select: { nombre: true, moduloPastoreo: { select: { nombre: true } } } },
         },
         orderBy: { fecha: 'desc' },
       })
@@ -666,7 +666,7 @@ export async function POST(request: Request) {
         where: { campoId: usuario.campoId, tipo: 'RIEGO', ...whereFecha },
         include: {
           usuario: { select: { name: true } },
-          lote: { select: { nombre: true } },
+          lote: { select: { nombre: true, moduloPastoreo: { select: { nombre: true } } } },
         },
         orderBy: { fecha: 'desc' },
       })
@@ -704,7 +704,7 @@ export async function POST(request: Request) {
         where: { campoId: usuario.campoId, tipo: 'MONITOREO', ...whereFecha },
         include: {
           usuario: { select: { name: true } },
-          lote: { select: { nombre: true } },
+          lote: { select: { nombre: true, moduloPastoreo: { select: { nombre: true } } } },
         },
         orderBy: { fecha: 'desc' },
       })
@@ -742,7 +742,7 @@ export async function POST(request: Request) {
         where: { campoId: usuario.campoId, tipo: 'OTROS_LABORES', ...whereFecha },
         include: {
           usuario: { select: { name: true } },
-          lote: { select: { nombre: true } },
+          lote: { select: { nombre: true, moduloPastoreo: { select: { nombre: true } } } },
         },
         orderBy: { fecha: 'desc' },
       })
@@ -855,7 +855,7 @@ export async function POST(request: Request) {
         },
         include: {
           insumo: { select: { nombre: true, unidad: true } },
-          lote: { select: { nombre: true } },
+          lote: { select: { nombre: true, moduloPastoreo: { select: { nombre: true } } } },
         },
         orderBy: { fecha: 'desc' },
       })
@@ -899,7 +899,7 @@ export async function POST(request: Request) {
           ...(fechaDesde || fechaHasta ? { fecha: filtroFecha } : {}),
         },
         include: {
-          lote: { select: { nombre: true } },
+          lote: { select: { nombre: true, moduloPastoreo: { select: { nombre: true } } } },
         },
         orderBy: { fecha: 'desc' },
       })
