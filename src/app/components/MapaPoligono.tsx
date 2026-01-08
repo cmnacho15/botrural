@@ -407,6 +407,7 @@ const curvasLayer = L.tileLayer(
   { 
     attribution: '© OpenTopoMap', 
     maxZoom: 17,
+    maxNativeZoom: 17,  // 🔥 NUEVO - evita estiramiento
     opacity: opacidadCurvas / 100,
     zIndex: 1000
   }
