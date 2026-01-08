@@ -312,7 +312,7 @@ export async function POST(request: Request) {
       const columnas = [
         { header: 'Fecha', key: 'fecha', width: 12 },
         { header: 'Potrero', key: 'potrero', width: 18 },
-        { header: 'Rodeo', key: 'rodeo', width: 18 },
+        { header: 'Lote', key: 'rodeo', width: 18 },
         { header: 'Animales Tactados', key: 'tactados', width: 16 },
         { header: 'Preñados (n)', key: 'prenados', width: 14 },
         { header: 'Preñados (%)', key: 'prenadosPct', width: 14 },
