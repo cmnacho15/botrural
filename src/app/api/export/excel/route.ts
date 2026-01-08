@@ -53,7 +53,10 @@ const estiloCelda: Partial<ExcelJS.Style> = {
 function formatearFecha(fecha: Date | null): string {
   if (!fecha) return ''
   const d = new Date(fecha)
-  return d.toISOString().split('T')[0]
+  const dia = String(d.getDate()).padStart(2, '0')
+  const mes = String(d.getMonth() + 1).padStart(2, '0')
+  const anio = d.getFullYear()
+  return `${dia}/${mes}/${anio}`
 }
 
 // Función para aplicar estilo a encabezados
