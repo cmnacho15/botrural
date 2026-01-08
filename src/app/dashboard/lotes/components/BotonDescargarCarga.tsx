@@ -301,18 +301,19 @@ const filaEq = ['UG x Cat', '', ...categoriasBovinas.map(c => {
               startY = 20
             }
 
-            const headers = ['Potrero', 'Ha', ...categoriasOvinas.map(c => c.nombre), 'Total']
-            const filaEq = ['UG x Cat', '', ...categoriasOvinas.map(c => c.equivalenciaUG.toFixed(2)), '']
+            const headers = ['Potrero', 'Ha', ...categoriasOvinas.map(c => c.nombre), 'Total', 'UG/Ha']
+const filaEq = ['UG x Cat', '', ...categoriasOvinas.map(c => c.equivalenciaUG.toFixed(2)), '', '']
 
-            const filasDatos = modulo.potreros.map(p => [
-              p.nombre,
-              p.hectareas.toFixed(0),
-              ...categoriasOvinas.map(c => {
-                const cant = p.animalesPorCategoria[c.nombre] || 0
-                return cant > 0 ? cant.toString() : ''
-              }),
-              p.ovinosTotales.toString()
-            ])
+const filasDatos = modulo.potreros.map(p => [
+  p.nombre,
+  p.hectareas.toFixed(0),
+  ...categoriasOvinas.map(c => {
+    const cant = p.animalesPorCategoria[c.nombre] || 0
+    return cant > 0 ? cant.toString() : ''
+  }),
+  p.ovinosTotales.toString(),
+  p.ugPorHa.toFixed(2)
+])
 
             const totMod = {
   ha: modulo.hectareas,
@@ -324,10 +325,11 @@ const filaEq = ['UG x Cat', '', ...categoriasBovinas.map(c => {
             })
 
             const filaTot = [
-              'TOTAL', totMod.ha.toFixed(0),
-              ...categoriasOvinas.map(c => totMod.cat[c.nombre] > 0 ? totMod.cat[c.nombre].toString() : ''),
-              totMod.ovi.toString()
-            ]
+  'TOTAL', totMod.ha.toFixed(0),
+  ...categoriasOvinas.map(c => totMod.cat[c.nombre] > 0 ? totMod.cat[c.nombre].toString() : ''),
+  totMod.ovi.toString(),
+  modulo.ugPorHa.toFixed(2)
+]
 
             doc.setFontSize(8)
             doc.setFont('helvetica', 'italic')
@@ -552,36 +554,38 @@ const filaEquivalenciasBovinos = [
 
         if (categoriasOvinas.length > 0) {
           const headersOvinos = [
-            'Potreros', 'Ha',
-            ...categoriasOvinas.map(c => c.nombre),
-            'Total Ovinos'
-          ]
+  'Potreros', 'Ha',
+  ...categoriasOvinas.map(c => c.nombre),
+  'Total Ovinos', 'UG/Ha'
+]
 
-          const filaEquivalenciasOvinos = [
-            'UG x Categoría', '',
-            ...categoriasOvinas.map(c => c.equivalenciaUG.toFixed(2)),
-            ''
-          ]
+const filaEquivalenciasOvinos = [
+  'UG x Categoría', '',
+  ...categoriasOvinas.map(c => c.equivalenciaUG.toFixed(2)),
+  '', ''
+]
 
           const filasDatosOvinos = data.potreros.map(potrero => [
-            potrero.nombre,
-            potrero.hectareas.toFixed(0),
-            ...categoriasOvinas.map(c => {
-              const cantidad = potrero.animalesPorCategoria[c.nombre] || 0
-              return cantidad > 0 ? cantidad.toString() : ''
-            }),
-            potrero.ovinosTotales.toString()
-          ])
+  potrero.nombre,
+  potrero.hectareas.toFixed(0),
+  ...categoriasOvinas.map(c => {
+    const cantidad = potrero.animalesPorCategoria[c.nombre] || 0
+    return cantidad > 0 ? cantidad.toString() : ''
+  }),
+  potrero.ovinosTotales.toString(),
+  potrero.ugPorHa.toFixed(2)
+])
 
-          const filaTotalesOvinos = [
-            'TOTAL:',
-            data.totales.hectareas.toFixed(0),
-            ...categoriasOvinas.map(c => {
-              const total = data.totales.porCategoria[c.nombre] || 0
-              return total > 0 ? total.toString() : ''
-            }),
-            data.totales.ovinosTotales.toString()
-          ]
+const filaTotalesOvinos = [
+  'TOTAL:',
+  data.totales.hectareas.toFixed(0),
+  ...categoriasOvinas.map(c => {
+    const total = data.totales.porCategoria[c.nombre] || 0
+    return total > 0 ? total.toString() : ''
+  }),
+  data.totales.ovinosTotales.toString(),
+  data.totales.ugPorHa.toFixed(2)
+]
 
           const startYOvinos = (doc as any).lastAutoTable.finalY + 10
 

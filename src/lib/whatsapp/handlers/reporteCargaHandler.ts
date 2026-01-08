@@ -271,12 +271,12 @@ const filaEq = ['UG x Cat', '', ...catBov.map(c => {
         // OVINOS
         if (catOvi.length > 0) {
           if (startY > pageHeight - 40) { doc.addPage(); dibujarMarcaAgua(); startY = 20 }
-          const headers = ['Potrero', 'Ha', ...catOvi.map(c => c.nombre), 'Total']
-          const filaEq = ['UG x Cat', '', ...catOvi.map(c => c.equivalenciaUG.toFixed(2)), '']
-          const filasDatos = modulo.potreros.map((p: any) => [p.nombre, p.hectareas.toFixed(0), ...catOvi.map(c => { const cant = p.animalesPorCategoria[c.nombre] || 0; return cant > 0 ? cant.toString() : '' }), p.ovinosTotales.toString()])
+          const headers = ['Potrero', 'Ha', ...catOvi.map(c => c.nombre), 'Total', 'UG/Ha']
+const filaEq = ['UG x Cat', '', ...catOvi.map(c => c.equivalenciaUG.toFixed(2)), '', '']
+const filasDatos = modulo.potreros.map((p: any) => [p.nombre, p.hectareas.toFixed(0), ...catOvi.map(c => { const cant = p.animalesPorCategoria[c.nombre] || 0; return cant > 0 ? cant.toString() : '' }), p.ovinosTotales.toString(), p.ugPorHa.toFixed(2)])
           const totMod = { ha: modulo.potreros.reduce((s: number, p: any) => s + p.hectareas, 0), ovi: modulo.potreros.reduce((s: number, p: any) => s + p.ovinosTotales, 0), cat: {} as Record<string, number> }
           catOvi.forEach(c => { totMod.cat[c.nombre] = modulo.potreros.reduce((s: number, p: any) => s + (p.animalesPorCategoria[c.nombre] || 0), 0) })
-          const filaTot = ['TOTAL', totMod.ha.toFixed(0), ...catOvi.map(c => totMod.cat[c.nombre] > 0 ? totMod.cat[c.nombre].toString() : ''), totMod.ovi.toString()]
+          const filaTot = ['TOTAL', totMod.ha.toFixed(0), ...catOvi.map(c => totMod.cat[c.nombre] > 0 ? totMod.cat[c.nombre].toString() : ''), totMod.ovi.toString(), modulo.ugPorHa.toFixed(2)]
 
           doc.setFontSize(8); doc.setFont('helvetica', 'italic'); doc.setTextColor(80, 80, 80); doc.text('Ovinos:', margin, startY); startY += 3
 
@@ -395,10 +395,10 @@ const filaEquivalenciasBovinos = ['UG x Categoría', '', ...catBovFiltradas.map(
       // OVINOS
       const catOviFiltradas = categoriasOvinas.filter(c => totalesPorCategoria[c.nombre] > 0)
       if (catOviFiltradas.length > 0) {
-        const headersOvinos = ['Potreros', 'Ha', ...catOviFiltradas.map(c => c.nombre), 'Total Ovinos']
-        const filaEquivalenciasOvinos = ['UG x Categoría', '', ...catOviFiltradas.map(c => c.equivalenciaUG.toFixed(2)), '']
-        const filasDatosOvinos = potrerosData.map(p => [p.nombre, p.hectareas.toFixed(0), ...catOviFiltradas.map(c => { const cant = p.animalesPorCategoria[c.nombre] || 0; return cant > 0 ? cant.toString() : '' }), p.ovinosTotales.toString()])
-        const filaTotalesOvinos = ['TOTAL:', totalHectareas.toFixed(0), ...catOviFiltradas.map(c => { const total = totalesPorCategoria[c.nombre] || 0; return total > 0 ? total.toString() : '' }), totalOvinos.toString()]
+        const headersOvinos = ['Potreros', 'Ha', ...catOviFiltradas.map(c => c.nombre), 'Total Ovinos', 'UG/Ha']
+        const filaEquivalenciasOvinos = ['UG x Categoría', '', ...catOviFiltradas.map(c => c.equivalenciaUG.toFixed(2)), '', '']
+        const filasDatosOvinos = potrerosData.map(p => [p.nombre, p.hectareas.toFixed(0), ...catOviFiltradas.map(c => { const cant = p.animalesPorCategoria[c.nombre] || 0; return cant > 0 ? cant.toString() : '' }), p.ovinosTotales.toString(), p.ugPorHa.toFixed(2)])
+const filaTotalesOvinos = ['TOTAL:', totalHectareas.toFixed(0), ...catOviFiltradas.map(c => { const total = totalesPorCategoria[c.nombre] || 0; return total > 0 ? total.toString() : '' }), totalOvinos.toString(), ugPorHaGlobal.toFixed(2)]
 
         const startYOvinos = (doc as any).lastAutoTable.finalY + 10
         doc.setFontSize(12); doc.setFont('helvetica', 'bold'); doc.text('OVINOS', margin, startYOvinos)
