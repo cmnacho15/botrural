@@ -161,9 +161,9 @@ export default function ModalCambioPotrero({ onClose, onSuccess }: ModalCambioPo
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          tipo: 'CAMBIO_POTRERO',
-          fecha: fecha,
-          descripcion: `Cambio de ${animalesValidos.map(a => `${a.cantidad} ${a.categoria}`).join(', ')} al ${potreros.find(p => p.id === potreroDestino)?.nombre}${rodeoSeleccionado && rodeos.find(r => r.id === rodeoSeleccionado) ? ` - Lote ${rodeos.find(r => r.id === rodeoSeleccionado)?.nombre}` : ''}`,
+  tipo: 'CAMBIO_POTRERO',
+  fecha: fecha,
+  descripcion: `Cambio de ${animalesValidos.map(a => `${a.cantidad} ${a.categoria}`).join(', ')} del potrero "${potreros.find(p => p.id === potreroOrigen)?.nombre}" al potrero "${potreros.find(p => p.id === potreroDestino)?.nombre}"${rodeoSeleccionado && rodeos.find(r => r.id === rodeoSeleccionado) ? ` - Lote ${rodeos.find(r => r.id === rodeoSeleccionado)?.nombre}` : ''}`,
           loteId: potreroOrigen,
           loteDestinoId: potreroDestino,
           animales: animalesValidos.map(a => ({
