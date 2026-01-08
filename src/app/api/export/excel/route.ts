@@ -133,7 +133,7 @@ export async function POST(request: Request) {
           usuario: { select: { name: true } },
           lote: { select: { nombre: true, moduloPastoreo: { select: { nombre: true } } } },
         },
-        orderBy: { fecha: 'desc' },
+        orderBy: { fecha: 'asc' },
       })
 
       const sheet = workbook.addWorksheet('Tratamientos')
@@ -183,7 +183,7 @@ export async function POST(request: Request) {
           usuario: { select: { name: true } },
           lote: { select: { nombre: true, moduloPastoreo: { select: { nombre: true } } } },
         },
-        orderBy: { fecha: 'desc' },
+        orderBy: { fecha: 'asc' },
       })
 
       const sheet = workbook.addWorksheet('Movimientos Ganaderos')
@@ -241,7 +241,7 @@ export async function POST(request: Request) {
           usuario: { select: { name: true } },
           lote: { select: { nombre: true, moduloPastoreo: { select: { nombre: true } } } },
         },
-        orderBy: { fecha: 'desc' },
+        orderBy: { fecha: 'asc' },
       })
 
       // Obtener nombres de potreros destino CON MÓDULOS
@@ -307,7 +307,7 @@ export async function POST(request: Request) {
           lote: { select: { nombre: true, moduloPastoreo: { select: { nombre: true } } } },
           rodeo: { select: { nombre: true } },
         },
-        orderBy: { fecha: 'desc' },
+        orderBy: { fecha: 'asc' },
       })
 
       const sheet = workbook.addWorksheet('Tactos')
@@ -503,7 +503,7 @@ export async function POST(request: Request) {
           usuario: { select: { name: true } },
           lote: { select: { nombre: true, moduloPastoreo: { select: { nombre: true } } } },
         },
-        orderBy: { fecha: 'desc' },
+        orderBy: { fecha: 'asc' },
       })
 
       const sheet = workbook.addWorksheet('Recategorizaciones')
@@ -549,7 +549,7 @@ export async function POST(request: Request) {
           usuario: { select: { name: true } },
           lote: { select: { nombre: true, moduloPastoreo: { select: { nombre: true } } } },
         },
-        orderBy: { fecha: 'desc' },
+        orderBy: { fecha: 'asc' },
       })
 
       const sheet = workbook.addWorksheet('Siembras')
@@ -591,7 +591,7 @@ export async function POST(request: Request) {
           usuario: { select: { name: true } },
           lote: { select: { nombre: true, moduloPastoreo: { select: { nombre: true } } } },
         },
-        orderBy: { fecha: 'desc' },
+        orderBy: { fecha: 'asc' },
       })
 
       const sheet = workbook.addWorksheet('Pulverizaciones')
@@ -633,7 +633,7 @@ export async function POST(request: Request) {
           usuario: { select: { name: true } },
           lote: { select: { nombre: true, moduloPastoreo: { select: { nombre: true } } } },
         },
-        orderBy: { fecha: 'desc' },
+        orderBy: { fecha: 'asc' },
       })
 
       const sheet = workbook.addWorksheet('Fertilizaciones')
@@ -675,7 +675,7 @@ export async function POST(request: Request) {
           usuario: { select: { name: true } },
           lote: { select: { nombre: true, moduloPastoreo: { select: { nombre: true } } } },
         },
-        orderBy: { fecha: 'desc' },
+        orderBy: { fecha: 'asc' },
       })
 
       const sheet = workbook.addWorksheet('Cosechas')
@@ -719,7 +719,7 @@ export async function POST(request: Request) {
           usuario: { select: { name: true } },
           lote: { select: { nombre: true, moduloPastoreo: { select: { nombre: true } } } },
         },
-        orderBy: { fecha: 'desc' },
+        orderBy: { fecha: 'asc' },
       })
 
       const sheet = workbook.addWorksheet('Riegos')
@@ -761,7 +761,7 @@ export async function POST(request: Request) {
           usuario: { select: { name: true } },
           lote: { select: { nombre: true, moduloPastoreo: { select: { nombre: true } } } },
         },
-        orderBy: { fecha: 'desc' },
+        orderBy: { fecha: 'asc' },
       })
 
       const sheet = workbook.addWorksheet('Monitoreos')
@@ -803,7 +803,7 @@ export async function POST(request: Request) {
           usuario: { select: { name: true } },
           lote: { select: { nombre: true, moduloPastoreo: { select: { nombre: true } } } },
         },
-        orderBy: { fecha: 'desc' },
+        orderBy: { fecha: 'asc' },
       })
 
       const sheet = workbook.addWorksheet('Otras Labores')
@@ -844,7 +844,7 @@ export async function POST(request: Request) {
         include: {
           usuario: { select: { name: true } },
         },
-        orderBy: { fecha: 'desc' },
+        orderBy: { fecha: 'asc' },
       })
 
       const sheet = workbook.addWorksheet('Lluvia')
@@ -881,7 +881,7 @@ export async function POST(request: Request) {
         include: {
           usuario: { select: { name: true } },
         },
-        orderBy: { fecha: 'desc' },
+        orderBy: { fecha: 'asc' },
       })
 
       const sheet = workbook.addWorksheet('Heladas')
@@ -920,7 +920,7 @@ export async function POST(request: Request) {
           insumo: { select: { nombre: true, unidad: true } },
           lote: { select: { nombre: true, moduloPastoreo: { select: { nombre: true } } } },
         },
-        orderBy: { fecha: 'desc' },
+        orderBy: { fecha: 'asc' },
       })
 
       const sheet = workbook.addWorksheet('Insumos')
@@ -968,7 +968,7 @@ export async function POST(request: Request) {
         include: {
           lote: { select: { nombre: true, moduloPastoreo: { select: { nombre: true } } } },
         },
-        orderBy: { fecha: 'desc' },
+        orderBy: { fecha: 'asc' },
       })
 
       const sheet = workbook.addWorksheet('Gastos e Ingresos')
@@ -1034,7 +1034,7 @@ export async function POST(request: Request) {
       potreroOrigen: { select: { nombre: true, moduloPastoreo: { select: { nombre: true } } } },
       potreroDestino: { select: { nombre: true, moduloPastoreo: { select: { nombre: true } } } },
     },
-        orderBy: { fecha: 'desc' },
+        orderBy: { fecha: 'asc' },
       })
 
       const sheet = workbook.addWorksheet('Traslados')
