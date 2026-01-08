@@ -11,6 +11,11 @@ if (typeof window !== 'undefined') {
   require('leaflet-draw')
   require('leaflet-geometryutil')
 
+  // 🔥 CONFIGURAR TEXTOS ANTES DE CREAR EL CONTROL
+  if ((L as any).drawLocal) {
+    (L as any).drawLocal.draw.toolbar.buttons.polygon = '⬡ Dibujar'
+  }
+
   // Agregar estilos para tooltips sin fondo
   if (!document.getElementById('leaflet-tooltip-override')) {
     const style = document.createElement('style')
@@ -490,12 +495,7 @@ L.control.layers({ 'Satélite': satelitalLayer, 'Mapa': osmLayer }).addTo(map)
       map.fitBounds(bounds, { padding: [100, 100], maxZoom: 16 })
     }
 
-    // 🔥 Configurar textos de Leaflet Draw en español
-if (typeof window !== 'undefined' && (L as any).drawLocal) {
-  (L as any).drawLocal.draw.toolbar.buttons.polygon = '⬡ Dibujar'
-}
-
-if (!readOnly) {
+    if (!readOnly) {
       const drawnItems = new L.FeatureGroup()
       map.addLayer(drawnItems)
       drawnItemsRef.current = drawnItems
