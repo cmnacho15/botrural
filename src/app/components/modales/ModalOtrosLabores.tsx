@@ -87,10 +87,14 @@ useEffect(() => {
     setLoading(true)
 
     try {
-      const potreroNombre = potreros.find(p => p.id === potreroSeleccionado)?.nombre
+            const potreroData = potreros.find(p => p.id === potreroSeleccionado)
+      const nombrePotrero = potreroData?.moduloPastoreo?.nombre
+        ? `${potreroData.nombre} (${potreroData.moduloPastoreo.nombre})`
+        : potreroData?.nombre
+
       const hectareasNum = hectareas ? parseFloat(hectareas) : null
 
-      let descripcionFinal = `${laborRealizado} en cultivo de ${cultivo}, potrero ${potreroNombre}`
+      let descripcionFinal = `${laborRealizado} en cultivo de ${cultivo}, potrero "${nombrePotrero}"`
       if (hectareasNum) {
         descripcionFinal += ` (${hectareasNum} hectáreas)`
       }

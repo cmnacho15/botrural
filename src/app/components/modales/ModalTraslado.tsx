@@ -13,9 +13,16 @@ type Campo = {
   nombre: string
 }
 
+type Modulo = {
+  id: string
+  nombre: string
+}
+
 type Lote = {
   id: string
   nombre: string
+  moduloPastoreoId: string | null
+  moduloPastoreo?: Modulo | null
 }
 
 type AnimalLote = {
@@ -58,6 +65,8 @@ export default function ModalTraslado({ onClose, onSuccess }: ModalTrasladoProps
   const [potreroDestinoId, setPotreroDestinoId] = useState('')
   const [loadingPotreros, setLoadingPotreros] = useState(false)
 const [cargandoCampos, setCargandoCampos] = useState(true)
+const [tieneModulosOrigen, setTieneModulosOrigen] = useState(false)
+const [tieneModulosDestino, setTieneModulosDestino] = useState(false)
 
   // Cargar potreros del campo actual y campos disponibles
   useEffect(() => {
@@ -65,10 +74,12 @@ const [cargandoCampos, setCargandoCampos] = useState(true)
       try {
         // Cargar potreros del campo actual
         const resPot = await fetch('/api/lotes')
-        if (resPot.ok) {
-          const data = await resPot.json()
-          setPotrerosOrigen(data)
-        }
+if (resPot.ok) {
+  const data = await resPot.json()
+  setPotrerosOrigen(data)
+  const hayModulos = data.some((l: Lote) => l.moduloPastoreoId !== null)
+  setTieneModulosOrigen(hayModulos)
+}
 
         // Cargar campos del usuario (para destino)
         const resCampos = await fetch('/api/campos')
@@ -122,11 +133,13 @@ const [cargandoCampos, setCargandoCampos] = useState(true)
 
     setLoadingPotreros(true)
     fetch(`/api/lotes?campoId=${campoDestinoId}`)
-      .then((res) => res.json())
-      .then((data) => {
-        setPotrerosDestino(data)
-        setPotreroDestinoId('')
-      })
+  .then((res) => res.json())
+  .then((data) => {
+    setPotrerosDestino(data)
+    const hayModulos = data.some((l: Lote) => l.moduloPastoreoId !== null)
+    setTieneModulosDestino(hayModulos)
+    setPotreroDestinoId('')
+  })
       .catch(() => alert('Error al cargar potreros del campo destino'))
       .finally(() => setLoadingPotreros(false))
   }, [campoDestinoId])
@@ -308,18 +321,37 @@ const [cargandoCampos, setCargandoCampos] = useState(true)
               Potrero de origen (campo actual)
             </label>
             <select
-              value={potreroOrigenId}
-              onChange={(e) => setPotreroOrigenId(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
-              required
-            >
-              <option value="">Seleccionar potrero...</option>
-              {potrerosOrigen.map((lote) => (
-                <option key={lote.id} value={lote.id}>
-                  {lote.nombre}
-                </option>
-              ))}
-            </select>
+  value={potreroOrigenId}
+  onChange={(e) => setPotreroOrigenId(e.target.value)}
+  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+  required
+>
+  <option value="">Seleccionar potrero...</option>
+  {tieneModulosOrigen ? (
+    Object.entries(
+      potrerosOrigen.reduce((acc, potrero) => {
+        const moduloNombre = potrero.moduloPastoreo?.nombre || 'Sin Módulo'
+        if (!acc[moduloNombre]) acc[moduloNombre] = []
+        acc[moduloNombre].push(potrero)
+        return acc
+      }, {} as Record<string, Lote[]>)
+    ).map(([moduloNombre, lotes]) => (
+      <optgroup key={moduloNombre} label={moduloNombre}>
+        {lotes.map((lote) => (
+          <option key={lote.id} value={lote.id}>
+            {lote.nombre}
+          </option>
+        ))}
+      </optgroup>
+    ))
+  ) : (
+    potrerosOrigen.map((lote) => (
+      <option key={lote.id} value={lote.id}>
+        {lote.nombre}
+      </option>
+    ))
+  )}
+</select>
           </div>
 
           {/* ANIMALES */}
@@ -538,18 +570,37 @@ const [cargandoCampos, setCargandoCampos] = useState(true)
                 </div>
               ) : (
                 <select
-                  value={potreroDestinoId}
-                  onChange={(e) => setPotreroDestinoId(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
-                  required
-                >
-                  <option value="">Seleccionar potrero...</option>
-                  {potrerosDestino.map((lote) => (
-                    <option key={lote.id} value={lote.id}>
-                      {lote.nombre}
-                    </option>
-                  ))}
-                </select>
+  value={potreroDestinoId}
+  onChange={(e) => setPotreroDestinoId(e.target.value)}
+  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+  required
+>
+  <option value="">Seleccionar potrero...</option>
+  {tieneModulosDestino ? (
+    Object.entries(
+      potrerosDestino.reduce((acc, potrero) => {
+        const moduloNombre = potrero.moduloPastoreo?.nombre || 'Sin Módulo'
+        if (!acc[moduloNombre]) acc[moduloNombre] = []
+        acc[moduloNombre].push(potrero)
+        return acc
+      }, {} as Record<string, Lote[]>)
+    ).map(([moduloNombre, lotes]) => (
+      <optgroup key={moduloNombre} label={moduloNombre}>
+        {lotes.map((lote) => (
+          <option key={lote.id} value={lote.id}>
+            {lote.nombre}
+          </option>
+        ))}
+      </optgroup>
+    ))
+  ) : (
+    potrerosDestino.map((lote) => (
+      <option key={lote.id} value={lote.id}>
+        {lote.nombre}
+      </option>
+    ))
+  )}
+</select>
               )}
             </div>
           )}

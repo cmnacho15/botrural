@@ -194,6 +194,25 @@ useEffect(() => {
     setLoading(true)
 
     try {
+            // Obtener datos completos del lote (si existe)
+      const loteData = loteId ? lotes.find(l => l.id === loteId) : null
+      const nombreLoteFormateado = loteData?.moduloPastoreo?.nombre
+        ? `${loteData.nombre} (${loteData.moduloPastoreo.nombre})`
+        : loteData?.nombre
+
+      // Construir descripción base
+      let descripcionBase = insumosValidos
+        .map(i => `${i.nombre} (${parseFloat(i.cantidad)} ${i.unidad})`)
+        .join(', ')
+
+      if (nombreLoteFormateado) {
+        descripcionBase += ` en potrero "${nombreLoteFormateado}"`
+      }
+
+      if (notas.trim()) {
+        descripcionBase += `. ${notas.trim()}`
+      }
+
       for (const insumo of insumosValidos) {
         const response = await fetch('/api/insumos/movimientos', {
           method: 'POST',
@@ -204,7 +223,7 @@ useEffect(() => {
             insumoId: insumo.insumoId,
             cantidad: parseFloat(insumo.cantidad),
             loteId: loteId || null,
-            notas,
+            notas: descripcionBase,  // Usamos la descripción enriquecida con módulo si aplica
           }),
         })
 

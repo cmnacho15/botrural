@@ -125,26 +125,31 @@ useEffect(() => {
     setLoading(true)
 
     try {
-      const potreroNombre = potreros.find(p => p.id === potreroSeleccionado)?.nombre
-      const porcentajeCosechado = ((hectareasNum / cultivoSeleccionado.hectareas) * 100).toFixed(1)
-      const esCosechaCompleta = hectareasNum === cultivoSeleccionado.hectareas
+               const porcentajeCosechado = ((hectareasNum / cultivoSeleccionado.hectareas) * 100).toFixed(1)
+         const esCosechaCompleta = hectareasNum === cultivoSeleccionado.hectareas
 
-      // Construir descripción
-      let descripcionFinal = `Cosecha de ${cultivoSeleccionado.tipoCultivo} en potrero ${potreroNombre}`
-      
-      descripcionFinal += ` - ${hectareasNum} ha (${porcentajeCosechado}% del cultivo)`
-      
-      if (esCosechaCompleta) {
-        descripcionFinal += ` - Cultivo eliminado completamente`
-      }
-      
-      if (rendimiento) {
-        descripcionFinal += ` - Rendimiento: ${rendimiento} ${unidad}`
-      }
-      
-      if (humedad) {
-        descripcionFinal += ` - Humedad: ${humedad}%`
-      }
+         // Obtener datos completos del potrero y formatear nombre con módulo si existe
+         const potreroData = potreros.find(p => p.id === potreroSeleccionado)
+         const nombrePotreroFormateado = potreroData?.moduloPastoreo?.nombre 
+           ? `${potreroData.nombre} (${potreroData.moduloPastoreo.nombre})`
+           : potreroData?.nombre
+
+         // Construir descripción
+         let descripcionFinal = `Cosecha de ${cultivoSeleccionado.tipoCultivo} en potrero ${nombrePotreroFormateado}`
+         
+         descripcionFinal += ` - ${hectareasNum} ha (${porcentajeCosechado}% del cultivo)`
+         
+         if (esCosechaCompleta) {
+           descripcionFinal += ` - Cultivo eliminado completamente`
+         }
+         
+         if (rendimiento) {
+           descripcionFinal += ` - Rendimiento: ${rendimiento} ${unidad}`
+         }
+         
+         if (humedad) {
+           descripcionFinal += ` - Humedad: ${humedad}%`
+         }
 
       const response = await fetch('/api/eventos', {
         method: 'POST',
