@@ -499,12 +499,8 @@ L.control.layers({ 'Satélite': satelitalLayer, 'Mapa': osmLayer }).addTo(map)
   draw: {
     polygon: {
       allowIntersection: false,
-      showArea: false,
+      showArea: false,  // ✅ DESHABILITAR para evitar confusión
       metric: ['ha', 'm'],
-      drawError: {
-        color: '#e74c3c',
-        message: '<strong>Error:</strong> No podés cruzar las líneas'
-      },
             shapeOptions: { color: '#3b82f6', weight: 3 },
             icon: new (L as any).DivIcon({
               iconSize: new (L as any).Point(8, 8),
@@ -535,12 +531,6 @@ L.control.layers({ 'Satélite': satelitalLayer, 'Mapa': osmLayer }).addTo(map)
         },
       })
       map.addControl(drawControl)
-      
-      // 🎨 Personalizar textos de los botones
-      const drawToolbar = document.querySelector('.leaflet-draw-draw-polygon')
-      if (drawToolbar) {
-        drawToolbar.setAttribute('title', '📍 Dibujar')
-      }
 
       const DrawEvent = (L as any).Draw.Event
 
