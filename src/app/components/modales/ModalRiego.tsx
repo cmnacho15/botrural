@@ -119,25 +119,28 @@ export default function ModalRiego({ onClose, onSuccess }: ModalRiegoProps) {
     setLoading(true)
 
     try {
-      const potreroNombre = potreros.find(p => p.id === potreroSeleccionado)?.nombre
-      const hectareasNum = hectareas ? parseFloat(hectareas) : cultivoSeleccionado.hectareas
+      const potreroData = potreros.find(p => p.id === potreroSeleccionado)
+const potreroNombre = potreroData?.moduloPastoreo?.nombre 
+  ? `${potreroData.nombre} (${potreroData.moduloPastoreo.nombre})`
+  : potreroData?.nombre
+const hectareasNum = hectareas ? parseFloat(hectareas) : cultivoSeleccionado.hectareas
 
-      // Construir descripción
-      let descripcionFinal = `Riego de ${cultivoSeleccionado.tipoCultivo} en potrero ${potreroNombre}`
-      
-      if (hectareas) {
-        descripcionFinal += ` - ${hectareasNum} ha`
-      }
-      
-      descripcionFinal += ` - Lámina: ${laminaRiego} mm/ha`
-      
-      if (metodoRiego) {
-        descripcionFinal += ` - Método: ${metodoRiego}`
-      }
-      
-      if (duracion) {
-        descripcionFinal += ` - Duración: ${duracion} horas`
-      }
+// Construir descripción
+let descripcionFinal = `Riego de ${cultivoSeleccionado.tipoCultivo} en potrero ${potreroNombre}`
+
+if (hectareas) {
+  descripcionFinal += ` - ${hectareasNum} ha`
+}
+
+descripcionFinal += ` - Lámina: ${laminaRiego} mm/ha`
+
+if (metodoRiego) {
+  descripcionFinal += ` - Método: ${metodoRiego}`
+}
+
+if (duracion) {
+  descripcionFinal += ` - Duración: ${duracion} horas`
+}
 
       const response = await fetch('/api/eventos', {
         method: 'POST',

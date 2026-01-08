@@ -102,22 +102,25 @@ export default function ModalMonitoreo({ onClose, onSuccess }: ModalMonitoreoPro
     setLoading(true)
 
     try {
-      const potreroNombre = potreros.find(p => p.id === potreroSeleccionado)?.nombre
+      const potreroData = potreros.find(p => p.id === potreroSeleccionado)
+const potreroNombre = potreroData?.moduloPastoreo?.nombre 
+  ? `${potreroData.nombre} (${potreroData.moduloPastoreo.nombre})`
+  : potreroData?.nombre
 
-      // Construir descripción
-      let descripcionFinal = `Monitoreo de ${cultivoSeleccionado.tipoCultivo} en potrero ${potreroNombre}`
-      
-      if (estadoCultivo) {
-        descripcionFinal += ` - Estado: ${estadoCultivo}`
-      }
-      
-      if (plagasEnfermedades.trim()) {
-        descripcionFinal += ` - Plagas/Enfermedades: ${plagasEnfermedades}`
-      }
-      
-      if (necesitaAccion) {
-        descripcionFinal += ` - ⚠️ Requiere acción`
-      }
+// Construir descripción
+let descripcionFinal = `Monitoreo de ${cultivoSeleccionado.tipoCultivo} en potrero ${potreroNombre}`
+
+if (estadoCultivo) {
+  descripcionFinal += ` - Estado: ${estadoCultivo}`
+}
+
+if (plagasEnfermedades.trim()) {
+  descripcionFinal += ` - Plagas/Enfermedades: ${plagasEnfermedades}`
+}
+
+if (necesitaAccion) {
+  descripcionFinal += ` - ⚠️ Requiere acción`
+}
 
       // Combinar observaciones y notas
       let notasCompletas = ''

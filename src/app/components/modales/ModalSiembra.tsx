@@ -130,10 +130,13 @@ useEffect(() => {
     setLoading(true)
 
     try {
-      const potreroNombre = potreros.find(p => p.id === potreroSeleccionado)?.nombre
+      const potreroData = potreros.find(p => p.id === potreroSeleccionado)
+const potreroNombre = potreroData?.moduloPastoreo?.nombre 
+  ? `${potreroData.nombre} (${potreroData.moduloPastoreo.nombre})`
+  : potreroData?.nombre
 
-      // Construir descripción (SIN fertilizantes aquí, van solo en notas)
-      let descripcionFinal = `Siembra de ${cultivo} en potrero ${potreroNombre} - ${hectareas} ha`
+// Construir descripción (SIN fertilizantes aquí, van solo en notas)
+let descripcionFinal = `Siembra de ${cultivo} en potrero ${potreroNombre} - ${hectareas} ha`
 
       // NO agregar genética, espaciamiento, densidad ni fertilizantes a la descripción
       // Todo eso va en las notas
