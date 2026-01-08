@@ -8,9 +8,16 @@ type ModalDAOProps = {
   onSuccess: () => void
 }
 
+type Modulo = {
+  id: string
+  nombre: string
+}
+
 type Lote = {
   id: string
   nombre: string
+  moduloPastoreoId: string | null
+  moduloPastoreo?: Modulo | null
   animalesLote?: AnimalLote[]
 }
 
@@ -33,6 +40,7 @@ type ResultadoDAO = {
 export default function ModalDAO({ onClose, onSuccess }: ModalDAOProps) {
   const [fecha, setFecha] = useState(obtenerFechaLocal())
   const [potreros, setPotreros] = useState<Lote[]>([])
+  const [tieneModulos, setTieneModulos] = useState(false)
   const [potreroSeleccionado, setPotreroSeleccionado] = useState('')
   const [animalesDisponibles, setAnimalesDisponibles] = useState<AnimalLote[]>([])
   const [notas, setNotas] = useState('')
@@ -60,19 +68,23 @@ export default function ModalDAO({ onClose, onSuccess }: ModalDAOProps) {
 
   // Cargar potreros al montar (solo los que tengan vacunos)
   useEffect(() => {
-    fetch('/api/lotes')
-      .then((res) => res.json())
-      .then((data) => {
-        // Filtrar solo potreros con animales bovinos
-        const potrerosConVacunos = data.filter((lote: Lote) => 
-          lote.animalesLote && lote.animalesLote.some((a: AnimalLote) => 
-            ['Vaquillonas +2 años', 'Vaquillonas 1–2 años', 'Vacas', 'Vacas Gordas'].includes(a.categoria) && a.cantidad > 0
-          )
+  fetch('/api/lotes')
+    .then((res) => res.json())
+    .then((data) => {
+      // Filtrar solo potreros con animales bovinos
+      const potrerosConVacunos = data.filter((lote: Lote) => 
+        lote.animalesLote && lote.animalesLote.some((a: AnimalLote) => 
+          ['Vaquillonas +2 años', 'Vaquillonas 1–2 años', 'Vacas', 'Vacas Gordas'].includes(a.categoria) && a.cantidad > 0
         )
-        setPotreros(potrerosConVacunos)
-      })
-      .catch(() => alert('Error al cargar potreros'))
-  }, [])
+      )
+      setPotreros(potrerosConVacunos)
+      
+      // Detectar si el campo usa módulos
+      const hayModulos = data.some((l: Lote) => l.moduloPastoreoId !== null)
+      setTieneModulos(hayModulos)
+    })
+    .catch(() => alert('Error al cargar potreros'))
+}, [])
 
   // Cargar rodeos y configuración
   useEffect(() => {
@@ -268,33 +280,62 @@ for (const resultado of resultadosValidos) {
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Potrero</label>
           <select
-            value={potreroSeleccionado}
-            onChange={(e) => {
-              setPotreroSeleccionado(e.target.value)
-              setErrorPotrero(false)
-            }}
-            className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 ${
-              errorPotrero ? 'border-red-500' : 'border-gray-300'
-            }`}
-            required
-          >
-            <option value="">Seleccionar potrero...</option>
-            {potreros.map((lote: any) => {
-              const categoriasDAO = ['Vaquillonas +2 años', 'Vaquillonas 1–2 años', 'Vacas', 'Vacas Gordas']
-              const resumen = lote.animalesLote && lote.animalesLote.length > 0
-                ? lote.animalesLote
-                    .filter((a: any) => categoriasDAO.includes(a.categoria) && a.cantidad > 0)
-                    .map((a: any) => `${a.categoria} ${a.cantidad}`)
-                    .join(', ')
-                : 'Sin animales'
-              
-              return (
-                <option key={lote.id} value={lote.id}>
-                  {lote.nombre} ({resumen})
-                </option>
-              )
-            })}
-          </select>
+  value={potreroSeleccionado}
+  onChange={(e) => {
+    setPotreroSeleccionado(e.target.value)
+    setErrorPotrero(false)
+  }}
+  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 ${
+    errorPotrero ? 'border-red-500' : 'border-gray-300'
+  }`}
+  required
+>
+  <option value="">Seleccionar potrero...</option>
+  {tieneModulos ? (
+    Object.entries(
+      potreros.reduce((acc, potrero) => {
+        const moduloNombre = potrero.moduloPastoreo?.nombre || 'Sin Módulo'
+        if (!acc[moduloNombre]) acc[moduloNombre] = []
+        acc[moduloNombre].push(potrero)
+        return acc
+      }, {} as Record<string, Lote[]>)
+    ).map(([moduloNombre, lotes]) => (
+      <optgroup key={moduloNombre} label={moduloNombre}>
+        {lotes.map((lote: any) => {
+          const categoriasDAO = ['Vaquillonas +2 años', 'Vaquillonas 1–2 años', 'Vacas', 'Vacas Gordas']
+          const resumen = lote.animalesLote && lote.animalesLote.length > 0
+            ? lote.animalesLote
+                .filter((a: any) => categoriasDAO.includes(a.categoria) && a.cantidad > 0)
+                .map((a: any) => `${a.categoria} ${a.cantidad}`)
+                .join(', ')
+            : 'Sin animales'
+          
+          return (
+            <option key={lote.id} value={lote.id}>
+              {lote.nombre} ({resumen})
+            </option>
+          )
+        })}
+      </optgroup>
+    ))
+  ) : (
+    potreros.map((lote: any) => {
+      const categoriasDAO = ['Vaquillonas +2 años', 'Vaquillonas 1–2 años', 'Vacas', 'Vacas Gordas']
+      const resumen = lote.animalesLote && lote.animalesLote.length > 0
+        ? lote.animalesLote
+            .filter((a: any) => categoriasDAO.includes(a.categoria) && a.cantidad > 0)
+            .map((a: any) => `${a.categoria} ${a.cantidad}`)
+            .join(', ')
+        : 'Sin animales'
+      
+      return (
+        <option key={lote.id} value={lote.id}>
+          {lote.nombre} ({resumen})
+        </option>
+      )
+    })
+  )}
+</select>
           {errorPotrero && (
             <p className="text-red-500 text-xs mt-1">El potrero es obligatorio</p>
           )}
