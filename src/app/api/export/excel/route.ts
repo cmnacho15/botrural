@@ -236,13 +236,24 @@ export async function POST(request: Request) {
         orderBy: { fecha: 'desc' },
       })
 
-      // Obtener nombres de potreros destino
-      const loteDestinoIds = eventos.map(e => e.loteDestinoId).filter(Boolean) as string[]
-      const lotesDestino = await prisma.lote.findMany({
-        where: { id: { in: loteDestinoIds } },
-        select: { id: true, nombre: true },
-      })
-      const lotesDestinoMap = new Map(lotesDestino.map(l => [l.id, l.nombre]))
+      // Obtener nombres de potreros destino CON MÓDULOS
+const loteDestinoIds = eventos.map(e => e.loteDestinoId).filter(Boolean) as string[]
+const lotesDestino = await prisma.lote.findMany({
+  where: { id: { in: loteDestinoIds } },
+  select: { 
+    id: true, 
+    nombre: true,
+    moduloPastoreo: { select: { nombre: true } }
+  },
+})
+const lotesDestinoMap = new Map(
+  lotesDestino.map(l => [
+    l.id, 
+    l.moduloPastoreo?.nombre 
+      ? `${l.nombre} (${l.moduloPastoreo.nombre})`
+      : l.nombre
+  ])
+)
 
       const sheet = workbook.addWorksheet('Cambios de Potrero')
       const columnas = [
@@ -257,10 +268,14 @@ export async function POST(request: Request) {
       sheet.columns = columnas
 
       eventos.forEach((e) => {
-        sheet.addRow({
-          fecha: formatearFecha(e.fecha),
-          origen: e.lote?.nombre || '',
-          destino: e.loteDestinoId ? lotesDestinoMap.get(e.loteDestinoId) || '' : '',
+  const nombreOrigen = e.lote?.moduloPastoreo?.nombre
+    ? `${e.lote.nombre} (${e.lote.moduloPastoreo.nombre})`
+    : e.lote?.nombre || ''
+    
+  sheet.addRow({
+    fecha: formatearFecha(e.fecha),
+    origen: nombreOrigen,
+    destino: e.loteDestinoId ? lotesDestinoMap.get(e.loteDestinoId) || '' : '',
           cantidad: e.cantidad || '',
           categoria: e.categoria || '',
           usuario: e.usuario?.name || '',
