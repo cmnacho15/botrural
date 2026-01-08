@@ -241,8 +241,7 @@ export default function ModalCambioPotrero({ onClose, onSuccess }: ModalCambioPo
   Object.entries(
     potreros
       .reduce((acc, potrero) => {
-        if (!potrero.moduloId) return acc
-        const moduloNombre = potrero.modulo?.nombre || ''
+  const moduloNombre = potrero.modulo?.nombre || 'Sin Módulo'
         if (!acc[moduloNombre]) acc[moduloNombre] = []
         acc[moduloNombre].push(potrero)
         return acc
@@ -283,8 +282,7 @@ export default function ModalCambioPotrero({ onClose, onSuccess }: ModalCambioPo
     potreros
       .filter((p) => p.id !== potreroOrigen)
       .reduce((acc, potrero) => {
-        if (!potrero.moduloId) return acc
-        const moduloNombre = potrero.modulo?.nombre || ''
+  const moduloNombre = potrero.modulo?.nombre || 'Sin Módulo'
         if (!acc[moduloNombre]) acc[moduloNombre] = []
         acc[moduloNombre].push(potrero)
         return acc
