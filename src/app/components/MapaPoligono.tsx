@@ -499,8 +499,9 @@ L.control.layers({ 'Satélite': satelitalLayer, 'Mapa': osmLayer }).addTo(map)
   draw: {
     polygon: {
       allowIntersection: false,
-      showArea: false,  // ✅ DESHABILITAR para evitar confusión
+      showArea: false,
       metric: ['ha', 'm'],
+      title: '⬡ Dibujar',  // 🔥 NUEVO - Cambia el tooltip del botón
             shapeOptions: { color: '#3b82f6', weight: 3 },
             icon: new (L as any).DivIcon({
               iconSize: new (L as any).Point(8, 8),
