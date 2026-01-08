@@ -47,7 +47,7 @@ export async function GET(request: Request) {
   include: {
     cultivos: true,
     animalesLote: true,
-    modulo: true,  // 🔥 AGREGAR ESTA LÍNEA
+    moduloPastoreo: true,  // ✅ ESTE NOMBRE
   },
   orderBy: { nombre: 'asc' },
 })

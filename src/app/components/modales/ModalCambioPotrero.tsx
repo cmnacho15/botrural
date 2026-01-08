@@ -16,8 +16,8 @@ type Modulo = {
 type Lote = {
   id: string
   nombre: string
-  moduloId: string | null
-  modulo?: Modulo | null
+  moduloPastoreoId: string | null
+  moduloPastoreo?: Modulo | null
 }
 
 type AnimalLote = {
@@ -63,9 +63,10 @@ export default function ModalCambioPotrero({ onClose, onSuccess }: ModalCambioPo
   setRodeos(rodeosData)
   
   // Detectar si el campo usa módulos
-  const hayModulos = lotes.some((l: Lote) => l.moduloId !== null)
+  const hayModulos = lotes.some((l: Lote) => l.moduloPastoreoId !== null)
   setTieneModulos(hayModulos)
 })
+
       .catch(() => alert('Error al cargar datos'))
   }, [])
 
@@ -241,7 +242,7 @@ export default function ModalCambioPotrero({ onClose, onSuccess }: ModalCambioPo
   Object.entries(
     potreros
       .reduce((acc, potrero) => {
-  const moduloNombre = potrero.modulo?.nombre || 'Sin Módulo'
+  const moduloNombre = potrero.moduloPastoreo?.nombre || 'Sin Módulo'
         if (!acc[moduloNombre]) acc[moduloNombre] = []
         acc[moduloNombre].push(potrero)
         return acc
@@ -282,7 +283,7 @@ export default function ModalCambioPotrero({ onClose, onSuccess }: ModalCambioPo
     potreros
       .filter((p) => p.id !== potreroOrigen)
       .reduce((acc, potrero) => {
-  const moduloNombre = potrero.modulo?.nombre || 'Sin Módulo'
+  const moduloNombre = potrero.moduloPastoreo?.nombre || 'Sin Módulo'
         if (!acc[moduloNombre]) acc[moduloNombre] = []
         acc[moduloNombre].push(potrero)
         return acc
