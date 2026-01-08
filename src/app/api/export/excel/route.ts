@@ -773,10 +773,14 @@ const lotesDestinoMap = new Map(
       sheet.columns = columnas
 
       eventos.forEach((e) => {
-        sheet.addRow({
-          fecha: formatearFecha(e.fecha),
-          potrero: e.lote?.nombre || '',
-          descripcion: e.descripcion || '',
+  const nombrePotrero = e.lote?.moduloPastoreo?.nombre
+    ? `${e.lote.nombre} (${e.lote.moduloPastoreo.nombre})`
+    : e.lote?.nombre || ''
+    
+  sheet.addRow({
+    fecha: formatearFecha(e.fecha),
+    potrero: nombrePotrero,
+    descripcion: e.descripcion || '',
           usuario: e.usuario?.name || '',
           notas: e.notas || '',
         })
