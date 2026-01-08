@@ -43,13 +43,14 @@ export async function GET(request: Request) {
     }
 
     const lotes = await prisma.lote.findMany({
-      where: { campoId: campoIdAUsar },
-      include: {
-        cultivos: true,
-        animalesLote: true,
-      },
-      orderBy: { nombre: 'asc' },
-    })
+  where: { campoId: campoIdAUsar },
+  include: {
+    cultivos: true,
+    animalesLote: true,
+    modulo: true,  // 🔥 AGREGAR ESTA LÍNEA
+  },
+  orderBy: { nombre: 'asc' },
+})
 
     // Calcular días de pastoreo/descanso
 const lotesConDias = lotes.map((lote: any) => {
