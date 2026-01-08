@@ -9,9 +9,16 @@ type ModalRefertilizacionProps = {
   onSuccess: () => void
 }
 
+type Modulo = {
+  id: string
+  nombre: string
+}
+
 type Lote = {
   id: string
   nombre: string
+  moduloPastoreoId: string | null
+  moduloPastoreo?: Modulo | null
 }
 
 type Cultivo = {
@@ -42,14 +49,20 @@ export default function ModalRefertilizacion({ onClose, onSuccess }: ModalRefert
   const [loadingCultivos, setLoadingCultivos] = useState(false)
   const [errorPotrero, setErrorPotrero] = useState(false)
   const [errorCultivo, setErrorCultivo] = useState(false)
+  const [tieneModulos, setTieneModulos] = useState(false)
 
   // Cargar potreros al montar
   useEffect(() => {
-    fetch('/api/lotes')
-      .then((res) => res.json())
-      .then((data) => setPotreros(data))
-      .catch(() => alert('Error al cargar potreros'))
-  }, [])
+  fetch('/api/lotes')
+    .then((res) => res.json())
+    .then((data) => {
+      setPotreros(data)
+      // Detectar si el campo usa módulos
+      const hayModulos = data.some((l: Lote) => l.moduloPastoreoId !== null)
+      setTieneModulos(hayModulos)
+    })
+    .catch(() => alert('Error al cargar potreros'))
+}, [])
 
   // Cargar cultivos cuando se selecciona potrero
   useEffect(() => {
@@ -223,23 +236,42 @@ export default function ModalRefertilizacion({ onClose, onSuccess }: ModalRefert
             Potrero <span className="text-red-500">*</span>
           </label>
           <select
-            value={potreroSeleccionado}
-            onChange={(e) => {
-              setPotreroSeleccionado(e.target.value)
-              setErrorPotrero(false)
-            }}
-            className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 ${
-              errorPotrero ? 'border-red-500' : 'border-gray-300'
-            }`}
-            required
-          >
-            <option value="">Seleccione un potrero</option>
-            {potreros.map((lote) => (
-              <option key={lote.id} value={lote.id}>
-                {lote.nombre}
-              </option>
-            ))}
-          </select>
+  value={potreroSeleccionado}
+  onChange={(e) => {
+    setPotreroSeleccionado(e.target.value)
+    setErrorPotrero(false)
+  }}
+  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 ${
+    errorPotrero ? 'border-red-500' : 'border-gray-300'
+  }`}
+  required
+>
+  <option value="">Seleccionar potrero...</option>
+  {tieneModulos ? (
+    Object.entries(
+      potreros.reduce((acc, potrero) => {
+        const moduloNombre = potrero.moduloPastoreo?.nombre || 'Sin Módulo'
+        if (!acc[moduloNombre]) acc[moduloNombre] = []
+        acc[moduloNombre].push(potrero)
+        return acc
+      }, {} as Record<string, Lote[]>)
+    ).map(([moduloNombre, lotes]) => (
+      <optgroup key={moduloNombre} label={moduloNombre}>
+        {lotes.map((lote) => (
+          <option key={lote.id} value={lote.id}>
+            {lote.nombre}
+          </option>
+        ))}
+      </optgroup>
+    ))
+  ) : (
+    potreros.map((lote) => (
+      <option key={lote.id} value={lote.id}>
+        {lote.nombre}
+      </option>
+    ))
+  )}
+</select>
           {errorPotrero && (
             <p className="text-red-500 text-xs mt-1">El potrero es requerido</p>
           )}
