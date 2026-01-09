@@ -264,19 +264,21 @@ const response = await fetch('/api/eventos', {
           </div>
         )}
 
-        {/* CARAVANA */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Caravana (opcional)
-          </label>
-          <input
-            type="text"
-            value={caravana}
-            onChange={(e) => setCaravana(e.target.value)}
-            placeholder="Ej: 1234"
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
+        {/* CARAVANA - Solo para bovinos */}
+        {categoriaSeleccionada && animalesDisponibles.find(a => a.categoria === categoriaSeleccionada) && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Caravana (opcional)
+            </label>
+            <input
+              type="text"
+              value={caravana}
+              onChange={(e) => setCaravana(e.target.value)}
+              placeholder="Ej: 1234"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        )}
 
         {/* NOTAS */}
         <div>
