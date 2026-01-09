@@ -200,11 +200,19 @@ async function registrarEmpleadoBot(
     },
   })
 
-  await prisma.pendingRegistration
-    .delete({
-      where: { telefono },
-    })
-    .catch(() => {})
+  // Limpiar registros pendientes
+await prisma.pendingRegistration
+  .delete({
+    where: { telefono },
+  })
+  .catch(() => {})
+
+// 🔥 AGREGAR ESTO - Limpiar confirmaciones pendientes
+await prisma.pendingConfirmation
+  .delete({
+    where: { telefono },
+  })
+  .catch(() => {})
 
   return {
     usuario: nuevoUsuario,
