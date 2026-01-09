@@ -170,6 +170,7 @@ export async function POST(request: Request) {
       aplicarEstiloEncabezado(sheet.getRow(1))
       aplicarEstiloDatos(sheet, 2)
       autoAjustarColumnas(sheet, columnas)
+      sheet.autoFilter = { from: 'A1', to: 'G1' }
     }
 
     // ========================================
@@ -230,6 +231,8 @@ export async function POST(request: Request) {
       aplicarEstiloEncabezado(sheet.getRow(1))
       aplicarEstiloDatos(sheet, 2)
       autoAjustarColumnas(sheet, columnas)
+      sheet.autoFilter = { from: 'A1', to: 'G1' }
+
     }
 
     // ========================================
@@ -295,6 +298,7 @@ export async function POST(request: Request) {
       aplicarEstiloEncabezado(sheet.getRow(1))
       aplicarEstiloDatos(sheet, 2)
       autoAjustarColumnas(sheet, columnas)
+      sheet.autoFilter = { from: 'A1', to: 'G1' }
     }
 
     // ========================================
@@ -362,6 +366,7 @@ export async function POST(request: Request) {
       aplicarEstiloEncabezado(sheet.getRow(1))
       aplicarEstiloDatos(sheet, 2)
       autoAjustarColumnas(sheet, columnas)
+      sheet.autoFilter = { from: 'A1', to: 'I1' }
     }
     
 
@@ -492,6 +497,7 @@ export async function POST(request: Request) {
       aplicarEstiloEncabezado(sheet.getRow(1))
       aplicarEstiloDatos(sheet, 2)
       autoAjustarColumnas(sheet, columnas)
+      sheet.autoFilter = { from: 'A1', to: 'N1' }
     }
 
     // ========================================
@@ -538,6 +544,7 @@ export async function POST(request: Request) {
       aplicarEstiloEncabezado(sheet.getRow(1))
       aplicarEstiloDatos(sheet, 2)
       autoAjustarColumnas(sheet, columnas)
+      sheet.autoFilter = { from: 'A1', to: 'G1' }
     }
 
     // ========================================
@@ -580,6 +587,7 @@ export async function POST(request: Request) {
       aplicarEstiloEncabezado(sheet.getRow(1))
       aplicarEstiloDatos(sheet, 2)
       autoAjustarColumnas(sheet, columnas)
+      sheet.autoFilter = { from: 'A1', to: 'E1' }
     }
 
     // ========================================
@@ -622,6 +630,7 @@ export async function POST(request: Request) {
       aplicarEstiloEncabezado(sheet.getRow(1))
       aplicarEstiloDatos(sheet, 2)
       autoAjustarColumnas(sheet, columnas)
+      sheet.autoFilter = { from: 'A1', to: 'E1' }
     }
 
     // ========================================
@@ -664,6 +673,7 @@ export async function POST(request: Request) {
       aplicarEstiloEncabezado(sheet.getRow(1))
       aplicarEstiloDatos(sheet, 2)
       autoAjustarColumnas(sheet, columnas)
+      sheet.autoFilter = { from: 'A1', to: 'E1' }
     }
 
     // ========================================
@@ -708,6 +718,7 @@ export async function POST(request: Request) {
       aplicarEstiloEncabezado(sheet.getRow(1))
       aplicarEstiloDatos(sheet, 2)
       autoAjustarColumnas(sheet, columnas)
+      sheet.autoFilter = { from: 'A1', to: 'F1' }
     }
 
     // ========================================
@@ -750,6 +761,7 @@ export async function POST(request: Request) {
       aplicarEstiloEncabezado(sheet.getRow(1))
       aplicarEstiloDatos(sheet, 2)
       autoAjustarColumnas(sheet, columnas)
+      sheet.autoFilter = { from: 'A1', to: 'E1' }
     }
 
     // ========================================
@@ -792,6 +804,7 @@ export async function POST(request: Request) {
       aplicarEstiloEncabezado(sheet.getRow(1))
       aplicarEstiloDatos(sheet, 2)
       autoAjustarColumnas(sheet, columnas)
+      sheet.autoFilter = { from: 'A1', to: 'E1' }
     }
 
     // ========================================
@@ -834,6 +847,7 @@ export async function POST(request: Request) {
       aplicarEstiloEncabezado(sheet.getRow(1))
       aplicarEstiloDatos(sheet, 2)
       autoAjustarColumnas(sheet, columnas)
+      sheet.autoFilter = { from: 'A1', to: 'E1' }
     }
 
     // ========================================
@@ -871,6 +885,7 @@ export async function POST(request: Request) {
       aplicarEstiloEncabezado(sheet.getRow(1))
       aplicarEstiloDatos(sheet, 2)
       autoAjustarColumnas(sheet, columnas)
+      sheet.autoFilter = { from: 'A1', to: 'E1' }
     }
 
     // ========================================
@@ -906,6 +921,7 @@ export async function POST(request: Request) {
       aplicarEstiloEncabezado(sheet.getRow(1))
       aplicarEstiloDatos(sheet, 2)
       autoAjustarColumnas(sheet, columnas)
+      sheet.autoFilter = { from: 'A1', to: 'D1' }
     }
 
     // ========================================
@@ -955,6 +971,7 @@ export async function POST(request: Request) {
       aplicarEstiloEncabezado(sheet.getRow(1))
       aplicarEstiloDatos(sheet, 2)
       autoAjustarColumnas(sheet, columnas)
+      sheet.autoFilter = { from: 'A1', to: 'G1' }
     }
 
     // ========================================
@@ -1015,6 +1032,7 @@ export async function POST(request: Request) {
       aplicarEstiloEncabezado(sheet.getRow(1))
       aplicarEstiloDatos(sheet, 2)
       autoAjustarColumnas(sheet, columnas)
+      sheet.autoFilter = { from: 'A1', to: 'M1' }
     }
 
     // ========================================
@@ -1085,6 +1103,7 @@ export async function POST(request: Request) {
       aplicarEstiloEncabezado(sheet.getRow(1))
       aplicarEstiloDatos(sheet, 2)
       autoAjustarColumnas(sheet, columnas)
+      sheet.autoFilter = { from: 'A1', to: 'L1' }
     }
 
     // ========================================
