@@ -166,17 +166,20 @@ const result = await prisma.$transaction(async (tx) => {
     data: userData,
   })
 
-  // 🆕 Crear registro en UsuarioCampo
-  await tx.usuarioCampo.create({
-    data: {
+  // 🆕 Obtener lista de campos donde registrar (de campoIds JSON o campoId único)
+  const campoIds = (invitacion.campoIds as string[]) || [invitacion.campoId]
+
+  // 🆕 Crear UsuarioCampo para CADA campo seleccionado
+  await tx.usuarioCampo.createMany({
+    data: campoIds.map((campoId, index) => ({
       userId: user.id,
-      campoId: invitacion.campoId,
+      campoId: campoId,
       rol: userData.role,
-      esActivo: true,
-    },
+      esActivo: index === 0, // El primer campo es el activo
+    })),
   })
 
-  // 🆕 Obtener el grupo del campo y crear UsuarioGrupo
+  // 🆕 Obtener el grupo del campo principal y crear UsuarioGrupo
   const campo = await tx.campo.findUnique({
     where: { id: invitacion.campoId },
     select: { grupoId: true }
