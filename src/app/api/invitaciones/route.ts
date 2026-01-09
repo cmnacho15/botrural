@@ -88,7 +88,7 @@ export async function POST(req: Request) {
       )
     }
 
-    const { role } = await req.json()
+    const { role, campoIds } = await req.json()
 
     // Validar tipo de invitación
     if (!["COLABORADOR", "EMPLEADO", "CONTADOR"].includes(role)) {
@@ -104,15 +104,16 @@ export async function POST(req: Request) {
     expiresAt.setDate(expiresAt.getDate() + 7) // 7 días
 
     // Crear invitación
-    const invitacion = await prisma.invitation.create({
-      data: {
-        token,
-        role,
-        campoId: usuario.campoId,
-        createdById: usuario.id,
-        expiresAt,
-      },
-    })
+const invitacion = await prisma.invitation.create({
+  data: {
+    token,
+    role,
+    campoId: usuario.campoId,
+    campoIds: campoIds && campoIds.length > 0 ? campoIds : [usuario.campoId], // 👈 NUEVO
+    createdById: usuario.id,
+    expiresAt,
+  },
+})
 
     // 🔗 Generar links según tipo
     const botNumber = process.env.WHATSAPP_BOT_NUMBER || "59899465242"

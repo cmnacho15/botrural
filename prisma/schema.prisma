@@ -376,6 +376,7 @@ model Invitation {
   token       String         @unique @default(cuid())
   role        InvitationRole // ✅ CAMBIADO a enum específico
   campoId     String
+  campoIds    Json?          // 👈 AGREGAR ESTA LÍNEA
   createdById String
   usedById    String?
   expiresAt   DateTime       @db.Timestamptz(6)

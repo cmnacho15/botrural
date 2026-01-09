@@ -1,6 +1,7 @@
+//src/app/components/modales/ModalInvitarUsuario.tsx
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { X, Users, Bot, Calculator, Copy, Check } from "lucide-react"
 
 interface ModalInvitarUsuarioProps {
@@ -11,29 +12,99 @@ interface ModalInvitarUsuarioProps {
 
 type TipoInvitacion = "COLABORADOR" | "EMPLEADO" | "CONTADOR"
 
+type Campo = {
+  id: string
+  nombre: string
+}
+
 export default function ModalInvitarUsuario({
   isOpen,
   onClose,
   onSuccess,
 }: ModalInvitarUsuarioProps) {
-  const [step, setStep] = useState<"seleccionar" | "mostrar-link">("seleccionar")
+  const [step, setStep] = useState<"seleccionar" | "campos" | "mostrar-link">("seleccionar")
   const [tipoSeleccionado, setTipoSeleccionado] = useState<TipoInvitacion | null>(null)
   const [loading, setLoading] = useState(false)
   const [linkGenerado, setLinkGenerado] = useState("")
   const [linkType, setLinkType] = useState<"whatsapp" | "web">("whatsapp")
   const [copiado, setCopiado] = useState(false)
+  
+  // 🆕 Estados para campos del grupo
+  const [camposGrupo, setCamposGrupo] = useState<Campo[]>([])
+  const [camposSeleccionados, setCamposSeleccionados] = useState<string[]>([])
+  const [loadingCampos, setLoadingCampos] = useState(false)
 
   if (!isOpen) return null
 
   const handleSeleccionarTipo = async (tipo: TipoInvitacion) => {
     setTipoSeleccionado(tipo)
+    setLoadingCampos(true)
+
+    try {
+      // 🆕 Cargar campos del grupo
+      const response = await fetch("/api/campos-grupo")
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || "Error cargando campos")
+      }
+
+      setCamposGrupo(data.campos || [])
+      
+      // Por defecto, marcar todos los campos
+      const todosLosIds = data.campos.map((c: Campo) => c.id)
+      setCamposSeleccionados(todosLosIds)
+      
+      // Si solo hay 1 campo, ir directo a generar link
+      if (data.campos.length === 1) {
+        await generarInvitacion(tipo, todosLosIds)
+      } else {
+        setStep("campos")
+      }
+    } catch (error: any) {
+      alert(error.message || "Error al cargar campos")
+      setTipoSeleccionado(null)
+    } finally {
+      setLoadingCampos(false)
+    }
+  }
+
+  const toggleCampo = (campoId: string) => {
+    if (camposSeleccionados.includes(campoId)) {
+      // Desmarcar
+      setCamposSeleccionados(camposSeleccionados.filter(id => id !== campoId))
+    } else {
+      // Marcar
+      setCamposSeleccionados([...camposSeleccionados, campoId])
+    }
+  }
+
+  const toggleTodos = () => {
+    if (camposSeleccionados.length === camposGrupo.length) {
+      // Desmarcar todos
+      setCamposSeleccionados([])
+    } else {
+      // Marcar todos
+      setCamposSeleccionados(camposGrupo.map(c => c.id))
+    }
+  }
+
+  const generarInvitacion = async (tipo: TipoInvitacion, campoIds: string[]) => {
+    if (campoIds.length === 0) {
+      alert("Debes seleccionar al menos un campo")
+      return
+    }
+
     setLoading(true)
 
     try {
       const response = await fetch("/api/invitaciones", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role: tipo }),
+        body: JSON.stringify({ 
+          role: tipo,
+          campoIds: campoIds 
+        }),
       })
 
       const data = await response.json()
@@ -42,12 +113,9 @@ export default function ModalInvitarUsuario({
         throw new Error(data.error || "Error creando invitación")
       }
 
-      // ✅ AGREGAR ESTOS CONSOLE.LOGS
-console.log("📦 Data recibida:", data)
-console.log("🔗 Link:", data.link)
-console.log("🔗 Tipo:", data.linkType)
-
-
+      console.log("📦 Data recibida:", data)
+      console.log("🔗 Link:", data.link)
+      console.log("🔗 Tipo:", data.linkType)
 
       setLinkGenerado(data.link)
       setLinkType(data.linkType)
@@ -58,6 +126,11 @@ console.log("🔗 Tipo:", data.linkType)
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleContinuar = () => {
+    if (!tipoSeleccionado) return
+    generarInvitacion(tipoSeleccionado, camposSeleccionados)
   }
 
   const handleCopiar = async () => {
@@ -75,6 +148,8 @@ console.log("🔗 Tipo:", data.linkType)
     setTipoSeleccionado(null)
     setLinkGenerado("")
     setCopiado(false)
+    setCamposGrupo([])
+    setCamposSeleccionados([])
     onClose()
     onSuccess()
   }
@@ -85,7 +160,9 @@ console.log("🔗 Tipo:", data.linkType)
         {/* Header */}
         <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between">
           <h2 className="text-2xl font-bold text-gray-900">
-            {step === "seleccionar" ? "Invitar nuevo usuario" : "Link de invitación generado"}
+            {step === "seleccionar" && "Invitar nuevo usuario"}
+            {step === "campos" && "Seleccionar campos"}
+            {step === "mostrar-link" && "Link de invitación generado"}
           </h2>
           <button
             onClick={handleCerrar}
@@ -97,6 +174,7 @@ console.log("🔗 Tipo:", data.linkType)
 
         {/* Content */}
         <div className="p-6">
+          {/* PASO 1: Seleccionar tipo */}
           {step === "seleccionar" && (
             <>
               <p className="text-gray-600 mb-6">
@@ -107,7 +185,7 @@ console.log("🔗 Tipo:", data.linkType)
                 {/* Tarjeta COLABORADOR */}
                 <button
                   onClick={() => handleSeleccionarTipo("COLABORADOR")}
-                  disabled={loading}
+                  disabled={loading || loadingCampos}
                   className="group relative bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200 rounded-xl p-6 text-left hover:shadow-lg hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <div className="flex items-center gap-3 mb-4">
@@ -146,7 +224,7 @@ console.log("🔗 Tipo:", data.linkType)
                 {/* Tarjeta EMPLEADO */}
                 <button
                   onClick={() => handleSeleccionarTipo("EMPLEADO")}
-                  disabled={loading}
+                  disabled={loading || loadingCampos}
                   className="group relative bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-200 rounded-xl p-6 text-left hover:shadow-lg hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <div className="flex items-center gap-3 mb-4">
@@ -185,7 +263,7 @@ console.log("🔗 Tipo:", data.linkType)
                 {/* Tarjeta CONTADOR */}
                 <button
                   onClick={() => handleSeleccionarTipo("CONTADOR")}
-                  disabled={loading}
+                  disabled={loading || loadingCampos}
                   className="group relative bg-gradient-to-br from-purple-50 to-purple-100 border-2 border-purple-200 rounded-xl p-6 text-left hover:shadow-lg hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <div className="flex items-center gap-3 mb-4">
@@ -222,15 +300,92 @@ console.log("🔗 Tipo:", data.linkType)
                 </button>
               </div>
 
-              {loading && (
+              {loadingCampos && (
                 <div className="mt-6 text-center">
                   <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-gray-300 border-t-blue-600"></div>
-                  <p className="mt-2 text-gray-600">Generando invitación...</p>
+                  <p className="mt-2 text-gray-600">Cargando campos...</p>
                 </div>
               )}
             </>
           )}
 
+          {/* PASO 2: Seleccionar campos */}
+          {step === "campos" && (
+            <div className="space-y-6">
+              <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
+                <p className="text-sm text-blue-800">
+                  Selecciona en qué campos del grupo trabajará este usuario:
+                </p>
+              </div>
+
+              {/* Botón marcar/desmarcar todos */}
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Campos disponibles ({camposSeleccionados.length}/{camposGrupo.length} seleccionados)
+                </h3>
+                <button
+                  onClick={toggleTodos}
+                  className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                >
+                  {camposSeleccionados.length === camposGrupo.length ? "Desmarcar todos" : "Marcar todos"}
+                </button>
+              </div>
+
+              {/* Lista de campos con checkboxes */}
+              <div className="space-y-3">
+                {camposGrupo.map((campo) => (
+                  <label
+                    key={campo.id}
+                    className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                      camposSeleccionados.includes(campo.id)
+                        ? "border-blue-500 bg-blue-50"
+                        : "border-gray-200 hover:border-gray-300"
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={camposSeleccionados.includes(campo.id)}
+                      onChange={() => toggleCampo(campo.id)}
+                      className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                    />
+                    <span className="flex-1 text-gray-900 font-medium">{campo.nombre}</span>
+                  </label>
+                ))}
+              </div>
+
+              {/* Advertencia si no seleccionó ninguno */}
+              {camposSeleccionados.length === 0 && (
+                <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded">
+                  <p className="text-sm text-yellow-800">
+                    ⚠️ Debes seleccionar al menos un campo
+                  </p>
+                </div>
+              )}
+
+              {/* Botones */}
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => {
+                    setStep("seleccionar")
+                    setTipoSeleccionado(null)
+                    setCamposSeleccionados([])
+                  }}
+                  className="flex-1 px-4 py-3 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition-colors"
+                >
+                  ← Atrás
+                </button>
+                <button
+                  onClick={handleContinuar}
+                  disabled={loading || camposSeleccionados.length === 0}
+                  className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {loading ? "Generando..." : "Generar invitación →"}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* PASO 3: Mostrar link */}
           {step === "mostrar-link" && (
             <div className="space-y-6">
               {/* Tipo de invitación */}
@@ -240,6 +395,9 @@ console.log("🔗 Tipo:", data.linkType)
                   {tipoSeleccionado === "COLABORADOR" && "👤 Colaborador"}
                   {tipoSeleccionado === "EMPLEADO" && "🤖 Empleado (solo bot)"}
                   {tipoSeleccionado === "CONTADOR" && "🧮 Contador"}
+                </p>
+                <p className="text-sm text-gray-600 mt-2">
+                  Campos: {camposGrupo.filter(c => camposSeleccionados.includes(c.id)).map(c => c.nombre).join(", ")}
                 </p>
               </div>
 
@@ -321,6 +479,7 @@ console.log("🔗 Tipo:", data.linkType)
                     setStep("seleccionar")
                     setTipoSeleccionado(null)
                     setLinkGenerado("")
+                    setCamposSeleccionados([])
                   }}
                   className="flex-1 px-4 py-3 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition-colors"
                 >
