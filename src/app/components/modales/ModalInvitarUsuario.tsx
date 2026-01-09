@@ -49,10 +49,10 @@ export default function ModalInvitarUsuario({
         throw new Error(data.error || "Error cargando campos")
       }
 
-      setCamposGrupo(data.campos || [])
-      
-      // Por defecto, marcar todos los campos
-      const todosLosIds = data.campos.map((c: Campo) => c.id)
+      setCamposGrupo(data.camposDelGrupo || [])
+
+// Por defecto, marcar todos los campos
+const todosLosIds = data.camposDelGrupo.map((c: Campo) => c.id)
       setCamposSeleccionados(todosLosIds)
       
       // Si solo hay 1 campo, ir directo a generar link
