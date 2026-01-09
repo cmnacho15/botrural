@@ -77,7 +77,8 @@ export async function POST(request: Request) {
     const from = message.from
     const messageType = message.type
 
-    console.log(`Mensaje recibido: ${messageType} de ${from}`)
+   console.log(`Mensaje recibido: ${messageType} de ${from}`)
+console.log("📦 Mensaje completo:", JSON.stringify(message, null, 2))
 
     // ==========================================
     // 1. PROCESAR IMÁGENES (facturas)
@@ -215,7 +216,7 @@ export async function POST(request: Request) {
         await handleSeleccionPotreroModulo(from, messageText, data)
         return NextResponse.json({ status: "modulo selection processed" })
       }
-      
+
       // Si está eligiendo grupo, procesar número
       if (data.tipo === "CAMBIAR_GRUPO") {
         const numero = parseInt(messageText.trim())
