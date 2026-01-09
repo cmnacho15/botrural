@@ -171,7 +171,7 @@ async function registrarEmpleadoBot(
 ) {
   const invitation = await prisma.invitation.findUnique({
     where: { token },
-    include: { campo: true },
+    include: { campo: { select: { id: true, nombre: true, grupoId: true } } },
   })
 
   if (!invitation) {
@@ -181,16 +181,41 @@ async function registrarEmpleadoBot(
   const timestamp = Date.now()
   const email = `empleado_${timestamp}@botrural.temp`
 
+  // 🆕 Obtener lista de campos donde registrar
+  const campoIds = (invitation.campoIds as string[]) || [invitation.campoId]
+
   const nuevoUsuario = await prisma.user.create({
     data: {
       name: nombreCompleto,
       email,
       telefono,
       role: "EMPLEADO",
-      campoId: invitation.campoId,
+      campoId: invitation.campoId, // Campo principal (primer campo seleccionado)
       accesoFinanzas: false,
     },
   })
+
+  // 🆕 Crear UsuarioCampo para CADA campo seleccionado
+  await prisma.usuarioCampo.createMany({
+    data: campoIds.map((campoId, index) => ({
+      userId: nuevoUsuario.id,
+      campoId: campoId,
+      rol: "EMPLEADO",
+      esActivo: index === 0, // El primer campo es el activo
+    })),
+  })
+
+  // 🆕 Si hay grupo, crear UsuarioGrupo
+  if (invitation.campo.grupoId) {
+    await prisma.usuarioGrupo.create({
+      data: {
+        userId: nuevoUsuario.id,
+        grupoId: invitation.campo.grupoId,
+        rol: "EMPLEADO",
+        esActivo: true,
+      },
+    })
+  }
 
   await prisma.invitation.update({
     where: { id: invitation.id },
@@ -200,19 +225,18 @@ async function registrarEmpleadoBot(
     },
   })
 
-  // Limpiar registros pendientes
-await prisma.pendingRegistration
-  .delete({
-    where: { telefono },
-  })
-  .catch(() => {})
+  await prisma.pendingRegistration
+    .delete({
+      where: { telefono },
+    })
+    .catch(() => {})
 
-// 🔥 AGREGAR ESTO - Limpiar confirmaciones pendientes
-await prisma.pendingConfirmation
-  .delete({
-    where: { telefono },
-  })
-  .catch(() => {})
+  // Limpiar confirmaciones pendientes
+  await prisma.pendingConfirmation
+    .delete({
+      where: { telefono },
+    })
+    .catch(() => {})
 
   return {
     usuario: nuevoUsuario,
