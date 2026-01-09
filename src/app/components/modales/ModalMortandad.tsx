@@ -40,6 +40,17 @@ export default function ModalMortandad({ onClose, onSuccess }: ModalMortandadPro
   const [loading, setLoading] = useState(false)
   const [loadingAnimales, setLoadingAnimales] = useState(false)
 
+  // 🔥 AGREGAR ESTO 👇
+  const esBovino = (categoria: string) => {
+    const categoriaLower = categoria.toLowerCase()
+    return categoriaLower.includes('vaca') || 
+           categoriaLower.includes('toro') || 
+           categoriaLower.includes('novillo') || 
+           categoriaLower.includes('ternero') ||
+           categoriaLower.includes('vaquillona')
+  }
+  // 🔥 HASTA AQUÍ
+
   // Cargar potreros al montar
   useEffect(() => {
   fetch('/api/lotes')
@@ -265,7 +276,7 @@ const response = await fetch('/api/eventos', {
         )}
 
         {/* CARAVANA - Solo para bovinos */}
-        {categoriaSeleccionada && animalesDisponibles.find(a => a.categoria === categoriaSeleccionada) && (
+{categoriaSeleccionada && esBovino(categoriaSeleccionada) && (
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Caravana (opcional)
