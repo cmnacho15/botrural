@@ -277,6 +277,7 @@ model Evento {
   cantidadVendida Int?
   loteDestinoId   String?
   notas           String?
+  caravana    String?
   intensidad      String?
   
   rodeoId         String?

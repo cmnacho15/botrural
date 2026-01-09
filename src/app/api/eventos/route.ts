@@ -162,6 +162,7 @@ export async function POST(request: Request) {
       especie,
       especies, // <- AGREGA ESTA LÍNEA
       rodeoId,
+      caravana,
       // 🏢 NUEVO: Gastos compartidos
       esGastoGrupo,
       grupoId,
@@ -547,6 +548,13 @@ console.log('🔥 ESPECIE RECIBIDA:', especie)     // <- AGREGA ESTO
       // MORTANDAD
       // ======================================================================
       case "MORTANDAD":
+        await prisma.evento.update({
+          where: { id: evento.id },
+          data: {
+            caravana: caravana || null,
+          },
+        });
+
         if (loteId && cantidad && categoria) {
           const animal = await prisma.animalLote.findFirst({
             where: { loteId, categoria, lote: { campoId: usuario.campoId } },

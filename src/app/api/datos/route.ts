@@ -199,6 +199,7 @@ eventos
       // ✅ Campos directos (no en detalles)
       cantidad: evento.cantidad,
       monto: evento.monto,
+      caravana: evento.caravana || null,
       notas: evento.notas && typeof evento.notas === 'string' && evento.notas.trim() !== '' ? evento.notas : null,
     })
   })
