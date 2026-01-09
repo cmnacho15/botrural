@@ -56,7 +56,7 @@ const todosLosIds = data.camposDelGrupo.map((c: Campo) => c.id)
       setCamposSeleccionados(todosLosIds)
       
       // Si solo hay 1 campo, ir directo a generar link
-      if (data.campos.length === 1) {
+      if (data.camposDelGrupo.length === 1) {
         await generarInvitacion(tipo, todosLosIds)
       } else {
         setStep("campos")

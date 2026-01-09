@@ -109,7 +109,7 @@ const invitacion = await prisma.invitation.create({
     token,
     role,
     campoId: usuario.campoId,
-    campoIds: campoIds && campoIds.length > 0 ? campoIds : [usuario.campoId], // 👈 NUEVO
+    campoIds: Array.isArray(campoIds) && campoIds.length > 0 ? campoIds : [usuario.campoId],
     createdById: usuario.id,
     expiresAt,
   },
