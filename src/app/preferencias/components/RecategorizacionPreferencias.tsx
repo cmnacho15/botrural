@@ -5,11 +5,6 @@ import ModalDividirBovinos from '@/app/components/modales/ModalDividirBovinos'
 import ModalDividirOvinosSexado from '@/app/components/modales/ModalDividirOvinosSexado'
 import ModalDividirOvinosCastracion from '@/app/components/modales/ModalDividirOvinosCastracion'
 
-type ConfigRecategorizacion = {
-  bovinosActivo: boolean
-  ovinosActivo: boolean
-}
-
 type PendientesPotrero = {
   loteId: string
   nombre: string
@@ -33,9 +28,20 @@ type Pendientes = {
 }
 
 export default function RecategorizacionPreferencias() {
-  const [config, setConfig] = useState<ConfigRecategorizacion>({
+  const [config, setConfig] = useState<{
+    bovinosActivo: boolean
+    ovinosActivo: boolean
+    bovinosDia: number
+    bovinosMes: number
+    ovinosDia: number
+    ovinosMes: number
+  }>({
     bovinosActivo: false,
     ovinosActivo: false,
+    bovinosDia: 1,
+    bovinosMes: 1,
+    ovinosDia: 1,
+    ovinosMes: 1,
   })
   const [pendientes, setPendientes] = useState<Pendientes>({
     ternerosNacidos: { total: 0, potreros: [] },
@@ -212,10 +218,43 @@ export default function RecategorizacionPreferencias() {
               </div>
 
               <div className="bg-gray-50 rounded-lg p-4 mb-4">
-                <p className="text-sm text-gray-700 mb-2">
-                  <strong>📅 Fecha de cambio:</strong> 1ro de Enero
+                <p className="text-sm font-medium text-gray-700 mb-3">
+                  📅 Fecha de cambio automático:
                 </p>
-                <p className="text-xs text-gray-500">(no editable)</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">Día</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="31"
+                      value={config.bovinosDia}
+                      onChange={(e) => setConfig({ ...config, bovinosDia: parseInt(e.target.value) || 1 })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">Mes</label>
+                    <select
+                      value={config.bovinosMes}
+                      onChange={(e) => setConfig({ ...config, bovinosMes: parseInt(e.target.value) })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+                    >
+                      <option value="1">Enero</option>
+                      <option value="2">Febrero</option>
+                      <option value="3">Marzo</option>
+                      <option value="4">Abril</option>
+                      <option value="5">Mayo</option>
+                      <option value="6">Junio</option>
+                      <option value="7">Julio</option>
+                      <option value="8">Agosto</option>
+                      <option value="9">Septiembre</option>
+                      <option value="10">Octubre</option>
+                      <option value="11">Noviembre</option>
+                      <option value="12">Diciembre</option>
+                    </select>
+                  </div>
+                </div>
               </div>
 
               <div className="space-y-3">
@@ -267,10 +306,43 @@ export default function RecategorizacionPreferencias() {
               </div>
 
               <div className="bg-gray-50 rounded-lg p-4 mb-4">
-                <p className="text-sm text-gray-700 mb-2">
-                  <strong>📅 Fecha de cambio:</strong> 1ro de Enero
+                <p className="text-sm font-medium text-gray-700 mb-3">
+                  📅 Fecha de cambio automático:
                 </p>
-                <p className="text-xs text-gray-500">(no editable)</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">Día</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="31"
+                      value={config.ovinosDia}
+                      onChange={(e) => setConfig({ ...config, ovinosDia: parseInt(e.target.value) || 1 })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">Mes</label>
+                    <select
+                      value={config.ovinosMes}
+                      onChange={(e) => setConfig({ ...config, ovinosMes: parseInt(e.target.value) })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+                    >
+                      <option value="1">Enero</option>
+                      <option value="2">Febrero</option>
+                      <option value="3">Marzo</option>
+                      <option value="4">Abril</option>
+                      <option value="5">Mayo</option>
+                      <option value="6">Junio</option>
+                      <option value="7">Julio</option>
+                      <option value="8">Agosto</option>
+                      <option value="9">Septiembre</option>
+                      <option value="10">Octubre</option>
+                      <option value="11">Noviembre</option>
+                      <option value="12">Diciembre</option>
+                    </select>
+                  </div>
+                </div>
               </div>
 
               <div className="space-y-3">
