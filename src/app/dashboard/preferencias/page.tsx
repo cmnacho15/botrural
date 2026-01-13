@@ -7,7 +7,7 @@ import { useTipoCampo } from '@/app/contexts/TipoCampoContext'
 import GastosPreferencias from '@/app/preferencias/components/GastosPreferencias'
 import ModulosPreferencias from '@/app/preferencias/components/ModulosPreferencias'
 import EquivalenciasUGPreferencias from '@/app/preferencias/components/EquivalenciasUGPreferencias'
-import RecategorizacionPreferencias from '@/app/preferencias/components/RecategorizacionPreferencias'
+import RecategorizacionWrapper from '@/app/preferencias/components/RecategorizacionWrapper'
 
 type TipoCultivo = {
   id: string
@@ -1331,11 +1331,11 @@ async function handleEliminarFirma(id: string) {
           )}
 
           {/* CONTENIDO TAB RECATEGORIZACIÓN */}
-          {activeTab === 'recategorizacion' && (
-            <div className="p-6">
-              <RecategorizacionPreferencias />
-            </div>
-          )}
+{activeTab === 'recategorizacion' && (
+  <div className="p-6">
+    <RecategorizacionWrapper />
+  </div>
+)}
 
           {/* CONTENIDO TAB RODEOS */}
           {activeTab === 'rodeos' && (

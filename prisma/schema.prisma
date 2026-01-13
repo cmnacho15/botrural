@@ -281,6 +281,8 @@ model Evento {
   notas           String?
   caravana    String?
   intensidad      String?
+
+  metadata        Json?       // ← AGREGAR ESTA LÍNEA
   
   rodeoId         String?
   
@@ -453,6 +455,7 @@ enum TipoEvento {
   TACTO
   TRATAMIENTO
   RECATEGORIZACION
+  RECATEGORIZACION_MASIVA  // ← AGREGAR ESTA LÍNEA
   SIEMBRA
   PULVERIZACION
   REFERTILIZACION

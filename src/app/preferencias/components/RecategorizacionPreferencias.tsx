@@ -118,15 +118,8 @@ export default function RecategorizacionPreferencias() {
   }
 
   return (
-    <>
-      <div className="space-y-8">
-        {/* HEADER */}
-        <div>
-          <h2 className="text-lg font-semibold text-gray-900">Recategorización Automática</h2>
-          <p className="text-sm text-gray-500">
-            Configura el cambio automático de categorías de animales cada 1ro de enero
-          </p>
-        </div>
+  <>
+    <div className="space-y-8">
 
         {/* CATEGORÍAS PENDIENTES */}
         {(pendientes.ternerosNacidos.total > 0 || 
