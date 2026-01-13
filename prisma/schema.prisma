@@ -1020,7 +1020,12 @@ model ConfigRecategorizacion {
   campoId       String   @unique
   
   bovinosActivo Boolean  @default(false)
+  bovinosDia    Int      @default(1)
+  bovinosMes    Int      @default(1)
+  
   ovinosActivo  Boolean  @default(false)
+  ovinosDia     Int      @default(1)
+  ovinosMes     Int      @default(1)
   
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt

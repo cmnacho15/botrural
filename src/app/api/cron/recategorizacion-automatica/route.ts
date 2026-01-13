@@ -22,11 +22,6 @@ export async function POST(req: Request) {
     const dia = hoy.getDate();
     const mes = hoy.getMonth() + 1;
 
-    // Solo ejecutar el 1ro de enero
-    if (dia !== 1 || mes !== 1) {
-      return NextResponse.json({ message: "No es la fecha de recategorización" });
-    }
-
     // Buscar campos con recategorización activa
     const configs = await prisma.configRecategorizacion.findMany({
       where: {
@@ -37,11 +32,41 @@ export async function POST(req: Request) {
       },
     });
 
+    // Filtrar solo los que corresponden a HOY
+    const configsParaHoy = configs.filter(config => {
+      const esFechaBovinos = config.bovinosActivo && config.bovinosDia === dia && config.bovinosMes === mes;
+      const esFechaOvinos = config.ovinosActivo && config.ovinosDia === dia && config.ovinosMes === mes;
+      return esFechaBovinos || esFechaOvinos;
+    });
+
+    if (configsParaHoy.length === 0) {
+      return NextResponse.json({ message: "No hay recategorizaciones para hoy" });
+    }
+
     let totalRecategorizados = 0;
 
-    for (const config of configs) {
-      // Procesar bovinos
-      if (config.bovinosActivo) {
+    for (const config of configsParaHoy) {
+      // Verificar si HOY es día de bovinos o ovinos
+      const esDiaBovinos = config.bovinosActivo && config.bovinosDia === dia && config.bovinosMes === mes;
+      const esDiaOvinos = config.ovinosActivo && config.ovinosDia === dia && config.ovinosMes === mes;
+      
+      // Obtener fecha de corte (inicio del año actual para este campo)
+      const anioActual = hoy.getFullYear();
+      let fechaCorte: Date;
+      
+      if (esDiaBovinos) {
+        fechaCorte = new Date(anioActual, config.bovinosMes - 1, config.bovinosDia);
+      } else {
+        fechaCorte = new Date(anioActual, config.ovinosMes - 1, config.ovinosDia);
+      }
+      
+      // Si ya pasó la fecha de corte este año, usar la del año pasado
+      if (fechaCorte > hoy) {
+        fechaCorte = new Date(anioActual - 1, fechaCorte.getMonth(), fechaCorte.getDate());
+      }
+
+      // Procesar bovinos solo si HOY es su día
+      if (esDiaBovinos) {
         for (const regla of RECATEGORIZACIONES_BOVINOS) {
           const animales = await prisma.animalLote.findMany({
             where: {
@@ -49,9 +74,9 @@ export async function POST(req: Request) {
               lote: {
                 campoId: config.campoId,
               },
-              // Solo recategorizar animales que estaban ANTES del 1ro de enero
+              // Solo recategorizar animales que estaban ANTES de la fecha de corte
               fechaIngreso: {
-                lt: new Date(hoy.getFullYear(), 0, 1), // antes del 1/1 de este año
+                lt: fechaCorte,
               },
             },
           });
@@ -82,8 +107,8 @@ export async function POST(req: Request) {
         }
       }
 
-      // Procesar ovinos
-      if (config.ovinosActivo) {
+      // Procesar ovinos solo si HOY es su día
+      if (esDiaOvinos) {
         for (const regla of RECATEGORIZACIONES_OVINOS) {
           const animales = await prisma.animalLote.findMany({
             where: {
@@ -92,7 +117,7 @@ export async function POST(req: Request) {
                 campoId: config.campoId,
               },
               fechaIngreso: {
-                lt: new Date(hoy.getFullYear(), 0, 1),
+                lt: fechaCorte,
               },
             },
           });
@@ -126,7 +151,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       success: true,
-      camposProcesados: configs.length,
+      camposProcesados: configsParaHoy.length,
       animalesRecategorizados: totalRecategorizados,
     });
   } catch (error) {
