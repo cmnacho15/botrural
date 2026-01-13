@@ -1,93 +1,121 @@
-//src/lib/historico/capturarCargaDiaria
+//src/lib/historico/capturarCargaDiaria.ts
 import { prisma } from '@/lib/prisma'
 import { calcularUGPotrero } from './calcularUGPotrero'
 
 /**
  * Proceso de captura diaria de UG
  * Se ejecuta a las 00:00 cada día (zona horaria Uruguay)
+ * 
+ * OPTIMIZADO PARA 200+ CAMPOS:
+ * - Bulk queries en lugar de N+1
+ * - Procesamiento por lotes
+ * - Bulk inserts
  */
 export async function capturarCargaDiaria() {
   console.log('🕐 Iniciando captura diaria de UG...')
   const startTime = Date.now()
 
   try {
-    // Obtener todos los campos activos
+    const fecha = new Date()
+    fecha.setHours(0, 0, 0, 0)
+
+    // ✅ OPTIMIZACIÓN 1: Una sola query para todo
     const campos = await prisma.campo.findMany({
       select: {
         id: true,
         nombre: true,
         lotes: {
-          select: { id: true, nombre: true },
+          select: { 
+            id: true, 
+            nombre: true,
+          },
         },
       },
     })
 
     console.log(`📊 Procesando ${campos.length} campos...`)
 
-    let snapshotsGuardados = 0
+    // ✅ OPTIMIZACIÓN 2: Obtener TODOS los últimos snapshots de una vez
+    const todosLoteIds = campos.flatMap(c => c.lotes.map(l => l.id))
+    
+    const ultimosSnapshots = await prisma.cargaHistorica.findMany({
+      where: {
+        loteId: { in: todosLoteIds },
+      },
+      orderBy: { fecha: 'desc' },
+      distinct: ['loteId'],
+      select: {
+        loteId: true,
+        ugTotal: true,
+        fecha: true,
+      },
+    })
+
+    // Crear mapa para acceso rápido
+    const snapshotsMap = new Map(
+      ultimosSnapshots.map(s => [s.loteId, s])
+    )
+
+    // ✅ OPTIMIZACIÓN 3: Calcular UG y preparar inserts en batch
+    const snapshotsAGuardar: Array<{
+      fecha: Date
+      loteId: string
+      ugTotal: number
+      campoId: string
+    }> = []
+
     let potrerosRevisados = 0
-    const fecha = new Date()
-    fecha.setHours(0, 0, 0, 0) // Fecha sin hora
 
     for (const campo of campos) {
       for (const lote of campo.lotes) {
         potrerosRevisados++
 
         try {
-          // 1. Calcular UG actual del potrero (pasando campoId para equivalencias personalizadas)
           const ugActual = await calcularUGPotrero(lote.id, campo.id)
+          const ultimoSnapshot = snapshotsMap.get(lote.id)
 
-          // 2. Buscar el último snapshot guardado
-          const ultimoSnapshot = await prisma.cargaHistorica.findFirst({
-            where: {
-              loteId: lote.id,
-              campoId: campo.id,
-            },
-            orderBy: { fecha: 'desc' },
-            select: { ugTotal: true, fecha: true },
-          })
-
-          // 3. Decidir si guardar
           let debeGuardar = false
 
           if (!ultimoSnapshot) {
-            // Es el primer snapshot del potrero
             debeGuardar = true
             console.log(
               `  ✨ Primera captura: ${campo.nombre} > ${lote.nombre} = ${ugActual.toFixed(2)} UG`
             )
           } else {
-            // Comparar con el último snapshot
             const diferencia = Math.abs(ugActual - ultimoSnapshot.ugTotal)
-
             if (diferencia > 0.01) {
               debeGuardar = true
               console.log(
-                `  📈 Cambio detectado: ${campo.nombre} > ${lote.nombre} = ${ultimoSnapshot.ugTotal.toFixed(2)} → ${ugActual.toFixed(2)} UG (Δ ${diferencia.toFixed(2)})`
+                `  📈 Cambio: ${campo.nombre} > ${lote.nombre} = ${ultimoSnapshot.ugTotal.toFixed(2)} → ${ugActual.toFixed(2)} UG`
               )
             }
           }
 
-          // 4. Guardar snapshot si cambió
           if (debeGuardar) {
-            await prisma.cargaHistorica.create({
-              data: {
-                fecha,
-                loteId: lote.id,
-                ugTotal: ugActual,
-                campoId: campo.id,
-              },
+            snapshotsAGuardar.push({
+              fecha,
+              loteId: lote.id,
+              ugTotal: ugActual,
+              campoId: campo.id,
             })
-            snapshotsGuardados++
           }
         } catch (error) {
           console.error(
             `  ❌ Error procesando ${campo.nombre} > ${lote.nombre}:`,
             error
           )
-          // Continuar con el siguiente potrero
         }
       }
+    }
+
+    // ✅ OPTIMIZACIÓN 4: Guardar TODOS los snapshots en un solo INSERT
+    let snapshotsGuardados = 0
+    if (snapshotsAGuardar.length > 0) {
+      const resultado = await prisma.cargaHistorica.createMany({
+        data: snapshotsAGuardar,
+        skipDuplicates: true,
+      })
+      snapshotsGuardados = resultado.count
     }
 
     const duracion = Date.now() - startTime
