@@ -13,6 +13,7 @@ import { GastosProvider } from "@/app/contexts/GastosContext";
 import ModalNuevoDato from "@/app/components/modales/ModalNuevoDato";
 import ModalExportExcel from "@/app/components/modales/ModalExportExcel";
 import OnboardingIndicator from "@/app/components/OnboardingIndicator";
+import BannerRecategorizacion from "@/app/components/BannerRecategorizacion";
 
 import { SuperficieProvider } from "@/app/contexts/SuperficieContext";
 import { TipoCampoProvider } from "@/app/contexts/TipoCampoContext";
@@ -553,6 +554,9 @@ const guardarNombreGrupo = async (grupoId: string) => {
           </div>
         </div>
       </header>
+
+      {/* BANNER RECATEGORIZACIÓN */}
+      <BannerRecategorizacion />
 
       {/* MENÚ GIGANTE DE EVENTOS */}
       {menuOpen && !isContador && (

@@ -1,8 +1,13 @@
+//src/lib/auth-helpers.ts
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/app/api/auth/[...nextauth]/route"
 import { prisma } from "@/lib/prisma"
 import { Role } from "@prisma/client"
 import { NextResponse } from "next/server"
+
+
+// ✅ AGREGAR ESTA LÍNEA
+export { authOptions }
 
 /**
  * 🔐 requireAuth()

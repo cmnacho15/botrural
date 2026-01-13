@@ -119,6 +119,8 @@ model Campo {
   grupo     Grupo?   @relation(fields: [grupoId], references: [id])
 
   equivalenciasUG EquivalenciaUG[]
+  configRecategorizacion ConfigRecategorizacion?
+
 }
 
 model CategoriaGasto {
@@ -1004,5 +1006,26 @@ model EquivalenciaUG {
   campo     Campo    @relation(fields: [campoId], references: [id], onDelete: Cascade)
   
   @@unique([campoId, categoria])
+  @@index([campoId])
+}
+
+
+
+// ==========================================
+// 🔄 RECATEGORIZACIÓN AUTOMÁTICA
+// ==========================================
+
+model ConfigRecategorizacion {
+  id            String   @id @default(cuid())
+  campoId       String   @unique
+  
+  bovinosActivo Boolean  @default(false)
+  ovinosActivo  Boolean  @default(false)
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  campo         Campo    @relation(fields: [campoId], references: [id], onDelete: Cascade)
+  
   @@index([campoId])
 }

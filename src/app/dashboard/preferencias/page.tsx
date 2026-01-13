@@ -7,6 +7,7 @@ import { useTipoCampo } from '@/app/contexts/TipoCampoContext'
 import GastosPreferencias from '@/app/preferencias/components/GastosPreferencias'
 import ModulosPreferencias from '@/app/preferencias/components/ModulosPreferencias'
 import EquivalenciasUGPreferencias from '@/app/preferencias/components/EquivalenciasUGPreferencias'
+import RecategorizacionPreferencias from '@/app/preferencias/components/RecategorizacionPreferencias'
 
 type TipoCultivo = {
   id: string
@@ -24,7 +25,7 @@ type CategoriaAnimal = {
 
 export default function PreferenciasPage() {
   const router = useRouter()
-  const [activeTab, setActiveTab] = useState<'campo' | 'cultivos' | 'animales' | 'gastos' | 'rodeos' | 'modulos' | 'firmas' | 'equivalencias'>('campo')
+  const [activeTab, setActiveTab] = useState<'campo' | 'cultivos' | 'animales' | 'gastos' | 'rodeos' | 'modulos' | 'firmas' | 'equivalencias' | 'recategorizacion'>('campo')
   const { tipoCampo, esMixto, actualizarTipo } = useTipoCampo()
   const [guardandoTipo, setGuardandoTipo] = useState(false)
 
@@ -612,6 +613,17 @@ async function handleEliminarFirma(id: string) {
                 }`}
               >
                 ⚖️ Equivalencias UG
+              </button>
+
+              <button
+                onClick={() => setActiveTab('recategorizacion')}
+                className={`py-4 px-1 border-b-2 font-medium text-sm transition ${
+                  activeTab === 'recategorizacion'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                🔄 Recategorización
               </button>
             </nav>
           </div>
@@ -1315,6 +1327,13 @@ async function handleEliminarFirma(id: string) {
           {activeTab === 'equivalencias' && (
             <div className="p-6">
               <EquivalenciasUGPreferencias />
+            </div>
+          )}
+
+          {/* CONTENIDO TAB RECATEGORIZACIÓN */}
+          {activeTab === 'recategorizacion' && (
+            <div className="p-6">
+              <RecategorizacionPreferencias />
             </div>
           )}
 
