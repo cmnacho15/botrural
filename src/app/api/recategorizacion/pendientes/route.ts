@@ -25,7 +25,7 @@ export async function GET() {
       where: {
         lote: { campoId: user.campoId },
         categoria: {
-          in: ["Terneros nacidos", "Terneras nacidas", "Corderos Mamones", "Corderas Mamonas", "Corderos DL"],
+          in: ["Terneros nacidos", "Terneras nacidas", "Corderos/as Mamones", "Corderos DL"],
         },
       },
       include: {
@@ -63,7 +63,7 @@ export async function GET() {
           cantidad: animal.cantidad,
           animalLoteId: animal.id,
         });
-      } else if (animal.categoria === "Corderos Mamones" || animal.categoria === "Corderas Mamonas") {
+      } else if (animal.categoria === "Corderos/as Mamones") {
         pendientes.corderosMamones.total += animal.cantidad;
         pendientes.corderosMamones.potreros.push({
           loteId: animal.loteId,

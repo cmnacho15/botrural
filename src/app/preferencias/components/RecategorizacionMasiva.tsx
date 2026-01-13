@@ -1,11 +1,13 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import ModalDividirBovinos from '@/app/components/modales/ModalDividirBovinos'
+import ModalDividirOvinosSexado from '@/app/components/modales/ModalDividirOvinosSexado'
+import ModalDividirOvinosCastracion from '@/app/components/modales/ModalDividirOvinosCastracion'
 
 type Filtros = {
   fechaIngreso?: string
   potreroId?: string
-  loteRodeoId?: string
 }
 
 type RecategorizacionSeleccionada = {
@@ -28,6 +30,13 @@ type PreviewData = {
   filtros: Filtros
 }
 
+type PendientesPotrero = {
+  loteId: string
+  nombre: string
+  cantidad: number
+  animalLoteId: string
+}
+
 export default function RecategorizacionMasiva() {
   const [recategorizaciones, setRecategorizaciones] = useState<RecategorizacionSeleccionada[]>([])
   const [potreros, setPotreros] = useState<Potrero[]>([])
@@ -40,34 +49,53 @@ export default function RecategorizacionMasiva() {
   } | null>(null)
   const [aplicando, setAplicando] = useState(false)
 
+  const [pendientes, setPendientes] = useState<{
+    ternerosNacidos: { total: number; potreros: PendientesPotrero[] }
+    corderosMamones: { total: number; potreros: PendientesPotrero[] }
+    corderosDL: { total: number; potreros: PendientesPotrero[] }
+  }>({
+    ternerosNacidos: { total: 0, potreros: [] },
+    corderosMamones: { total: 0, potreros: [] },
+    corderosDL: { total: 0, potreros: [] },
+  })
+
+  // Modales
+  const [showModalBovinos, setShowModalBovinos] = useState(false)
+  const [showModalOvinosSexado, setShowModalOvinosSexado] = useState(false)
+  const [showModalOvinosCastracion, setShowModalOvinosCastracion] = useState(false)
+
   // Mapeos de recategorizaciones disponibles
   const RECATEGORIZACIONES_BOVINOS = [
-  { de: "Terneros nacidos", a: "Terneros" },
-  { de: "Terneras nacidas", a: "Terneras" },
-  { de: "Terneros", a: "Novillos 1–2 años" },
-  { de: "Terneras", a: "Vaquillonas 1–2 años" },
-  { de: "Novillos 1–2 años", a: "Novillos 2–3 años" },
-  { de: "Novillos 2–3 años", a: "Novillos +3 años" },
-  { de: "Vaquillonas 1–2 años", a: "Vaquillonas +2 años" },
-  { de: "Vaquillonas +2 años", a: "Vacas" },
-]
+    { de: "Terneros", a: "Novillos 1–2 años" },
+    { de: "Terneras", a: "Vaquillonas 1–2 años" },
+    { de: "Novillos 1–2 años", a: "Novillos 2–3 años" },
+    { de: "Novillos 2–3 años", a: "Novillos +3 años" },
+    { de: "Vaquillonas 1–2 años", a: "Vaquillonas +2 años" },
+    { de: "Vaquillonas +2 años", a: "Vacas" },
+  ]
 
   const RECATEGORIZACIONES_OVINOS = [
-  { de: "Corderos/as Mamones", a: "Corderos DL" },
-  { de: "Corderos/as Mamones", a: "Corderas DL" },
-  { de: "Corderas DL", a: "Borregas 2–4 dientes" },
-  { de: "Borregas 2–4 dientes", a: "Ovejas" },
-]
+    { de: "Corderas DL", a: "Borregas 2–4 dientes" },
+    { de: "Borregas 2–4 dientes", a: "Ovejas" },
+  ]
 
-  // Cargar potreros
+  // Cargar potreros y pendientes
   useEffect(() => {
     async function cargarDatos() {
       try {
-        const res = await fetch('/api/lotes')
+        const [resPotreros, resPendientes] = await Promise.all([
+          fetch('/api/lotes'),
+          fetch('/api/recategorizacion/pendientes'),
+        ])
 
-        if (res.ok) {
-          const data = await res.json()
+        if (resPotreros.ok) {
+          const data = await resPotreros.json()
           setPotreros(data)
+        }
+
+        if (resPendientes.ok) {
+          const data = await resPendientes.json()
+          setPendientes(data)
         }
       } catch (error) {
         console.error('Error cargando datos:', error)
@@ -76,15 +104,25 @@ export default function RecategorizacionMasiva() {
     cargarDatos()
   }, [])
 
+  async function recargarPendientes() {
+    try {
+      const res = await fetch('/api/recategorizacion/pendientes')
+      if (res.ok) {
+        const data = await res.json()
+        setPendientes(data)
+      }
+    } catch (error) {
+      console.error('Error recargando pendientes:', error)
+    }
+  }
+
   const toggleRecategorizacion = (de: string, a: string) => {
     setRecategorizaciones(prev => {
       const existe = prev.find(r => r.de === de && r.a === a)
       
       if (existe) {
-        // Quitar
         return prev.filter(r => !(r.de === de && r.a === a))
       } else {
-        // Agregar
         return [...prev, {
           de,
           a,
@@ -168,10 +206,10 @@ export default function RecategorizacionMasiva() {
       
       alert(`✅ Recategorización completada\n\nTotal: ${data.totalProcesado} animales recategorizados\nSe generaron ${data.resultados.length} eventos`)
       
-      // Limpiar estado
       setRecategorizaciones([])
       setShowPreview(false)
       setPreviewData(null)
+      recargarPendientes()
     } catch (error) {
       console.error('Error:', error)
       alert('Error al aplicar recategorización')
@@ -189,8 +227,76 @@ export default function RecategorizacionMasiva() {
   }
 
   return (
-  <>
-    <div className="space-y-6">
+    <>
+      <div className="space-y-6">
+        {/* CATEGORÍAS PENDIENTES DE DIVIDIR */}
+        {(pendientes.ternerosNacidos.total > 0 || 
+          pendientes.corderosMamones.total > 0 || 
+          pendientes.corderosDL.total > 0) && (
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-6">
+            <h3 className="font-semibold text-amber-900 mb-4 flex items-center gap-2">
+              ⚠️ Categorías pendientes de dividir
+            </h3>
+            <div className="space-y-3">
+              {pendientes.ternerosNacidos.total > 0 && (
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">
+                      🐄 Terneros nacidos: {pendientes.ternerosNacidos.total} animales
+                    </p>
+                    <p className="text-xs text-gray-600">
+                      Requiere división por sexo (cuando caravanees)
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setShowModalBovinos(true)}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
+                  >
+                    Dividir por sexo
+                  </button>
+                </div>
+              )}
+
+              {pendientes.corderosMamones.total > 0 && (
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">
+                      🐑 Corderos Mamones: {pendientes.corderosMamones.total} animales
+                    </p>
+                    <p className="text-xs text-gray-600">
+                      Requiere división por sexo (cuando destetes)
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setShowModalOvinosSexado(true)}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
+                  >
+                    Dividir por sexo
+                  </button>
+                </div>
+              )}
+
+              {pendientes.corderosDL.total > 0 && (
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">
+                      🐑 Corderos DL: {pendientes.corderosDL.total} animales
+                    </p>
+                    <p className="text-xs text-gray-600">
+                      Requiere registrar castración
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setShowModalOvinosCastracion(true)}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
+                  >
+                    Registrar castración
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* BOVINOS */}
         <div className="bg-white border border-gray-200 rounded-lg p-6">
@@ -202,7 +308,6 @@ export default function RecategorizacionMasiva() {
 
               return (
                 <div key={`${de}-${a}`} className="border border-gray-200 rounded-lg">
-                  {/* Checkbox principal */}
                   <label className="flex items-center gap-3 p-4 cursor-pointer hover:bg-gray-50">
                     <input
                       type="checkbox"
@@ -215,12 +320,10 @@ export default function RecategorizacionMasiva() {
                     </span>
                   </label>
 
-                  {/* Filtros (solo si está seleccionada) */}
                   {seleccionada && (
                     <div className="px-4 pb-4 space-y-3 border-t border-gray-100">
                       <p className="text-xs text-gray-600 mt-3 mb-2">Filtros opcionales:</p>
 
-                      {/* Fecha de ingreso */}
                       <label className="flex items-center gap-2">
                         <input
                           type="checkbox"
@@ -246,7 +349,6 @@ export default function RecategorizacionMasiva() {
                         )}
                       </label>
 
-                      {/* Potrero específico */}
                       <label className="flex items-center gap-2">
                         <input
                           type="checkbox"
@@ -444,6 +546,37 @@ export default function RecategorizacionMasiva() {
           </div>
         </div>
       )}
+
+      {/* MODALES */}
+      <ModalDividirBovinos
+        isOpen={showModalBovinos}
+        onClose={() => setShowModalBovinos(false)}
+        potreros={pendientes.ternerosNacidos.potreros}
+        onSuccess={() => {
+          recargarPendientes()
+          alert('✅ División completada')
+        }}
+      />
+
+      <ModalDividirOvinosSexado
+        isOpen={showModalOvinosSexado}
+        onClose={() => setShowModalOvinosSexado(false)}
+        potreros={pendientes.corderosMamones.potreros}
+        onSuccess={() => {
+          recargarPendientes()
+          alert('✅ División completada')
+        }}
+      />
+
+      <ModalDividirOvinosCastracion
+        isOpen={showModalOvinosCastracion}
+        onClose={() => setShowModalOvinosCastracion(false)}
+        potreros={pendientes.corderosDL.potreros}
+        onSuccess={() => {
+          recargarPendientes()
+          alert('✅ División completada')
+        }}
+      />
     </>
   )
 }
