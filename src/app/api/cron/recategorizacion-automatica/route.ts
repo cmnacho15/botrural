@@ -3,17 +3,17 @@ import { prisma } from "@/lib/prisma";
 
 // Mapeo de recategorizaciones automáticas
 const RECATEGORIZACIONES_BOVINOS = [
-  { de: "Terneros", a: "Novillos 1-2" },
-  { de: "Terneras", a: "Vaquillonas 1-2" },
-  { de: "Novillos 1-2", a: "Novillos 2-3" },
-  { de: "Novillos 2-3", a: "Novillos +3" },
-  { de: "Vaquillonas 1-2", a: "Vaquillonas +2" },
-  { de: "Vaquillonas +2", a: "Vacas" },
+  { de: "Terneros", a: "Novillos 1–2 años" },
+  { de: "Terneras", a: "Vaquillonas 1–2 años" },
+  { de: "Novillos 1–2 años", a: "Novillos 2–3 años" },
+  { de: "Novillos 2–3 años", a: "Novillos +3 años" },
+  { de: "Vaquillonas 1–2 años", a: "Vaquillonas +2 años" },
+  { de: "Vaquillonas +2 años", a: "Vacas" },
 ];
 
 const RECATEGORIZACIONES_OVINOS = [
-  { de: "Corderas DL", a: "Borregas 2-4 dientes" },
-  { de: "Borregas 2-4 dientes", a: "Ovejas" },
+  { de: "Corderas DL", a: "Borregas 2–4 dientes" },
+  { de: "Borregas 2–4 dientes", a: "Ovejas" },
 ];
 
 export async function POST(req: Request) {
