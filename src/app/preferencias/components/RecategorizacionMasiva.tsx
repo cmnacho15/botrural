@@ -257,20 +257,22 @@ export default function RecategorizacionMasiva() {
                       </label>
 
                       {/* Potrero específico */}
-                      <label className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          checked={!!filtros.potreroId}
-                          onChange={(e) => {
-                            if (!e.target.checked) {
-                              actualizarFiltro(de, a, 'potreroId', '')
-                            }
-                          }}
-                          className="w-4 h-4 text-blue-600 rounded"
-                        />
-                        <span className="text-xs text-gray-700">Solo potrero específico:</span>
-                        {(filtros.potreroId || filtros.potreroId === '') && (
-                          <select
+<label className="flex items-center gap-2">
+  <input
+    type="checkbox"
+    checked={!!filtros.potreroId}
+    onChange={(e) => {
+      if (e.target.checked) {
+        actualizarFiltro(de, a, 'potreroId', potreros[0]?.id || '')
+      } else {
+        actualizarFiltro(de, a, 'potreroId', '')
+      }
+    }}
+    className="w-4 h-4 text-blue-600 rounded"
+  />
+  <span className="text-xs text-gray-700">Solo potrero específico:</span>
+  {!!filtros.potreroId && (
+    <select
                             value={filtros.potreroId || ''}
                             onChange={(e) => actualizarFiltro(de, a, 'potreroId', e.target.value)}
                             className="px-2 py-1 border border-gray-300 rounded text-xs"
@@ -284,20 +286,22 @@ export default function RecategorizacionMasiva() {
                       </label>
 
                       {/* Lote específico */}
-                      <label className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          checked={!!filtros.loteRodeoId}
-                          onChange={(e) => {
-                            if (!e.target.checked) {
-                              actualizarFiltro(de, a, 'loteRodeoId', '')
-                            }
-                          }}
-                          className="w-4 h-4 text-blue-600 rounded"
-                        />
-                        <span className="text-xs text-gray-700">Solo lote específico:</span>
-                        {(filtros.loteRodeoId || filtros.loteRodeoId === '') && (
-                          <select
+<label className="flex items-center gap-2">
+  <input
+    type="checkbox"
+    checked={!!filtros.loteRodeoId}
+    onChange={(e) => {
+      if (e.target.checked) {
+        actualizarFiltro(de, a, 'loteRodeoId', rodeos[0]?.id || '')
+      } else {
+        actualizarFiltro(de, a, 'loteRodeoId', '')
+      }
+    }}
+    className="w-4 h-4 text-blue-600 rounded"
+  />
+  <span className="text-xs text-gray-700">Solo lote específico:</span>
+  {!!filtros.loteRodeoId && (
+    <select
                             value={filtros.loteRodeoId || ''}
                             onChange={(e) => actualizarFiltro(de, a, 'loteRodeoId', e.target.value)}
                             className="px-2 py-1 border border-gray-300 rounded text-xs"
