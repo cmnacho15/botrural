@@ -17,3 +17,26 @@ Agregar al array de crons en vercel.json:
   "schedule": "0 12 * * *"
 }
 ```
+
+
+asi deberia quedar cuando sea pago vercel y me permita mas de 2 cron :
+{
+  "crons": [
+    {
+      "path": "/api/cron/capturar-carga",
+      "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/cron/marcar-pagados",
+      "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/recategorizacion-automatica",
+      "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/cron/calendario-recordatorios",
+      "schedule": "0 9 * * *"
+    }
+  ]
+}

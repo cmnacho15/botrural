@@ -610,11 +610,32 @@ const [acordeonesAbiertos, setAcordeonesAbiertos] = useState<{[key: string]: boo
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8 gap-6">
           <div className="text-center md:text-left space-y-1">
             <div className="flex items-center gap-3 flex-wrap justify-center md:justify-start">
-              <h1 className="text-3xl font-bold text-gray-900 leading-tight">
-                {nombreCampo ? `Potreros en ${nombreCampo}` : 'Potreros'}
-              </h1>
-              
-              {/* 🌾 CARGA GLOBAL DEL CAMPO CON TOOLTIP */}
+  <h1 className="text-3xl font-bold text-gray-900 leading-tight">
+    {nombreCampo ? `Potreros en ${nombreCampo}` : 'Potreros'}
+  </h1>
+  
+  {/* SUPERFICIE TOTAL */}
+  {hayLotes && (() => {
+    const superficieTotal = lotes.reduce((sum, l) => sum + l.hectareas, 0)
+    return (
+      <span className="px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-700">
+        Superficie total: {superficieTotal.toFixed(2)} ha
+      </span>
+    )
+  })()}
+
+  {/* SPG (SUPERFICIE DE PASTOREO GANADERO) */}
+  {hayLotes && (() => {
+    const lotesPastoreables = lotes.filter(l => l.esPastoreable !== false)
+    const spg = lotesPastoreables.reduce((sum, l) => sum + l.hectareas, 0)
+    return (
+      <span className="px-3 py-1 rounded-full text-sm font-medium bg-cyan-100 text-cyan-700">
+        SPG: {spg.toFixed(2)} ha
+      </span>
+    )
+  })()}
+  
+  {/* 🌾 CARGA GLOBAL DEL CAMPO CON TOOLTIP */}
 {hayLotes && (() => {
   // 🔥 SOLO CONSIDERAR POTREROS PASTOREABLES
   const lotesPastoreables = lotes.filter(l => l.esPastoreable !== false)
@@ -652,20 +673,20 @@ const [acordeonesAbiertos, setAcordeonesAbiertos] = useState<{[key: string]: boo
   )
 })()}
 
-              {/* RELACIÓN LANAR🐑/VACUNO🐄*/}
-              {hayLotes && (() => {
-                const { totalOvinos, totalVacunos, relacion } = calcularRelacionLanarVacuno(lotes)
-                
-                // Solo mostrar si HAY AMBOS (ovinos Y vacunos)
-                if (totalOvinos === 0 || totalVacunos === 0 || relacion === null) return null
-                
-                return (
-                  <span className="px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-700">
-                    Relación Lanar/Vacuno: {relacion.toFixed(2)}
-                  </span>
-                )
-              })()}
-            </div>
+  {/* RELACIÓN LANAR🐑/VACUNO🐄*/}
+  {hayLotes && (() => {
+    const { totalOvinos, totalVacunos, relacion } = calcularRelacionLanarVacuno(lotes)
+    
+    // Solo mostrar si HAY AMBOS (ovinos Y vacunos)
+    if (totalOvinos === 0 || totalVacunos === 0 || relacion === null) return null
+    
+    return (
+      <span className="px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-700">
+        Relación Lanar/Vacuno: {relacion.toFixed(2)}
+      </span>
+    )
+  })()}
+</div>
             <p className="text-gray-600 text-sm">
               Gestión de potreros y lotes del campo
             </p>
