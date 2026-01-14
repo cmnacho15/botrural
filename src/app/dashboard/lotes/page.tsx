@@ -625,15 +625,32 @@ const [acordeonesAbiertos, setAcordeonesAbiertos] = useState<{[key: string]: boo
   })()}
 
   {/* SPG (SUPERFICIE DE PASTOREO GANADERO) */}
-  {hayLotes && (() => {
-    const lotesPastoreables = lotes.filter(l => l.esPastoreable !== false)
-    const spg = lotesPastoreables.reduce((sum, l) => sum + l.hectareas, 0)
-    return (
+{hayLotes && (() => {
+  const lotesPastoreables = lotes.filter(l => l.esPastoreable !== false)
+  const spg = lotesPastoreables.reduce((sum, l) => sum + l.hectareas, 0)
+  return (
+    <Tooltip content={
+      <div className="space-y-2">
+        <div>
+          <p className="font-semibold mb-1">🌾 SPG - Superficie de Pastoreo Ganadero</p>
+          <p className="text-gray-300 text-xs leading-relaxed">
+            Suma de hectáreas de todos los potreros marcados como <strong>pastoreables</strong>.
+          </p>
+        </div>
+        
+        <div className="border-t border-gray-700 pt-2">
+          <p className="text-gray-300 text-xs leading-relaxed">
+            Solo incluye potreros aptos para pastoreo de animales. Los potreros agrícolas o no pastoreables quedan excluidos del cálculo de carga animal.
+          </p>
+        </div>
+      </div>
+    }>
       <span className="px-3 py-1 rounded-full text-sm font-medium bg-cyan-100 text-cyan-700">
         SPG: {spg.toFixed(2)} ha
       </span>
-    )
-  })()}
+    </Tooltip>
+  )
+})()}
   
   {/* 🌾 CARGA GLOBAL DEL CAMPO CON TOOLTIP */}
 {hayLotes && (() => {
