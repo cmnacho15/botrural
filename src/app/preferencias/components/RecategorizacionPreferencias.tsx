@@ -153,18 +153,19 @@ export default function RecategorizacionPreferencias() {
   inputMode="numeric"
   pattern="[0-9]*"
   maxLength={2}
-  value={config.bovinosDia}
+  value={config.bovinosDia === 0 ? '' : config.bovinosDia}
   onChange={(e) => {
-    const valor = e.target.value.replace(/\D/g, '') // Solo números
-    const numero = parseInt(valor) || 0
-    if (numero >= 1 && numero <= 31) {
-      setConfig({ ...config, bovinosDia: numero })
-    } else if (valor === '') {
-      setConfig({ ...config, bovinosDia: 1 })
+    const valor = e.target.value.replace(/\D/g, '')
+    if (valor === '') {
+      setConfig({ ...config, bovinosDia: 0 })
+    } else {
+      const numero = parseInt(valor)
+      if (numero >= 0 && numero <= 31) {
+        setConfig({ ...config, bovinosDia: numero })
+      }
     }
   }}
   onBlur={(e) => {
-    // Si está vacío o inválido al salir, poner 1
     if (!e.target.value || parseInt(e.target.value) < 1) {
       setConfig({ ...config, bovinosDia: 1 })
     }
@@ -257,14 +258,16 @@ export default function RecategorizacionPreferencias() {
   inputMode="numeric"
   pattern="[0-9]*"
   maxLength={2}
-  value={config.ovinosDia}
+  value={config.ovinosDia === 0 ? '' : config.ovinosDia}
   onChange={(e) => {
     const valor = e.target.value.replace(/\D/g, '')
-    const numero = parseInt(valor) || 0
-    if (numero >= 1 && numero <= 31) {
-      setConfig({ ...config, ovinosDia: numero })
-    } else if (valor === '') {
-      setConfig({ ...config, ovinosDia: 1 })
+    if (valor === '') {
+      setConfig({ ...config, ovinosDia: 0 })
+    } else {
+      const numero = parseInt(valor)
+      if (numero >= 0 && numero <= 31) {
+        setConfig({ ...config, ovinosDia: numero })
+      }
     }
   }}
   onBlur={(e) => {
