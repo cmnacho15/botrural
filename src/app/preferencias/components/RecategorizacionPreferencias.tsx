@@ -149,13 +149,29 @@ export default function RecategorizacionPreferencias() {
                   <div>
                     <label className="block text-xs text-gray-600 mb-1">Día</label>
                     <input
-                      type="number"
-                      min="1"
-                      max="31"
-                      value={config.bovinosDia}
-                      onChange={(e) => setConfig({ ...config, bovinosDia: parseInt(e.target.value) || 1 })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
-                    />
+  type="text"
+  inputMode="numeric"
+  pattern="[0-9]*"
+  maxLength={2}
+  value={config.bovinosDia}
+  onChange={(e) => {
+    const valor = e.target.value.replace(/\D/g, '') // Solo números
+    const numero = parseInt(valor) || 0
+    if (numero >= 1 && numero <= 31) {
+      setConfig({ ...config, bovinosDia: numero })
+    } else if (valor === '') {
+      setConfig({ ...config, bovinosDia: 1 })
+    }
+  }}
+  onBlur={(e) => {
+    // Si está vacío o inválido al salir, poner 1
+    if (!e.target.value || parseInt(e.target.value) < 1) {
+      setConfig({ ...config, bovinosDia: 1 })
+    }
+  }}
+  placeholder="1-31"
+  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+/>
                   </div>
                   <div>
                     <label className="block text-xs text-gray-600 mb-1">Mes</label>
@@ -237,13 +253,28 @@ export default function RecategorizacionPreferencias() {
                   <div>
                     <label className="block text-xs text-gray-600 mb-1">Día</label>
                     <input
-                      type="number"
-                      min="1"
-                      max="31"
-                      value={config.ovinosDia}
-                      onChange={(e) => setConfig({ ...config, ovinosDia: parseInt(e.target.value) || 1 })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
-                    />
+  type="text"
+  inputMode="numeric"
+  pattern="[0-9]*"
+  maxLength={2}
+  value={config.ovinosDia}
+  onChange={(e) => {
+    const valor = e.target.value.replace(/\D/g, '')
+    const numero = parseInt(valor) || 0
+    if (numero >= 1 && numero <= 31) {
+      setConfig({ ...config, ovinosDia: numero })
+    } else if (valor === '') {
+      setConfig({ ...config, ovinosDia: 1 })
+    }
+  }}
+  onBlur={(e) => {
+    if (!e.target.value || parseInt(e.target.value) < 1) {
+      setConfig({ ...config, ovinosDia: 1 })
+    }
+  }}
+  placeholder="1-31"
+  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+/>
                   </div>
                   <div>
                     <label className="block text-xs text-gray-600 mb-1">Mes</label>
