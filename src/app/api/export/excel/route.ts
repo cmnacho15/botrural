@@ -196,6 +196,7 @@ export async function POST(request: Request) {
         { header: 'Tipo', key: 'tipo', width: 15 },
         { header: 'Cantidad', key: 'cantidad', width: 12 },
         { header: 'Categoría', key: 'categoria', width: 18 },
+        { header: 'Caravana', key: 'caravana', width: 15 },
         { header: 'Potrero', key: 'potrero', width: 18 },
         { header: 'Usuario', key: 'usuario', width: 18 },
         { header: 'Notas', key: 'notas', width: 30 },
@@ -222,6 +223,7 @@ export async function POST(request: Request) {
           tipo: tiposLegibles[e.tipo] || e.tipo,
           cantidad: e.cantidad || '',
           categoria: e.categoria || '',
+          caravana: e.caravana || '',
           potrero: nombrePotrero,
           usuario: e.usuario?.name || '',
           notas: e.notas || '',
@@ -231,7 +233,7 @@ export async function POST(request: Request) {
       aplicarEstiloEncabezado(sheet.getRow(1))
       aplicarEstiloDatos(sheet, 2)
       autoAjustarColumnas(sheet, columnas)
-      sheet.autoFilter = { from: 'A1', to: 'G1' }
+      sheet.autoFilter = { from: 'A1', to: 'GH1' }
 
     }
 
