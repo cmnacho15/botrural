@@ -121,13 +121,18 @@ const potreroNombre = potreroData?.moduloPastoreo?.nombre
   : potreroData?.nombre
 const categoriaLabel = cant === 1 ? categoriaSeleccionada.replace(/s$/, '') : categoriaSeleccionada
 
+const descripcionBase = `Mortandad de ${cant} ${categoriaLabel} en potrero ${potreroNombre}`
+const descripcionCompleta = caravana 
+  ? `${descripcionBase} - Caravana: ${caravana}`
+  : descripcionBase
+
 const response = await fetch('/api/eventos', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
     tipo: 'MORTANDAD',
     fecha: fecha,
-    descripcion: `Mortandad de ${cant} ${categoriaLabel} en potrero ${potreroNombre}`,
+    descripcion: descripcionCompleta,
     loteId: potreroSeleccionado,
     cantidad: cant,
     categoria: categoriaSeleccionada,
