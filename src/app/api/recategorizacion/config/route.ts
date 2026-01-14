@@ -30,6 +30,10 @@ export async function GET() {
           campoId: user.campoId,
           bovinosActivo: false,
           ovinosActivo: false,
+          bovinosDia: 1,
+          bovinosMes: 1,
+          ovinosDia: 1,
+          ovinosMes: 1,
         },
       });
     }
@@ -57,18 +61,33 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: "Usuario sin campo" }, { status: 400 });
     }
 
-    const { bovinosActivo, ovinosActivo } = await req.json();
+    const { 
+      bovinosActivo, 
+      ovinosActivo, 
+      bovinosDia, 
+      bovinosMes, 
+      ovinosDia, 
+      ovinosMes 
+    } = await req.json();
 
     const config = await prisma.configRecategorizacion.upsert({
       where: { campoId: user.campoId },
       update: {
         bovinosActivo,
         ovinosActivo,
+        bovinosDia,
+        bovinosMes,
+        ovinosDia,
+        ovinosMes,
       },
       create: {
         campoId: user.campoId,
         bovinosActivo,
         ovinosActivo,
+        bovinosDia,
+        bovinosMes,
+        ovinosDia,
+        ovinosMes,
       },
     });
 
