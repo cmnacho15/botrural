@@ -609,13 +609,13 @@ const [acordeonesAbiertos, setAcordeonesAbiertos] = useState<{[key: string]: boo
         {/* HEADER */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8 gap-6">
           <div className="text-center md:text-left space-y-1">
-            <div className="flex items-center gap-3 flex-wrap justify-center md:justify-start">
   <h1 className="text-3xl font-bold text-gray-900 leading-tight">
     {nombreCampo ? `Potreros en ${nombreCampo}` : 'Potreros'}
   </h1>
   
-  {/* SUPERFICIE TOTAL */}
-  {hayLotes && (() => {
+  <div className="flex items-center gap-3 flex-wrap justify-center md:justify-start">
+    {/* SUPERFICIE TOTAL */}
+    {hayLotes && (() => {
     const superficieTotal = lotes.reduce((sum, l) => sum + l.hectareas, 0)
     return (
       <span className="px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-700">
