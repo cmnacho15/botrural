@@ -78,8 +78,11 @@ export default function TablaVentasLana({ ventas, onRefresh }: TablaVentasLanaPr
         <tbody className="bg-white divide-y divide-gray-200">
           {ventas.map((venta) => {
             const renglonesLana = venta.renglones.filter((r: any) => r.tipo === 'LANA')
-            const kgTotales = renglonesLana.reduce((sum: number, r: any) => sum + r.pesoKg, 0)
-            const precioPromedio = kgTotales > 0 ? venta.subtotalUSD / kgTotales : 0
+            const kgTotales = renglonesLana.reduce((sum: number, r: any) => {
+              const kg = parseFloat(r.pesoKg) || 0
+              return sum + kg
+            }, 0)
+            const precioPromedio = kgTotales > 0 ? (venta.subtotalUSD / kgTotales) : 0
             const estaExpandido = expandido === venta.id
 
             return (
@@ -220,22 +223,28 @@ export default function TablaVentasLana({ ventas, onRefresh }: TablaVentasLanaPr
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
-                    {renglonesLana.map((renglon: any, idx: number) => (
-                      <tr key={idx}>
-                        <td className="px-4 py-2 text-sm text-gray-900">
-                          {renglon.categoriaLana}
-                        </td>
-                        <td className="px-4 py-2 text-sm text-right text-gray-900">
-                          {renglon.pesoKg.toLocaleString('es-UY', { minimumFractionDigits: 1 })}
-                        </td>
-                        <td className="px-4 py-2 text-sm text-right text-gray-900">
-                          {renglon.precioKgUSD.toLocaleString('es-UY', { minimumFractionDigits: 2 })}
-                        </td>
-                        <td className="px-4 py-2 text-sm text-right font-semibold text-gray-900">
-                          {(renglon.pesoKg * renglon.precioKgUSD).toLocaleString('es-UY', { minimumFractionDigits: 2 })} USD
-                        </td>
-                      </tr>
-                    ))}
+                    {renglonesLana.map((renglon: any, idx: number) => {
+                      const pesoKg = parseFloat(renglon.pesoKg) || 0
+                      const precioKg = parseFloat(renglon.precioKgUSD) || 0
+                      const categoriaLana = renglon.categoriaLana || renglon.categoria || '-'
+                      
+                      return (
+                        <tr key={idx}>
+                          <td className="px-4 py-2 text-sm text-gray-900">
+                            {categoriaLana}
+                          </td>
+                          <td className="px-4 py-2 text-sm text-right text-gray-900">
+                            {pesoKg.toLocaleString('es-UY', { minimumFractionDigits: 1 })}
+                          </td>
+                          <td className="px-4 py-2 text-sm text-right text-gray-900">
+                            {precioKg.toLocaleString('es-UY', { minimumFractionDigits: 2 })}
+                          </td>
+                          <td className="px-4 py-2 text-sm text-right font-semibold text-gray-900">
+                            {(pesoKg * precioKg).toLocaleString('es-UY', { minimumFractionDigits: 2 })} USD
+                          </td>
+                        </tr>
+                      )
+                    })}
                   </tbody>
                 </table>
               </div>
