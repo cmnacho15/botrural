@@ -44,6 +44,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [modalTipo, setModalTipo] = useState<string | null>(null);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [tieneCamposEnGrupo, setTieneCamposEnGrupo] = useState(false)
   
   const userMenuRef = useRef<HTMLDivElement>(null);
 
@@ -73,9 +74,17 @@ useEffect(() => {
       ]);
       
       if (resCampos.ok) {
-        const data = await resCampos.json();
-        setCampos(data);
-      }
+  const data = await resCampos.json();
+  setCampos(data);
+  
+  // 🔥 Verificar si hay otros campos en el mismo grupo
+  const campoActivo = data.find((c: any) => c.esActivo)
+  const grupoActivo = campoActivo?.grupoId
+  const otrosCampos = data.filter((c: any) => 
+    !c.esActivo && c.grupoId === grupoActivo
+  )
+  setTieneCamposEnGrupo(otrosCampos.length > 0)
+}
       
       if (resGrupos.ok) {
         const data = await resGrupos.json();
@@ -261,16 +270,16 @@ const guardarNombreGrupo = async (grupoId: string) => {
       ],
     },
     {
-      title: "Gestión",
-      items: [
-        { href: "/dashboard/costos", icon: "💵", label: "Costos", roles: ["ADMIN_GENERAL", "COLABORADOR", "CONTADOR"], requiresFinance: true },
-        { href: "/dashboard/ventas", icon: "💰", label: "Ventas", roles: ["ADMIN_GENERAL", "COLABORADOR", "CONTADOR"], requiresFinance: true },
-        { href: "/dashboard/compras", icon: "🛒", label: "Compras", roles: ["ADMIN_GENERAL", "COLABORADOR", "CONTADOR"], requiresFinance: true },
-        { href: "/dashboard/consumo", icon: "🥩", label: "Consumo", roles: ["ADMIN_GENERAL", "COLABORADOR", "CONTADOR"], requiresFinance: true },
-        { href: "/dashboard/inventario", icon: "📊", label: "Diferencia Inventario", roles: ["ADMIN_GENERAL", "COLABORADOR", "CONTADOR"], requiresFinance: true },
-        { href: "/dashboard/traslados", icon: "🚚", label: "Traslados", roles: ["ADMIN_GENERAL", "COLABORADOR"], requiresFinance: false },
-      ],
-    },
+  title: "Gestión",
+  items: [
+    { href: "/dashboard/costos", icon: "💵", label: "Costos", roles: ["ADMIN_GENERAL", "COLABORADOR", "CONTADOR"], requiresFinance: true },
+    { href: "/dashboard/ventas", icon: "💰", label: "Ventas", roles: ["ADMIN_GENERAL", "COLABORADOR", "CONTADOR"], requiresFinance: true },
+    { href: "/dashboard/compras", icon: "🛒", label: "Compras", roles: ["ADMIN_GENERAL", "COLABORADOR", "CONTADOR"], requiresFinance: true },
+    { href: "/dashboard/consumo", icon: "🥩", label: "Consumo", roles: ["ADMIN_GENERAL", "COLABORADOR", "CONTADOR"], requiresFinance: true },
+    { href: "/dashboard/inventario", icon: "📊", label: "Diferencia Inventario", roles: ["ADMIN_GENERAL", "COLABORADOR", "CONTADOR"], requiresFinance: true },
+    ...(tieneCamposEnGrupo ? [{ href: "/dashboard/traslados", icon: "🚚", label: "Traslados", roles: ["ADMIN_GENERAL", "COLABORADOR"], requiresFinance: false }] : []),
+  ],
+},
     {
       title: "Otros",
       items: [
@@ -586,7 +595,7 @@ const guardarNombreGrupo = async (grupoId: string) => {
                     ["tratamiento", "💉", "Tratamiento"],
                     ["venta", "💵", "Venta"],
                     ["compra", "🛒", "Compra"],
-                    ["traslado", "🚚", "Traslado"],
+                    ...(tieneCamposEnGrupo ? [["traslado", "🚚", "Traslado"]] : []),
                     ["nacimiento", "🐄", "Nacimiento"],
                     ["mortandad", "💀", "Mortandad"],
                     ["consumo", "🥩", "Consumo"],
