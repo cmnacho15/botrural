@@ -143,7 +143,7 @@ export default function VentasPage() {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8 gap-6">
           <div className="text-center md:text-left space-y-1">
             <h1 className="text-3xl font-bold text-gray-900 leading-tight">
-              Ventas de Ganado
+              Ventas
             </h1>
             <p className="text-gray-600 text-sm">
               Gestión de ventas de vacunos, ovinos y lana
