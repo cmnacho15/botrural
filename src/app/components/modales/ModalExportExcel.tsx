@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 type ModalExportExcelProps = {
   isOpen: boolean
@@ -13,7 +13,7 @@ type GrupoHojas = {
   hojas: { key: string; label: string }[]
 }
 
-const GRUPOS_HOJAS: GrupoHojas[] = [
+const obtenerGruposHojas = (tieneCamposEnGrupo: boolean): GrupoHojas[] => [
   {
     nombre: 'Ganaderos',
     key: 'ganaderos',
@@ -47,7 +47,7 @@ const GRUPOS_HOJAS: GrupoHojas[] = [
       { key: 'heladas', label: 'Heladas' },
       { key: 'insumos', label: 'Insumos' },
       { key: 'gastosIngresos', label: 'Gastos e Ingresos' },
-      { key: 'traslados', label: 'Traslados' },
+      ...(tieneCamposEnGrupo ? [{ key: 'traslados', label: 'Traslados' }] : []),
     ],
   },
 ]
@@ -62,6 +62,34 @@ export default function ModalExportExcel({ isOpen, onClose }: ModalExportExcelPr
   const [fechaDesde, setFechaDesde] = useState('')
   const [fechaHasta, setFechaHasta] = useState('')
   const [descargando, setDescargando] = useState(false)
+  const [tieneCamposEnGrupo, setTieneCamposEnGrupo] = useState(false)
+  const [cargandoCampos, setCargandoCampos] = useState(true)
+
+  // 🔥 Verificar si hay otros campos en el grupo
+  useEffect(() => {
+    async function verificarCampos() {
+      try {
+        const res = await fetch('/api/campos')
+        if (res.ok) {
+          const data = await res.json()
+          const campoActivo = data.find((c: any) => c.esActivo)
+          const grupoActivo = campoActivo?.grupoId
+          const otrosCampos = data.filter((c: any) => 
+            !c.esActivo && c.grupoId === grupoActivo
+          )
+          setTieneCamposEnGrupo(otrosCampos.length > 0)
+        }
+      } catch (error) {
+        console.error('Error verificando campos:', error)
+      } finally {
+        setCargandoCampos(false)
+      }
+    }
+    
+    if (isOpen) {
+      verificarCampos()
+    }
+  }, [isOpen])
 
   if (!isOpen) return null
 
@@ -160,7 +188,7 @@ export default function ModalExportExcel({ isOpen, onClose }: ModalExportExcelPr
   // Seleccionar todo
   const seleccionarTodo = () => {
     const nuevasHojas: Record<string, boolean> = {}
-    GRUPOS_HOJAS.forEach((grupo) => {
+    obtenerGruposHojas(tieneCamposEnGrupo).forEach((grupo) => {
       grupo.hojas.forEach((h) => {
         nuevasHojas[h.key] = true
       })
@@ -243,7 +271,7 @@ export default function ModalExportExcel({ isOpen, onClose }: ModalExportExcelPr
             </div>
 
             <div className="space-y-2">
-              {GRUPOS_HOJAS.map((grupo) => (
+              {obtenerGruposHojas(tieneCamposEnGrupo).map((grupo) => (
                 <div key={grupo.key} className="border border-gray-200 rounded-lg overflow-hidden">
                   {/* Header del grupo */}
                   <div

@@ -85,6 +85,31 @@ function ModalFiltroTipoDato({
     0: true,
   })
 
+  const [tieneCamposEnGrupo, setTieneCamposEnGrupo] = useState(false)
+
+useEffect(() => {
+  async function verificarCampos() {
+    try {
+      const res = await fetch('/api/campos')
+      if (res.ok) {
+        const data = await res.json()
+        const campoActivo = data.find((c: any) => c.esActivo)
+        const grupoActivo = campoActivo?.grupoId
+        const otrosCampos = data.filter((c: any) => 
+          !c.esActivo && c.grupoId === grupoActivo
+        )
+        setTieneCamposEnGrupo(otrosCampos.length > 0)
+      }
+    } catch (error) {
+      console.error('Error verificando campos:', error)
+    }
+  }
+  
+  if (isOpen) {
+    verificarCampos()
+  }
+}, [isOpen])
+
   const tiposDeEvento = [
     {
       category: 'Animales',
@@ -93,7 +118,7 @@ function ModalFiltroTipoDato({
         { value: 'TRATAMIENTO', label: 'Tratamiento', icon: '💉' },
         { value: 'VENTA', label: 'Venta', icon: '💵' },
         { value: 'COMPRA', label: 'Compra', icon: '🛒' },
-        { value: 'TRASLADO', label: 'Traslado', icon: '🚚' },
+        ...(tieneCamposEnGrupo ? [{ value: 'TRASLADO', label: 'Traslado', icon: '🚚' }] : []),
         { value: 'NACIMIENTO', label: 'Nacimiento', icon: '➕' },
         { value: 'MORTANDAD', label: 'Mortandad', icon: '➖' },
         { value: 'CONSUMO', label: 'Consumo', icon: '🌾' },
