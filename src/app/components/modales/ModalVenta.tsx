@@ -19,6 +19,37 @@ type Renglon = {
   animalLoteId: string | null
 }
 
+type RenglonLana = {
+  id: string
+  categoriaLana: string
+  pesoKg: number
+  precioKgUSD: number
+}
+
+type GastoLana = {
+  id: string
+  concepto: string
+  importeUSD: number
+}
+
+const CATEGORIAS_LANA = [
+  'Vellón',
+  'Barriga',
+  'Barriguera',
+  'Pedazos',
+  'Ajuste Barriga',
+  'Otros'
+]
+
+const CONCEPTOS_GASTOS = [
+  'ITEM',
+  'DEVIR',
+  'INIA',
+  'Flete',
+  'Comisión',
+  'Otros'
+]
+
 export default function ModalVenta({ onClose, onSuccess }: ModalVentaProps) {
   const [paso, setPaso] = useState(1)
   const [loading, setLoading] = useState(false)
@@ -34,6 +65,22 @@ export default function ModalVenta({ onClose, onSuccess }: ModalVentaProps) {
   const [fechaVencimiento, setFechaVencimiento] = useState('')
   const [pagado, setPagado] = useState(false)
   const [notas, setNotas] = useState('')
+
+  // Nuevo: Tipo de venta
+  const [tipoVenta, setTipoVenta] = useState<'GANADO' | 'LANA' | null>(null)
+
+  // Nuevo: Renglones de LANA
+  const [renglonesLana, setRenglonesLana] = useState<RenglonLana[]>([
+    {
+      id: '1',
+      categoriaLana: '',
+      pesoKg: 0,
+      precioKgUSD: 0,
+    },
+  ])
+
+  // Nuevo: Gastos deducibles
+  const [gastosLana, setGastosLana] = useState<GastoLana[]>([])
 
   // Firmas
   const [firmas, setFirmas] = useState<any[]>([])
@@ -170,6 +217,52 @@ export default function ModalVenta({ onClose, onSuccess }: ModalVentaProps) {
     setRenglones(prev => prev.filter(r => r.id !== id))
   }
 
+  // Funciones para renglones de LANA
+  const handleRenglonLanaChange = (id: string, field: keyof RenglonLana, value: any) => {
+    setRenglonesLana(prev =>
+      prev.map(r => (r.id === id ? { ...r, [field]: value } : r))
+    )
+  }
+
+  const agregarRenglonLana = () => {
+    setRenglonesLana(prev => [
+      ...prev,
+      {
+        id: Date.now().toString(),
+        categoriaLana: '',
+        pesoKg: 0,
+        precioKgUSD: 0,
+      },
+    ])
+  }
+
+  const eliminarRenglonLana = (id: string) => {
+    if (renglonesLana.length === 1) return
+    setRenglonesLana(prev => prev.filter(r => r.id !== id))
+  }
+
+  // Funciones para gastos
+  const agregarGasto = () => {
+    setGastosLana(prev => [
+      ...prev,
+      {
+        id: Date.now().toString(),
+        concepto: '',
+        importeUSD: 0,
+      },
+    ])
+  }
+
+  const handleGastoChange = (id: string, field: keyof GastoLana, value: any) => {
+    setGastosLana(prev =>
+      prev.map(g => (g.id === id ? { ...g, [field]: value } : g))
+    )
+  }
+
+  const eliminarGasto = (id: string) => {
+    setGastosLana(prev => prev.filter(g => g.id !== id))
+  }
+
   // Calcular precio y peso en pie desde datos de 4ta balanza
   const calcularDesdeCuarta = (renglonId: string) => {
     const datos = datosTemporales[renglonId]
@@ -204,16 +297,33 @@ export default function ModalVenta({ onClose, onSuccess }: ModalVentaProps) {
   }
 
   const calcularTotales = () => {
-    const subtotal = renglones.reduce((sum, r) => {
-      const pesoTotal = r.cantidad * r.pesoPromedio
-      const importe = pesoTotal * r.precioKg
-      return sum + importe
-    }, 0)
+    if (tipoVenta === 'GANADO') {
+      const subtotal = renglones.reduce((sum, r) => {
+        const pesoTotal = r.cantidad * r.pesoPromedio
+        const importe = pesoTotal * r.precioKg
+        return sum + importe
+      }, 0)
 
-    return {
-      subtotal,
-      neto: subtotal, // Por ahora sin impuestos
+      return {
+        subtotal,
+        neto: subtotal,
+      }
     }
+
+    if (tipoVenta === 'LANA') {
+      const subtotal = renglonesLana.reduce((sum, r) => {
+        return sum + (r.pesoKg * r.precioKgUSD)
+      }, 0)
+
+      const totalGastos = gastosLana.reduce((sum, g) => sum + g.importeUSD, 0)
+
+      return {
+        subtotal,
+        neto: subtotal + totalGastos, // Los gastos son negativos
+      }
+    }
+
+    return { subtotal: 0, neto: 0 }
   }
 
   const totales = calcularTotales()
@@ -233,29 +343,48 @@ export default function ModalVenta({ onClose, onSuccess }: ModalVentaProps) {
   }
 
   const validarPaso2 = () => {
-    if (renglones.some(r => !r.categoria || r.cantidad <= 0 || r.precioKg <= 0 || r.pesoPromedio <= 0)) {
-      alert('Completá todos los renglones con valores válidos')
-      return false
-    }
+    if (tipoVenta === 'GANADO') {
+      if (renglones.some(r => !r.categoria || r.cantidad <= 0 || r.precioKg <= 0 || r.pesoPromedio <= 0)) {
+        alert('Completá todos los renglones con valores válidos')
+        return false
+      }
 
-    // Validar stock disponible
-    for (const renglon of renglones) {
-      if (renglon.descontarStock && renglon.animalLoteId) {
-        const potrero = potreros.find(p => 
-          p.animalesLote.some((a: any) => a.id === renglon.animalLoteId)
-        )
-        
-        if (potrero) {
-          const animalLote = potrero.animalesLote.find((a: any) => a.id === renglon.animalLoteId)
-          if (animalLote && animalLote.cantidad < renglon.cantidad) {
-            alert(`Stock insuficiente en ${potrero.nombre}. Disponible: ${animalLote.cantidad}, Necesario: ${renglon.cantidad}`)
-            return false
+      // Validar stock disponible
+      for (const renglon of renglones) {
+        if (renglon.descontarStock && renglon.animalLoteId) {
+          const potrero = potreros.find(p => 
+            p.animalesLote.some((a: any) => a.id === renglon.animalLoteId)
+          )
+          
+          if (potrero) {
+            const animalLote = potrero.animalesLote.find((a: any) => a.id === renglon.animalLoteId)
+            if (animalLote && animalLote.cantidad < renglon.cantidad) {
+              alert(`Stock insuficiente en ${potrero.nombre}. Disponible: ${animalLote.cantidad}, Necesario: ${renglon.cantidad}`)
+              return false
+            }
           }
         }
       }
+
+      return true
     }
 
-    return true
+    if (tipoVenta === 'LANA') {
+      if (renglonesLana.some(r => !r.categoriaLana || r.pesoKg <= 0 || r.precioKgUSD <= 0)) {
+        alert('Completá todos los renglones de lana con valores válidos')
+        return false
+      }
+
+      // Validar gastos si existen
+      if (gastosLana.length > 0 && gastosLana.some(g => !g.concepto.trim())) {
+        alert('Completá el concepto de todos los gastos')
+        return false
+      }
+
+      return true
+    }
+
+    return false
   }
 
   const handleSubmit = async () => {
@@ -264,7 +393,7 @@ export default function ModalVenta({ onClose, onSuccess }: ModalVentaProps) {
     setLoading(true)
 
     try {
-      const payload = {
+      const payload: any = {
         fecha,
         comprador: comprador.trim(),
         firmaId: firmaId || null,
@@ -284,7 +413,10 @@ export default function ModalVenta({ onClose, onSuccess }: ModalVentaProps) {
         imageUrl: null,
         imageName: null,
         notas: notas.trim() || null,
-        renglones: renglones.map(r => ({
+      }
+
+      if (tipoVenta === 'GANADO') {
+        payload.renglones = renglones.map(r => ({
           tipo: 'GANADO',
           tipoAnimal: r.tipoAnimal,
           categoria: r.categoria,
@@ -294,7 +426,23 @@ export default function ModalVenta({ onClose, onSuccess }: ModalVentaProps) {
           precioKgUSD: r.precioKg,
           descontarStock: r.descontarStock,
           animalLoteId: r.animalLoteId,
-        })),
+        }))
+      }
+
+      if (tipoVenta === 'LANA') {
+        payload.renglones = renglonesLana.map(r => ({
+          tipo: 'LANA',
+          categoriaLana: r.categoriaLana,
+          pesoKg: r.pesoKg,
+          precioKgUSD: r.precioKgUSD,
+        }))
+
+        if (gastosLana.length > 0) {
+          payload.gastosLana = gastosLana.map(g => ({
+            concepto: g.concepto,
+            importeUSD: g.importeUSD,
+          }))
+        }
       }
 
       const response = await fetch('/api/ventas', {
@@ -329,7 +477,7 @@ export default function ModalVenta({ onClose, onSuccess }: ModalVentaProps) {
           <div>
             <h2 className="text-2xl font-bold text-gray-900">Nueva Venta</h2>
             <p className="text-sm text-gray-600">
-              {paso === 1 ? 'Paso 1: Datos generales' : 'Paso 2: Detalle de animales'}
+              {paso === 1 ? 'Paso 1: Datos generales' : 'Paso 2: Detalle de venta'}
             </p>
           </div>
         </div>
@@ -542,14 +690,78 @@ export default function ModalVenta({ onClose, onSuccess }: ModalVentaProps) {
         </div>
       )}
 
-      {/* PASO 2: RENGLONES */}
-      {paso === 2 && (
+      {/* PASO 2: SELECTOR DE TIPO + DETALLE */}
+      {paso === 2 && !tipoVenta && (
+        <div className="space-y-6">
+          <div className="text-center mb-6">
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">
+              ¿Qué tipo de venta vas a registrar?
+            </h3>
+            <p className="text-sm text-gray-600">
+              Seleccioná el tipo de venta para continuar
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* OPCIÓN GANADO */}
+            <button
+              type="button"
+              onClick={() => setTipoVenta('GANADO')}
+              className="p-6 border-2 border-gray-200 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition text-center group"
+            >
+              <div className="text-6xl mb-3">🐄</div>
+              <h4 className="text-lg font-semibold text-gray-900 mb-2">
+                Ganado en Pie
+              </h4>
+              <p className="text-sm text-gray-600">
+                Vacunos y ovinos para faena o cría
+              </p>
+            </button>
+
+            {/* OPCIÓN LANA */}
+            <button
+              type="button"
+              onClick={() => setTipoVenta('LANA')}
+              className="p-6 border-2 border-gray-200 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition text-center group"
+            >
+              <div className="text-6xl mb-3">🧶</div>
+              <h4 className="text-lg font-semibold text-gray-900 mb-2">
+                Lana
+              </h4>
+              <p className="text-sm text-gray-600">
+                Vellón, barriga, barriguera, etc.
+              </p>
+            </button>
+          </div>
+
+          {/* BOTÓN ATRÁS */}
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => setPaso(1)}
+              className="flex-1 px-4 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium"
+            >
+              ← Atrás
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* PASO 2: DETALLE GANADO */}
+      {paso === 2 && tipoVenta === 'GANADO' && (
         <div className="space-y-6">
           <div className="bg-blue-50 rounded-lg p-3 mb-3 flex items-center gap-2">
             <span className="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center font-bold">
               {renglones.length}
             </span>
-            <h3 className="font-semibold text-gray-900">Renglones de Venta</h3>
+            <h3 className="font-semibold text-gray-900">Renglones de Venta - Ganado</h3>
+            <button
+              type="button"
+              onClick={() => setTipoVenta(null)}
+              className="ml-auto text-xs text-blue-600 hover:text-blue-800"
+            >
+              Cambiar tipo
+            </button>
           </div>
 
           <div className="space-y-4">
@@ -604,7 +816,7 @@ export default function ModalVenta({ onClose, onSuccess }: ModalVentaProps) {
                     </div>
                   </div>
 
-                 {/* CANTIDAD */}
+                  {/* CANTIDAD */}
                   <div className="mb-3">
                     <label className="block text-xs text-gray-600 mb-1">Cantidad de animales *</label>
                     <input
@@ -862,7 +1074,7 @@ export default function ModalVenta({ onClose, onSuccess }: ModalVentaProps) {
           <div className="flex gap-3">
             <button
               type="button"
-              onClick={() => setPaso(1)}
+              onClick={() => setTipoVenta(null)}
               className="flex-1 px-4 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium"
             >
               ← Atrás
@@ -873,6 +1085,208 @@ export default function ModalVenta({ onClose, onSuccess }: ModalVentaProps) {
               onClick={handleSubmit}
               disabled={loading}
               className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium"
+            >
+              {loading ? 'Guardando...' : 'Confirmar Venta'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* PASO 2: DETALLE LANA */}
+      {paso === 2 && tipoVenta === 'LANA' && (
+        <div className="space-y-6">
+          <div className="bg-blue-50 rounded-lg p-3 mb-3 flex items-center gap-2">
+            <span className="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center font-bold">
+              {renglonesLana.length}
+            </span>
+            <h3 className="font-semibold text-gray-900">Renglones de Venta - Lana</h3>
+            <button
+              type="button"
+              onClick={() => setTipoVenta(null)}
+              className="ml-auto text-xs text-blue-600 hover:text-blue-800"
+            >
+              Cambiar tipo
+            </button>
+          </div>
+
+          <div className="space-y-4">
+            {renglonesLana.map((renglon, idx) => (
+              <div
+                key={renglon.id}
+                className="border-l-4 border-green-500 pl-4 py-3 bg-gray-50 rounded-r-lg relative"
+              >
+                {renglonesLana.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => eliminarRenglonLana(renglon.id)}
+                    className="absolute top-2 right-2 text-red-600 hover:text-red-800"
+                  >
+                    🗑️
+                  </button>
+                )}
+
+                <div className="mb-2 font-medium text-gray-700">Renglón {idx + 1}</div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">Tipo de Lana *</label>
+                    <select
+                      value={renglon.categoriaLana}
+                      onChange={(e) => handleRenglonLanaChange(renglon.id, 'categoriaLana', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                    >
+                      <option value="">Seleccionar...</option>
+                      {CATEGORIAS_LANA.map(cat => (
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">Peso (kg) *</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      min={0}
+                      value={renglon.pesoKg || ''}
+                      onChange={(e) => handleRenglonLanaChange(renglon.id, 'pesoKg', parseFloat(e.target.value) || 0)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                      placeholder="ej: 4367"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">Precio/kg (USD) *</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min={0}
+                      value={renglon.precioKgUSD || ''}
+                      onChange={(e) => handleRenglonLanaChange(renglon.id, 'precioKgUSD', parseFloat(e.target.value) || 0)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                      placeholder="ej: 5.81"
+                    />
+                  </div>
+                </div>
+
+                {/* CÁLCULO */}
+                {renglon.pesoKg > 0 && renglon.precioKgUSD > 0 && (
+                  <div className="mt-3 bg-white rounded-lg p-3 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Importe:</span>
+                      <span className="font-bold text-green-600">
+                        {(renglon.pesoKg * renglon.precioKgUSD).toFixed(2)} USD
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* AGREGAR RENGLÓN LANA */}
+          <button
+            type="button"
+            onClick={agregarRenglonLana}
+            className="flex items-center gap-2 text-green-600 hover:text-green-700 font-medium"
+          >
+            <span className="w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center text-sm">
+              +
+            </span>
+            Agregar Otra Categoría de Lana
+          </button>
+
+          {/* GASTOS DEDUCIBLES */}
+          <div className="bg-yellow-50 rounded-lg border border-yellow-200 p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="font-semibold text-gray-900">Gastos Deducibles</h4>
+              <button
+                type="button"
+                onClick={agregarGasto}
+                className="text-xs text-yellow-700 hover:text-yellow-800 font-medium"
+              >
+                + Agregar Gasto
+              </button>
+            </div>
+
+            {gastosLana.length === 0 ? (
+              <p className="text-sm text-gray-600">
+                No hay gastos. Los gastos como ITEM, DEVIR, INIA se descuentan del total.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {gastosLana.map((gasto) => (
+                  <div key={gasto.id} className="flex gap-2 items-center">
+                    <select
+                      value={gasto.concepto}
+                      onChange={(e) => handleGastoChange(gasto.id, 'concepto', e.target.value)}
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 text-sm"
+                    >
+                      <option value="">Concepto...</option>
+                      {CONCEPTOS_GASTOS.map(c => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                    </select>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={gasto.importeUSD || ''}
+                      onChange={(e) => handleGastoChange(gasto.id, 'importeUSD', parseFloat(e.target.value) || 0)}
+                      placeholder="-630.30"
+                      className="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 text-sm"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => eliminarGasto(gasto.id)}
+                      className="text-red-600 hover:text-red-800 text-sm"
+                    >
+                      🗑️
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* TOTALES */}
+          <div className="bg-gray-100 rounded-lg p-4">
+            <div className="flex justify-between items-center mb-2">
+              <span className="font-semibold text-gray-900">Subtotal (bruto):</span>
+              <span className="text-xl font-bold text-gray-900">
+                {totales.subtotal.toLocaleString('es-UY', { minimumFractionDigits: 2 })} USD
+              </span>
+            </div>
+            {gastosLana.length > 0 && (
+              <div className="flex justify-between items-center mb-2 text-sm">
+                <span className="text-gray-600">Gastos:</span>
+                <span className="text-red-600">
+                  {gastosLana.reduce((sum, g) => sum + g.importeUSD, 0).toLocaleString('es-UY', { minimumFractionDigits: 2 })} USD
+                </span>
+              </div>
+            )}
+            <div className="flex justify-between items-center pt-2 border-t border-gray-300">
+              <span className="font-semibold text-gray-900">Total Neto:</span>
+              <span className="text-2xl font-bold text-green-600">
+                {totales.neto.toLocaleString('es-UY', { minimumFractionDigits: 2 })} USD
+              </span>
+            </div>
+          </div>
+
+          {/* BOTONES */}
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => setTipoVenta(null)}
+              className="flex-1 px-4 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium"
+            >
+              ← Atrás
+            </button>
+
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={loading}
+              className="flex-1 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 font-medium"
             >
               {loading ? 'Guardando...' : 'Confirmar Venta'}
             </button>

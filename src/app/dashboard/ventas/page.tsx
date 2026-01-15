@@ -5,6 +5,7 @@ import Link from 'next/link'
 import ModalVenta from '@/app/components/modales/ModalVenta'
 import ResumenVentas from '@/app/components/ventas/ResumenVentas'
 import TablaVentas from '@/app/components/ventas/TablaVentas'
+import TablaVentasLana from '@/app/components/ventas/TablaVentasLana'
 
 // ✅ Fetcher mejorado con manejo robusto de errores
 const fetcher = async (url: string) => {
@@ -60,6 +61,9 @@ export default function VentasPage() {
   const [fechaInicio, setFechaInicio] = useState(fechaInicioDefault)
   const [fechaFin, setFechaFin] = useState(fechaFinDefault)
 
+  // Tipo de vista (GANADO o LANA)
+  const [vistaActiva, setVistaActiva] = useState<'GANADO' | 'LANA'>('GANADO')
+
   // Cargar ventas con filtros
   const { data, isLoading, mutate, error } = useSWR(
     `/api/ventas?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}`,
@@ -86,6 +90,14 @@ export default function VentasPage() {
 
   const ventas = data?.ventas || []
   const resumen = data?.resumen || null
+
+  // Separar ventas por tipo
+  const ventasGanado = ventas.filter((v: any) => 
+    v.renglones.some((r: any) => r.tipo === 'GANADO')
+  )
+  const ventasLana = ventas.filter((v: any) => 
+    v.renglones.some((r: any) => r.tipo === 'LANA')
+  )
 
   const handleSuccess = () => {
     mutate()
@@ -128,32 +140,32 @@ export default function VentasPage() {
     <>
       <div className="bg-gray-50 min-h-screen p-4 sm:p-6 md:p-8 text-gray-900">
         {/* HEADER */}
-<div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8 gap-6">
-  <div className="text-center md:text-left space-y-1">
-    <h1 className="text-3xl font-bold text-gray-900 leading-tight">
-      Ventas de Ganado
-    </h1>
-    <p className="text-gray-600 text-sm">
-      Gestión de ventas de vacunos, ovinos y lana
-    </p>
-  </div>
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8 gap-6">
+          <div className="text-center md:text-left space-y-1">
+            <h1 className="text-3xl font-bold text-gray-900 leading-tight">
+              Ventas de Ganado
+            </h1>
+            <p className="text-gray-600 text-sm">
+              Gestión de ventas de vacunos, ovinos y lana
+            </p>
+          </div>
 
-  <div className="flex flex-wrap justify-center md:justify-end gap-3">
-    <Link 
-      href="/dashboard/ventas-por-firmas"
-      className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 shadow-sm transition text-sm font-medium"
-    >
-      📊 Ver por Firmas
-    </Link>
-    
-    <button
-      onClick={() => setModalOpen(true)}
-      className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 shadow-sm transition text-sm font-medium"
-    >
-      <span className="text-lg">+</span> Nueva Venta
-    </button>
-  </div>
-</div>
+          <div className="flex flex-wrap justify-center md:justify-end gap-3">
+            <Link 
+              href="/dashboard/ventas-por-firmas"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 shadow-sm transition text-sm font-medium"
+            >
+              📊 Ver por Firmas
+            </Link>
+            
+            <button
+              onClick={() => setModalOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 shadow-sm transition text-sm font-medium"
+            >
+              <span className="text-lg">+</span> Nueva Venta
+            </button>
+          </div>
+        </div>
 
         {/* FILTROS DE FECHA */}
         <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6 mb-6">
@@ -197,15 +209,52 @@ export default function VentasPage() {
           </div>
         </div>
 
+        {/* TABS DE NAVEGACIÓN */}
+        <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden mb-6">
+          <div className="flex border-b border-gray-200">
+            <button
+              onClick={() => setVistaActiva('GANADO')}
+              className={`flex-1 px-6 py-4 text-center font-medium transition ${
+                vistaActiva === 'GANADO'
+                  ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-600'
+                  : 'text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              <span className="text-lg mr-2">🐄</span>
+              Ganado ({ventasGanado.length})
+            </button>
+            <button
+              onClick={() => setVistaActiva('LANA')}
+              className={`flex-1 px-6 py-4 text-center font-medium transition ${
+                vistaActiva === 'LANA'
+                  ? 'bg-green-50 text-green-600 border-b-2 border-green-600'
+                  : 'text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              <span className="text-lg mr-2">🧶</span>
+              Lana ({ventasLana.length})
+            </button>
+          </div>
+        </div>
+
         {/* RESUMEN (TABLAS TIPO EXCEL) */}
         {resumen && <ResumenVentas resumen={resumen} />}
 
-        {/* DETALLE DE VENTAS */}
+        {/* DETALLE DE VENTAS SEGÚN VISTA ACTIVA */}
         <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden mt-6">
           <div className="p-6 border-b border-gray-200">
-            <h2 className="text-xl font-bold text-gray-900">Detalle de Ventas</h2>
+            <h2 className="text-xl font-bold text-gray-900">
+              {vistaActiva === 'GANADO' ? 'Detalle de Ventas - Ganado' : 'Detalle de Ventas - Lana'}
+            </h2>
           </div>
-          <TablaVentas ventas={ventas} onRefresh={mutate} />
+          
+          {vistaActiva === 'GANADO' && (
+            <TablaVentas ventas={ventasGanado} onRefresh={mutate} />
+          )}
+          
+          {vistaActiva === 'LANA' && (
+            <TablaVentasLana ventas={ventasLana} onRefresh={mutate} />
+          )}
         </div>
       </div>
 
