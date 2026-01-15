@@ -430,12 +430,19 @@ export default function ModalVenta({ onClose, onSuccess }: ModalVentaProps) {
       }
 
       if (tipoVenta === 'LANA') {
-        payload.renglones = renglonesLana.map(r => ({
-          tipo: 'LANA',
-          categoriaLana: r.categoriaLana,
-          pesoKg: r.pesoKg,
-          precioKgUSD: r.precioKgUSD,
-        }))
+  payload.renglones = renglonesLana.map(r => ({
+    tipo: 'LANA',
+    tipoAnimal: 'OVINO', // Requerido por schema
+    categoria: r.categoriaLana,
+    categoriaLana: r.categoriaLana,
+    raza: null,
+    cantidad: 0, // No aplica en lana
+    pesoPromedio: 0, // No aplica en lana
+    pesoKg: r.pesoKg,
+    precioKgUSD: r.precioKgUSD,
+    descontarStock: false,
+    animalLoteId: null,
+  }))
 
         if (gastosLana.length > 0) {
           payload.gastosLana = gastosLana.map(g => ({
