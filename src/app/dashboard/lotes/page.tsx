@@ -306,6 +306,9 @@ function ModalConfirmarBorrado({
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
+
+import { useSession } from 'next-auth/react'
+
 export default function LotesPage() {
   // ✅ Cargar lotes con SWR
   const { data: lotes = [], isLoading: loadingLotes, mutate: refreshLotes } = useSWR<Lote[]>(
@@ -317,11 +320,10 @@ export default function LotesPage() {
     }
   )
 
-  // ✅ Cargar campo con SWR
-  const { data: campoData, isLoading: loadingCampo } = useSWR('/api/campos', fetcher)
-const nombreCampo = Array.isArray(campoData) 
-  ? campoData.find(c => c.esActivo)?.nombre || 'el campo'
-  : campoData?.nombre || 'el campo'
+  
+  // ✅ Obtener nombre del campo desde la sesión
+const { data: session } = useSession()
+const nombreCampo = session?.user?.campoNombre || 'el campo'
 
   // ✅ Cargar módulos con SWR
   const { data: modulos = [], isLoading: loadingModulos } = useSWR<Array<{
@@ -594,7 +596,7 @@ const [acordeonesAbiertos, setAcordeonesAbiertos] = useState<{[key: string]: boo
     </tr>
   )
 
-  const loading = loadingLotes || loadingCampo || loadingModulos || loadingEquivalencias
+ const loading = loadingLotes || loadingModulos || loadingEquivalencias
   const hayLotes = lotes.length > 0
 
   if (loading) {
