@@ -318,8 +318,10 @@ export default function LotesPage() {
   )
 
   // ✅ Cargar campo con SWR
-  const { data: campo, isLoading: loadingCampo } = useSWR('/api/campos', fetcher)
-  const nombreCampo = campo?.nombre || ''
+  const { data: campoData, isLoading: loadingCampo } = useSWR('/api/campos', fetcher)
+const nombreCampo = Array.isArray(campoData) 
+  ? campoData.find(c => c.esActivo)?.nombre || 'el campo'
+  : campoData?.nombre || 'el campo'
 
   // ✅ Cargar módulos con SWR
   const { data: modulos = [], isLoading: loadingModulos } = useSWR<Array<{
