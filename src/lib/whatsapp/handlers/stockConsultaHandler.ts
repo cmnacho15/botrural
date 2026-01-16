@@ -301,21 +301,31 @@ export async function handleStockEdicion(
     }
 
     // 🔥 CASO 2: Edición manual después de consulta activa (el flujo original)
-    if (!pending || typeof input !== 'string') {
-      return false // No hay consulta activa o no es texto manual
+    if (typeof input !== 'string') {
+      console.log("❌ handleStockEdicion: input no es string")
+      return false
+    }
+
+    if (!pending) {
+      console.log("❌ handleStockEdicion: no hay pending")
+      return false
     }
 
     const data = JSON.parse(pending.data)
+    console.log("📦 handleStockEdicion data.tipo:", data.tipo)
 
     if (data.tipo !== "STOCK_CONSULTA") {
-      return false // No es una consulta de stock
+      console.log("❌ handleStockEdicion: tipo no es STOCK_CONSULTA")
+      return false
     }
 
     // Parsear edición manual: "Vacas 12" o "12 Vacas"
     const match = input.match(/^(\d+)\s+(.+)|(.+)\s+(\d+)$/i)
+    console.log("🔍 handleStockEdicion match:", match)
 
     if (!match) {
-      return false // No es una edición válida
+      console.log("❌ handleStockEdicion: no matchea regex")
+      return false
     }
 
     const cantidad = parseInt(match[1] || match[4])
