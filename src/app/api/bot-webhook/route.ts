@@ -321,13 +321,18 @@ console.log("📦 Mensaje completo:", JSON.stringify(message, null, 2))
         const edicionManual = messageText.match(/^(\d+)\s+(.+)|(.+)\s+(\d+)$/i)
         
         if (edicionManual) {
+          console.log("🔍 Detectada edición manual de stock:", messageText)
           const procesado = await handleStockEdicion(from, messageText)
           if (procesado) {
+            console.log("✅ Edición manual procesada correctamente")
             return NextResponse.json({ status: "stock edit processed" })
+          } else {
+            console.log("⚠️ handleStockEdicion retornó false, intentando con GPT...")
           }
         }
         
-        // Si no es edición manual, parsear con GPT
+        // Si la edición manual falló, parsear con GPT como respaldo
+        console.log("🤖 Intentando parsear con GPT como respaldo...")
         const usuario = await prisma.user.findUnique({
           where: { telefono: from },
           select: { campoId: true }
@@ -341,14 +346,18 @@ console.log("📦 Mensaje completo:", JSON.stringify(message, null, 2))
           })
           
           const parsedData = await parseMessageWithAI(messageText, [], categorias)
+          console.log("📦 GPT parseó como:", parsedData?.tipo)
           
           if (parsedData?.tipo === "STOCK_EDICION") {
             const procesado = await handleStockEdicion(from, parsedData)
             if (procesado) {
+              console.log("✅ Edición GPT procesada correctamente")
               return NextResponse.json({ status: "stock edit gpt processed" })
             }
           }
         }
+        
+        console.log("❌ No se pudo procesar como edición de stock")
       }
       
       // Si no fue edición de stock, procesar confirmación normal
