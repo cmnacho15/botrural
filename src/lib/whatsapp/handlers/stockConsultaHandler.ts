@@ -660,8 +660,5 @@ export async function handleSeleccionPotreroStock(
   // Mostrar el stock del potrero seleccionado
   await handleStockConsultaConId(phoneNumber, potreroSeleccionado.id, campoId)
   
-  // Limpiar el pending
-  await prisma.pendingConfirmation.delete({ 
-    where: { telefono: phoneNumber } 
-  }).catch(() => {}) // Ignorar error si ya no existe
+  // 🔥 NO borrar el pending - handleStockConsultaConId ya lo reemplaza con STOCK_CONSULTA
 }
