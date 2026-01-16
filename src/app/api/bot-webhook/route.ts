@@ -208,8 +208,14 @@ console.log("📦 Mensaje completo:", JSON.stringify(message, null, 2))
       where: { telefono: from },
     })
 
+    console.log("🔍 confirmacionPendiente existe?", !!confirmacionPendiente)
+    if (confirmacionPendiente) {
+      console.log("📦 confirmacionPendiente.data:", confirmacionPendiente.data)
+    }
+
     if (confirmacionPendiente) {
       const data = JSON.parse(confirmacionPendiente.data)
+      console.log("📦 data.tipo:", data.tipo)
       
       // 🆕 Si está eligiendo potrero con módulos
       if (data.tipo === "ELEGIR_POTRERO_ORIGEN" || data.tipo === "ELEGIR_POTRERO_DESTINO") {
