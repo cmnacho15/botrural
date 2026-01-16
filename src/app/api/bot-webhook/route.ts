@@ -309,8 +309,20 @@ if (comandosMapa.includes(messageText.toLowerCase().trim())) {
 // - "stock potrero sur" / "stock sur"
 // - "ver norte" / "ver potrero norte"
 // - "cuántos hay en el este"
+
+// NUEVO: Detectar formato "hay X vacas en potrero Y" primero
+const hayEnPotreroMatch = messageText.match(
+  /^(?:hay|tiene)\s+\d+\s+\w+\s+en\s+(?:potrero\s+)?(.+)$/i
+)
+if (hayEnPotreroMatch && usuario?.campoId) {
+  const nombrePotrero = hayEnPotreroMatch[1].trim()
+  await handleStockConsulta(from, nombrePotrero, usuario.campoId)
+  return NextResponse.json({ status: "stock consulta processed" })
+}
+
+// Formato simple: "potrero X" / "stock X"
 const consultaStockMatch = messageText.match(
-  /^(?:potrero|stock|ver|cuántos?|cuantos?|hay)\s+(?:potrero\s+|en\s+)?(.+)$/i
+  /^(?:potrero|stock|ver|cuántos?|cuantos?)\s+(?:potrero\s+|en\s+)?(.+)$/i
 )
 if (consultaStockMatch && usuario?.campoId) {
   const nombrePotrero = consultaStockMatch[1].trim()
