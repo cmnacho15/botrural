@@ -217,6 +217,13 @@ console.log("📦 Mensaje completo:", JSON.stringify(message, null, 2))
         return NextResponse.json({ status: "modulo selection processed" })
       }
 
+      // 🆕 Si está eligiendo potrero para stock
+      if (data.tipo === "ELEGIR_POTRERO_STOCK") {
+        const { handleSeleccionPotreroStock } = await import("@/lib/whatsapp/handlers/stockConsultaHandler")
+        await handleSeleccionPotreroStock(from, messageText)
+        return NextResponse.json({ status: "stock potrero selection processed" })
+      }
+
       // Si está eligiendo grupo, procesar número
       if (data.tipo === "CAMBIAR_GRUPO") {
         const numero = parseInt(messageText.trim())
