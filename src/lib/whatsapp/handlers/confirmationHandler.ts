@@ -95,25 +95,6 @@ export async function handleConfirmacion(
     if (wasHandled) return // ⚠️ IMPORTANTE: salir aquí para evitar doble procesamiento
   }
 
-  // 🆕 Si está eligiendo potrero para stock
-  if (data.tipo === "ELEGIR_POTRERO_STOCK") {
-    const { handleSeleccionPotreroStock } = await import("./stockConsultaHandler")
-    await handleSeleccionPotreroStock(phone, respuesta)
-    return
-  }
-
-  // Si está eligiendo grupo, procesar número
-  if (data.tipo === "CAMBIAR_GRUPO") {
-    const numero = parseInt(respuesta.trim())
-    if (!isNaN(numero) && numero >= 1 && data.grupos && numero <= data.grupos.length) {
-      const { handleSeleccionGrupo } = await import("./campoHandler")
-      await handleSeleccionGrupo(phone, numero, data.grupos)
-    } else {
-      await sendWhatsAppMessage(phone, `❌ Escribí un número válido para elegir el grupo.`)
-    }
-    return
-  }
-
   // Validación: no usar texto para confirmar facturas con botones
   if (data.tipo === "INVOICE") {
     await sendWhatsAppMessage(

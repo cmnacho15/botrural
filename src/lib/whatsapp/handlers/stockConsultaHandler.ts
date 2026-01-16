@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/prisma"
 import { sendWhatsAppMessage, sendCustomButtons } from "../services/messageService"
-import { buscarPotreroEnLista, buscarPotreroConModulos } from "@/lib/potrero-helpers"
+import { buscarPotreroEnLista } from "@/lib/potrero-helpers"
 
 /**
  * FASE 1: Usuario pide ver stock de un potrero
@@ -13,47 +13,15 @@ export async function handleStockConsulta(
   campoId: string
 ) {
   try {
-    // 🔍 Buscar potrero considerando módulos
-    const resultado = await buscarPotreroConModulos(nombrePotrero, campoId)
+    // Buscar el potrero
+    const potreros = await prisma.lote.findMany({
+      where: { campoId },
+      select: { id: true, nombre: true }
+    })
 
-    // Si hay múltiples potreros con el mismo nombre (en diferentes módulos)
-    if (!resultado.unico && resultado.opciones && resultado.opciones.length > 1) {
-      const mensaje = `Encontré varios "${nombrePotrero}":\n\n` +
-        resultado.opciones.map((opt, i) => 
-          `${i + 1}️⃣ ${opt.nombre}${opt.moduloNombre ? ` (${opt.moduloNombre})` : ''}`
-        ).join('\n') +
-        `\n\n¿De cuál querés ver el stock? Respondé con el número.`
-      
-      await sendWhatsAppMessage(phoneNumber, mensaje)
-      
-      // Guardar estado pendiente
-      await prisma.pendingConfirmation.upsert({
-        where: { telefono: phoneNumber },
-        create: {
-          telefono: phoneNumber,
-          data: JSON.stringify({
-            tipo: "ELEGIR_POTRERO_STOCK",
-            opciones: resultado.opciones,
-            accion: "CONSULTA"
-          })
-        },
-        update: {
-          data: JSON.stringify({
-            tipo: "ELEGIR_POTRERO_STOCK",
-            opciones: resultado.opciones,
-            accion: "CONSULTA"
-          })
-        }
-      })
-      return
-    }
+    const potrero = buscarPotreroEnLista(nombrePotrero, potreros)
 
-    // Si no se encontró ningún potrero
-    if (!resultado.unico || !resultado.lote) {
-      const potreros = await prisma.lote.findMany({
-        where: { campoId },
-        select: { nombre: true }
-      })
+    if (!potrero) {
       const nombresDisponibles = potreros.map(p => p.nombre).join(', ')
       await sendWhatsAppMessage(
         phoneNumber,
@@ -61,8 +29,6 @@ export async function handleStockConsulta(
       )
       return
     }
-
-    const potrero = resultado.lote
 
     // Obtener stock del potrero
     const stock = await prisma.animalLote.findMany({
@@ -144,7 +110,7 @@ export async function handleStockConsulta(
  */
 export async function handleStockEdicion(
   phoneNumber: string,
-  input: string | { categoria: string; cantidad: number; potrero?: string; _potreroId?: string }
+  input: string | { categoria: string; cantidad: number; potrero?: string }
 ): Promise<boolean> {
   try {
     // Obtener estado pendiente
@@ -165,51 +131,15 @@ export async function handleStockEdicion(
         return true
       }
 
-      // 🔍 Buscar potrero considerando módulos
-      const resultado = await buscarPotreroConModulos(input.potrero, usuario.campoId)
+      // Buscar todos los potreros del campo
+      const potreros = await prisma.lote.findMany({
+        where: { campoId: usuario.campoId },
+        select: { id: true, nombre: true }
+      })
 
-      // Si hay múltiples potreros con el mismo nombre
-      if (!resultado.unico && resultado.opciones && resultado.opciones.length > 1) {
-        const mensaje = `Encontré varios "${input.potrero}":\n\n` +
-          resultado.opciones.map((opt, i) => 
-            `${i + 1}️⃣ ${opt.nombre}${opt.moduloNombre ? ` (${opt.moduloNombre})` : ''}`
-          ).join('\n') +
-          `\n\n¿En cuál querés hacer el cambio? Respondé con el número.`
-        
-        await sendWhatsAppMessage(phoneNumber, mensaje)
-        
-        // Guardar estado pendiente CON los datos de la edición
-        await prisma.pendingConfirmation.upsert({
-          where: { telefono: phoneNumber },
-          create: {
-            telefono: phoneNumber,
-            data: JSON.stringify({
-              tipo: "ELEGIR_POTRERO_STOCK",
-              opciones: resultado.opciones,
-              accion: "EDICION",
-              categoria: input.categoria,
-              cantidad: input.cantidad
-            })
-          },
-          update: {
-            data: JSON.stringify({
-              tipo: "ELEGIR_POTRERO_STOCK",
-              opciones: resultado.opciones,
-              accion: "EDICION",
-              categoria: input.categoria,
-              cantidad: input.cantidad
-            })
-          }
-        })
-        return true
-      }
+      const potrero = buscarPotreroEnLista(input.potrero, potreros)
 
-      // Si no se encontró ningún potrero
-      if (!resultado.unico || !resultado.lote) {
-        const potreros = await prisma.lote.findMany({
-          where: { campoId: usuario.campoId },
-          select: { nombre: true }
-        })
+      if (!potrero) {
         const nombresDisponibles = potreros.map(p => p.nombre).join(', ')
         await sendWhatsAppMessage(
           phoneNumber,
@@ -218,17 +148,9 @@ export async function handleStockEdicion(
         return true
       }
 
-      const potrero = resultado.lote
-      
-      // 🎯 Si viene con ID explícito (desde selección de módulos), usarlo
-      let potreroId = potrero.id
-      if (typeof input === 'object' && input._potreroId) {
-        potreroId = input._potreroId
-      }
-
       // Obtener stock actual del potrero
       const stock = await prisma.animalLote.findMany({
-        where: { loteId: potreroId },
+        where: { loteId: potrero.id },
         orderBy: { categoria: 'asc' }
       })
 
@@ -268,7 +190,7 @@ export async function handleStockEdicion(
           telefono: phoneNumber,
           data: JSON.stringify({
             tipo: "STOCK_CONSULTA",
-            loteId: potreroId,
+            loteId: potrero.id,
             loteNombre: potrero.nombre,
             stockActual: stock.map(a => ({
               categoria: a.categoria,
@@ -281,7 +203,7 @@ export async function handleStockEdicion(
         update: {
           data: JSON.stringify({
             tipo: "STOCK_CONSULTA",
-            loteId: potreroId,                    // ✅ CAMBIADO: era potrero.id
+            loteId: potrero.id,
             loteNombre: potrero.nombre,
             stockActual: stock.map(a => ({
               categoria: a.categoria,
@@ -405,248 +327,6 @@ export async function handleStockEdicion(
   } catch (error) {
     console.error("Error en handleStockEdicion:", error)
     return false
-  }
-}
-
-/**
- * 🆕 NUEVO: Maneja la selección de potrero cuando hay múltiples opciones
- */
-export async function handleSeleccionPotreroStock(
-  phoneNumber: string,
-  seleccion: string
-): Promise<boolean> {
-  try {
-    const pending = await prisma.pendingConfirmation.findUnique({
-      where: { telefono: phoneNumber }
-    })
-
-    if (!pending) return false
-
-    const data = JSON.parse(pending.data)
-
-    if (data.tipo !== "ELEGIR_POTRERO_STOCK") return false
-
-    // Validar selección
-    const numero = parseInt(seleccion)
-    if (isNaN(numero) || numero < 1 || numero > data.opciones.length) {
-      await sendWhatsAppMessage(
-        phoneNumber,
-        `⚠️ Por favor respondé con un número del 1 al ${data.opciones.length}.`
-      )
-      return true
-    }
-
-    const potreroSeleccionado = data.opciones[numero - 1]
-
-    // Según la acción pendiente, ejecutar consulta o edición
-    if (data.accion === "CONSULTA") {
-      // Ejecutar consulta de stock
-      const usuario = await prisma.user.findUnique({
-        where: { telefono: phoneNumber },
-        select: { campoId: true }
-      })
-
-      if (!usuario?.campoId) {
-        await sendWhatsAppMessage(phoneNumber, "❌ Error: Campo no encontrado.")
-        return true
-      }
-
-      // Limpiar estado pendiente
-      await prisma.pendingConfirmation.delete({ where: { telefono: phoneNumber } })
-
-      // Llamar a handleStockConsulta pero pasándole directamente el ID
-      await handleStockConsultaDirecta(phoneNumber, potreroSeleccionado.id, potreroSeleccionado.nombre)
-
-    } else if (data.accion === "EDICION") {
-      // Ejecutar edición de stock
-      await prisma.pendingConfirmation.delete({ where: { telefono: phoneNumber } })
-
-      // Llamar a handleStockEdicion con los datos guardados
-      await handleStockEdicionDirecta(
-        phoneNumber,
-        potreroSeleccionado.id,
-        potreroSeleccionado.nombre,
-        data.categoria,
-        data.cantidad
-      )
-    }
-
-    return true
-
-  } catch (error) {
-    console.error("Error en handleSeleccionPotreroStock:", error)
-    return false
-  }
-}
-
-/**
- * Ejecuta consulta de stock directamente con ID de potrero
- */
-async function handleStockConsultaDirecta(
-  phoneNumber: string,
-  potreroId: string,
-  potreroNombre: string
-) {
-  try {
-    const stock = await prisma.animalLote.findMany({
-      where: { loteId: potreroId },
-      orderBy: { categoria: 'asc' }
-    })
-
-    if (stock.length === 0) {
-      await sendWhatsAppMessage(
-        phoneNumber,
-        `El potrero *${potreroNombre}* está vacío.\n\nNo hay animales registrados.`
-      )
-      return
-    }
-
-    const stockTexto = stock
-      .map(a => {
-        const peso = a.peso ? ` (${a.peso.toFixed(0)}kg prom)` : ''
-        return `• ${a.cantidad} ${a.categoria}${peso}`
-      })
-      .join('\n')
-
-    const totalAnimales = stock.reduce((sum, a) => sum + a.cantidad, 0)
-
-    const mensaje = 
-      `*Stock de ${potreroNombre}*\n\n` +
-      `${stockTexto}\n\n` +
-      `Total: *${totalAnimales} animales*\n\n` +
-      `Para editar, enviá:\n` +
-      `"Vacas 15" (reemplaza la cantidad)\n` +
-      `"Novillos 0" (elimina la categoría)`
-
-    await prisma.pendingConfirmation.upsert({
-      where: { telefono: phoneNumber },
-      create: {
-        telefono: phoneNumber,
-        data: JSON.stringify({
-          tipo: "STOCK_CONSULTA",
-          loteId: potreroId,
-          loteNombre: potreroNombre,
-          stockActual: stock.map(a => ({
-            categoria: a.categoria,
-            cantidad: a.cantidad,
-            peso: a.peso
-          }))
-        })
-      },
-      update: {
-        data: JSON.stringify({
-          tipo: "STOCK_CONSULTA",
-          loteId: potreroId,
-          loteNombre: potreroNombre,
-          stockActual: stock.map(a => ({
-            categoria: a.categoria,
-            cantidad: a.cantidad,
-            peso: a.peso
-          }))
-        })
-      }
-    })
-
-    await sendWhatsAppMessage(phoneNumber, mensaje)
-
-  } catch (error) {
-    console.error("Error en handleStockConsultaDirecta:", error)
-    await sendWhatsAppMessage(phoneNumber, "Error consultando el stock.")
-  }
-}
-
-/**
- * Ejecuta edición de stock directamente con ID de potrero
- */
-async function handleStockEdicionDirecta(
-  phoneNumber: string,
-  potreroId: string,
-  potreroNombre: string,
-  categoria: string,
-  cantidad: number
-) {
-  try {
-    const stock = await prisma.animalLote.findMany({
-      where: { loteId: potreroId },
-      orderBy: { categoria: 'asc' }
-    })
-
-    const categoriaEncontrada = stock.find(a => 
-      a.categoria.toLowerCase() === categoria.toLowerCase() ||
-      a.categoria.toLowerCase().includes(categoria.toLowerCase()) ||
-      categoria.toLowerCase().includes(a.categoria.toLowerCase())
-    )
-
-    if (!categoriaEncontrada) {
-      if (stock.length === 0) {
-        await sendWhatsAppMessage(
-          phoneNumber,
-          `⚠️ El potrero *${potreroNombre}* está vacío.\n\n¿Querés agregarlo ahora? Primero consultá el stock: "stock ${potreroNombre}"`
-        )
-      } else {
-        await sendWhatsAppMessage(
-          phoneNumber,
-          `⚠️ "${categoria}" no está en el potrero *${potreroNombre}*.\n\nCategorías disponibles:\n` +
-          stock.map(a => `• ${a.categoria}`).join('\n')
-        )
-      }
-      return
-    }
-
-    const cambio = {
-      categoria: categoriaEncontrada.categoria,
-      cantidadOriginal: categoriaEncontrada.cantidad,
-      cantidadNueva: cantidad
-    }
-
-    await prisma.pendingConfirmation.upsert({
-      where: { telefono: phoneNumber },
-      create: {
-        telefono: phoneNumber,
-        data: JSON.stringify({
-          tipo: "STOCK_CONSULTA",
-          loteId: potreroId,
-          loteNombre: potreroNombre,
-          stockActual: stock.map(a => ({
-            categoria: a.categoria,
-            cantidad: a.cantidad,
-            peso: a.peso
-          })),
-          cambiosPendientes: [cambio]
-        })
-      },
-      update: {
-        data: JSON.stringify({
-          tipo: "STOCK_CONSULTA",
-          loteId: potreroId,
-          loteNombre: potreroNombre,
-          stockActual: stock.map(a => ({
-            categoria: a.categoria,
-            cantidad: a.cantidad,
-            peso: a.peso
-          })),
-          cambiosPendientes: [cambio]
-        })
-      }
-    })
-
-    const cambioTexto = cambio.cantidadNueva === 0 
-      ? `• ${cambio.categoria}: ~~${cambio.cantidadOriginal}~~ → **ELIMINAR**`
-      : `• ${cambio.categoria}: ${cambio.cantidadOriginal} → **${cambio.cantidadNueva}**`
-
-    const mensaje = 
-      `*Cambio en ${potreroNombre}:*\n\n` +
-      `${cambioTexto}\n\n` +
-      `¿Confirmar?`
-
-    await sendCustomButtons(phoneNumber, mensaje, [
-      { id: "stock_confirm", title: "✅ Confirmar" },
-      { id: "stock_cancel", title: "❌ Cancelar" }
-    ])
-
-  } catch (error) {
-    console.error("Error en handleStockEdicionDirecta:", error)
-    await sendWhatsAppMessage(phoneNumber, "Error procesando la edición.")
   }
 }
 
