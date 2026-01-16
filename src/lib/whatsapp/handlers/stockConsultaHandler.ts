@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/prisma"
 import { sendWhatsAppMessage, sendCustomButtons } from "../services/messageService"
-import { buscarPotreroEnLista } from "@/lib/potrero-helpers"
+import { buscarPotreroEnLista, buscarPotreroConModulos } from "@/lib/potrero-helpers"
 
 /**
  * FASE 1: Usuario pide ver stock de un potrero
@@ -13,15 +13,47 @@ export async function handleStockConsulta(
   campoId: string
 ) {
   try {
-    // Buscar el potrero
-    const potreros = await prisma.lote.findMany({
-      where: { campoId },
-      select: { id: true, nombre: true }
-    })
+    // 🔍 Buscar potrero considerando módulos
+    const resultadoPotrero = await buscarPotreroConModulos(nombrePotrero, campoId)
 
-    const potrero = buscarPotreroEnLista(nombrePotrero, potreros)
-
-    if (!potrero) {
+    if (!resultadoPotrero.unico) {
+      if (resultadoPotrero.opciones && resultadoPotrero.opciones.length > 1) {
+        // HAY DUPLICADOS CON MÓDULOS
+        const mensaje = `Encontré varios "${nombrePotrero}":\n\n` +
+          resultadoPotrero.opciones.map((opt, i) => 
+            `${i + 1}️⃣ ${opt.nombre}${opt.moduloNombre ? ` (${opt.moduloNombre})` : ''}`
+          ).join('\n') +
+          `\n\n¿De cuál querés ver el stock? Respondé con el número.`
+        
+        await sendWhatsAppMessage(phoneNumber, mensaje)
+        
+        // Guardar estado pendiente para selección
+        await prisma.pendingConfirmation.upsert({
+          where: { telefono: phoneNumber },
+          create: {
+            telefono: phoneNumber,
+            data: JSON.stringify({
+              tipo: "ELEGIR_POTRERO_STOCK",
+              opciones: resultadoPotrero.opciones,
+              accion: "VER_STOCK"
+            }),
+          },
+          update: {
+            data: JSON.stringify({
+              tipo: "ELEGIR_POTRERO_STOCK",
+              opciones: resultadoPotrero.opciones,
+              accion: "VER_STOCK"
+            }),
+          },
+        })
+        return
+      }
+      
+      // No se encontró el potrero
+      const potreros = await prisma.lote.findMany({
+        where: { campoId },
+        select: { nombre: true }
+      })
       const nombresDisponibles = potreros.map(p => p.nombre).join(', ')
       await sendWhatsAppMessage(
         phoneNumber,
@@ -29,6 +61,8 @@ export async function handleStockConsulta(
       )
       return
     }
+
+    const potrero = resultadoPotrero.lote!
 
     // Obtener stock del potrero
     const stock = await prisma.animalLote.findMany({
@@ -467,4 +501,124 @@ export async function handleStockButtonResponse(
       )
     }
   }
+}
+
+
+
+/**
+ * 🆕 Consulta de stock con ID específico (cuando ya se seleccionó el potrero)
+ */
+async function handleStockConsultaConId(
+  phoneNumber: string,
+  loteId: string,
+  campoId: string
+) {
+  try {
+    // Obtener información del potrero
+    const potrero = await prisma.lote.findUnique({
+      where: { id: loteId },
+      select: { id: true, nombre: true }
+    })
+
+    if (!potrero) {
+      await sendWhatsAppMessage(phoneNumber, "❌ Error: Potrero no encontrado.")
+      return
+    }
+
+    // Obtener stock del potrero
+    const stock = await prisma.animalLote.findMany({
+      where: { loteId: potrero.id },
+      orderBy: { categoria: 'asc' }
+    })
+
+    if (stock.length === 0) {
+      await sendWhatsAppMessage(
+        phoneNumber,
+        `El potrero *${potrero.nombre}* está vacío.\n\nNo hay animales registrados.`
+      )
+      return
+    }
+
+    // Formatear stock
+    const stockTexto = stock
+      .map(a => {
+        const peso = a.peso ? ` (${a.peso.toFixed(0)}kg prom)` : ''
+        return `• ${a.cantidad} ${a.categoria}${peso}`
+      })
+      .join('\n')
+
+    const totalAnimales = stock.reduce((sum, a) => sum + a.cantidad, 0)
+
+    const mensaje = 
+      `*Stock de ${potrero.nombre}*\n\n` +
+      `${stockTexto}\n\n` +
+      `Total: *${totalAnimales} animales*\n\n` +
+      `Para editar, enviá:\n` +
+      `"Vacas 15" (reemplaza la cantidad)\n` +
+      `"Novillos 0" (elimina la categoría)`
+
+    // Guardar estado para permitir ediciones
+    await prisma.pendingConfirmation.upsert({
+      where: { telefono: phoneNumber },
+      create: {
+        telefono: phoneNumber,
+        data: JSON.stringify({
+          tipo: "STOCK_CONSULTA",
+          loteId: potrero.id,
+          loteNombre: potrero.nombre,
+          stockActual: stock.map(a => ({
+            categoria: a.categoria,
+            cantidad: a.cantidad,
+            peso: a.peso
+          }))
+        })
+      },
+      update: {
+        data: JSON.stringify({
+          tipo: "STOCK_CONSULTA",
+          loteId: potrero.id,
+          loteNombre: potrero.nombre,
+          stockActual: stock.map(a => ({
+            categoria: a.categoria,
+            cantidad: a.cantidad,
+            peso: a.peso
+          }))
+        })
+      }
+    })
+
+    await sendWhatsAppMessage(phoneNumber, mensaje)
+
+  } catch (error) {
+    console.error("Error en handleStockConsultaConId:", error)
+    await sendWhatsAppMessage(
+      phoneNumber,
+      "Error consultando el stock. Intentá de nuevo."
+    )
+  }
+}
+
+/**
+ * 🆕 EXPORTAR para usar en confirmationHandler
+ */
+export async function handleSeleccionPotreroStock(
+  phoneNumber: string,
+  numeroSeleccionado: number,
+  opciones: Array<{ id: string; nombre: string; moduloNombre: string | null }>,
+  campoId: string
+) {
+  if (numeroSeleccionado < 1 || numeroSeleccionado > opciones.length) {
+    await sendWhatsAppMessage(phoneNumber, "❌ Número inválido. Respondé con el número del potrero.")
+    return
+  }
+
+  const potreroSeleccionado = opciones[numeroSeleccionado - 1]
+  
+  // Mostrar el stock del potrero seleccionado
+  await handleStockConsultaConId(phoneNumber, potreroSeleccionado.id, campoId)
+  
+  // Limpiar el pending
+  await prisma.pendingConfirmation.delete({ 
+    where: { telefono: phoneNumber } 
+  }).catch(() => {}) // Ignorar error si ya no existe
 }

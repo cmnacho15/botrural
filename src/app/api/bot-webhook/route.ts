@@ -211,10 +211,30 @@ console.log("📦 Mensaje completo:", JSON.stringify(message, null, 2))
     if (confirmacionPendiente) {
       const data = JSON.parse(confirmacionPendiente.data)
       
-      // 🆕 Si está eligiendo potrero con módulos
-      if (data.tipo === "ELEGIR_POTRERO_ORIGEN" || data.tipo === "ELEGIR_POTRERO_DESTINO") {
-        await handleSeleccionPotreroModulo(from, messageText, data)
-        return NextResponse.json({ status: "modulo selection processed" })
+      // 🆕 Si está eligiendo potrero para ver stock
+      if (data.tipo === "ELEGIR_POTRERO_STOCK") {
+        const numero = parseInt(messageText.trim())
+        
+        if (isNaN(numero) || numero < 1 || numero > data.opciones.length) {
+          await sendWhatsAppMessage(from, `❌ Escribí un número del 1 al ${data.opciones.length} para elegir el potrero.`)
+          return NextResponse.json({ status: "invalid stock selection" })
+        }
+        
+        const { handleSeleccionPotreroStock } = await import("@/lib/whatsapp/handlers/stockConsultaHandler")
+        
+        // Obtener campoId del usuario
+        const user = await prisma.user.findUnique({
+          where: { telefono: from },
+          select: { campoId: true }
+        })
+        
+        if (user?.campoId) {
+          await handleSeleccionPotreroStock(from, numero, data.opciones, user.campoId)
+        } else {
+          await sendWhatsAppMessage(from, "❌ No tenés un campo configurado.")
+        }
+        
+        return NextResponse.json({ status: "stock selection processed" })
       }
 
       // Si está eligiendo grupo, procesar número

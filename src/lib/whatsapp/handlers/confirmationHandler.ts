@@ -89,10 +89,31 @@ export async function handleConfirmacion(
   const respuestaLower = respuesta.toLowerCase().trim()
   const data = JSON.parse(confirmacion.data)
 
-  // ✅ CRÍTICO: Manejar primero las respuestas de tipo de factura
-  if (data.tipo === "AWAITING_INVOICE_TYPE") {
-    const wasHandled = await handleAwaitingInvoiceType(phone, respuesta, confirmacion)
-    if (wasHandled) return // ⚠️ IMPORTANTE: salir aquí para evitar doble procesamiento
+  // 🆕 Manejar selección de potrero para stock
+  if (data.tipo === "ELEGIR_POTRERO_STOCK") {
+    const numero = parseInt(respuesta.trim())
+    
+    if (isNaN(numero)) {
+      await sendWhatsAppMessage(phone, "❌ Escribí el número del potrero que querés consultar.")
+      return
+    }
+    
+    // Importar dinámicamente el handler
+    const { handleSeleccionPotreroStock } = await import("./stockConsultaHandler")
+    
+    // Obtener campoId del usuario
+    const usuario = await prisma.user.findUnique({
+      where: { telefono: phone },
+      select: { campoId: true }
+    })
+    
+    if (!usuario?.campoId) {
+      await sendWhatsAppMessage(phone, "❌ No tenés un campo configurado.")
+      return
+    }
+    
+    await handleSeleccionPotreroStock(phone, numero, data.opciones, usuario.campoId)
+    return // 🔥 IMPORTANTE: salir aquí
   }
 
   // Validación: no usar texto para confirmar facturas con botones
