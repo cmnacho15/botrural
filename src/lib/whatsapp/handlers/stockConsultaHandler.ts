@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/prisma"
 import { sendWhatsAppMessage, sendCustomButtons } from "../services/messageService"
-import { buscarPotreroEnLista, buscarPotreroConModulos } from "@/lib/potrero-helpers"
+import { buscarPotreroEnLista, buscarPotreroConModulos, buscarCategoriaAnimal, buscarAnimalesEnPotrero } from "@/lib/potrero-helpers"
 
 /**
  * FASE 1: Usuario pide ver stock de un potrero
@@ -188,28 +188,61 @@ export async function handleStockEdicion(
         orderBy: { categoria: 'asc' }
       })
 
-      // Buscar la categoría en el stock
-      const categoriaEncontrada = stock.find(a => 
-        a.categoria.toLowerCase() === input.categoria.toLowerCase() ||
-        a.categoria.toLowerCase().includes(input.categoria.toLowerCase()) ||
-        input.categoria.toLowerCase().includes(a.categoria.toLowerCase())
+      // 🔍 Buscar la categoría usando la función inteligente de potrero-helpers
+      const resultadoCategoria = await buscarAnimalesEnPotrero(
+        input.categoria,
+        potrero.id,
+        usuario.campoId
       )
 
-      if (!categoriaEncontrada) {
-        if (stock.length === 0) {
-          await sendWhatsAppMessage(
-            phoneNumber,
-            `⚠️ El potrero *${potrero.nombre}* está vacío.\n\n¿Querés agregarlo ahora? Primero consultá el stock: "stock ${potrero.nombre}"`
-          )
-        } else {
-          await sendWhatsAppMessage(
-            phoneNumber,
-            `⚠️ "${input.categoria}" no está en el potrero *${potrero.nombre}*.\n\nCategorías disponibles:\n` +
-            stock.map(a => `• ${a.categoria}`).join('\n')
-          )
+      if (!resultadoCategoria.encontrado) {
+        if (resultadoCategoria.opciones && resultadoCategoria.opciones.length > 1) {
+          // HAY MÚLTIPLES OPCIONES - PREGUNTAR
+          const mensaje = `Encontré varias categorías con "${input.categoria}":\n\n` +
+            resultadoCategoria.opciones.map((opt, i) => 
+              `${i + 1}️⃣ ${opt.categoria} (${opt.cantidad} actuales)`
+            ).join('\n') +
+            `\n\n¿Cuál querés editar? Respondé con el número.`
+          
+          await sendWhatsAppMessage(phoneNumber, mensaje)
+          
+          // Guardar estado pendiente
+          await prisma.pendingConfirmation.upsert({
+            where: { telefono: phoneNumber },
+            create: {
+              telefono: phoneNumber,
+              data: JSON.stringify({
+                tipo: "ELEGIR_CATEGORIA_STOCK",
+                opciones: resultadoCategoria.opciones,
+                loteId: potrero.id,
+                loteNombre: potrero.nombre,
+                cantidadNueva: input.cantidad
+              }),
+            },
+            update: {
+              data: JSON.stringify({
+                tipo: "ELEGIR_CATEGORIA_STOCK",
+                opciones: resultadoCategoria.opciones,
+                loteId: potrero.id,
+                loteNombre: potrero.nombre,
+                cantidadNueva: input.cantidad
+              }),
+            },
+          })
+          return true
         }
+        
+        // No se encontró
+        await sendWhatsAppMessage(
+          phoneNumber,
+          resultadoCategoria.mensaje || 
+          `⚠️ "${input.categoria}" no está en el potrero *${potrero.nombre}*.\n\nCategorías disponibles:\n` +
+          stock.map(a => `• ${a.categoria}`).join('\n')
+        )
         return true
       }
+
+      const categoriaEncontrada = resultadoCategoria.animal!
 
       // Guardar el cambio pendiente
       const cambio = {

@@ -243,6 +243,66 @@ console.log("📦 Mensaje completo:", JSON.stringify(message, null, 2))
         return NextResponse.json({ status: "stock selection processed" })
       }
 
+      // 🆕 Si está eligiendo categoría para editar stock
+      if (data.tipo === "ELEGIR_CATEGORIA_STOCK") {
+        const numero = parseInt(messageText.trim())
+        
+        if (isNaN(numero) || numero < 1 || numero > data.opciones.length) {
+          await sendWhatsAppMessage(from, `❌ Escribí un número del 1 al ${data.opciones.length} para elegir la categoría.`)
+          return NextResponse.json({ status: "invalid categoria selection" })
+        }
+        
+        const categoriaSeleccionada = data.opciones[numero - 1]
+        
+        // Crear el cambio pendiente directamente
+        const cambio = {
+          categoria: categoriaSeleccionada.categoria,
+          cantidadOriginal: categoriaSeleccionada.cantidad,
+          cantidadNueva: data.cantidadNueva
+        }
+        
+        await prisma.pendingConfirmation.upsert({
+          where: { telefono: from },
+          create: {
+            telefono: from,
+            data: JSON.stringify({
+              tipo: "STOCK_CONSULTA",
+              loteId: data.loteId,
+              loteNombre: data.loteNombre,
+              stockActual: data.opciones,
+              cambiosPendientes: [cambio]
+            })
+          },
+          update: {
+            data: JSON.stringify({
+              tipo: "STOCK_CONSULTA",
+              loteId: data.loteId,
+              loteNombre: data.loteNombre,
+              stockActual: data.opciones,
+              cambiosPendientes: [cambio]
+            })
+          }
+        })
+        
+        const { sendCustomButtons } = await import("@/lib/whatsapp/services/messageService")
+        
+        const cambioTexto = cambio.cantidadNueva === 0 
+          ? `• ${cambio.categoria}: ~~${cambio.cantidadOriginal}~~ → **ELIMINAR**`
+          : `• ${cambio.categoria}: ${cambio.cantidadOriginal} → **${cambio.cantidadNueva}**`
+        
+        const mensaje = 
+          `*Cambio en ${data.loteNombre}:*\n\n` +
+          `${cambioTexto}\n\n` +
+          `¿Confirmar?`
+        
+        await sendCustomButtons(from, mensaje, [
+          { id: "stock_confirm", title: "✅ Confirmar" },
+          { id: "stock_cancel", title: "❌ Cancelar" }
+        ])
+        
+        return NextResponse.json({ status: "categoria selection processed" })
+      }
+
       // Si está eligiendo grupo, procesar número
       if (data.tipo === "CAMBIAR_GRUPO") {
         const numero = parseInt(messageText.trim())
