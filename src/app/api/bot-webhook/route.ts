@@ -211,6 +211,12 @@ console.log("📦 Mensaje completo:", JSON.stringify(message, null, 2))
     if (confirmacionPendiente) {
       const data = JSON.parse(confirmacionPendiente.data)
       
+      // 🆕 Si está eligiendo potrero con módulos
+      if (data.tipo === "ELEGIR_POTRERO_ORIGEN" || data.tipo === "ELEGIR_POTRERO_DESTINO") {
+        await handleSeleccionPotreroModulo(from, messageText, data)
+        return NextResponse.json({ status: "modulo selection processed" })
+      }
+
       // 🆕 Si está eligiendo potrero para ver stock
       if (data.tipo === "ELEGIR_POTRERO_STOCK") {
         const numero = parseInt(messageText.trim())
@@ -249,11 +255,39 @@ console.log("📦 Mensaje completo:", JSON.stringify(message, null, 2))
         }
       }
       
-      // Si hay consulta de stock activa, intentar procesar como edición
+      // 🔥 PRIORIDAD: Si hay consulta de stock activa, intentar procesar como edición PRIMERO
       if (data.tipo === "STOCK_CONSULTA") {
-        const procesado = await handleStockEdicion(from, messageText)
-        if (procesado) {
-          return NextResponse.json({ status: "stock edit processed" })
+        // Intentar parsear como edición manual: "300 novillos" o "novillos 300"
+        const edicionManual = messageText.match(/^(\d+)\s+(.+)|(.+)\s+(\d+)$/i)
+        
+        if (edicionManual) {
+          const procesado = await handleStockEdicion(from, messageText)
+          if (procesado) {
+            return NextResponse.json({ status: "stock edit processed" })
+          }
+        }
+        
+        // Si no es edición manual, parsear con GPT
+        const usuario = await prisma.user.findUnique({
+          where: { telefono: from },
+          select: { campoId: true }
+        })
+        
+        if (usuario?.campoId) {
+          let categorias: Array<{ nombreSingular: string; nombrePlural: string }> = []
+          categorias = await prisma.categoriaAnimal.findMany({
+            where: { campoId: usuario.campoId, activo: true },
+            select: { nombreSingular: true, nombrePlural: true }
+          })
+          
+          const parsedData = await parseMessageWithAI(messageText, [], categorias)
+          
+          if (parsedData?.tipo === "STOCK_EDICION") {
+            const procesado = await handleStockEdicion(from, parsedData)
+            if (procesado) {
+              return NextResponse.json({ status: "stock edit gpt processed" })
+            }
+          }
         }
       }
       
