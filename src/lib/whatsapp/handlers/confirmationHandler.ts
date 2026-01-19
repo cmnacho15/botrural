@@ -128,20 +128,19 @@ export async function handleConfirmacion(
     const potreroSeleccionado = data.opciones[numero - 1]
     
     // Llamar a handleDAO nuevamente con el potrero específico
-    const { handleDAO } = await import("./daoHandler")
-    await handleDAO(phone, {
-      potrero: potreroSeleccionado.nombre,
-      categoria: data.categoria,
-      prenado: data.prenado,
-      ciclando: data.ciclando,
-      anestroSuperficial: data.anestroSuperficial,
-      anestroProfundo: data.anestroProfundo,
-      _potreroId: potreroSeleccionado.id
-    })
-    
-    // Limpiar confirmación pendiente
-    await prisma.pendingConfirmation.delete({ where: { telefono: phone } }).catch(() => {})
-    return
+const { handleDAO } = await import("./daoHandler")
+await handleDAO(phone, {
+  potrero: potreroSeleccionado.nombre,
+  categoria: data.categoria,
+  prenado: data.prenado,
+  ciclando: data.ciclando,
+  anestroSuperficial: data.anestroSuperficial,
+  anestroProfundo: data.anestroProfundo,
+  _potreroId: potreroSeleccionado.id
+})
+
+// 🔥 NO borrar la confirmación aquí - handleDAO crea una nueva
+return
   }
 
   // Validación: no usar texto para confirmar facturas con botones
