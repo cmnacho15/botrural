@@ -207,15 +207,19 @@ export async function confirmarTratamiento(telefono: string, data: any) {
     }
 
     // Construir descripción
-    let descripcion = `Tratamiento: ${producto}`
-    
-    if (cantidad && categoria) {
-      descripcion += ` aplicado a ${cantidad} ${categoria}`
-    }
-    
-    if (nombrePotreroConModulo) {
-      descripcion += ` en potrero ${nombrePotreroConModulo}`
-    }
+let descripcion = `Tratamiento: ${producto}`
+
+if (cantidad && categoria) {
+  descripcion += ` aplicado a ${cantidad} ${categoria}`
+} else if (categoria) {
+  descripcion += ` aplicado a ${categoria}`
+} else if (cantidad) {
+  descripcion += ` aplicado a ${cantidad} animales`
+}
+
+if (nombrePotreroConModulo) {
+  descripcion += ` en potrero ${nombrePotreroConModulo}`
+}
 
     // Crear evento con módulo en descripción
     await prisma.evento.create({
