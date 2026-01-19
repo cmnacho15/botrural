@@ -51,66 +51,82 @@ export async function handleDAO(
       return
     }
 
-    // 🔍 Buscar potrero considerando módulos
-    const resultadoPotrero = await buscarPotreroConModulos(parsedData.potrero, user.campoId)
+    let potrero
 
-    if (!resultadoPotrero.unico) {
-      if (resultadoPotrero.opciones && resultadoPotrero.opciones.length > 1) {
-        // HAY DUPLICADOS CON MÓDULOS
-        const mensaje = `Encontré varios "${parsedData.potrero}":\n\n` +
-          resultadoPotrero.opciones.map((opt, i) => 
-            `${i + 1}️⃣ ${opt.nombre}${opt.moduloNombre ? ` (${opt.moduloNombre})` : ''}`
-          ).join('\n') +
-          `\n\n¿En cuál hiciste el DAO? Respondé con el número.`
-        
-        await sendWhatsAppMessage(telefono, mensaje)
-        
-        // Guardar estado pendiente
-        await prisma.pendingConfirmation.upsert({
-          where: { telefono },
-          create: {
-            telefono,
-            data: JSON.stringify({
-              tipo: "ELEGIR_POTRERO_DAO",
-              opciones: resultadoPotrero.opciones,
-              categoria: parsedData.categoria,
-              prenado: parsedData.prenado,
-              ciclando: parsedData.ciclando,
-              anestroSuperficial: parsedData.anestroSuperficial,
-              anestroProfundo: parsedData.anestroProfundo
-            }),
-          },
-          update: {
-            data: JSON.stringify({
-              tipo: "ELEGIR_POTRERO_DAO",
-              opciones: resultadoPotrero.opciones,
-              categoria: parsedData.categoria,
-              prenado: parsedData.prenado,
-              ciclando: parsedData.ciclando,
-              anestroSuperficial: parsedData.anestroSuperficial,
-              anestroProfundo: parsedData.anestroProfundo
-            }),
-          },
-        })
-        return
-      }
+// 🔥 Si viene ID explícito (desde selección de módulos), usarlo directamente
+if (parsedData._potreroId) {
+  console.log("🎯 Usando ID explícito de potrero para DAO:", parsedData._potreroId)
+  potrero = await prisma.lote.findUnique({
+    where: { id: parsedData._potreroId },
+    select: { id: true, nombre: true }
+  })
+  
+  if (!potrero) {
+    await sendWhatsAppMessage(telefono, "❌ Error: potrero no encontrado")
+    return
+  }
+} else {
+  // 🔍 Buscar potrero considerando módulos
+  const resultadoPotrero = await buscarPotreroConModulos(parsedData.potrero, user.campoId)
 
-      // No encontrado
-      const potrerosDisponibles = await prisma.lote.findMany({
-        where: { campoId: user.campoId },
-        select: { nombre: true }
-      })
-      const nombres = potrerosDisponibles.map(p => p.nombre).join(', ')
+  if (!resultadoPotrero.unico) {
+    if (resultadoPotrero.opciones && resultadoPotrero.opciones.length > 1) {
+      // HAY DUPLICADOS CON MÓDULOS
+      const mensaje = `Encontré varios "${parsedData.potrero}":\n\n` +
+        resultadoPotrero.opciones.map((opt, i) => 
+          `${i + 1}️⃣ ${opt.nombre}${opt.moduloNombre ? ` (${opt.moduloNombre})` : ''}`
+        ).join('\n') +
+        `\n\n¿En cuál hiciste el DAO? Respondé con el número.`
       
-      await sendWhatsAppMessage(
-        telefono,
-        `❌ Potrero "${parsedData.potrero}" no encontrado.\n\n` +
-        `📍 Tus potreros son: ${nombres}`
-      )
+      await sendWhatsAppMessage(telefono, mensaje)
+      
+      // Guardar estado pendiente
+      await prisma.pendingConfirmation.upsert({
+        where: { telefono },
+        create: {
+          telefono,
+          data: JSON.stringify({
+            tipo: "ELEGIR_POTRERO_DAO",
+            opciones: resultadoPotrero.opciones,
+            categoria: parsedData.categoria,
+            prenado: parsedData.prenado,
+            ciclando: parsedData.ciclando,
+            anestroSuperficial: parsedData.anestroSuperficial,
+            anestroProfundo: parsedData.anestroProfundo
+          }),
+        },
+        update: {
+          data: JSON.stringify({
+            tipo: "ELEGIR_POTRERO_DAO",
+            opciones: resultadoPotrero.opciones,
+            categoria: parsedData.categoria,
+            prenado: parsedData.prenado,
+            ciclando: parsedData.ciclando,
+            anestroSuperficial: parsedData.anestroSuperficial,
+            anestroProfundo: parsedData.anestroProfundo
+          }),
+        },
+      })
       return
     }
 
-    const potrero = resultadoPotrero.lote!
+    // No encontrado
+    const potrerosDisponibles = await prisma.lote.findMany({
+      where: { campoId: user.campoId },
+      select: { nombre: true }
+    })
+    const nombres = potrerosDisponibles.map(p => p.nombre).join(', ')
+    
+    await sendWhatsAppMessage(
+      telefono,
+      `❌ Potrero "${parsedData.potrero}" no encontrado.\n\n` +
+      `📍 Tus potreros son: ${nombres}`
+    )
+    return
+  }
+
+  potrero = resultadoPotrero.lote!
+}
 
     // 🔥 YA NO VALIDAMOS SI HAY ANIMALES - solo registramos el dato
 
