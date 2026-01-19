@@ -116,6 +116,34 @@ export async function handleConfirmacion(
     return // 🔥 IMPORTANTE: salir aquí
   }
 
+  // 🆕 Manejar selección de potrero para DAO
+  if (data.tipo === "ELEGIR_POTRERO_DAO") {
+    const numero = parseInt(respuesta.trim())
+    
+    if (isNaN(numero) || numero < 1 || numero > data.opciones.length) {
+      await sendWhatsAppMessage(phone, "❌ Número inválido. Escribí el número del potrero.")
+      return
+    }
+    
+    const potreroSeleccionado = data.opciones[numero - 1]
+    
+    // Llamar a handleDAO nuevamente con el potrero específico
+    const { handleDAO } = await import("./daoHandler")
+    await handleDAO(phone, {
+      potrero: potreroSeleccionado.nombre,
+      categoria: data.categoria,
+      prenado: data.prenado,
+      ciclando: data.ciclando,
+      anestroSuperficial: data.anestroSuperficial,
+      anestroProfundo: data.anestroProfundo,
+      _potreroId: potreroSeleccionado.id
+    })
+    
+    // Limpiar confirmación pendiente
+    await prisma.pendingConfirmation.delete({ where: { telefono: phone } }).catch(() => {})
+    return
+  }
+
   // Validación: no usar texto para confirmar facturas con botones
   if (data.tipo === "INVOICE") {
     await sendWhatsAppMessage(

@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma"
 import { sendWhatsAppMessage, sendWhatsAppButtons } from "../sendMessage"
+import { buscarPotreroConModulos } from "@/lib/potrero-helpers"
 
 /**
  * 🔬 Solicitar confirmación para registrar DAO
@@ -15,6 +16,7 @@ export async function handleDAO(
     ciclando: number
     anestroSuperficial: number
     anestroProfundo: number
+    _potreroId?: string
   }
 ) {
   try {
@@ -49,18 +51,51 @@ export async function handleDAO(
       return
     }
 
-    // Buscar el potrero
-    const potrero = await prisma.lote.findFirst({
-  where: {
-    campoId: user.campoId,
-    nombre: {
-      equals: parsedData.potrero,
-      mode: 'insensitive'
-    }
-  }
-})
+    // 🔍 Buscar potrero considerando módulos
+    const resultadoPotrero = await buscarPotreroConModulos(parsedData.potrero, user.campoId)
 
-    if (!potrero) {
+    if (!resultadoPotrero.unico) {
+      if (resultadoPotrero.opciones && resultadoPotrero.opciones.length > 1) {
+        // HAY DUPLICADOS CON MÓDULOS
+        const mensaje = `Encontré varios "${parsedData.potrero}":\n\n` +
+          resultadoPotrero.opciones.map((opt, i) => 
+            `${i + 1}️⃣ ${opt.nombre}${opt.moduloNombre ? ` (${opt.moduloNombre})` : ''}`
+          ).join('\n') +
+          `\n\n¿En cuál hiciste el DAO? Respondé con el número.`
+        
+        await sendWhatsAppMessage(telefono, mensaje)
+        
+        // Guardar estado pendiente
+        await prisma.pendingConfirmation.upsert({
+          where: { telefono },
+          create: {
+            telefono,
+            data: JSON.stringify({
+              tipo: "ELEGIR_POTRERO_DAO",
+              opciones: resultadoPotrero.opciones,
+              categoria: parsedData.categoria,
+              prenado: parsedData.prenado,
+              ciclando: parsedData.ciclando,
+              anestroSuperficial: parsedData.anestroSuperficial,
+              anestroProfundo: parsedData.anestroProfundo
+            }),
+          },
+          update: {
+            data: JSON.stringify({
+              tipo: "ELEGIR_POTRERO_DAO",
+              opciones: resultadoPotrero.opciones,
+              categoria: parsedData.categoria,
+              prenado: parsedData.prenado,
+              ciclando: parsedData.ciclando,
+              anestroSuperficial: parsedData.anestroSuperficial,
+              anestroProfundo: parsedData.anestroProfundo
+            }),
+          },
+        })
+        return
+      }
+
+      // No encontrado
       const potrerosDisponibles = await prisma.lote.findMany({
         where: { campoId: user.campoId },
         select: { nombre: true }
@@ -74,6 +109,8 @@ export async function handleDAO(
       )
       return
     }
+
+    const potrero = resultadoPotrero.lote!
 
     // 🔥 YA NO VALIDAMOS SI HAY ANIMALES - solo registramos el dato
 
