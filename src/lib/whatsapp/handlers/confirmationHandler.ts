@@ -184,8 +184,20 @@ export async function handleConfirmacion(
         const { handleMoverPotreroModuloConfirmacion } = await import("./moverPotreroModuloHandler")
         await handleMoverPotreroModuloConfirmacion(data)
       } else if (data.tipo === "DAO") {
-        await confirmarDAO(phone, data)
-      } else if (data.tipo === "TACTO") {
+  await confirmarDAO(phone, data)
+  await sendWhatsAppMessage(
+    phone,
+    "✅ *DAO registrado correctamente* en el sistema."
+  )
+  
+  await prisma.pendingConfirmation
+    .delete({
+      where: { telefono: phone },
+    })
+    .catch(() => {})
+  
+  return  // 🔥 IMPORTANTE: salir aquí
+} else if (data.tipo === "TACTO") {
         const { confirmarTacto } = await import("./tactoHandler")
         await confirmarTacto(phone, data)
       } else {
