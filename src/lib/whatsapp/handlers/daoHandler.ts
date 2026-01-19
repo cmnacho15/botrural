@@ -233,25 +233,32 @@ export async function confirmarDAO(telefono: string, data: any) {
                        `Anestro Superficial: ${anestroSuperficial}, Anestro Profundo: ${anestroProfundo})`
 
     // Crear evento
-    await prisma.evento.create({
-      data: {
-        campoId,
-        tipo: 'DAO' as any,
-        fecha: new Date(),
-        descripcion,
-        loteId: potreroId,
-        cantidad: cantidadExaminada,
-        categoria,
-        usuarioId
-      }
-    })
+    // Crear evento
+await prisma.evento.create({
+  data: {
+    campoId,
+    tipo: 'DAO' as any,
+    fecha: new Date(),
+    descripcion,
+    loteId: potreroId,
+    cantidad: cantidadExaminada,
+    categoria,
+    usuarioId
+  }
+})
 
-    // Calcular porcentajes
-    const porcentajePrenado = Math.round((prenado / cantidadExaminada) * 100)
+// Calcular porcentajes
+const porcentajePrenado = Math.round((prenado / cantidadExaminada) * 100)
 
-    
+console.log("✅ DAO registrado:", potrero, categoria, porcentajePrenado + "% preñez")
 
-    console.log("✅ DAO registrado:", potrero, categoria, porcentajePrenado + "% preñez")
+// 🔥 Enviar mensaje de éxito
+await sendWhatsAppMessage(
+  telefono,
+  `✅ *DAO registrado correctamente*\n\n` +
+  `📍 Potrero: ${potrero}\n` +
+  `🐄 ${categoria}: ${porcentajePrenado}% de preñez`
+)
 
   } catch (error) {
     console.error("❌ Error confirmando DAO:", error)

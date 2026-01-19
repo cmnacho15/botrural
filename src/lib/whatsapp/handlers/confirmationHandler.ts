@@ -185,18 +185,13 @@ export async function handleConfirmacion(
         await handleMoverPotreroModuloConfirmacion(data)
       } else if (data.tipo === "DAO") {
   await confirmarDAO(phone, data)
-  await sendWhatsAppMessage(
-    phone,
-    "✅ *DAO registrado correctamente* en el sistema."
-  )
   
+  // Limpiar confirmación pendiente
   await prisma.pendingConfirmation
-    .delete({
-      where: { telefono: phone },
-    })
+    .delete({ where: { telefono: phone } })
     .catch(() => {})
   
-  return  // 🔥 IMPORTANTE: salir aquí
+  return  // 🔥 Salir para NO mostrar mensaje genérico (confirmarDAO ya envía mensaje)
 } else if (data.tipo === "TACTO") {
         const { confirmarTacto } = await import("./tactoHandler")
         await confirmarTacto(phone, data)
