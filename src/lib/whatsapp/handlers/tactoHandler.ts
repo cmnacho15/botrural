@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma"
 import { sendWhatsAppMessage, sendWhatsAppButtons } from "../sendMessage"
+import { buscarPotreroConModulos } from "@/lib/potrero-helpers"
 
 /**
  * 🤚 Solicitar confirmación para registrar tacto
@@ -12,6 +13,7 @@ export async function handleTacto(
     potrero: string
     cantidad: number
     preñadas: number
+    _potreroId?: string
   }
 ) {
   try {
@@ -28,30 +30,75 @@ export async function handleTacto(
       return
     }
 
-    // Buscar el potrero
-    const potrero = await prisma.lote.findFirst({
-      where: {
-        campoId: user.campoId,
-        nombre: {
-          equals: parsedData.potrero,
-          mode: 'insensitive'
-        }
-      }
-    })
+    let potrero
 
-    if (!potrero) {
-      const potrerosDisponibles = await prisma.lote.findMany({
-        where: { campoId: user.campoId },
-        select: { nombre: true }
+    // 🔥 Si viene ID explícito (desde selección de módulos), usarlo directamente
+    if (parsedData._potreroId) {
+      console.log("🎯 Usando ID explícito de potrero para TACTO:", parsedData._potreroId)
+      potrero = await prisma.lote.findUnique({
+        where: { id: parsedData._potreroId },
+        select: { id: true, nombre: true }
       })
-      const nombres = potrerosDisponibles.map(p => p.nombre).join(', ')
       
-      await sendWhatsAppMessage(
-        telefono,
-        `❌ Potrero "${parsedData.potrero}" no encontrado.\n\n` +
-        `📍 Tus potreros son: ${nombres}`
-      )
-      return
+      if (!potrero) {
+        await sendWhatsAppMessage(telefono, "❌ Error: potrero no encontrado")
+        return
+      }
+    } else {
+      // 🔍 Buscar potrero considerando módulos
+      const resultadoPotrero = await buscarPotreroConModulos(parsedData.potrero, user.campoId)
+
+      if (!resultadoPotrero.unico) {
+        if (resultadoPotrero.opciones && resultadoPotrero.opciones.length > 1) {
+          // HAY DUPLICADOS CON MÓDULOS
+          const mensaje = `Encontré varios "${parsedData.potrero}":\n\n` +
+            resultadoPotrero.opciones.map((opt, i) => 
+              `${i + 1}️⃣ ${opt.nombre}${opt.moduloNombre ? ` (${opt.moduloNombre})` : ''}`
+            ).join('\n') +
+            `\n\n¿En cuál hiciste el tacto? Respondé con el número.`
+          
+          await sendWhatsAppMessage(telefono, mensaje)
+          
+          // Guardar estado pendiente
+          await prisma.pendingConfirmation.upsert({
+            where: { telefono },
+            create: {
+              telefono,
+              data: JSON.stringify({
+                tipo: "ELEGIR_POTRERO_TACTO",
+                opciones: resultadoPotrero.opciones,
+                cantidad: parsedData.cantidad,
+                preñadas: parsedData.preñadas
+              }),
+            },
+            update: {
+              data: JSON.stringify({
+                tipo: "ELEGIR_POTRERO_TACTO",
+                opciones: resultadoPotrero.opciones,
+                cantidad: parsedData.cantidad,
+                preñadas: parsedData.preñadas
+              }),
+            },
+          })
+          return
+        }
+
+        // No encontrado
+        const potrerosDisponibles = await prisma.lote.findMany({
+          where: { campoId: user.campoId },
+          select: { nombre: true }
+        })
+        const nombres = potrerosDisponibles.map(p => p.nombre).join(', ')
+        
+        await sendWhatsAppMessage(
+          telefono,
+          `❌ Potrero "${parsedData.potrero}" no encontrado.\n\n` +
+          `📍 Tus potreros son: ${nombres}`
+        )
+        return
+      }
+
+      potrero = resultadoPotrero.lote!
     }
 
     // Validar datos
@@ -135,13 +182,28 @@ export async function confirmarTacto(telefono: string, data: any) {
   try {
     const { potreroId, potrero, cantidad, preñadas, falladas, porcentaje, campoId, usuarioId } = data
 
-    // Crear evento
+    // 🔍 Obtener el potrero con módulo
+    const potreroCompleto = await prisma.lote.findUnique({
+      where: { id: potreroId },
+      select: { 
+        nombre: true,
+        moduloPastoreo: {
+          select: { nombre: true }
+        }
+      }
+    })
+
+    const nombrePotreroConModulo = potreroCompleto?.moduloPastoreo?.nombre
+      ? `${potreroCompleto.nombre} (${potreroCompleto.moduloPastoreo.nombre})`
+      : potreroCompleto?.nombre || potrero
+
+    // Crear evento con módulo en descripción
     await prisma.evento.create({
       data: {
         campoId,
         tipo: 'TACTO',
         fecha: new Date(),
-        descripcion: `Tacto en potrero ${potrero}: ${cantidad} animales tactados, ${preñadas} preñados (${porcentaje}% de preñez)`,
+        descripcion: `Tacto en potrero ${nombrePotreroConModulo}: ${cantidad} animales tactados, ${preñadas} preñados (${porcentaje}% de preñez)`,
         loteId: potreroId,
         cantidad: cantidad,
         notas: `${preñadas} preñadas, ${falladas} falladas`,
@@ -149,16 +211,16 @@ export async function confirmarTacto(telefono: string, data: any) {
       }
     })
 
-    // Mensaje de confirmación
+    // Mensaje de confirmación con módulo
     await sendWhatsAppMessage(
       telefono,
       `✅ *Tacto registrado correctamente*\n\n` +
-      `📍 Potrero: ${potrero}\n` +
+      `📍 Potrero: ${nombrePotreroConModulo}\n` +
       `🤚 Tactadas: ${cantidad}\n` +
       `📊 Preñez: ${porcentaje}%`
     )
 
-    console.log("✅ Tacto registrado:", potrero, porcentaje + "%")
+    console.log("✅ Tacto registrado:", nombrePotreroConModulo, porcentaje + "%")
 
   } catch (error) {
     console.error("❌ Error confirmando tacto:", error)

@@ -117,48 +117,72 @@ export async function handleConfirmacion(
   }
 
   // 🆕 Manejar selección de potrero para DAO
-  if (data.tipo === "ELEGIR_POTRERO_DAO") {
-    const numero = parseInt(respuesta.trim())
-    
-    if (isNaN(numero) || numero < 1 || numero > data.opciones.length) {
-      await sendWhatsAppMessage(phone, "❌ Número inválido. Escribí el número del potrero.")
-      return
-    }
-    
-    const potreroSeleccionado = data.opciones[numero - 1]
-    
-    // Llamar a handleDAO nuevamente con el potrero específico
-const { handleDAO } = await import("./daoHandler")
-await handleDAO(phone, {
-  potrero: potreroSeleccionado.nombre,
-  categoria: data.categoria,
-  prenado: data.prenado,
-  ciclando: data.ciclando,
-  anestroSuperficial: data.anestroSuperficial,
-  anestroProfundo: data.anestroProfundo,
-  _potreroId: potreroSeleccionado.id
-})
-
-// 🔥 NO borrar la confirmación aquí - handleDAO crea una nueva
-return
-  }
-
-  // Validación: no usar texto para confirmar facturas con botones
-  if (data.tipo === "INVOICE") {
-    await sendWhatsAppMessage(
-      phone,
-      "Para la factura usá los botones de confirmación que te envié."
-    )
+if (data.tipo === "ELEGIR_POTRERO_DAO") {
+  const numero = parseInt(respuesta.trim())
+  
+  if (isNaN(numero) || numero < 1 || numero > data.opciones.length) {
+    await sendWhatsAppMessage(phone, "❌ Número inválido. Escribí el número del potrero.")
     return
   }
+  
+  const potreroSeleccionado = data.opciones[numero - 1]
+  
+  // Llamar a handleDAO nuevamente con el potrero específico
+  const { handleDAO } = await import("./daoHandler")
+  await handleDAO(phone, {
+    potrero: potreroSeleccionado.nombre,
+    categoria: data.categoria,
+    prenado: data.prenado,
+    ciclando: data.ciclando,
+    anestroSuperficial: data.anestroSuperficial,
+    anestroProfundo: data.anestroProfundo,
+    _potreroId: potreroSeleccionado.id
+  })
 
-  if (
+  // 🔥 NO borrar la confirmación aquí - handleDAO crea una nueva
+  return
+}
+
+// 🆕 Manejar selección de potrero para TACTO
+if (data.tipo === "ELEGIR_POTRERO_TACTO") {
+  const numero = parseInt(respuesta.trim())
+  
+  if (isNaN(numero) || numero < 1 || numero > data.opciones.length) {
+    await sendWhatsAppMessage(phone, "❌ Número inválido. Escribí el número del potrero.")
+    return
+  }
+  
+  const potreroSeleccionado = data.opciones[numero - 1]
+  
+  // Llamar a handleTacto nuevamente con el potrero específico
+  const { handleTacto } = await import("./tactoHandler")
+  await handleTacto(phone, {
+    potrero: potreroSeleccionado.nombre,
+    cantidad: data.cantidad,
+    preñadas: data.preñadas,
+    _potreroId: potreroSeleccionado.id
+  })
+  
+  return
+}
+
+// Validación: no usar texto para confirmar facturas con botones
+if (data.tipo === "INVOICE") {
+  await sendWhatsAppMessage(
+    phone,
+    "Para la factura usá los botones de confirmación que te envié."
+  )
+  return
+}
+
+if (
   respuestaLower === "confirmar" ||
   respuestaLower === "si" ||
   respuestaLower === "sí" ||
   respuestaLower === "yes" ||
   respuesta === "btn_confirmar" ||
-  respuesta === "confirmar_dao"
+  respuesta === "confirmar_dao" ||
+  respuesta === "confirmar_tacto"
 ) {
   try {
     if (data.tipo === "CAMBIO_POTRERO") {
@@ -180,17 +204,27 @@ return
       
       return
     } else if (data.tipo === "MOVER_POTRERO_MODULO") {
-        const { handleMoverPotreroModuloConfirmacion } = await import("./moverPotreroModuloHandler")
-        await handleMoverPotreroModuloConfirmacion(data)
-      } else if (data.tipo === "DAO") {
-  await confirmarDAO(phone, data)
-  
-  // Limpiar confirmación pendiente
-  await prisma.pendingConfirmation
-    .delete({ where: { telefono: phone } })
-    .catch(() => {})
-  
-  return  // 🔥 Salir para NO mostrar mensaje genérico (confirmarDAO ya envía mensaje)
+      const { handleMoverPotreroModuloConfirmacion } = await import("./moverPotreroModuloHandler")
+      await handleMoverPotreroModuloConfirmacion(data)
+    } else if (data.tipo === "DAO") {
+      await confirmarDAO(phone, data)
+      
+      // Limpiar confirmación pendiente
+      await prisma.pendingConfirmation
+        .delete({ where: { telefono: phone } })
+        .catch(() => {})
+      
+      return
+    } else if (data.tipo === "TACTO") {
+      const { confirmarTacto } = await import("./tactoHandler")
+      await confirmarTacto(phone, data)
+      
+      // Limpiar confirmación pendiente
+      await prisma.pendingConfirmation
+        .delete({ where: { telefono: phone } })
+        .catch(() => {})
+      
+      return  // 🔥 Salir para NO mostrar mensaje genérico (confirmarDAO ya envía mensaje)
 } else if (data.tipo === "TACTO") {
         const { confirmarTacto } = await import("./tactoHandler")
         await confirmarTacto(phone, data)
