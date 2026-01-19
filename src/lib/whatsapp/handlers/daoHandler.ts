@@ -51,17 +51,14 @@ export async function handleDAO(
 
     // Buscar el potrero
     const potrero = await prisma.lote.findFirst({
-      where: {
-        campoId: user.campoId,
-        nombre: {
-          equals: parsedData.potrero,
-          mode: 'insensitive'
-        }
-      },
-      include: {
-        animalesLote: true
-      }
-    })
+  where: {
+    campoId: user.campoId,
+    nombre: {
+      equals: parsedData.potrero,
+      mode: 'insensitive'
+    }
+  }
+})
 
     if (!potrero) {
       const potrerosDisponibles = await prisma.lote.findMany({
@@ -78,18 +75,7 @@ export async function handleDAO(
       return
     }
 
-    // Buscar la categoría en el potrero
-    const animalEnPotrero = potrero.animalesLote.find(
-      a => a.categoria.toLowerCase() === parsedData.categoria.toLowerCase()
-    )
-
-    if (!animalEnPotrero || animalEnPotrero.cantidad === 0) {
-      await sendWhatsAppMessage(
-        telefono,
-        `❌ No hay ${parsedData.categoria} en el potrero ${potrero.nombre}`
-      )
-      return
-    }
+    // 🔥 YA NO VALIDAMOS SI HAY ANIMALES - solo registramos el dato
 
     // Validar que haya al menos un resultado
     const cantidadExaminada = parsedData.prenado + parsedData.ciclando + 
@@ -103,15 +89,7 @@ export async function handleDAO(
       return
     }
 
-    // Validar que no supere la cantidad disponible
-    if (cantidadExaminada > animalEnPotrero.cantidad) {
-      await sendWhatsAppMessage(
-        telefono,
-        `❌ Solo hay ${animalEnPotrero.cantidad} ${parsedData.categoria} en el potrero ${potrero.nombre}.\n` +
-        `No podés examinar ${cantidadExaminada}.`
-      )
-      return
-    }
+    // 🔥 YA NO VALIDAMOS cantidad - solo registramos lo que el usuario dice
 
     // Calcular porcentajes
     const porcentajePrenado = Math.round((parsedData.prenado / cantidadExaminada) * 100)
