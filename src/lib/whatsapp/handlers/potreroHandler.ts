@@ -6,13 +6,13 @@ import {
   buscarAnimalesEnPotrero, 
   obtenerNombresPotreros,
   actualizarUltimoCambioSiVacio,
-  buscarPotreroConModulos  // 🆕 AGREGAR ESTA
+  buscarPotreroConModulos
 } from "@/lib/potrero-helpers"
 import { sendWhatsAppMessage } from "../services/messageService"
 import { sendWhatsAppMessageWithButtons } from "../services/messageService"
 
 export async function handleCambioPotrero(phoneNumber: string, data: any) {
-  console.log("🔥 VERSION: 2024-12-14-19:00 FIX FINAL + MODULOS")
+  console.log("🔥 VERSION: 2024-12-14-20:00 CON MOVER TODO")
   console.log("📞 User:", phoneNumber)
   console.log("📦 Data:", data)
   try {
@@ -29,9 +29,10 @@ export async function handleCambioPotrero(phoneNumber: string, data: any) {
       return
     }
 
-    const { cantidad, categoria, loteOrigen, loteDestino, _origenId, _destinoId } = data
+    const { cantidad, categoria, loteOrigen, loteDestino, _origenId, _destinoId, moverTodo } = data
 
-    if (!categoria) {
+    // ✅ Si NO es "mover todo" y NO tiene categoría → error
+    if (!moverTodo && !categoria) {
       await sendWhatsAppMessage(
         phoneNumber,
         "No entendí qué animales querés mover.\n\nEjemplo: *moví 10 vacas del potrero norte al sur*"
@@ -99,7 +100,8 @@ export async function handleCambioPotrero(phoneNumber: string, data: any) {
                 opciones: resultadoOrigen.opciones,
                 categoria,
                 cantidad,
-                loteDestino
+                loteDestino,
+                moverTodo
               }),
             },
             update: {
@@ -108,7 +110,8 @@ export async function handleCambioPotrero(phoneNumber: string, data: any) {
                 opciones: resultadoOrigen.opciones,
                 categoria,
                 cantidad,
-                loteDestino
+                loteDestino,
+                moverTodo
               }),
             },
           })
@@ -153,7 +156,8 @@ export async function handleCambioPotrero(phoneNumber: string, data: any) {
                 categoria,
                 cantidad,
                 loteOrigenId: potreroOrigen.id,
-                loteOrigenNombre: potreroOrigen.nombre
+                loteOrigenNombre: potreroOrigen.nombre,
+                moverTodo
               }),
             },
             update: {
@@ -163,7 +167,8 @@ export async function handleCambioPotrero(phoneNumber: string, data: any) {
                 categoria,
                 cantidad,
                 loteOrigenId: potreroOrigen.id,
-                loteOrigenNombre: potreroOrigen.nombre
+                loteOrigenNombre: potreroOrigen.nombre,
+                moverTodo
               }),
             },
           })
@@ -189,6 +194,70 @@ export async function handleCambioPotrero(phoneNumber: string, data: any) {
       return
     }
 
+    // 🚚 CASO 1: MOVER TODO
+    if (moverTodo) {
+      // Obtener TODOS los animales del potrero origen
+      const todosLosAnimales = await prisma.animalLote.findMany({
+        where: { 
+          loteId: potreroOrigen.id,
+          lote: { campoId: user.campoId }
+        },
+        select: {
+          id: true,
+          categoria: true,
+          cantidad: true
+        }
+      })
+
+      if (!todosLosAnimales || todosLosAnimales.length === 0) {
+        await sendWhatsAppMessage(
+          phoneNumber,
+          `El potrero "${potreroOrigen.nombre}" está vacío.`
+        )
+        return
+      }
+
+      // Preparar datos de confirmación con MÚLTIPLES categorías
+      const confirmationData = {
+        tipo: "CAMBIO_POTRERO_MULTIPLE",
+        animales: todosLosAnimales.map(a => ({
+          categoria: a.categoria,
+          cantidad: a.cantidad
+        })),
+        loteId: potreroOrigen.id,
+        loteDestinoId: potreroDestino.id,
+        loteOrigenNombre: potreroOrigen.nombre,
+        loteDestinoNombre: potreroDestino.nombre,
+        telefono: phoneNumber,
+      }
+
+      await prisma.pendingConfirmation.upsert({
+        where: { telefono: phoneNumber },
+        create: {
+          telefono: phoneNumber,
+          data: JSON.stringify(confirmationData),
+        },
+        update: {
+          data: JSON.stringify(confirmationData),
+        },
+      })
+
+      const listaAnimales = todosLosAnimales
+        .map(a => `• ${a.cantidad} ${a.categoria}`)
+        .join('\n')
+
+      const mensaje = 
+        `*🚚 Vaciar Potrero Completo*\n\n` +
+        `Del potrero *${potreroOrigen.nombre}* se moverán TODOS los animales:\n\n` +
+        `${listaAnimales}\n\n` +
+        `Destino: *${potreroDestino.nombre}*\n\n` +
+        `¿Confirmar?`
+
+      await sendWhatsAppMessageWithButtons(phoneNumber, mensaje)
+      return
+    }
+
+    // 🐄 CASO 2: MOVER CATEGORÍA ESPECÍFICA (flujo normal)
     const resultadoBusqueda = await buscarAnimalesEnPotrero(categoria, potreroOrigen.id, user.campoId)
     
     console.log("🔍 BÚSQUEDA ANIMALES:")
@@ -379,4 +448,90 @@ export async function ejecutarCambioPotrero(data: any) {
 
     console.log(`✅ Cambio de potrero ejecutado: ${descripcion}`)
   })
+}
+
+/**
+ * 🚚 Ejecutar cambio de potrero MÚLTIPLE (mover todo)
+ */
+export async function ejecutarCambioPotreroMultiple(data: any) {
+  const user = await prisma.user.findUnique({
+    where: { telefono: data.telefono },
+    select: { id: true, campoId: true },
+  })
+
+  if (!user || !user.campoId) {
+    throw new Error("Usuario no encontrado")
+  }
+
+  await prisma.$transaction(async (tx) => {
+    // Procesar cada categoría
+    for (const animal of data.animales) {
+      const animalOrigen = await tx.animalLote.findFirst({
+        where: { 
+          loteId: data.loteId, 
+          categoria: animal.categoria,
+          lote: { campoId: user.campoId }
+        },
+      })
+
+      if (!animalOrigen) continue
+
+      // Eliminar del origen
+      await tx.animalLote.delete({ where: { id: animalOrigen.id } })
+
+      // Agregar al destino
+      const animalDestino = await tx.animalLote.findFirst({
+        where: { 
+          loteId: data.loteDestinoId, 
+          categoria: animal.categoria,
+          lote: { campoId: user.campoId }
+        },
+      })
+
+      if (animalDestino) {
+        await tx.animalLote.update({
+          where: { id: animalDestino.id },
+          data: { cantidad: animalDestino.cantidad + animal.cantidad },
+        })
+      } else {
+        await tx.animalLote.create({
+          data: {
+            categoria: animal.categoria,
+            cantidad: animal.cantidad,
+            loteId: data.loteDestinoId,
+          },
+        })
+      }
+
+      // Registrar evento individual
+      await tx.evento.create({
+        data: {
+          tipo: "CAMBIO_POTRERO",
+          descripcion: `Cambio de ${animal.cantidad} ${animal.categoria} del potrero "${data.loteOrigenNombre}" al potrero "${data.loteDestinoNombre}".`,
+          fecha: new Date(),
+          cantidad: animal.cantidad,
+          categoria: animal.categoria,
+          loteId: data.loteId,
+          loteDestinoId: data.loteDestinoId,
+          usuarioId: user.id,
+          campoId: user.campoId,
+          origenSnig: "BOT",
+        },
+      })
+    }
+
+    // Actualizar ultimoCambio del potrero origen (quedó vacío)
+    await tx.lote.update({
+      where: { id: data.loteId },
+      data: { ultimoCambio: new Date() }
+    })
+
+    // Actualizar ultimoCambio del potrero destino
+    await tx.lote.update({
+      where: { id: data.loteDestinoId },
+      data: { ultimoCambio: new Date() }
+    })
+  })
+
+  console.log(`✅ Cambio múltiple ejecutado: ${data.animales.length} categorías movidas`)
 }

@@ -49,6 +49,7 @@ export default function ModalCambioPotrero({ onClose, onSuccess }: ModalCambioPo
   const [rodeos, setRodeos] = useState<{ id: string; nombre: string }[]>([])
   const [rodeoSeleccionado, setRodeoSeleccionado] = useState('')
   const [modoRodeo, setModoRodeo] = useState<'NO_INCLUIR' | 'OPCIONAL' | 'OBLIGATORIO'>('OPCIONAL')
+  const [moverTodo, setMoverTodo] = useState(false)
 
   // ✅ Cargar configuración, potreros y rodeos al montar
   useEffect(() => {
@@ -91,6 +92,24 @@ export default function ModalCambioPotrero({ onClose, onSuccess }: ModalCambioPo
         setLoadingAnimales(false)
       })
   }, [potreroOrigen])
+  
+  // ✅ Efecto para "Mover Todo"
+  useEffect(() => {
+    if (moverTodo && animalesDisponibles.length > 0) {
+      // Cargar TODAS las categorías con cantidad máxima
+      setAnimalesAMover(
+        animalesDisponibles.map(animal => ({
+          id: animal.id,
+          categoria: animal.categoria,
+          cantidad: animal.cantidad.toString(),
+          cantidadMaxima: animal.cantidad
+        }))
+      )
+    } else if (!moverTodo && animalesDisponibles.length > 0) {
+      // Resetear a 1 categoría vacía
+      setAnimalesAMover([{ id: '1', categoria: '', cantidad: '', cantidadMaxima: 0 }])
+    }
+  }, [moverTodo, animalesDisponibles])
 
   // ✅ Funciones para manejar múltiples animales
   const agregarAnimal = () => {
@@ -331,7 +350,24 @@ export default function ModalCambioPotrero({ onClose, onSuccess }: ModalCambioPo
         {/* ANIMALES - MÚLTIPLES CATEGORÍAS */}
         {potreroOrigen && (
           <div className="bg-blue-50 rounded-lg p-4">
-            <h3 className="font-semibold text-gray-900 mb-3">Animales</h3>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold text-gray-900">Animales</h3>
+              
+              {/* Toggle "Mover Todo" */}
+              {animalesDisponibles.length > 0 && (
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={moverTodo}
+                    onChange={(e) => setMoverTodo(e.target.checked)}
+                    className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                  />
+                  <span className="text-sm font-medium text-blue-700">
+                    🚚 Vaciar potrero completo
+                  </span>
+                </label>
+              )}
+            </div>
 
             {loadingAnimales ? (
               <p className="text-sm text-gray-600 italic">Cargando animales...</p>
@@ -349,7 +385,8 @@ export default function ModalCambioPotrero({ onClose, onSuccess }: ModalCambioPo
                       <select
                         value={animal.categoria}
                         onChange={(e) => actualizarAnimal(animal.id, 'categoria', e.target.value)}
-                        className="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white text-sm"
+                        className="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
+                        disabled={moverTodo}
                       >
                         <option value="">Seleccionar...</option>
                         {animalesDisponibles
@@ -374,8 +411,8 @@ export default function ModalCambioPotrero({ onClose, onSuccess }: ModalCambioPo
                         min="1"
                         max={animal.cantidadMaxima}
                         placeholder="0"
-                        className="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
-                        disabled={!animal.categoria}
+                        className="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
+                        disabled={!animal.categoria || moverTodo}
                       />
                     </div>
 
@@ -385,7 +422,7 @@ export default function ModalCambioPotrero({ onClose, onSuccess }: ModalCambioPo
                         type="button"
                         onClick={() => eliminarAnimal(animal.id)}
                         className="w-full py-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition text-lg disabled:opacity-30 disabled:cursor-not-allowed"
-                        disabled={animalesAMover.length === 1}
+                        disabled={animalesAMover.length === 1 || moverTodo}
                         title="Eliminar"
                       >
                         🗑️
@@ -395,7 +432,7 @@ export default function ModalCambioPotrero({ onClose, onSuccess }: ModalCambioPo
                 ))}
 
                 {/* Botón agregar más */}
-                {animalesDisponibles.length > categoriasSeleccionadas.length && (
+                {animalesDisponibles.length > categoriasSeleccionadas.length && !moverTodo && (
                   <button
                     type="button"
                     onClick={agregarAnimal}

@@ -126,17 +126,33 @@ export async function handleConfirmacion(
   }
 
   if (
-    respuestaLower === "confirmar" ||
-    respuestaLower === "si" ||
-    respuestaLower === "sí" ||
-    respuestaLower === "yes" ||
-    respuesta === "btn_confirmar" ||
-    respuesta === "confirmar_dao"
-  ) {
-    try {
-      if (data.tipo === "CAMBIO_POTRERO") {
-        await ejecutarCambioPotrero(data)
-      } else if (data.tipo === "MOVER_POTRERO_MODULO") {
+  respuestaLower === "confirmar" ||
+  respuestaLower === "si" ||
+  respuestaLower === "sí" ||
+  respuestaLower === "yes" ||
+  respuesta === "btn_confirmar" ||
+  respuesta === "confirmar_dao"
+) {
+  try {
+    if (data.tipo === "CAMBIO_POTRERO") {
+      await ejecutarCambioPotrero(data)
+    } else if (data.tipo === "CAMBIO_POTRERO_MULTIPLE") {
+      const { ejecutarCambioPotreroMultiple } = await import("./potreroHandler")
+      await ejecutarCambioPotreroMultiple(data)
+      await sendWhatsAppMessage(
+        phone,
+        `✅ Potrero "${data.loteOrigenNombre}" vaciado. Todos los animales fueron movidos a "${data.loteDestinoNombre}".`
+      )
+      
+      // 🔥 IMPORTANTE: Eliminar confirmación y retornar para no mostrar mensaje genérico
+      await prisma.pendingConfirmation
+        .delete({
+          where: { telefono: phone },
+        })
+        .catch(() => {})
+      
+      return
+    } else if (data.tipo === "MOVER_POTRERO_MODULO") {
         const { handleMoverPotreroModuloConfirmacion } = await import("./moverPotreroModuloHandler")
         await handleMoverPotreroModuloConfirmacion(data)
       } else if (data.tipo === "DAO") {

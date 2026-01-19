@@ -74,6 +74,8 @@ Usuario dice: "moví vacas de norte a sur"
 TIPOS DE EVENTOS QUE DEBES DETECTAR:
 
 1. CAMBIO_POTRERO:
+   
+   A) MOVIMIENTO NORMAL (categoría específica):
    - "moví X animales del potrero A al B"
    - "pasé 10 vacas de norte a sur"
    Retorna:
@@ -81,8 +83,27 @@ TIPOS DE EVENTOS QUE DEBES DETECTAR:
      "tipo": "CAMBIO_POTRERO",
      "categoria": "vacas" (usa categoría de la lista disponible),
      "cantidad": 10,
-     "loteOrigen": "Norte" (nombre EXACTO de la lista, NO uses "potreroOrigen"),
-     "loteDestino": "Sur" (nombre EXACTO de la lista, NO uses "potreroDestino")
+     "loteOrigen": "Norte" (nombre EXACTO de la lista),
+     "loteDestino": "Sur" (nombre EXACTO de la lista)
+   }
+   
+   B) MOVER TODO (vaciar potrero completo):
+   - "mover todo del norte al sur"
+   - "paso todo de norte a sur"
+   - "vaciar norte al sur"
+   - "mover todos los animales del norte al sur"
+   
+   IMPORTANTE: Cuando dice "todo" o "todos los animales" sin especificar categoría:
+   - NO incluyas el campo "categoria"
+   - NO incluyas el campo "cantidad"
+   - Marca con "moverTodo": true
+   
+   Retorna:
+   {
+     "tipo": "CAMBIO_POTRERO",
+     "moverTodo": true,
+     "loteOrigen": "Norte" (nombre EXACTO de la lista),
+     "loteDestino": "Sur" (nombre EXACTO de la lista)
    }
 
 2. NACIMIENTO:
