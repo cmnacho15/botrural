@@ -509,6 +509,15 @@ const parsedData = await parseMessageWithAI(messageText, potreros, categorias)
     return NextResponse.json({ status: "dao processed" })
   }
 
+  // ========================================
+// 💉 TRATAMIENTO
+// ========================================
+if (parsedData.tipo === "TRATAMIENTO") {
+  const { handleTratamiento } = await import("@/lib/whatsapp/handlers/tratamientoHandler")
+  await handleTratamiento(from, parsedData)
+  return NextResponse.json({ status: "tratamiento processed" })
+}
+
   // 🔥 AGREGAR ESTO AQUÍ 👇
   // ========================================
   // 📝 STOCK EDICIÓN (conteo directo)
