@@ -147,8 +147,12 @@ export async function handleTratamiento(
     mensaje += `💊 Producto: ${parsedData.producto}\n`
     
     if (parsedData.cantidad && parsedData.categoria) {
-      mensaje += `🐄 Cantidad: ${parsedData.cantidad} ${parsedData.categoria}\n`
-    }
+  mensaje += `🐄 Aplicado a: ${parsedData.cantidad} ${parsedData.categoria}\n`
+} else if (parsedData.categoria) {
+  mensaje += `🐄 Aplicado a: ${parsedData.categoria}\n`
+} else if (parsedData.cantidad) {
+  mensaje += `🐄 Aplicado a: ${parsedData.cantidad} animales\n`
+}
     
     if (potreroNombre) {
       mensaje += `📍 Potrero: ${potreroNombre}\n`
