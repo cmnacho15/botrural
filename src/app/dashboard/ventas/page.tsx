@@ -61,8 +61,11 @@ export default function VentasPage() {
   const [fechaInicio, setFechaInicio] = useState(fechaInicioDefault)
   const [fechaFin, setFechaFin] = useState(fechaFinDefault)
 
-  // Tipo de vista (GANADO o LANA)
-  const [vistaActiva, setVistaActiva] = useState<'GANADO' | 'LANA'>('GANADO')
+  // Estados para acordeones
+  const [vacunosAbierto, setVacunosAbierto] = useState(true)
+  const [ovinosAbierto, setOvinosAbierto] = useState(false)
+  const [lanaAbierto, setLanaAbierto] = useState(false)
+  
 
   // Cargar ventas con filtros
   const { data, isLoading, mutate, error } = useSWR(
@@ -91,9 +94,12 @@ export default function VentasPage() {
   const ventas = data?.ventas || []
   const resumen = data?.resumen || null
 
-  // Separar ventas por tipo
-  const ventasGanado = ventas.filter((v: any) => 
-    v.renglones.some((r: any) => r.tipo === 'GANADO')
+  // Separar ventas por tipo de animal
+  const ventasVacunos = ventas.filter((v: any) => 
+    v.renglones.some((r: any) => r.tipo === 'GANADO' && r.tipoAnimal === 'BOVINO')
+  )
+  const ventasOvinos = ventas.filter((v: any) => 
+    v.renglones.some((r: any) => r.tipo === 'GANADO' && r.tipoAnimal === 'OVINO')
   )
   const ventasLana = ventas.filter((v: any) => 
     v.renglones.some((r: any) => r.tipo === 'LANA')
@@ -209,52 +215,80 @@ export default function VentasPage() {
           </div>
         </div>
 
-        {/* TABS DE NAVEGACIÓN */}
-        <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden mb-6">
-          <div className="flex border-b border-gray-200">
-            <button
-              onClick={() => setVistaActiva('GANADO')}
-              className={`flex-1 px-6 py-4 text-center font-medium transition ${
-                vistaActiva === 'GANADO'
-                  ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-600'
-                  : 'text-gray-600 hover:bg-gray-50'
-              }`}
-            >
-              <span className="text-lg mr-2">🐄</span>
-              Ganado ({ventasGanado.length})
-            </button>
-            <button
-              onClick={() => setVistaActiva('LANA')}
-              className={`flex-1 px-6 py-4 text-center font-medium transition ${
-                vistaActiva === 'LANA'
-                  ? 'bg-green-50 text-green-600 border-b-2 border-green-600'
-                  : 'text-gray-600 hover:bg-gray-50'
-              }`}
-            >
-              <span className="text-lg mr-2">🧶</span>
-              Lana ({ventasLana.length})
-            </button>
-          </div>
-        </div>
-
         {/* RESUMEN (TABLAS TIPO EXCEL) */}
         {resumen && <ResumenVentas resumen={resumen} />}
 
-        {/* DETALLE DE VENTAS SEGÚN VISTA ACTIVA */}
+        {/* DETALLE DE VENTAS CON ACORDEONES */}
         <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden mt-6">
           <div className="p-6 border-b border-gray-200">
-            <h2 className="text-xl font-bold text-gray-900">
-              {vistaActiva === 'GANADO' ? 'Detalle de Ventas - Ganado' : 'Detalle de Ventas - Lana'}
-            </h2>
+            <h2 className="text-xl font-bold text-gray-900">Detalle de Ventas</h2>
           </div>
-          
-          {vistaActiva === 'GANADO' && (
-            <TablaVentas ventas={ventasGanado} onRefresh={mutate} />
-          )}
-          
-          {vistaActiva === 'LANA' && (
-            <TablaVentasLana ventas={ventasLana} onRefresh={mutate} />
-          )}
+
+          {/* ACORDEÓN VACUNOS */}
+          <div className="border-b border-gray-200">
+            <button
+              onClick={() => setVacunosAbierto(!vacunosAbierto)}
+              className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition"
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">🐄</span>
+                <h3 className="text-lg font-semibold text-gray-900">VACUNOS</h3>
+                <span className="text-sm text-gray-500">({ventasVacunos.length} ventas)</span>
+              </div>
+              <span className="text-gray-400 text-xl">
+                {vacunosAbierto ? '▼' : '▶'}
+              </span>
+            </button>
+            {vacunosAbierto && (
+              <div className="border-t border-gray-200">
+                <TablaVentas ventas={ventasVacunos} onRefresh={mutate} />
+              </div>
+            )}
+          </div>
+
+          {/* ACORDEÓN OVINOS */}
+          <div className="border-b border-gray-200">
+            <button
+              onClick={() => setOvinosAbierto(!ovinosAbierto)}
+              className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition"
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">🐑</span>
+                <h3 className="text-lg font-semibold text-gray-900">OVINOS</h3>
+                <span className="text-sm text-gray-500">({ventasOvinos.length} ventas)</span>
+              </div>
+              <span className="text-gray-400 text-xl">
+                {ovinosAbierto ? '▼' : '▶'}
+              </span>
+            </button>
+            {ovinosAbierto && (
+              <div className="border-t border-gray-200">
+                <TablaVentas ventas={ventasOvinos} onRefresh={mutate} />
+              </div>
+            )}
+          </div>
+
+          {/* ACORDEÓN LANA */}
+          <div>
+            <button
+              onClick={() => setLanaAbierto(!lanaAbierto)}
+              className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition"
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">🧶</span>
+                <h3 className="text-lg font-semibold text-gray-900">LANA</h3>
+                <span className="text-sm text-gray-500">({ventasLana.length} ventas)</span>
+              </div>
+              <span className="text-gray-400 text-xl">
+                {lanaAbierto ? '▼' : '▶'}
+              </span>
+            </button>
+            {lanaAbierto && (
+              <div className="border-t border-gray-200">
+                <TablaVentasLana ventas={ventasLana} onRefresh={mutate} />
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
