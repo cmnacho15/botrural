@@ -58,21 +58,43 @@ export async function handleVentaImage(
  * Envía confirmación de venta con botones
  */
 async function sendVentaConfirmation(phoneNumber: string, data: any) {
-  const renglonesText = data.renglones
-    .map((r: any, i: number) => 
-      `${i + 1}. ${r.cantidad} ${r.categoria} - ${r.pesoPromedio?.toFixed(1) || 0}kg @ $${r.precioKgUSD?.toFixed(2) || 0}/kg = $${r.importeBrutoUSD?.toFixed(2) || 0}`
-    )
-    .join("\n")
+  const esLana = data.tipoProducto === "LANA"
+  
+  let renglonesText: string
+  let headerText: string
+  let totalesText: string
+  
+  if (esLana) {
+    // LANA
+    renglonesText = data.renglones
+      .map((r: any, i: number) => 
+        `${i + 1}. ${r.categoria} - ${r.pesoKg}kg @ $${r.precioKgUSD?.toFixed(2)}/kg = $${r.importeBrutoUSD?.toFixed(2)}`
+      )
+      .join("\n")
+    
+    headerText = `*VENTA DE LANA*\n\n`
+    totalesText = `${data.pesoTotalKg} kg totales\n`
+  } else {
+    // GANADO
+    renglonesText = data.renglones
+      .map((r: any, i: number) => 
+        `${i + 1}. ${r.cantidad} ${r.categoria} - ${r.pesoPromedio?.toFixed(1) || 0}kg @ $${r.precioKgUSD?.toFixed(2) || 0}/kg = $${r.importeBrutoUSD?.toFixed(2) || 0}`
+      )
+      .join("\n")
+    
+    headerText = `*VENTA DE HACIENDA*\n\n`
+    totalesText = `${data.cantidadTotal} animales, ${data.pesoTotalKg?.toFixed(1) || 0} kg\n`
+  }
 
   const bodyText =
-    `*VENTA DE HACIENDA*\n\n` +
+    headerText +
     `${data.fecha}\n` +
     `*${data.comprador}*\n` +
     `${data.productor}\n` +
     (data.nroFactura ? `Fact: ${data.nroFactura}\n` : "") +
     (data.nroTropa ? `Tropa: ${data.nroTropa}\n` : "") +
     `\n*Detalle:*\n${renglonesText}\n\n` +
-    `${data.cantidadTotal} animales, ${data.pesoTotalKg?.toFixed(1) || 0} kg\n` +
+    totalesText +
     `Subtotal: $${data.subtotalUSD?.toFixed(2) || 0}\n` +
     `Impuestos: -$${data.totalImpuestosUSD?.toFixed(2) || 0}\n` +
     `*TOTAL: $${data.totalNetoUSD?.toFixed(2) || 0} USD*\n\n` +

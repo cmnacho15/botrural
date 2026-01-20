@@ -16,6 +16,19 @@ import { handleVentaImage } from "./ventaHandler"
  */
 export async function handleImageMessage(message: any, phoneNumber: string) {
   console.log("INICIO handleImageMessage - phoneNumber:", phoneNumber)
+  
+  // Evitar procesamiento duplicado
+  const messageId = message.image.id
+  const cacheKey = `processing_${messageId}`
+  
+  // Check si ya se está procesando (en memoria simple)
+  if ((global as any)[cacheKey]) {
+    console.log("⚠️ Mensaje duplicado detectado, ignorando...")
+    return
+  }
+  
+  (global as any)[cacheKey] = true
+  
   try {
     const mediaId = message.image.id
     const caption = message.image.caption || ""
@@ -108,6 +121,11 @@ export async function handleImageMessage(message: any, phoneNumber: string) {
   } catch (error) {
     console.error("Error en handleImageMessage:", error)
     await sendWhatsAppMessage(phoneNumber, "Ocurrió un error procesando tu imagen.")
+  } finally {
+    // Limpiar cache después de 60 segundos
+    setTimeout(() => {
+      delete (global as any)[cacheKey]
+    }, 60000)
   }
 }
 
