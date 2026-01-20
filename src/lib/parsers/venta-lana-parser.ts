@@ -75,72 +75,124 @@ export async function processVentaLanaImage(imageUrl: string, campoId?: string):
 
 Eres un experto en procesar facturas de venta de LANA de Uruguay.
 
-⚠️⚠️⚠️ REGLA CRÍTICA DE EXTRACCIÓN ⚠️⚠️⚠️
-
-Para CADA renglón de lana:
-
-1. **PESO (kg):** Lee la columna "P.NETO" o "Kilos"
-   Ejemplos: 9.271 → 9271, 1.030 → 1030
-
-2. **IMPORTE TOTAL:** Lee la columna "IMPORTE" (última columna de números grandes)
-   ⚠️ CRÍTICO: Este es el número MÁS IMPORTANTE
-   Ejemplos: 53.771,80 → 53771.8, 1.030,00 → 1030.0
-   
-3. **PRECIO/KG:** CALCULA desde el importe, NO leas directamente
-   Formula: precioKgUSD = importeBrutoUSD / pesoKg
-   Ejemplo: Si importe = 1030 y peso = 1030kg → precio = 1.00/kg
-   
-⚠️ NO confundir columna "PREC. POR KG" con el precio real
-
 CONTEXTO:
 - Estas facturas son de venta de lana esquilada
 - El PRODUCTOR/VENDEDOR vende la lana a un COMPRADOR
 - NO hay cantidad de animales, solo PESO en kg
-- Puede haber CONSIGNATARIO (intermediario como ROMUALDO)
+- Puede haber un CONSIGNATARIO (intermediario como ROMUALDO, etc.)
 
 ESTRUCTURA TÍPICA:
 - Header: Logo del consignatario
 - Fecha, Nº Factura
-- RUT COMPRADOR + nombre
-- Productor/Vendedor
-- Tabla: Categoría, Peso (kg), Precio, Importe
-- Totales: Subtotal, Impuestos, Total Neto
+- RUT COMPRADOR + nombre del comprador
+- Productor/Vendedor (puede estar en header o sección específica)
+- Tabla con categorías de lana:
+  * LANA VELLÓN
+  * LANA BARRIGA
+  * LANA BARRIGUERA
+  * AJUSTE BARRIGA
+  * Etc.
+- Cada renglón tiene: Categoría, Peso (kg), Precio, Importe
+- Totales: Subtotal, Impuestos (IMEBA, MEVIR, INIA), Total Neto
 
-====== EXTRACCIÓN ======
+====== EXTRACCIÓN DE DATOS ======
 
-Para cada categoría de lana:
-- categoria: normalizado ("Vellón", "Barriga", "Barriguera", "Ajuste Barriga")
-- pesoKg: de columna P.NETO (ej: 9.271 → 9271)
-- importeBrutoUSD: de columna IMPORTE (ej: 53.771,80 → 53771.8)
-- precioKgUSD: CALCULAR = importeBrutoUSD / pesoKg
+1. IDENTIFICAR ROLES:
+   - RUT COMPRADOR: empresa que COMPRA la lana
+   - Productor/Vendedor: quien VENDE la lana (puede estar en sección separada o header)
+   - Consignatario: intermediario (logo de la empresa, ej: ROMUALDO & CIA)
 
-TOTALES:
-- subtotalUSD: suma de importeBrutoUSD de todos los renglones
-- impuestos: IMEBA, MEVIR, INIA
-- totalNetoUSD: subtotalUSD - totalImpuestosUSD
+2. EXTRAER CADA RENGLÓN DE LANA:
+   ⚠️ IMPORTANTE: Solo extraer renglones de LANA, NO otras líneas
+   
+   Para cada categoría:
+   - categoria: nombre exacto ("LANA VELLÓN", "LANA BARRIGA", etc.)
+     Normalizar a: "Vellón", "Barriga", "Barriguera", "Pedacería", "Ajuste Barriga"
+   
+   - pesoKg: peso en kilogramos (columna P.NETO o Kilos)
+     EJEMPLOS:
+     * 4,367 → 4367
+     * 685 → 685
+     * 9.271 → 9271
+   
+   - precioKgUSD: precio por kg (puede estar en 0.00 en algunas facturas)
+     Si aparece 0.00, calcular desde: importeBrutoUSD / pesoKg
+   
+   - importeBrutoUSD: importe total del renglón (columna IMPORTE o PREC. PROD.)
+     EJEMPLOS:
+     * 98,000.00 → 98000
+     * 10,000.00 → 10000
+     * 53,771.80 → 53771.8
 
-RESPONDE SOLO JSON:
+3. TOTALES:
+   - subtotalUSD: buscar "TOTAL:" antes de descuentos
+   - impuestos: extraer IMEBA, MEVIR, INIA de "TOTAL DE GASTOS"
+   - totalNetoUSD: total final después de impuestos
+
+4. CONDICIONES DE PAGO:
+   - Si hay "VENCIMIENTO:" → es Plazo, calcular días desde fecha
+   - Si no hay vencimiento → Contado
+
+====== CATEGORÍAS COMUNES DE LANA ======
+- LANA VELLÓN → "Vellón"
+- LANA BARRIGA → "Barriga"
+- LANA BARRIGUERA → "Barriguera"
+- AJUSTE BARRIGA → "Ajuste Barriga"
+- PEDACERÍA → "Pedacería"
+
+====== IMPUESTOS TÍPICOS ======
+En facturas de lana aparecen como descuentos en "TOTAL DE GASTOS":
+- IMEBA: ~1-2%
+- MEVIR: ~0.2%
+- INIA: ~0.4%
+
+====== VALIDACIONES ======
+- pesoTotalKg debe ser la suma de todos los pesoKg de renglones
+- subtotalUSD debe ser la suma de todos los importeBrutoUSD
+- totalNetoUSD = subtotalUSD - totalImpuestosUSD
+- El comprador y el productor NO pueden ser la misma persona
+
+RESPONDE SOLO JSON (sin markdown ni explicaciones):
 {
   "tipo": "VENTA",
   "tipoProducto": "LANA",
-  "comprador": "...",
-  "productor": "...",
-  "fecha": "YYYY-MM-DD",
-  "nroFactura": "...",
+  "comprador": "ARANDUS, Lourdes",
+  "compradorDireccion": "ASENCIO 209, SALTO",
+  "productor": "ESTABLECIAS PURRO S.A.",
+  "productorRut": "160377440013",
+  "rutEmisor": "160377440013",
+  "consignatario": "ROMUALDO & CIA",
+  "consignatarioRut": "211234567890",
+  "fecha": "2024-12-04",
+  "nroFactura": "A-022500",
   "renglones": [
     {
       "tipo": "LANA",
       "categoria": "Vellón",
-      "pesoKg": 9271,
-      "precioKgUSD": 5.80,
-      "importeBrutoUSD": 53771.8
+      "pesoKg": 4367,
+      "precioKgUSD": 5.34,
+      "importeBrutoUSD": 23319.78
+    },
+    {
+      "tipo": "LANA",
+      "categoria": "Barriga",
+      "pesoKg": 685,
+      "precioKgUSD": 4.50,
+      "importeBrutoUSD": 3082.50
     }
   ],
-  "pesoTotalKg": 10301,
-  "subtotalUSD": 54801.8,
-  "totalImpuestosUSD": 1647.78,
-  "totalNetoUSD": 53154.02,
-  "metodoPago": "Plazo"
+  "pesoTotalKg": 5052,
+  "subtotalUSD": 26402.28,
+  "impuestos": {
+    "imeba": 528.04,
+    "mevir": 52.80,
+    "inia": 105.61
+  },
+  "totalImpuestosUSD": 686.45,
+  "totalNetoUSD": 25715.83,
+  "metodoPago": "Plazo",
+  "diasPlazo": 120,
+  "fechaVencimiento": "2025-04-05"
 }`
         },
         {
@@ -169,44 +221,6 @@ RESPONDE SOLO JSON:
       throw new Error("No se encontraron renglones de lana");
     }
 
-    // ✅ VALIDACIÓN CRÍTICA: Recalcular totales desde renglones
-    console.log("🔍 Validando y recalculando totales...")
-
-    // 1. Recalcular precio/kg desde importe (por si GPT lo leyó mal)
-    data.renglones = data.renglones.map(r => {
-      const precioCalculado = r.importeBrutoUSD / r.pesoKg
-      
-      // Si el precio calculado difiere mucho del parseado, usar el calculado
-      if (Math.abs(precioCalculado - r.precioKgUSD) > 0.5) {
-        console.warn(`⚠️ ${r.categoria}: Precio parseado ($${r.precioKgUSD}/kg) difiere del calculado ($${precioCalculado.toFixed(2)}/kg). Usando calculado.`)
-        r.precioKgUSD = precioCalculado
-      }
-      
-      return r
-    })
-
-    // 2. Recalcular subtotal desde suma de importes
-    const subtotalCalculado = data.renglones.reduce((sum, r) => sum + r.importeBrutoUSD, 0)
-
-    if (Math.abs(subtotalCalculado - data.subtotalUSD) > 1) {
-      console.warn(`⚠️ Subtotal parseado ($${data.subtotalUSD}) difiere del calculado ($${subtotalCalculado.toFixed(2)}). Usando calculado.`)
-      data.subtotalUSD = subtotalCalculado
-    }
-
-    // 3. Recalcular total neto
-    const totalNetoCalculado = data.subtotalUSD - data.totalImpuestosUSD
-
-    if (Math.abs(totalNetoCalculado - data.totalNetoUSD) > 1) {
-      console.warn(`⚠️ Total neto parseado ($${data.totalNetoUSD}) difiere del calculado ($${totalNetoCalculado.toFixed(2)}). Usando calculado.`)
-      data.totalNetoUSD = totalNetoCalculado
-    }
-
-    console.log("✅ Totales validados:", {
-      subtotal: data.subtotalUSD.toFixed(2),
-      impuestos: data.totalImpuestosUSD.toFixed(2),
-      totalNeto: data.totalNetoUSD.toFixed(2)
-    })
-
     // Normalizar categorías
     data.renglones = data.renglones.map(r => ({
       ...r,
@@ -218,8 +232,16 @@ RESPONDE SOLO JSON:
       data.pesoTotalKg = data.renglones.reduce((sum, r) => sum + r.pesoKg, 0);
     }
 
+    if (!data.subtotalUSD) {
+      data.subtotalUSD = data.renglones.reduce((sum, r) => sum + r.importeBrutoUSD, 0);
+    }
+
     if (!data.totalImpuestosUSD && data.impuestos) {
       data.totalImpuestosUSD = Object.values(data.impuestos).reduce((sum, val) => sum + (val || 0), 0);
+    }
+
+    if (!data.totalNetoUSD) {
+      data.totalNetoUSD = data.subtotalUSD - (data.totalImpuestosUSD || 0);
     }
 
     // Calcular método de pago
