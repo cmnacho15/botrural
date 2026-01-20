@@ -137,6 +137,8 @@ async function guardarVentaEnBD(savedData: any, phoneNumber: string) {
   
   console.log(`📊 Tipo de venta: ${esVentaLana ? "LANA 🧶" : "GANADO 🐄"}`)
 
+  console.log("🔍 DEBUG 1: Buscando usuario...")
+
   try {
     console.log("ventaData recibida:", JSON.stringify(ventaData, null, 2))
 
@@ -144,6 +146,9 @@ async function guardarVentaEnBD(savedData: any, phoneNumber: string) {
       where: { telefono: phoneNumber }, 
       select: { id: true } 
     })
+
+    console.log("🔍 DEBUG 2: Usuario encontrado:", user?.id)
+console.log("🔍 DEBUG 3: Buscando firma...")
     
     // Detectar firma automáticamente por RUT O por nombre del productor
     let firmaId = null
@@ -225,6 +230,15 @@ async function guardarVentaEnBD(savedData: any, phoneNumber: string) {
     }
 
     let venta
+
+    console.log("🔍 DEBUG 4: Creando venta en BD...")
+console.log("🔍 DEBUG 5: Datos de venta:", {
+  comprador: ventaData.comprador,
+  fecha: ventaData.fecha,
+  subtotal: ventaData.subtotalUSD,
+  esLana: esVentaLana
+})
+
     try {
       venta = await prisma.venta.create({
         data: {
@@ -254,12 +268,15 @@ async function guardarVentaEnBD(savedData: any, phoneNumber: string) {
       })
       console.log("✅ VENTA CREADA EN BD - ID:", venta.id)
     } catch (error: any) {
-      console.error("❌ ERROR AL CREAR VENTA:", error.message)
-      console.error("❌ Error completo:", error)
-      throw error
-    }
+  console.error("❌ ERROR AL CREAR VENTA:", error.message)
+  console.error("❌ Error completo:", error)
+  throw error
+}
 
-    // Crear renglones (GANADO o LANA)
+console.log("🔍 DEBUG 6: Venta creada exitosamente, ID:", venta.id)
+console.log("🔍 DEBUG 7: Creando renglones...")
+
+ // Crear renglones
     const renglonesCreados: Array<{ id: string; categoria: string; cantidad?: number; pesoKg?: number }> = []
 
     if (esVentaLana) {
