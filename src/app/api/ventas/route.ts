@@ -36,49 +36,52 @@ export async function GET(request: Request) {
     }
 
     const ventas = await prisma.venta.findMany({
-  where,
-  include: {
-    renglones: {
+      where,
       include: {
-        animalLote: {
-          select: {
-            id: true,
-            categoria: true,
-            lote: {
+        renglones: {
+          include: {
+            animalLote: {
               select: {
-                nombre: true,
+                id: true,
+                categoria: true,
+                lote: {
+                  select: {
+                    nombre: true,
+                  },
+                },
               },
             },
           },
         },
+        firma: true,
       },
-    },
-    firma: true,  // ← AGREGAR ESTA LÍNEA
-  },
-  orderBy: { fecha: "desc" },
-})
+      orderBy: { fecha: "desc" },
+    })
 
     // ==========================================
     // 📊 CALCULAR RESUMEN TIPO EXCEL
     // ==========================================
     const resumenBovino: any = {}
     const resumenOvino: any = {}
-    let resumenLana: any = null
+    const resumenLana: any = {}
 
     ventas.forEach(venta => {
       venta.renglones.forEach(renglon => {
-        if (renglon.esVentaLana) {
-          // Lana (lo dejamos para después)
-          if (!resumenLana) {
-            resumenLana = {
-              cantidad: 0,
-              pesoTotal: 0,
+        if (renglon.tipo === 'LANA') {
+          // Agrupar lana por categoría
+          const r = renglon as any // Forzar tipo para evitar errores de TS
+          const categoriaLana = r.categoriaLana || r.categoria || 'Sin categoría'
+          
+          if (!resumenLana[categoriaLana]) {
+            resumenLana[categoriaLana] = {
+              pesoKg: 0,
               importeBruto: 0,
             }
           }
-          resumenLana.cantidad += renglon.numeroEsquilados || 0
-          resumenLana.pesoTotal += renglon.pesoTotalKg
-          resumenLana.importeBruto += renglon.importeBrutoUSD
+          
+          const pesoKg = Number(r.pesoKg || r.pesoTotalKg || 0)
+          resumenLana[categoriaLana].pesoKg += pesoKg
+          resumenLana[categoriaLana].importeBruto += r.importeBrutoUSD
         } else {
           // Ganado
           const resumen = renglon.tipoAnimal === "BOVINO" ? resumenBovino : resumenOvino
@@ -120,20 +123,32 @@ export async function GET(request: Request) {
     const resumenBovinoArray = calcularPromedios(resumenBovino)
     const resumenOvinoArray = calcularPromedios(resumenOvino)
 
+    // Procesar lana por categorías
+    const resumenLanaArray = Object.entries(resumenLana).map(([categoria, datos]: [string, any]) => {
+      const precioKg = datos.pesoKg > 0 ? datos.importeBruto / datos.pesoKg : 0
+
+      return {
+        categoria,
+        pesoKg: parseFloat(datos.pesoKg.toFixed(2)),
+        precioKg: parseFloat(precioKg.toFixed(2)),
+        importeBruto: parseFloat(datos.importeBruto.toFixed(2)),
+      }
+    })
+
     // Totales
     const totalBovino = resumenBovinoArray.reduce((sum, r) => sum + r.importeBruto, 0)
     const totalOvino = resumenOvinoArray.reduce((sum, r) => sum + r.importeBruto, 0)
-    const totalLana = resumenLana?.importeBruto || 0
+    const totalLana = resumenLanaArray.reduce((sum, r) => sum + r.importeBruto, 0)
     const totalGeneral = totalBovino + totalOvino + totalLana
 
     const totalKgBovino = resumenBovinoArray.reduce((sum, r) => sum + r.pesoTotal, 0)
     const totalKgOvino = resumenOvinoArray.reduce((sum, r) => sum + r.pesoTotal, 0)
-    const totalKgLana = resumenLana?.pesoTotal || 0
+    const totalKgLana = resumenLanaArray.reduce((sum, r) => sum + r.pesoKg, 0)
     const totalKgGeneral = totalKgBovino + totalKgOvino + totalKgLana
 
     const totalCantidadBovino = resumenBovinoArray.reduce((sum, r) => sum + r.cantidad, 0)
     const totalCantidadOvino = resumenOvinoArray.reduce((sum, r) => sum + r.cantidad, 0)
-    const totalCantidadLana = resumenLana?.cantidad || 0
+    const totalCantidadLana = 0 // Lana no tiene cantidad de animales
     const totalCantidadGeneral = totalCantidadBovino + totalCantidadOvino + totalCantidadLana
 
     return NextResponse.json({
@@ -141,14 +156,7 @@ export async function GET(request: Request) {
       resumen: {
         bovino: resumenBovinoArray,
         ovino: resumenOvinoArray,
-        lana: resumenLana ? {
-          cantidad: resumenLana.cantidad,
-          precioKg: resumenLana.pesoTotal > 0 ? parseFloat((resumenLana.importeBruto / resumenLana.pesoTotal).toFixed(2)) : 0,
-          pesoPromedio: resumenLana.cantidad > 0 ? parseFloat((resumenLana.pesoTotal / resumenLana.cantidad).toFixed(2)) : 0,
-          precioAnimal: resumenLana.cantidad > 0 ? parseFloat((resumenLana.importeBruto / resumenLana.cantidad).toFixed(2)) : 0,
-          pesoTotal: parseFloat(resumenLana.pesoTotal.toFixed(2)),
-          importeBruto: parseFloat(resumenLana.importeBruto.toFixed(2)),
-        } : null,
+        lana: resumenLanaArray,
         totales: {
           bovino: {
             cantidad: totalCantidadBovino,
@@ -165,6 +173,11 @@ export async function GET(request: Request) {
             precioKg: totalKgOvino > 0 ? parseFloat((totalOvino / totalKgOvino).toFixed(2)) : 0,
             pesoPromedio: totalCantidadOvino > 0 ? parseFloat((totalKgOvino / totalCantidadOvino).toFixed(2)) : 0,
             precioAnimal: totalCantidadOvino > 0 ? parseFloat((totalOvino / totalCantidadOvino).toFixed(2)) : 0,
+          },
+          lana: {
+            pesoTotal: parseFloat(totalKgLana.toFixed(2)),
+            importeBruto: parseFloat(totalLana.toFixed(2)),
+            precioKg: totalKgLana > 0 ? parseFloat((totalLana / totalKgLana).toFixed(2)) : 0,
           },
           general: {
             cantidad: totalCantidadGeneral,
@@ -360,7 +373,4 @@ export async function POST(request: Request) {
       { status: 500 }
     )
   }
-} 
-
-
-//holaaa
+}

@@ -20,14 +20,12 @@ interface ResumenVentasProps {
       pesoTotal: number
       importeBruto: number
     }>
-    lana: {
-      cantidad: number
+    lana: Array<{
+      categoria: string
+      pesoKg: number
       precioKg: number
-      pesoPromedio: number
-      precioAnimal: number
-      pesoTotal: number
       importeBruto: number
-    } | null
+    }>
     totales: {
       bovino: {
         cantidad: number
@@ -159,7 +157,7 @@ export default function ResumenVentas({ resumen }: ResumenVentasProps) {
       )}
 
       {/* TABLA LANA */}
-      {resumen.lana && (
+      {resumen.lana.length > 0 && (
         <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
           <div className="bg-cyan-400 px-6 py-3">
             <h2 className="text-lg font-bold text-gray-900">LANA</h2>
@@ -168,22 +166,36 @@ export default function ResumenVentas({ resumen }: ResumenVentasProps) {
             <table className="w-full">
               <thead className="bg-gray-100 border-b border-gray-200">
                 <tr>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase">Nº Animales</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase">US$/kg lana</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase">kg/animal</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase">US$/animal</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase">Categoría</th>
                   <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase">kg totales</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase">US$/kg</th>
                   <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase">US$ totales bruto</th>
                 </tr>
               </thead>
-              <tbody className="bg-white">
-                <tr>
-                  <td className="px-4 py-3 text-right text-gray-700">{resumen.lana.cantidad}</td>
-                  <td className="px-4 py-3 text-right text-gray-700">{formatNumber(resumen.lana.precioKg)}</td>
-                  <td className="px-4 py-3 text-right text-gray-700">{formatNumber(resumen.lana.pesoPromedio)}</td>
-                  <td className="px-4 py-3 text-right text-gray-700">{formatNumber(resumen.lana.precioAnimal)}</td>
-                  <td className="px-4 py-3 text-right text-gray-700">{formatNumber(resumen.lana.pesoTotal)}</td>
-                  <td className="px-4 py-3 text-right font-semibold text-gray-900">{formatNumber(resumen.lana.importeBruto)}</td>
+              <tbody className="bg-white divide-y divide-gray-100">
+                {resumen.lana.map((item, idx) => (
+                  <tr key={idx} className="hover:bg-gray-50">
+                    <td className="px-4 py-3 font-medium text-gray-900">{item.categoria}</td>
+                    <td className="px-4 py-3 text-right text-gray-700">{formatNumber(item.pesoKg)}</td>
+                    <td className="px-4 py-3 text-right text-gray-700">{formatNumber(item.precioKg)}</td>
+                    <td className="px-4 py-3 text-right font-semibold text-gray-900">{formatNumber(item.importeBruto)}</td>
+                  </tr>
+                ))}
+                {/* TOTAL LANA */}
+                <tr className="bg-gray-100 font-bold">
+                  <td className="px-4 py-3 text-gray-900">TOTAL</td>
+                  <td className="px-4 py-3 text-right text-gray-900">
+                    {formatNumber(resumen.lana.reduce((sum, item) => sum + item.pesoKg, 0))}
+                  </td>
+                  <td className="px-4 py-3 text-right text-gray-900">
+                    {formatNumber(
+                      resumen.lana.reduce((sum, item) => sum + item.importeBruto, 0) /
+                      resumen.lana.reduce((sum, item) => sum + item.pesoKg, 0)
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-right text-gray-900">
+                    {formatNumber(resumen.lana.reduce((sum, item) => sum + item.importeBruto, 0))}
+                  </td>
                 </tr>
               </tbody>
             </table>
