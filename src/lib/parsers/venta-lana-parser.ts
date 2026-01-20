@@ -95,6 +95,38 @@ ESTRUCTURA TÍPICA:
 - Cada renglón tiene: Categoría, Peso (kg), Precio, Importe
 - Totales: Subtotal, Impuestos (IMEBA, MEVIR, INIA), Total Neto
 
+⚠️⚠️⚠️ ESTRUCTURA DE TABLA - LECTURA CRÍTICA DE COLUMNAS ⚠️⚠️⚠️
+
+La tabla tiene MÚLTIPLES columnas numéricas. Es CRÍTICO identificar correctamente cada una:
+
+ESTRUCTURA REAL DE COLUMNAS (de izquierda → derecha):
+┌─────────────┬────────┬────────┬─────────────┬──────────────┐
+│ CATEGORIA   │ P.NETO │ P.PROM │ PREC.POR... │ IMPORTE      │
+├─────────────┼────────┼────────┼─────────────┼──────────────┤
+│ LANA VELLÓN │ 9,271  │  0,00  │  58,000.00  │  53.771,80   │ ← USAR 53.771,80
+│ LANA BARRIGA│ 1,030  │  0,00  │  10,000.00  │   1.030,00   │ ← USAR 1.030,00
+└─────────────┴────────┴────────┴─────────────┴──────────────┘
+
+COLUMNAS EXPLICADAS:
+1. CATEGORIA: tipo de lana (LANA VELLÓN, LANA BARRIGA, etc.)
+2. P.NETO: peso neto en kilogramos
+3. P.PROM: precio promedio por kg (generalmente 0,00)
+4. PREC.POR... o columna sin nombre: valores grandes (IGNORAR ESTA COLUMNA)
+5. IMPORTE: ⭐ ÚLTIMA COLUMNA - IMPORTE BRUTO REAL (LA CORRECTA) ⭐
+
+⚠️ REGLA CRÍTICA PARA importeBrutoUSD:
+- SIEMPRE usar la ÚLTIMA columna numérica de la tabla
+- Esta columna puede llamarse "IMPORTE" o "PREC. PRODUCTO" o estar sin nombre
+- NO usar la columna "PREC.POR..." que tiene valores grandes
+- Buscar visualmente la columna MÁS A LA DERECHA con valores monetarios
+
+EJEMPLOS DE LECTURA CORRECTA:
+❌ INCORRECTO: LANA VELLÓN → usar 58,000.00 (columna del medio)
+✅ CORRECTO: LANA VELLÓN → usar 53.771,80 (última columna)
+
+❌ INCORRECTO: LANA BARRIGA → usar 10,000.00 (columna del medio)
+✅ CORRECTO: LANA BARRIGA → usar 1.030,00 (última columna)
+
 ====== EXTRACCIÓN DE DATOS ======
 
 1. IDENTIFICAR ROLES:
@@ -109,28 +141,35 @@ ESTRUCTURA TÍPICA:
    - categoria: nombre exacto ("LANA VELLÓN", "LANA BARRIGA", etc.)
      Normalizar a: "Vellón", "Barriga", "Barriguera", "Pedacería", "Ajuste Barriga"
    
-   - pesoKg: peso en kilogramos (columna P.NETO o Kilos)
-     EJEMPLOS:
-     * 4,367 → 4367
+   - pesoKg: peso en kilogramos (columna P.NETO)
+     CONVERSIÓN DE FORMATO:
+     * 9,271 → 9271
+     * 1,030 → 1030
      * 685 → 685
-     * 9.271 → 9271
    
-   - precioKgUSD: precio por kg (puede estar en 0.00 en algunas facturas)
-     Si aparece 0.00, calcular desde: importeBrutoUSD / pesoKg
+   - importeBrutoUSD: ⭐ CRÍTICO - SIEMPRE la ÚLTIMA columna de la tabla ⭐
+     NO usar columnas intermedias como PREC.POR...
+     CONVERSIÓN DE FORMATO:
+     * 53.771,80 → 53771.8
+     * 1.030,00 → 1030.0
+     * 98.000,00 → 98000.0
    
-   - importeBrutoUSD: importe total del renglón (columna IMPORTE o PREC. PROD.)
+   - precioKgUSD: precio por kg
+     ⚠️ Si P.PROM está en 0,00, DEBES CALCULAR:
+        precioKgUSD = importeBrutoUSD / pesoKg
      EJEMPLOS:
-     * 98,000.00 → 98000
-     * 10,000.00 → 10000
-     * 53,771.80 → 53771.8
+     * VELLÓN: 53.771,80 / 9.271 = 5.80 USD/kg
+     * BARRIGA: 1.030,00 / 1.030 = 1.00 USD/kg
+     NUNCA dejes precioKgUSD en 0.00
+     NUNCA inventes precios si no puedes calcularlos
 
 3. TOTALES:
-   - subtotalUSD: buscar "TOTAL:" antes de descuentos
+   - subtotalUSD: suma de todos los importeBrutoUSD (columna IMPORTE)
    - impuestos: extraer IMEBA, MEVIR, INIA de "TOTAL DE GASTOS"
-   - totalNetoUSD: total final después de impuestos
+   - totalNetoUSD: buscar "TOTAL:" o el valor final en la factura
 
 4. CONDICIONES DE PAGO:
-   - Si hay "VENCIMIENTO:" → es Plazo, calcular días desde fecha
+   - Si hay "VENCIMIENTO:" → es Plazo, extraer fecha y calcular días desde fecha factura
    - Si no hay vencimiento → Contado
 
 ====== CATEGORÍAS COMUNES DE LANA ======
@@ -151,47 +190,48 @@ En facturas de lana aparecen como descuentos en "TOTAL DE GASTOS":
 - subtotalUSD debe ser la suma de todos los importeBrutoUSD
 - totalNetoUSD = subtotalUSD - totalImpuestosUSD
 - El comprador y el productor NO pueden ser la misma persona
+- Si precioKgUSD es 0, DEBES calcularlo: importeBrutoUSD / pesoKg
 
 RESPONDE SOLO JSON (sin markdown ni explicaciones):
 {
   "tipo": "VENTA",
   "tipoProducto": "LANA",
-  "comprador": "ARANDUS, Lourdes",
-  "compradorDireccion": "ASENCIO 209, SALTO",
-  "productor": "ESTABLECIAS PURRO S.A.",
-  "productorRut": "160377440013",
-  "rutEmisor": "160377440013",
+  "comprador": "MENGHI, Juan Diego y Luisiana",
+  "compradorDireccion": "Asencio 209, Salto",
+  "productor": "ESTANCIAS PURRO S.A.",
+  "productorRut": "160377440019",
+  "rutEmisor": "160377440019",
   "consignatario": "ROMUALDO & CIA",
   "consignatarioRut": "211234567890",
   "fecha": "2024-12-04",
-  "nroFactura": "A-022500",
+  "nroFactura": "A-022502",
   "renglones": [
     {
       "tipo": "LANA",
       "categoria": "Vellón",
-      "pesoKg": 4367,
-      "precioKgUSD": 5.34,
-      "importeBrutoUSD": 23319.78
+      "pesoKg": 9271,
+      "precioKgUSD": 5.80,
+      "importeBrutoUSD": 53771.8
     },
     {
       "tipo": "LANA",
       "categoria": "Barriga",
-      "pesoKg": 685,
-      "precioKgUSD": 4.50,
-      "importeBrutoUSD": 3082.50
+      "pesoKg": 1030,
+      "precioKgUSD": 1.00,
+      "importeBrutoUSD": 1030.0
     }
   ],
-  "pesoTotalKg": 5052,
-  "subtotalUSD": 26402.28,
+  "pesoTotalKg": 10301,
+  "subtotalUSD": 54801.8,
   "impuestos": {
-    "imeba": 528.04,
-    "mevir": 52.80,
-    "inia": 105.61
+    "imeba": 1328.85,
+    "mevir": 106.31,
+    "inia": 212.42
   },
-  "totalImpuestosUSD": 686.45,
-  "totalNetoUSD": 25715.83,
+  "totalImpuestosUSD": 1647.58,
+  "totalNetoUSD": 53154.22,
   "metodoPago": "Plazo",
-  "diasPlazo": 120,
+  "diasPlazo": 122,
   "fechaVencimiento": "2025-04-05"
 }`
         },
@@ -214,7 +254,7 @@ RESPONDE SOLO JSON (sin markdown ni explicaciones):
     const jsonStr = content.replace(/```json/g, "").replace(/```/g, "").trim();
     const data = JSON.parse(jsonStr) as ParsedVentaLana;
 
-    // Validaciones
+    // Validaciones y correcciones
     console.log("✅ Validando factura de LANA...")
 
     if (!data.renglones?.length) {
@@ -226,6 +266,26 @@ RESPONDE SOLO JSON (sin markdown ni explicaciones):
       ...r,
       categoria: normalizarCategoriaLana(r.categoria)
     }));
+
+    // Validar y recalcular precios si es necesario
+    data.renglones = data.renglones.map(r => {
+      // Si el precio es 0 o parece incorrecto, recalcular
+      const precioCalculado = r.importeBrutoUSD / r.pesoKg;
+      
+      if (r.precioKgUSD === 0) {
+        console.log(`⚠️ Recalculando precio de ${r.categoria}: 0.00 → ${precioCalculado.toFixed(2)}`);
+        return { ...r, precioKgUSD: Number(precioCalculado.toFixed(2)) };
+      }
+      
+      // Verificar coherencia (diferencia mayor a 10%)
+      const diferenciaPorcentual = Math.abs((r.precioKgUSD - precioCalculado) / precioCalculado);
+      if (diferenciaPorcentual > 0.1) {
+        console.log(`⚠️ Precio incoherente de ${r.categoria}: ${r.precioKgUSD} → ${precioCalculado.toFixed(2)} (diff: ${(diferenciaPorcentual * 100).toFixed(1)}%)`);
+        return { ...r, precioKgUSD: Number(precioCalculado.toFixed(2)) };
+      }
+      
+      return r;
+    });
 
     // Calcular totales si faltan
     if (!data.pesoTotalKg) {
