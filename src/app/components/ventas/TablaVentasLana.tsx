@@ -78,10 +78,10 @@ export default function TablaVentasLana({ ventas, onRefresh }: TablaVentasLanaPr
         <tbody className="bg-white divide-y divide-gray-200">
           {ventas.map((venta) => {
             const renglonesLana = venta.renglones.filter((r: any) => r.tipo === 'LANA')
-            const kgTotales = renglonesLana.reduce((sum: number, r: any) => {
-              const kg = parseFloat(r.pesoKg) || 0
-              return sum + kg
-            }, 0)
+const kgTotales = renglonesLana.reduce((sum: number, r: any) => {
+  const kg = parseFloat(r.pesoTotalKg) || 0
+  return sum + kg
+}, 0)
             const precioPromedio = kgTotales > 0 ? (venta.subtotalUSD / kgTotales) : 0
             const estaExpandido = expandido === venta.id
 
@@ -224,9 +224,9 @@ export default function TablaVentasLana({ ventas, onRefresh }: TablaVentasLanaPr
                   </thead>
                   <tbody className="divide-y divide-gray-200">
                     {renglonesLana.map((renglon: any, idx: number) => {
-                      const pesoKg = parseFloat(renglon.pesoKg) || 0
-                      const precioKg = parseFloat(renglon.precioKgUSD) || 0
-                      const categoriaLana = renglon.categoriaLana || renglon.categoria || '-'
+  const pesoKg = parseFloat(renglon.pesoTotalKg) || 0
+  const precioKg = parseFloat(renglon.precioKgUSD) || 0
+  const categoriaLana = renglon.categoria || '-'
                       
                       return (
                         <tr key={idx}>

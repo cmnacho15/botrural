@@ -305,28 +305,28 @@ console.log("🔍 DEBUG 7: Creando renglones...")
       // LANA: renglones con peso, sin cantidad de animales
       for (const r of ventaData.renglones) {
         const renglon = await prisma.ventaRenglon.create({
-          data: {
-            ventaId: venta.id,
-            tipo: "LANA",
-            tipoAnimal: "OVINO",
-            categoria: r.categoria, // Vellón, Barriga, etc.
-            raza: null,
-            cantidad: 0, // No hay cantidad de animales
-            pesoPromedio: 0,
-            precioKgUSD: r.precioKgUSD,
-            precioAnimalUSD: 0,
-            pesoTotalKg: r.pesoKg,
-            importeBrutoUSD: r.importeBrutoUSD,
-            descontadoDeStock: false,
-            
-            // Campos específicos de lana
-            esVentaLana: true,
-            kgVellon: r.categoria === "Vellón" ? r.pesoKg : null,
-            kgBarriga: r.categoria === "Barriga" ? r.pesoKg : null,
-            precioKgVellon: r.categoria === "Vellón" ? r.precioKgUSD : null,
-            precioKgBarriga: r.categoria === "Barriga" ? r.precioKgUSD : null,
-          },
-        })
+  data: {
+    ventaId: venta.id,
+    tipo: "LANA",
+    tipoAnimal: "OVINO",
+    categoria: r.categoria, // Vellón, Barriga, etc.
+    raza: null,
+    cantidad: 0, // No hay cantidad de animales
+    pesoPromedio: 0,
+    precioKgUSD: r.precioKgUSD,
+    precioAnimalUSD: 0,
+    pesoTotalKg: r.pesoKg,
+    importeBrutoUSD: r.importeBrutoUSD,
+    descontadoDeStock: false,
+    
+    // Campos específicos de lana
+    esVentaLana: true,
+    kgVellon: r.categoria === "Vellón" ? r.pesoKg : null,
+    kgBarriga: r.categoria === "Barriga" ? r.pesoKg : null,
+    precioKgVellon: r.categoria === "Vellón" ? r.precioKgUSD : null,
+    precioKgBarriga: r.categoria === "Barriga" ? r.precioKgUSD : null,
+  },
+})
         
         console.log(`  ✅ Renglón LANA guardado:`, {
           categoria: r.categoria,
