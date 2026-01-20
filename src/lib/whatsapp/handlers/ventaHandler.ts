@@ -5,6 +5,7 @@ import { processVentaImage, mapearCategoriaVenta } from "@/lib/vision-venta-pars
 import { buscarPotrerosConCategoria } from "@/lib/potrero-helpers"
 import { sendWhatsAppMessage, sendCustomButtons } from "../services/messageService"
 import { convertirAUYU, obtenerTasaCambio } from "@/lib/currency"
+import type { ParsedVentaGanado, ParsedVentaLana } from "@/lib/vision-venta-parser"
 
 /**
  * Procesa una imagen de factura de VENTA
@@ -129,9 +130,14 @@ export async function handleVentaButtonResponse(phoneNumber: string, buttonId: s
  * Guarda la venta en la base de datos
  */
 async function guardarVentaEnBD(savedData: any, phoneNumber: string) {
-  try {
-    const { ventaData, imageUrl, imageName, campoId } = savedData
+  const { ventaData, imageUrl, imageName, campoId } = savedData
+  
+  // Detectar si es GANADO o LANA
+  const esVentaLana = ventaData.tipoProducto === "LANA"
+  
+  console.log(`📊 Tipo de venta: ${esVentaLana ? "LANA 🧶" : "GANADO 🐄"}`)
 
+  try {
     console.log("ventaData recibida:", JSON.stringify(ventaData, null, 2))
 
     const user = await prisma.user.findUnique({ 
@@ -140,163 +146,201 @@ async function guardarVentaEnBD(savedData: any, phoneNumber: string) {
     })
     
     // Detectar firma automáticamente por RUT O por nombre del productor
-let firmaId = null
+    let firmaId = null
 
-if (ventaData.productor || ventaData.productorRut) {
-  // 1. Buscar por RUT exacto (si existe y no es del consignatario)
-  if (ventaData.productorRut && ventaData.productorRut !== ventaData.rutEmisor) {
-    const firmaPorRut = await prisma.firma.findFirst({
-      where: { 
-        campoId,
-        rut: ventaData.productorRut
+    if (ventaData.productor || ventaData.productorRut) {
+      // 1. Buscar por RUT exacto (si existe y no es del consignatario)
+      if (ventaData.productorRut && ventaData.productorRut !== ventaData.rutEmisor) {
+        const firmaPorRut = await prisma.firma.findFirst({
+          where: { 
+            campoId,
+            rut: ventaData.productorRut
+          }
+        })
+        
+        if (firmaPorRut) {
+          firmaId = firmaPorRut.id
+          console.log(`✅ Firma detectada por RUT: ${firmaPorRut.razonSocial} (${firmaPorRut.rut})`)
+        }
       }
-    })
-    
-    if (firmaPorRut) {
-      firmaId = firmaPorRut.id
-      console.log(`✅ Firma detectada por RUT: ${firmaPorRut.razonSocial} (${firmaPorRut.rut})`)
-    }
-  }
-  
-  // 2. Si no encontró por RUT, buscar por nombre
-  if (!firmaId && ventaData.productor) {
-    // Traer todas las firmas del campo
-    const todasLasFirmas = await prisma.firma.findMany({
-      where: { campoId }
-    })
-    
-    if (todasLasFirmas.length > 0) {
-      const nombreBuscado = ventaData.productor.trim().toUpperCase()
       
-      // Calcular score de coincidencia para cada firma
-      const firmasConScore = todasLasFirmas.map(firma => {
-        const razonSocial = firma.razonSocial.toUpperCase()
+      // 2. Si no encontró por RUT, buscar por nombre
+      if (!firmaId && ventaData.productor) {
+        // Traer todas las firmas del campo
+        const todasLasFirmas = await prisma.firma.findMany({
+          where: { campoId }
+        })
         
-        // Match exacto = score 100
-        if (razonSocial === nombreBuscado) {
-          return { firma, score: 100 }
+        if (todasLasFirmas.length > 0) {
+          const nombreBuscado = ventaData.productor.trim().toUpperCase()
+          
+          // Calcular score de coincidencia para cada firma
+          const firmasConScore = todasLasFirmas.map(firma => {
+            const razonSocial = firma.razonSocial.toUpperCase()
+            
+            // Match exacto = score 100
+            if (razonSocial === nombreBuscado) {
+              return { firma, score: 100 }
+            }
+            
+            // Contiene el nombre completo = score 80
+            if (razonSocial.includes(nombreBuscado)) {
+              return { firma, score: 80 }
+            }
+            
+            // Contar palabras en común (mínimo 2 palabras para considerar)
+            const palabrasBuscadas = nombreBuscado.split(/\s+/).filter(p => p.length > 2)
+            const palabrasFirma = razonSocial.split(/\s+/).filter(p => p.length > 2)
+            
+            if (palabrasBuscadas.length < 2) {
+              return { firma, score: 0 } // No buscar si es una sola palabra
+            }
+            
+            const palabrasCoincidentes = palabrasBuscadas.filter(p => 
+              palabrasFirma.includes(p)
+            ).length
+            
+            // Score proporcional a coincidencias (mínimo 2 palabras)
+            if (palabrasCoincidentes >= 2) {
+              const score = (palabrasCoincidentes / palabrasBuscadas.length) * 60
+              return { firma, score }
+            }
+            
+            return { firma, score: 0 }
+          })
+          
+          // Ordenar por score y tomar la mejor
+          const mejorMatch = firmasConScore
+            .filter(f => f.score > 0)
+            .sort((a, b) => b.score - a.score)[0]
+          
+          if (mejorMatch) {
+            firmaId = mejorMatch.firma.id
+            console.log(`✅ Firma detectada por nombre (score: ${mejorMatch.score}): ${mejorMatch.firma.razonSocial}`)
+          } else {
+            console.log(`⚠️ Productor "${ventaData.productor}" no encontrado en firmas configuradas`)
+          }
         }
-        
-        // Contiene el nombre completo = score 80
-        if (razonSocial.includes(nombreBuscado)) {
-          return { firma, score: 80 }
-        }
-        
-        // Contar palabras en común (mínimo 2 palabras para considerar)
-        const palabrasBuscadas = nombreBuscado.split(/\s+/).filter(p => p.length > 2)
-        const palabrasFirma = razonSocial.split(/\s+/).filter(p => p.length > 2)
-        
-        if (palabrasBuscadas.length < 2) {
-          return { firma, score: 0 } // No buscar si es una sola palabra
-        }
-        
-        const palabrasCoincidentes = palabrasBuscadas.filter(p => 
-          palabrasFirma.includes(p)
-        ).length
-        
-        // Score proporcional a coincidencias (mínimo 2 palabras)
-        if (palabrasCoincidentes >= 2) {
-          const score = (palabrasCoincidentes / palabrasBuscadas.length) * 60
-          return { firma, score }
-        }
-        
-        return { firma, score: 0 }
-      })
-      
-      // Ordenar por score y tomar la mejor
-      const mejorMatch = firmasConScore
-        .filter(f => f.score > 0)
-        .sort((a, b) => b.score - a.score)[0]
-      
-      if (mejorMatch) {
-        firmaId = mejorMatch.firma.id
-        console.log(`✅ Firma detectada por nombre (score: ${mejorMatch.score}): ${mejorMatch.firma.razonSocial}`)
-      } else {
-        console.log(`⚠️ Productor "${ventaData.productor}" no encontrado en firmas configuradas`)
       }
     }
-  }
-}
 
-let venta
-try {
-  venta = await prisma.venta.create({
-    data: {
-      campoId,
-      firmaId,
-      fecha: new Date(ventaData.fecha),
-      comprador: ventaData.comprador,
-      consignatario: ventaData.consignatario || null,
-      nroTropa: ventaData.nroTropa || null,
-      nroFactura: ventaData.nroFactura || null,
-      metodoPago: ventaData.metodoPago || "Contado",
-      diasPlazo: ventaData.diasPlazo || null,
-      fechaVencimiento: ventaData.fechaVencimiento 
-        ? new Date(ventaData.fechaVencimiento + 'T12:00:00Z') 
-        : null,
-      pagado: ventaData.metodoPago === "Contado",
-      moneda: "USD",
-      tasaCambio: ventaData.tipoCambio || null,
-      subtotalUSD: ventaData.subtotalUSD,
-      totalImpuestosUSD: ventaData.totalImpuestosUSD || 0,
-      totalNetoUSD: ventaData.totalNetoUSD,
-      imageUrl,
-      imageName,
-      impuestos: ventaData.impuestos || null,
-      notas: "Venta desde WhatsApp",
-    },
-  })
-  console.log("✅ VENTA CREADA EN BD - ID:", venta.id)
-} catch (error: any) {
-  console.error("❌ ERROR AL CREAR VENTA:", error.message)
-  console.error("❌ Error completo:", error)
-  throw error
-}
-
- // Crear renglones
-    const renglonesCreados: Array<{ id: string; categoria: string; cantidad: number }> = []
-    
-    for (const r of ventaData.renglones) {
-      const mapped = mapearCategoriaVenta(r.categoria)
-      
-      // Calcular peso promedio si falta (ventas campo a campo)
-      const pesoPromedio = r.pesoPromedio || (r.pesoTotalKg / r.cantidad);
-      
-      // Calcular precio por animal
-      const precioAnimalUSD = pesoPromedio * r.precioKgUSD;
-      
-      const renglon = await prisma.ventaRenglon.create({
+    let venta
+    try {
+      venta = await prisma.venta.create({
         data: {
-          ventaId: venta.id,
-          tipo: "GANADO",
-          tipoAnimal: r.tipoAnimal || mapped.tipoAnimal,
-          categoria: mapped.categoria,
-          raza: r.raza || null,
-          cantidad: r.cantidad,
-          pesoPromedio: pesoPromedio,  // ✅ Calculado si era null
-          precioKgUSD: r.precioKgUSD,
-          precioAnimalUSD: precioAnimalUSD,
-          pesoTotalKg: r.pesoTotalKg,
-          importeBrutoUSD: r.importeBrutoUSD,
-          descontadoDeStock: false,
+          campoId,
+          firmaId,
+          fecha: new Date(ventaData.fecha),
+          comprador: ventaData.comprador,
+          consignatario: ventaData.consignatario || null,
+          nroTropa: ventaData.nroTropa || null,
+          nroFactura: ventaData.nroFactura || null,
+          metodoPago: ventaData.metodoPago || "Contado",
+          diasPlazo: ventaData.diasPlazo || null,
+          fechaVencimiento: ventaData.fechaVencimiento 
+            ? new Date(ventaData.fechaVencimiento + 'T12:00:00Z') 
+            : null,
+          pagado: ventaData.metodoPago === "Contado",
+          moneda: "USD",
+          tasaCambio: ventaData.tipoCambio || null,
+          subtotalUSD: ventaData.subtotalUSD,
+          totalImpuestosUSD: ventaData.totalImpuestosUSD || 0,
+          totalNetoUSD: ventaData.totalNetoUSD,
+          imageUrl,
+          imageName,
+          impuestos: ventaData.impuestos || null,
+          notas: "Venta desde WhatsApp",
         },
       })
-      
-      console.log(`  ✅ Renglón guardado:`, {
-        categoria: mapped.categoria,
-        cantidad: r.cantidad,
-        pesoPromedio: pesoPromedio.toFixed(2) + ' kg',
-        precioKg: r.precioKgUSD.toFixed(4) + ' USD/kg',
-        precioAnimal: precioAnimalUSD.toFixed(2) + ' USD',
-        pesoTotal: r.pesoTotalKg + ' kg',
-        importeBruto: r.importeBrutoUSD.toFixed(2) + ' USD'
-      })
-      
-      renglonesCreados.push({ 
-        id: renglon.id, 
-        categoria: mapped.categoria, 
-        cantidad: r.cantidad 
-      })
+      console.log("✅ VENTA CREADA EN BD - ID:", venta.id)
+    } catch (error: any) {
+      console.error("❌ ERROR AL CREAR VENTA:", error.message)
+      console.error("❌ Error completo:", error)
+      throw error
+    }
+
+    // Crear renglones (GANADO o LANA)
+    const renglonesCreados: Array<{ id: string; categoria: string; cantidad?: number; pesoKg?: number }> = []
+
+    if (esVentaLana) {
+      // LANA: renglones con peso, sin cantidad de animales
+      for (const r of ventaData.renglones) {
+        const renglon = await prisma.ventaRenglon.create({
+          data: {
+            ventaId: venta.id,
+            tipo: "LANA",
+            tipoAnimal: "OVINO",
+            categoria: r.categoria, // Vellón, Barriga, etc.
+            raza: null,
+            cantidad: 0, // No hay cantidad de animales
+            pesoPromedio: 0,
+            precioKgUSD: r.precioKgUSD,
+            precioAnimalUSD: 0,
+            pesoTotalKg: r.pesoKg,
+            importeBrutoUSD: r.importeBrutoUSD,
+            descontadoDeStock: false,
+            
+            // Campos específicos de lana
+            esVentaLana: true,
+            kgVellon: r.categoria === "Vellón" ? r.pesoKg : null,
+            kgBarriga: r.categoria === "Barriga" ? r.pesoKg : null,
+            precioKgVellon: r.categoria === "Vellón" ? r.precioKgUSD : null,
+            precioKgBarriga: r.categoria === "Barriga" ? r.precioKgUSD : null,
+          },
+        })
+        
+        console.log(`  ✅ Renglón LANA guardado:`, {
+          categoria: r.categoria,
+          pesoKg: r.pesoKg + ' kg',
+          precioKg: r.precioKgUSD.toFixed(2) + ' USD/kg',
+          importeBruto: r.importeBrutoUSD.toFixed(2) + ' USD'
+        })
+        
+        renglonesCreados.push({ 
+          id: renglon.id, 
+          categoria: r.categoria,
+          pesoKg: r.pesoKg
+        })
+      }
+    } else {
+      // GANADO: renglones con cantidad de animales (código original)
+      for (const r of ventaData.renglones) {
+        const mapped = mapearCategoriaVenta(r.categoria)
+        
+        const pesoPromedio = r.pesoPromedio || (r.pesoTotalKg / r.cantidad);
+        const precioAnimalUSD = pesoPromedio * r.precioKgUSD;
+        
+        const renglon = await prisma.ventaRenglon.create({
+          data: {
+            ventaId: venta.id,
+            tipo: "GANADO",
+            tipoAnimal: r.tipoAnimal || mapped.tipoAnimal,
+            categoria: mapped.categoria,
+            raza: r.raza || null,
+            cantidad: r.cantidad,
+            pesoPromedio: pesoPromedio,
+            precioKgUSD: r.precioKgUSD,
+            precioAnimalUSD: precioAnimalUSD,
+            pesoTotalKg: r.pesoTotalKg,
+            importeBrutoUSD: r.importeBrutoUSD,
+            descontadoDeStock: false,
+          },
+        })
+        
+        console.log(`  ✅ Renglón GANADO guardado:`, {
+          categoria: mapped.categoria,
+          cantidad: r.cantidad,
+          pesoPromedio: pesoPromedio.toFixed(2) + ' kg',
+          precioKg: r.precioKgUSD.toFixed(4) + ' USD/kg',
+          importeBruto: r.importeBrutoUSD.toFixed(2) + ' USD'
+        })
+        
+        renglonesCreados.push({ 
+          id: renglon.id, 
+          categoria: mapped.categoria, 
+          cantidad: r.cantidad 
+        })
+      }
     }
     
     // 💰 CREAR UN SOLO INGRESO CONSOLIDADO (para que aparezca en Finanzas)
@@ -306,21 +350,30 @@ try {
     const montoEnUYU = await convertirAUYU(ventaData.totalNetoUSD, "USD")
     
     // Generar descripción con todas las categorías
-    const descripcionCategorias = ventaData.renglones
-      .map(r => {
-        const mapped = mapearCategoriaVenta(r.categoria)
-        return `${r.cantidad} ${mapped.categoria}${r.cantidad > 1 ? 's' : ''}`
-      })
-      .join(', ')
-    
-    const descripcion = `Venta de ${ventaData.cantidadTotal} animales (${descripcionCategorias})`
+    let descripcionCategorias: string
+    let descripcion: string
+
+    if (esVentaLana) {
+      descripcionCategorias = ventaData.renglones
+        .map((r: any) => `${r.pesoKg}kg ${r.categoria}`)
+        .join(', ')
+      descripcion = `Venta de lana (${descripcionCategorias})`
+    } else {
+      descripcionCategorias = ventaData.renglones
+        .map((r: any) => {
+          const mapped = mapearCategoriaVenta(r.categoria)
+          return `${r.cantidad} ${mapped.categoria}${r.cantidad > 1 ? 's' : ''}`
+        })
+        .join(', ')
+      descripcion = `Venta de ${ventaData.cantidadTotal} animales (${descripcionCategorias})`
+    }
     
     await prisma.gasto.create({
       data: {
         tipo: "INGRESO",
         fecha: new Date(ventaData.fecha),
         descripcion: descripcion,
-        categoria: "Venta de Ganado",
+        categoria: esVentaLana ? "Venta de Lana" : "Venta de Ganado",
         comprador: ventaData.comprador,
         proveedor: null,
         metodoPago: ventaData.metodoPago || "Contado",
@@ -342,12 +395,14 @@ try {
       },
     })
     
-    console.log(`  ✅ Ingreso consolidado creado: ${ventaData.cantidadTotal} animales - $${ventaData.totalNetoUSD.toFixed(2)} USD`)
+    console.log(`  ✅ Ingreso consolidado creado: ${esVentaLana ? ventaData.pesoTotalKg + 'kg lana' : ventaData.cantidadTotal + ' animales'} - $${ventaData.totalNetoUSD.toFixed(2)} USD`)
 
     await prisma.evento.create({
       data: {
         tipo: "VENTA",
-        descripcion: `Venta a ${ventaData.comprador}: ${ventaData.cantidadTotal} animales`,
+        descripcion: esVentaLana 
+          ? `Venta de lana a ${ventaData.comprador}: ${ventaData.pesoTotalKg}kg`
+          : `Venta a ${ventaData.comprador}: ${ventaData.cantidadTotal} animales`,
         fecha: new Date(ventaData.fecha),
         cantidad: ventaData.cantidadTotal,
         monto: ventaData.totalNetoUSD,
@@ -358,17 +413,22 @@ try {
       },
     })
 
-    // ✅ NO borrar pending aquí - preguntarDescuentoStock hará upsert
-    // await prisma.pendingConfirmation.delete({ where: { telefono: phoneNumber } })
+    const mensajeConfirmacion = esVentaLana
+      ? `✅ *Venta de lana guardada!*\n\n${ventaData.pesoTotalKg}kg de lana\n$${ventaData.totalNetoUSD?.toFixed(2)} USD`
+      : `✅ *Venta guardada!*\n\n${ventaData.cantidadTotal} animales\n$${ventaData.totalNetoUSD?.toFixed(2)} USD`
 
-    await sendWhatsAppMessage(
-      phoneNumber,
-      `✅ *Venta guardada!*\n\n${ventaData.cantidadTotal} animales\n$${ventaData.totalNetoUSD?.toFixed(2)} USD`
-    )
+    await sendWhatsAppMessage(phoneNumber, mensajeConfirmacion)
 
-    // Preguntar por descuento de stock para cada categoría
-    // Esta función hará upsert, reemplazando el pending tipo "VENTA" por "DESCUENTO_STOCK"
-    await preguntarDescuentoStock(phoneNumber, campoId, renglonesCreados, venta.id)
+    // Descuento de stock
+    if (esVentaLana) {
+      // LANA: descuento automático FIFO del stock de esquilas
+      await descontarStockLanaAutomatico(renglonesCreados, campoId, phoneNumber)
+      // Limpiar pending
+      await prisma.pendingConfirmation.delete({ where: { telefono: phoneNumber } }).catch(() => {})
+    } else {
+      // GANADO: preguntar de qué potrero descontar
+      await preguntarDescuentoStock(phoneNumber, campoId, renglonesCreados, venta.id)
+    }
 
   } catch (error) {
     console.error("Error guardando venta:", error)
@@ -382,12 +442,12 @@ try {
 async function preguntarDescuentoStock(
   phoneNumber: string,
   campoId: string,
-  renglones: Array<{ id: string; categoria: string; cantidad: number }>,
+  renglones: Array<{ id: string; categoria: string; cantidad?: number }>,
   ventaId: string
 ) {
   // Tomar el primer renglón pendiente
   const renglon = renglones[0]
-  if (!renglon) return
+  if (!renglon || !renglon.cantidad) return
 
   const potreros = await buscarPotrerosConCategoria(renglon.categoria, campoId)
 
@@ -565,4 +625,91 @@ export async function handleStockButtonResponse(phoneNumber: string, buttonId: s
     console.error("Error descontando stock:", error)
     await sendWhatsAppMessage(phoneNumber, "Error descontando del stock.")
   }
+}
+
+/**
+ * Descuenta automáticamente del stock de lana usando FIFO
+ */
+async function descontarStockLanaAutomatico(
+  renglones: Array<{ id: string; categoria: string; pesoKg?: number }>,
+  campoId: string,
+  phoneNumber: string
+) {
+  console.log("🧶 Iniciando descuento automático de stock de lana (FIFO)...")
+  
+  for (const renglon of renglones) {
+    if (!renglon.pesoKg) continue
+    
+    try {
+      // Buscar esquilas con stock disponible de esta categoría (FIFO: más antiguas primero)
+      const esquilasConStock = await prisma.esquila.findMany({
+        where: { campoId },
+        include: {
+          categorias: {
+            where: {
+              categoria: renglon.categoria,
+            },
+          },
+        },
+        orderBy: { fecha: 'asc' }, // FIFO: más antiguas primero
+      })
+      
+      let kgPorDescontar = renglon.pesoKg
+      const desgloseDescuento: string[] = []
+      
+      for (const esquila of esquilasConStock) {
+        if (kgPorDescontar <= 0) break
+        
+        const categoria = esquila.categorias.find(c => c.categoria === renglon.categoria)
+        if (!categoria) continue
+        
+        const disponible = Number(categoria.pesoKg) - Number(categoria.pesoVendido)
+        if (disponible <= 0) continue
+        
+        const aDescontar = Math.min(kgPorDescontar, disponible)
+        
+        // Actualizar pesoVendido
+        await prisma.esquilaCategoria.update({
+          where: { id: categoria.id },
+          data: {
+            pesoVendido: Number(categoria.pesoVendido) + aDescontar,
+          },
+        })
+        
+        kgPorDescontar -= aDescontar
+        desgloseDescuento.push(
+          `${aDescontar.toFixed(0)}kg de esquila del ${new Date(esquila.fecha).toLocaleDateString('es-UY')}`
+        )
+        
+        console.log(`  ✅ Descontado ${aDescontar}kg de ${renglon.categoria} de esquila ${esquila.id}`)
+      }
+      
+      // Marcar renglón como descontado
+      await prisma.ventaRenglon.update({
+        where: { id: renglon.id },
+        data: { descontadoDeStock: true },
+      })
+      
+      if (kgPorDescontar > 0) {
+        await sendWhatsAppMessage(
+          phoneNumber,
+          `⚠️ ${renglon.categoria}: Solo había ${renglon.pesoKg - kgPorDescontar}kg en stock, faltaron ${kgPorDescontar}kg`
+        )
+      } else {
+        await sendWhatsAppMessage(
+          phoneNumber,
+          `✅ ${renglon.categoria}: ${renglon.pesoKg}kg descontados\n${desgloseDescuento.join('\n')}`
+        )
+      }
+      
+    } catch (error) {
+      console.error(`Error descontando stock de ${renglon.categoria}:`, error)
+      await sendWhatsAppMessage(
+        phoneNumber,
+        `❌ Error descontando ${renglon.categoria} del stock`
+      )
+    }
+  }
+  
+  console.log("✅ Descuento automático de lana completado")
 }
