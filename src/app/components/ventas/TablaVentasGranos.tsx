@@ -412,7 +412,8 @@ function ModalAsignarLotes({ ventaId, ventas, onClose, onSuccess }: { ventaId: s
   const [lotes, setLotes] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [guardando, setGuardando] = useState(false)
-  const [asignaciones, setAsignaciones] = useState<{ loteId: string, toneladas: string }[]>([])
+  const [lotesSeleccionados, setLotesSeleccionados] = useState<{ [loteId: string]: string }>({})
+  const [todoUnLote, setTodoUnLote] = useState(false)
   
   const renglonesGranos = venta?.renglones.filter((r: any) => r.tipo === 'GRANOS') || []
   const cultivoVendido = renglonesGranos[0]?.tipoCultivoNombre || 'Grano'
@@ -423,54 +424,94 @@ function ModalAsignarLotes({ ventaId, ventas, onClose, onSuccess }: { ventaId: s
   
   // Cargar lotes no pastoreables
   useEffect(() => {
-    console.log('🔍 Iniciando fetch de lotes...')
     fetch('/api/lotes?esPastoreable=false')
-      .then(res => {
-        console.log('📦 Response status:', res.status)
-        return res.json()
-      })
+      .then(res => res.json())
       .then(data => {
-        console.log('✅ Lotes recibidos:', data)
-        console.log('✅ data.lotes:', data.lotes)
-        console.log('✅ Array.isArray(data.lotes):', Array.isArray(data.lotes))
         const lotesArray = Array.isArray(data.lotes) ? data.lotes : (Array.isArray(data) ? data : [])
-        console.log('✅ lotesArray final:', lotesArray)
         setLotes(lotesArray)
         setLoading(false)
+        
+        // Si solo hay 1 lote, marcar "todo" por defecto
+        if (lotesArray.length === 1) {
+          setTodoUnLote(true)
+          setLotesSeleccionados({ [lotesArray[0].id]: toneladasTotales.toString() })
+        }
       })
-      .catch((err) => {
-        console.error('❌ Error cargando lotes:', err)
+      .catch(() => {
         setLoading(false)
         alert('Error cargando lotes')
       })
-  }, [])
+  }, [toneladasTotales])
   
-  const agregarLote = () => {
-    setAsignaciones([...asignaciones, { loteId: '', toneladas: '' }])
+  const toggleLote = (loteId: string) => {
+    setLotesSeleccionados(prev => {
+      const nuevo = { ...prev }
+      if (nuevo[loteId]) {
+        delete nuevo[loteId]
+      } else {
+        nuevo[loteId] = ''
+      }
+      return nuevo
+    })
   }
   
-  const actualizarAsignacion = (index: number, field: 'loteId' | 'toneladas', value: string) => {
-    const nuevas = [...asignaciones]
-    nuevas[index][field] = value
-    setAsignaciones(nuevas)
+  const actualizarToneladas = (loteId: string, valor: string) => {
+    setLotesSeleccionados(prev => ({
+      ...prev,
+      [loteId]: valor
+    }))
   }
   
-  const eliminarAsignacion = (index: number) => {
-    setAsignaciones(asignaciones.filter((_, i) => i !== index))
+  const asignarRestante = (loteId: string) => {
+    const totalAsignado = Object.values(lotesSeleccionados)
+      .filter(v => v !== '')
+      .reduce((sum, v) => sum + parseFloat(v), 0)
+    
+    const restante = toneladasTotales - totalAsignado
+    
+    setLotesSeleccionados(prev => ({
+      ...prev,
+      [loteId]: Math.max(0, restante).toFixed(3)
+    }))
   }
   
-  const totalAsignado = asignaciones.reduce((sum, a) => sum + (parseFloat(a.toneladas) || 0), 0)
+  const distribuirProporcional = () => {
+    const lotesActivos = Object.keys(lotesSeleccionados)
+    if (lotesActivos.length === 0) return
+    
+    const totalHectareas = lotesActivos.reduce((sum, loteId) => {
+      const lote = lotes.find(l => l.id === loteId)
+      return sum + (lote?.hectareas || 0)
+    }, 0)
+    
+    if (totalHectareas === 0) return
+    
+    const nuevo: { [key: string]: string } = {}
+    lotesActivos.forEach(loteId => {
+      const lote = lotes.find(l => l.id === loteId)
+      if (lote) {
+        const proporcion = lote.hectareas / totalHectareas
+        nuevo[loteId] = (toneladasTotales * proporcion).toFixed(3)
+      }
+    })
+    
+    setLotesSeleccionados(nuevo)
+  }
+  
+  const totalAsignado = Object.values(lotesSeleccionados)
+    .filter(v => v !== '')
+    .reduce((sum, v) => sum + parseFloat(v), 0)
+  
   const diferencia = toneladasTotales - totalAsignado
   
   const guardar = async () => {
     // Validaciones
-    if (asignaciones.length === 0) {
-      alert('Agregá al menos un lote')
-      return
-    }
+    const asignaciones = Object.entries(lotesSeleccionados)
+      .filter(([_, ton]) => ton !== '')
+      .map(([loteId, ton]) => ({ loteId, toneladas: parseFloat(ton) }))
     
-    if (asignaciones.some(a => !a.loteId || !a.toneladas)) {
-      alert('Completá todos los campos')
+    if (asignaciones.length === 0) {
+      alert('Seleccioná al menos un lote')
       return
     }
     
@@ -488,10 +529,7 @@ function ModalAsignarLotes({ ventaId, ventas, onClose, onSuccess }: { ventaId: s
         body: JSON.stringify({
           cultivo: cultivoVendido,
           precioTonelada: venta.subtotalUSD / toneladasTotales,
-          asignaciones: asignaciones.map(a => ({
-            loteId: a.loteId,
-            toneladas: parseFloat(a.toneladas)
-          }))
+          asignaciones
         })
       })
       
@@ -506,8 +544,6 @@ function ModalAsignarLotes({ ventaId, ventas, onClose, onSuccess }: { ventaId: s
       setGuardando(false)
     }
   }
-  
-  console.log('🎨 Renderizando modal - lotes cargados:', lotes.length, 'loading:', loading)
   
   if (!venta) return null
   
@@ -524,98 +560,153 @@ function ModalAsignarLotes({ ventaId, ventas, onClose, onSuccess }: { ventaId: s
           
           {loading ? (
             <p className="text-center text-gray-500">Cargando lotes...</p>
-          ) : (
-            <>
-              {/* LISTA DE ASIGNACIONES */}
-              <div className="space-y-3 mb-4">
-                {asignaciones.map((asig, idx) => {
-                  const loteSeleccionado = lotes.find(l => l.id === asig.loteId)
-                  return (
-                    <div key={idx} className="flex gap-3 items-start bg-gray-50 p-3 rounded-lg">
-                      <div className="flex-1">
-                        <label className="text-xs text-gray-600 mb-1 block">Lote</label>
-                        <select
-                          value={asig.loteId}
-                          onChange={(e) => actualizarAsignacion(idx, 'loteId', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                        >
-                          <option value="">Seleccionar...</option>
-                          {lotes.map(lote => (
-                            <option key={lote.id} value={lote.id}>
-                              {lote.nombre} ({lote.hectareas.toFixed(0)} ha)
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="w-32">
-                        <label className="text-xs text-gray-600 mb-1 block">Toneladas</label>
-                        <input
-                          type="number"
-                          step="0.001"
-                          value={asig.toneladas}
-                          onChange={(e) => actualizarAsignacion(idx, 'toneladas', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                          placeholder="0.00"
-                        />
-                      </div>
-                      {loteSeleccionado && asig.toneladas && (
-                        <div className="text-xs text-gray-500 pt-7">
-                          {(parseFloat(asig.toneladas) / loteSeleccionado.hectareas).toFixed(2)} ton/ha
-                        </div>
-                      )}
-                      <button
-                        onClick={() => eliminarAsignacion(idx)}
-                        className="text-red-600 hover:text-red-800 pt-7"
-                      >
-                        🗑️
-                      </button>
+          ) : lotes.length === 0 ? (
+            <p className="text-center text-red-600">No hay lotes agrícolas disponibles</p>
+          ) : lotes.length === 1 ? (
+            // UN SOLO LOTE - Checkbox simple
+            <div className="space-y-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={todoUnLote}
+                    onChange={(e) => {
+                      setTodoUnLote(e.target.checked)
+                      if (e.target.checked) {
+                        setLotesSeleccionados({ [lotes[0].id]: toneladasTotales.toString() })
+                      } else {
+                        setLotesSeleccionados({})
+                      }
+                    }}
+                    className="w-5 h-5 text-blue-600"
+                  />
+                  <div className="flex-1">
+                    <div className="font-semibold text-gray-900">
+                      Todo salió del lote {lotes[0].nombre}
                     </div>
-                  )
-                })}
+                    <div className="text-sm text-gray-600">
+                      {lotes[0].hectareas.toFixed(0)} hectáreas
+                    </div>
+                  </div>
+                </label>
+                
+                {todoUnLote && (
+                  <div className="mt-3 pt-3 border-t border-blue-200">
+                    <div className="text-sm text-gray-700">
+                      ✅ <span className="font-bold">{toneladasTotales.toFixed(2)} toneladas</span> asignadas
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      Rendimiento: {(toneladasTotales / lotes[0].hectareas).toFixed(2)} ton/ha
+                    </div>
+                  </div>
+                )}
               </div>
-              
-              <button
-                onClick={agregarLote}
-                className="w-full mb-4 px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-gray-400 hover:text-gray-700 transition"
-              >
-                + Agregar lote
-              </button>
-              
-              {/* RESUMEN */}
-              {asignaciones.length > 0 && (
-                <div className={`p-4 rounded-lg mb-4 ${Math.abs(diferencia) < 0.1 ? 'bg-green-50 border border-green-200' : 'bg-orange-50 border border-orange-200'}`}>
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-gray-700">Total asignado:</span>
-                    <span className="font-bold">{totalAsignado.toFixed(2)} ton</span>
+            </div>
+          ) : (
+            // MÚLTIPLES LOTES
+            <div className="space-y-4">
+              {lotes.map(lote => {
+                const seleccionado = lote.id in lotesSeleccionados
+                const toneladas = lotesSeleccionados[lote.id] || ''
+                const rendimiento = toneladas ? (parseFloat(toneladas) / lote.hectareas).toFixed(2) : '-'
+                
+                return (
+                  <div key={lote.id} className={`border-2 rounded-lg p-4 transition ${seleccionado ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}`}>
+                    <label className="flex items-start gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={seleccionado}
+                        onChange={() => toggleLote(lote.id)}
+                        className="mt-1 w-5 h-5 text-blue-600"
+                      />
+                      <div className="flex-1">
+                        <div className="font-semibold text-gray-900">
+                          {lote.nombre} ({lote.hectareas.toFixed(0)} ha)
+                        </div>
+                        
+                        {seleccionado && (
+                          <div className="mt-2 flex gap-2 items-center">
+                            <input
+                              type="number"
+                              step="0.001"
+                              value={toneladas}
+                              onChange={(e) => actualizarToneladas(lote.id, e.target.value)}
+                              className="w-32 px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                              placeholder="0.00"
+                            />
+                            <span className="text-sm text-gray-600">ton</span>
+                            <button
+                              onClick={() => asignarRestante(lote.id)}
+                              className="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition"
+                            >
+                              Restante
+                            </button>
+                            {toneladas && (
+                              <span className="text-xs text-gray-500 ml-2">
+                                {rendimiento} ton/ha
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      
+                      {seleccionado && (
+                        <button
+                          onClick={() => toggleLote(lote.id)}
+                          className="text-red-600 hover:text-red-800"
+                        >
+                          🗑️
+                        </button>
+                      )}
+                    </label>
                   </div>
-                  <div className="flex justify-between items-center text-sm mt-1">
-                    <span className="text-gray-700">Diferencia:</span>
-                    <span className={`font-bold ${Math.abs(diferencia) < 0.1 ? 'text-green-600' : 'text-orange-600'}`}>
-                      {diferencia > 0 ? '+' : ''}{diferencia.toFixed(2)} ton
-                    </span>
-                  </div>
-                </div>
+                )
+              })}
+              
+              {Object.keys(lotesSeleccionados).length > 1 && (
+                <button
+                  onClick={distribuirProporcional}
+                  className="w-full px-4 py-2 border-2 border-dashed border-blue-300 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition"
+                >
+                  📊 Distribuir proporcional por hectáreas
+                </button>
               )}
-              
-              {/* BOTONES */}
-              <div className="flex gap-3">
-                <button
-                  onClick={onClose}
-                  disabled={guardando}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700 disabled:opacity-50"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={guardar}
-                  disabled={guardando || asignaciones.length === 0}
-                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
-                >
-                  {guardando ? 'Guardando...' : 'Guardar'}
-                </button>
-              </div>
-            </>
+            </div>
           )}
+          
+          {/* RESUMEN */}
+          {Object.keys(lotesSeleccionados).length > 0 && (
+            <div className={`mt-4 p-4 rounded-lg ${Math.abs(diferencia) < 0.1 ? 'bg-green-50 border border-green-200' : 'bg-orange-50 border border-orange-200'}`}>
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-gray-700">Total asignado:</span>
+                <span className="font-bold">{totalAsignado.toFixed(2)} ton</span>
+              </div>
+              <div className="flex justify-between items-center text-sm mt-1">
+                <span className="text-gray-700">Diferencia:</span>
+                <span className={`font-bold ${Math.abs(diferencia) < 0.1 ? 'text-green-600' : 'text-orange-600'}`}>
+                  {diferencia > 0 ? '+' : ''}{diferencia.toFixed(2)} ton
+                </span>
+              </div>
+            </div>
+          )}
+          
+          {/* BOTONES */}
+          <div className="flex gap-3 mt-6">
+            <button
+              onClick={onClose}
+              disabled={guardando}
+              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700 disabled:opacity-50"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={guardar}
+              disabled={guardando || Object.keys(lotesSeleccionados).length === 0}
+              className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+            >
+              {guardando ? 'Guardando...' : 'Guardar'}
+            </button>
+          </div>
         </div>
       </div>
     </div>
