@@ -6,6 +6,8 @@ import ModalVenta from '@/app/components/modales/ModalVenta'
 import ResumenVentas from '@/app/components/ventas/ResumenVentas'
 import TablaVentas from '@/app/components/ventas/TablaVentas'
 import TablaVentasLana from '@/app/components/ventas/TablaVentasLana'
+import TablaVentasGranos from '@/app/components/ventas/TablaVentasGranos'
+import { useTipoCampo } from '@/app/contexts/TipoCampoContext'
 
 // ✅ Fetcher mejorado con manejo robusto de errores
 const fetcher = async (url: string) => {
@@ -42,6 +44,7 @@ const fetcher = async (url: string) => {
 }
 
 export default function VentasPage() {
+  const { esMixto } = useTipoCampo()
   const [modalOpen, setModalOpen] = useState(false)
   
   // Calcular fechas iniciales UNA SOLA VEZ
@@ -65,6 +68,7 @@ export default function VentasPage() {
   const [vacunosAbierto, setVacunosAbierto] = useState(true)
   const [ovinosAbierto, setOvinosAbierto] = useState(false)
   const [lanaAbierto, setLanaAbierto] = useState(false)
+  const [granosAbierto, setGranosAbierto] = useState(esMixto) // ✅ Solo abierto si es mixto
   
 
   // Cargar ventas con filtros
@@ -104,6 +108,11 @@ export default function VentasPage() {
   const ventasLana = ventas.filter((v: any) => 
     v.renglones.some((r: any) => r.tipo === 'LANA')
   )
+  
+  // ✅ Solo filtrar granos si es mixto
+  const ventasGranos = esMixto ? ventas.filter((v: any) => 
+    v.renglones.some((r: any) => r.tipo === 'GRANOS')
+  ) : []
 
   const handleSuccess = () => {
     mutate()
@@ -269,7 +278,7 @@ export default function VentasPage() {
           </div>
 
           {/* ACORDEÓN LANA */}
-          <div>
+          <div className="border-b border-gray-200">
             <button
               onClick={() => setLanaAbierto(!lanaAbierto)}
               className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition"
@@ -289,6 +298,30 @@ export default function VentasPage() {
               </div>
             )}
           </div>
+
+          {/* ACORDEÓN GRANOS - Solo para campos mixtos */}
+          {esMixto && (
+            <div>
+              <button
+                onClick={() => setGranosAbierto(!granosAbierto)}
+                className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">🌾</span>
+                  <h3 className="text-lg font-semibold text-gray-900">GRANOS</h3>
+                  <span className="text-sm text-gray-500">({ventasGranos.length} ventas)</span>
+                </div>
+                <span className="text-gray-400 text-xl">
+                  {granosAbierto ? '▼' : '▶'}
+                </span>
+              </button>
+              {granosAbierto && (
+                <div className="border-t border-gray-200">
+                  <TablaVentasGranos ventas={ventasGranos} onRefresh={mutate} />
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

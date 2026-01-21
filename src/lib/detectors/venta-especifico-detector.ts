@@ -1,5 +1,5 @@
 // lib/detectors/venta-especifico-detector.ts
-// Detecta si una venta es de GANADO, LANA o GRANO
+// Detecta si una venta es de GANADO, LANA o GRANOS
 
 import OpenAI from "openai";
 
@@ -9,9 +9,9 @@ const openai = new OpenAI({
 
 /**
  * Detectar el tipo específico de venta
- * Retorna: "GANADO" | "LANA" | "GRANO"
+ * Retorna: "GANADO" | "LANA" | "GRANOS"
  */
-export async function detectarTipoVentaEspecifico(imageUrl: string): Promise<"GANADO" | "LANA" | "GRANO"> {
+export async function detectarTipoVentaEspecifico(imageUrl: string): Promise<"GANADO" | "LANA" | "GRANOS"> {
   try {
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
@@ -20,7 +20,7 @@ export async function detectarTipoVentaEspecifico(imageUrl: string): Promise<"GA
           role: "system",
           content: `Eres un clasificador de facturas de venta agropecuaria en Uruguay.
 
-PREGUNTA: ¿Esta factura es de venta de GANADO, LANA o GRANO?
+PREGUNTA: ¿Esta factura es de venta de GANADO, LANA o GRANOS?
 
 ====== SEÑALES DE LANA ======
 - Menciona: "LANA VELLÓN", "LANA BARRIGA", "LANA BARRIGUERA", "LANAS"
@@ -47,22 +47,41 @@ EJEMPLOS DE GANADO:
 - "NOVILLOS: 9 animales"
 - "Categoría: VACAS GORDAS"
 
-====== SEÑALES DE GRANO (FUTURO) ======
-- Menciona: TRIGO, MAÍZ, SORGO, SOJA, CEBADA
-- Toneladas o kg de cereal
-- Puede tener: Humedad, Impurezas, Proteína
-- NO tiene animales ni lana
+====== SEÑALES DE GRANOS ⭐ ======
+- Título dice: "LIQUIDACIÓN PRODUCTOR", "COMPRA DE GRANO", "LIQUIDACIÓN DE CEREALES"
+- Menciona CEREALES: TRIGO, MAÍZ, SOJA, SORGO, CEBADA, GIRASOL, AVENA, ARROZ
+- Mercadería: nombre de cereal
+- Usa TONELADAS o kg grandes (400.000+ kg)
+- Tiene conceptos como:
+  * "Cantidad Recibida (kg)"
+  * "Descuentos (kg)" por humedad/impurezas
+  * "Precio (US$/tm)" - precio por tonelada métrica
+  * "Monto Bruto (US$)"
+- Servicios típicos: SECADO, FLETE, PRELIMPEZA, DAP-FLETE
+- Retenciones: IMEBA, INIA, MEVIR
+- Puede tener: Humedad %, Proteína %, Impurezas %
+- NO tiene animales
+- NO es lana
+
+PALABRAS CLAVE DE GRANOS:
+- "LIQUIDACIÓN PRODUCTOR - COMPRA DE GRANO"
+- "Mercadería: TRIGO" / "MAÍZ" / "SOJA"
+- "Cant. Recibida (kg)"
+- "Precio (US$/tm)"
+- "Secado (US$)"
+- "Zafra"
 
 ====== REGLAS DE DECISIÓN ======
-1. Si encuentra "LANA VELLÓN" o "LANA BARRIGA" → es LANA
-2. Si encuentra nombres de animales (OVEJAS, VACAS, etc.) → es GANADO
-3. Si encuentra nombres de cereales (TRIGO, MAÍZ, etc.) → es GRANO
-4. Si no está seguro → responder GANADO por defecto
+1. Si encuentra "LIQUIDACIÓN" + "GRANO" o "COMPRA DE GRANO" → es GRANOS
+2. Si encuentra "TRIGO", "MAÍZ", "SOJA", "CEBADA" como mercadería → es GRANOS
+3. Si encuentra "LANA VELLÓN" o "LANA BARRIGA" → es LANA
+4. Si encuentra nombres de animales (OVEJAS, VACAS, etc.) → es GANADO
+5. Si no está seguro → responder GANADO por defecto
 
 RESPONDE SOLO UNA PALABRA:
+- "GRANOS" si es liquidación de cereales/granos
 - "LANA" si es venta de lana
 - "GANADO" si es venta de animales
-- "GRANO" si es venta de cereales
 
 Si no estás 100% seguro, responde "GANADO" por defecto.`
         },
@@ -79,12 +98,12 @@ Si no estás 100% seguro, responde "GANADO" por defecto.`
     
     console.log(`🔍 Tipo específico detectado: ${respuesta}`);
     
-    if (respuesta.includes("LANA")) {
-      return "LANA";
+    if (respuesta.includes("GRANO")) {
+      return "GRANOS";
     }
     
-    if (respuesta.includes("GRANO")) {
-      return "GRANO";
+    if (respuesta.includes("LANA")) {
+      return "LANA";
     }
     
     // Por defecto: GANADO

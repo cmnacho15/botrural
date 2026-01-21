@@ -5,17 +5,19 @@ import { detectarTipoFactura } from "./detectors/tipo-factura-detector";
 import { detectarTipoVentaEspecifico } from "./detectors/venta-especifico-detector";
 import { processVentaGanadoImage, ParsedVentaGanado } from "./parsers/venta-ganado-parser";
 import { processVentaLanaImage, ParsedVentaLana } from "./parsers/venta-lana-parser";
+import { processVentaGranosImage, ParsedVentaGranos } from "./parsers/venta-granos-parser";
 
 // ==========================================
 // TYPES PÚBLICOS (mantener compatibilidad)
 // ==========================================
 
-export type ParsedVenta = ParsedVentaGanado | ParsedVentaLana;
+export type ParsedVenta = ParsedVentaGanado | ParsedVentaLana | ParsedVentaGranos;
 
 // Re-exportar types de los parsers especializados
-export type { ParsedVentaGanado, ParsedVentaLana };
+export type { ParsedVentaGanado, ParsedVentaLana, ParsedVentaGranos };
 export type { VentaGanadoRenglonParsed, ImpuestosVenta } from "./parsers/venta-ganado-parser";
 export type { VentaLanaRenglonParsed, ImpuestosVentaLana } from "./parsers/venta-lana-parser";
+export type { VentaGranosRenglonParsed, ImpuestosVentaGranos } from "./parsers/venta-granos-parser";
 
 // Re-exportar función de detección (compatibilidad)
 export { detectarTipoFactura };
@@ -26,7 +28,7 @@ export { detectarTipoFactura };
 
 /**
  * Procesar imagen de factura de VENTA
- * Detecta automáticamente si es GANADO o LANA y delega al parser correcto
+ * Detecta automáticamente si es GANADO o LANA o GRANOS y delega al parser correcto
  */
 export async function processVentaImage(imageUrl: string, campoId?: string): Promise<ParsedVenta | null> {
   try {
@@ -40,13 +42,17 @@ export async function processVentaImage(imageUrl: string, campoId?: string): Pro
       return null;
     }
     
-    // 2. Detectar tipo específico (GANADO vs LANA)
+    // 2. Detectar tipo específico (GANADO vs LANA vs GRANOS)
     const tipoEspecifico = await detectarTipoVentaEspecifico(imageUrl);
     
     console.log(`📊 Tipo de venta detectado: ${tipoEspecifico}`);
     
     // 3. Delegar al parser correcto
     switch (tipoEspecifico) {
+      case "GRANOS":
+        console.log("🌾 Procesando con parser de GRANOS...");
+        return await processVentaGranosImage(imageUrl, campoId);
+      
       case "LANA":
         console.log("🧶 Procesando con parser de LANA...");
         return await processVentaLanaImage(imageUrl, campoId);

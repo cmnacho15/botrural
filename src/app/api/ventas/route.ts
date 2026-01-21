@@ -53,6 +53,7 @@ export async function GET(request: Request) {
             },
           },
         },
+        serviciosGranos: true,
         firma: true,
       },
       orderBy: { fecha: "desc" },
@@ -64,6 +65,7 @@ export async function GET(request: Request) {
     const resumenBovino: any = {}
     const resumenOvino: any = {}
     const resumenLana: any = {}
+    const resumenGranos: any = {}
 
     ventas.forEach(venta => {
       venta.renglones.forEach(renglon => {
@@ -99,7 +101,24 @@ export async function GET(request: Request) {
           resumen[renglon.categoria].importeBruto += renglon.importeBrutoUSD
         }
       })
-    })
+      
+      // 🌾 Procesar servicios de granos
+      venta.serviciosGranos?.forEach((servicio: any) => {
+        const cultivo = servicio.cultivo || 'Sin especificar'
+        
+        if (!resumenGranos[cultivo]) {
+          resumenGranos[cultivo] = {
+            hectareas: 0,
+            toneladas: 0,
+            importeBruto: 0,
+          }
+        }
+        
+        resumenGranos[cultivo].hectareas += Number(servicio.hectareas || 0)
+        resumenGranos[cultivo].toneladas += Number(servicio.toneladas || 0)
+        resumenGranos[cultivo].importeBruto += Number(servicio.precioTotalUSD || 0)
+      })
+    })  // ✅ ESTA LLAVE CIERRA EL forEach DE VENTAS
 
     // Calcular promedios
     const calcularPromedios = (resumen: any) => {
@@ -135,15 +154,32 @@ export async function GET(request: Request) {
       }
     })
 
+    // 🌾 Procesar granos por cultivo
+    const resumenGranosArray = Object.entries(resumenGranos).map(([cultivo, datos]: [string, any]) => {
+      const precioTonelada = datos.toneladas > 0 ? datos.importeBruto / datos.toneladas : 0
+      const precioHa = datos.hectareas > 0 ? datos.importeBruto / datos.hectareas : 0
+
+      return {
+        cultivo,
+        hectareas: parseFloat(datos.hectareas.toFixed(2)),
+        toneladas: parseFloat(datos.toneladas.toFixed(2)),
+        precioTonelada: parseFloat(precioTonelada.toFixed(2)),
+        precioHa: parseFloat(precioHa.toFixed(2)),
+        importeBruto: parseFloat(datos.importeBruto.toFixed(2)),
+      }
+    })
+
     // Totales
     const totalBovino = resumenBovinoArray.reduce((sum, r) => sum + r.importeBruto, 0)
     const totalOvino = resumenOvinoArray.reduce((sum, r) => sum + r.importeBruto, 0)
     const totalLana = resumenLanaArray.reduce((sum, r) => sum + r.importeBruto, 0)
-    const totalGeneral = totalBovino + totalOvino + totalLana
+    const totalGranos = resumenGranosArray.reduce((sum, r) => sum + r.importeBruto, 0)
+    const totalGeneral = totalBovino + totalOvino + totalLana + totalGranos
 
     const totalKgBovino = resumenBovinoArray.reduce((sum, r) => sum + r.pesoTotal, 0)
     const totalKgOvino = resumenOvinoArray.reduce((sum, r) => sum + r.pesoTotal, 0)
     const totalKgLana = resumenLanaArray.reduce((sum, r) => sum + r.pesoKg, 0)
+    const totalToneladasGranos = resumenGranosArray.reduce((sum, r) => sum + r.toneladas, 0)
     const totalKgGeneral = totalKgBovino + totalKgOvino + totalKgLana
 
     const totalCantidadBovino = resumenBovinoArray.reduce((sum, r) => sum + r.cantidad, 0)
@@ -151,12 +187,15 @@ export async function GET(request: Request) {
     const totalCantidadLana = 0 // Lana no tiene cantidad de animales
     const totalCantidadGeneral = totalCantidadBovino + totalCantidadOvino + totalCantidadLana
 
+    const totalHectareasGranos = resumenGranosArray.reduce((sum, r) => sum + r.hectareas, 0)
+
     return NextResponse.json({
       ventas,
       resumen: {
         bovino: resumenBovinoArray,
         ovino: resumenOvinoArray,
         lana: resumenLanaArray,
+        granos: resumenGranosArray,
         totales: {
           bovino: {
             cantidad: totalCantidadBovino,
@@ -178,6 +217,13 @@ export async function GET(request: Request) {
             pesoTotal: parseFloat(totalKgLana.toFixed(2)),
             importeBruto: parseFloat(totalLana.toFixed(2)),
             precioKg: totalKgLana > 0 ? parseFloat((totalLana / totalKgLana).toFixed(2)) : 0,
+          },
+          granos: {
+            hectareas: parseFloat(totalHectareasGranos.toFixed(2)),
+            toneladas: parseFloat(totalToneladasGranos.toFixed(2)),
+            importeBruto: parseFloat(totalGranos.toFixed(2)),
+            precioTonelada: totalToneladasGranos > 0 ? parseFloat((totalGranos / totalToneladasGranos).toFixed(2)) : 0,
+            precioHa: totalHectareasGranos > 0 ? parseFloat((totalGranos / totalHectareasGranos).toFixed(2)) : 0,
           },
           general: {
             cantidad: totalCantidadGeneral,

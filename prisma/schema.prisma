@@ -582,6 +582,7 @@ model Inventario {
 model Venta {
   id                String    @id @default(cuid())
   campoId           String
+  tipoProducto      String?   // "GANADO" | "LANA" | "GRANOS"
   fecha             DateTime
   comprador         String
   consignatario     String?   // quien vende/intermedia
@@ -616,6 +617,7 @@ model Venta {
   
   campo             Campo     @relation(fields: [campoId], references: [id], onDelete: Cascade)
   renglones         VentaRenglon[]
+  serviciosGranos   VentaGranoServicio[]
   firma    Firma?   @relation(fields: [firmaId], references: [id])
 
   @@index([campoId])
@@ -629,7 +631,7 @@ model VentaRenglon {
   id                      String   @id @default(cuid())
   ventaId                 String
   
-  tipo                    String   @default("GANADO")  // "GANADO" | "LANA"
+  tipo                    String   @default("GANADO")  // "GANADO" | "LANA" | "GRANOS"
   tipoAnimal              String   // "BOVINO" | "OVINO" | "EQUINO" | "OTRO"
   categoria               String   // "Vaca gorda", "Novillo gordo", "Ovejas", etc.
   raza                    String?  // "GEN S/Clasif", "HEREFORD"
@@ -656,6 +658,14 @@ model VentaRenglon {
   precioKgBarriga         Float?
   numeroEsquilados        Int?
   
+  // 🌾 CAMPOS ESPECÍFICOS PARA GRANOS
+  tipoCultivoNombre       String?  // "Trigo", "Soja", "Maíz", etc.
+  cantidadToneladas       Decimal? @db.Decimal(10, 3) // 455.256 ton
+  precioToneladaUSD       Decimal? @db.Decimal(10, 4) // 182.0000 USD/ton
+  kgRecibidos             Decimal? @db.Decimal(10, 2) // 466,260.00 (para liquidaciones)
+  kgDescuentos            Decimal? @db.Decimal(10, 2) // -11,004.52 (para liquidaciones)
+  kgNetosLiquidar         Decimal? @db.Decimal(10, 2) // 455,255.48 (para liquidaciones)
+
   createdAt               DateTime @default(now())
   updatedAt               DateTime @updatedAt
   
@@ -758,6 +768,8 @@ model Compra {
   
   campo             Campo     @relation(fields: [campoId], references: [id], onDelete: Cascade)
   renglones         CompraRenglon[]
+
+  
 
   firma    Firma?   @relation(fields: [firmaId], references: [id])
 
@@ -1074,4 +1086,21 @@ model EsquilaCategoria {
   
   @@index([esquilaId])
   @@index([categoria])
+}
+
+
+// ==========================================
+// 🌾 SERVICIOS DE VENTAS DE GRANOS
+// ==========================================
+
+model VentaGranoServicio {
+  id         String   @id @default(cuid())
+  ventaId    String
+  concepto   String   // "Secado", "Flete", "Prelimpeza", "DAP-Flete", etc.
+  importeUSD Decimal  @db.Decimal(10, 2)
+  createdAt  DateTime @default(now())
+  
+  venta      Venta    @relation(fields: [ventaId], references: [id], onDelete: Cascade)
+  
+  @@index([ventaId])
 }

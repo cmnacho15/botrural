@@ -5,7 +5,7 @@ import { processVentaImage, mapearCategoriaVenta } from "@/lib/vision-venta-pars
 import { buscarPotrerosConCategoria } from "@/lib/potrero-helpers"
 import { sendWhatsAppMessage, sendCustomButtons } from "../services/messageService"
 import { convertirAUYU, obtenerTasaCambio } from "@/lib/currency"
-import type { ParsedVentaGanado, ParsedVentaLana } from "@/lib/vision-venta-parser"
+import type { ParsedVentaGanado, ParsedVentaLana, ParsedVentaGranos } from "@/lib/vision-venta-parser"
 
 /**
  * Procesa una imagen de factura de VENTA
@@ -59,12 +59,23 @@ export async function handleVentaImage(
  */
 async function sendVentaConfirmation(phoneNumber: string, data: any) {
   const esLana = data.tipoProducto === "LANA"
+  const esGranos = data.tipoProducto === "GRANOS"
   
   let renglonesText: string
   let headerText: string
   let totalesText: string
   
-  if (esLana) {
+  if (esGranos) {
+    // GRANOS
+    renglonesText = data.renglones
+      .map((r: any, i: number) => 
+        `${i + 1}. ${r.tipoCultivoNombre}: ${r.cantidadToneladas}ton @ $${r.precioToneladaUSD?.toFixed(2)}/ton = $${r.importeBrutoUSD?.toFixed(2)}`
+      )
+      .join("\n")
+    
+    headerText = `*VENTA DE GRANOS*\n\n`
+    totalesText = `${data.renglones[0].cantidadToneladas} ton totales\n`
+  } else if (esLana) {
     // LANA
     renglonesText = data.renglones
       .map((r: any, i: number) => 
@@ -92,10 +103,12 @@ async function sendVentaConfirmation(phoneNumber: string, data: any) {
     `*${data.comprador}*\n` +
     `${data.productor}\n` +
     (data.nroFactura ? `Fact: ${data.nroFactura}\n` : "") +
+    (data.nroLiquidacion ? `Liq: ${data.nroLiquidacion}\n` : "") +
     (data.nroTropa ? `Tropa: ${data.nroTropa}\n` : "") +
     `\n*Detalle:*\n${renglonesText}\n\n` +
     totalesText +
     `Subtotal: $${data.subtotalUSD?.toFixed(2) || 0}\n` +
+    (esGranos ? `Servicios: -$${data.totalServiciosUSD?.toFixed(2) || 0}\n` : "") +
     `Impuestos: -$${data.totalImpuestosUSD?.toFixed(2) || 0}\n` +
     `*TOTAL: $${data.totalNetoUSD?.toFixed(2) || 0} USD*\n\n` +
     `¿Guardar?`
@@ -154,10 +167,11 @@ export async function handleVentaButtonResponse(phoneNumber: string, buttonId: s
 async function guardarVentaEnBD(savedData: any, phoneNumber: string) {
   const { ventaData, imageUrl, imageName, campoId } = savedData
   
-  // Detectar si es GANADO o LANA
+  // Detectar tipo de venta
   const esVentaLana = ventaData.tipoProducto === "LANA"
+  const esVentaGranos = ventaData.tipoProducto === "GRANOS"
   
-  console.log(`📊 Tipo de venta: ${esVentaLana ? "LANA 🧶" : "GANADO 🐄"}`)
+  console.log(`📊 Tipo de venta: ${esVentaGranos ? "GRANOS 🌾" : esVentaLana ? "LANA 🧶" : "GANADO 🐄"}`)
 
   console.log("🔍 DEBUG 1: Buscando usuario...")
 
@@ -170,7 +184,7 @@ async function guardarVentaEnBD(savedData: any, phoneNumber: string) {
     })
 
     console.log("🔍 DEBUG 2: Usuario encontrado:", user?.id)
-console.log("🔍 DEBUG 3: Buscando firma...")
+    console.log("🔍 DEBUG 3: Buscando firma...")
     
     // Detectar firma automáticamente por RUT O por nombre del productor
     let firmaId = null
@@ -254,23 +268,25 @@ console.log("🔍 DEBUG 3: Buscando firma...")
     let venta
 
     console.log("🔍 DEBUG 4: Creando venta en BD...")
-console.log("🔍 DEBUG 5: Datos de venta:", {
-  comprador: ventaData.comprador,
-  fecha: ventaData.fecha,
-  subtotal: ventaData.subtotalUSD,
-  esLana: esVentaLana
-})
+    console.log("🔍 DEBUG 5: Datos de venta:", {
+      comprador: ventaData.comprador,
+      fecha: ventaData.fecha,
+      subtotal: ventaData.subtotalUSD,
+      esLana: esVentaLana,
+      esGranos: esVentaGranos
+    })
 
     try {
       venta = await prisma.venta.create({
         data: {
           campoId,
+          tipoProducto: ventaData.tipoProducto || null,
           firmaId,
           fecha: new Date(ventaData.fecha),
           comprador: ventaData.comprador,
           consignatario: ventaData.consignatario || null,
           nroTropa: ventaData.nroTropa || null,
-          nroFactura: ventaData.nroFactura || null,
+          nroFactura: ventaData.nroFactura || ventaData.nroLiquidacion || null,
           metodoPago: ventaData.metodoPago || "Contado",
           diasPlazo: ventaData.diasPlazo || null,
           fechaVencimiento: ventaData.fechaVencimiento 
@@ -290,43 +306,97 @@ console.log("🔍 DEBUG 5: Datos de venta:", {
       })
       console.log("✅ VENTA CREADA EN BD - ID:", venta.id)
     } catch (error: any) {
-  console.error("❌ ERROR AL CREAR VENTA:", error.message)
-  console.error("❌ Error completo:", error)
-  throw error
-}
+      console.error("❌ ERROR AL CREAR VENTA:", error.message)
+      console.error("❌ Error completo:", error)
+      throw error
+    }
 
-console.log("🔍 DEBUG 6: Venta creada exitosamente, ID:", venta.id)
-console.log("🔍 DEBUG 7: Creando renglones...")
+    console.log("🔍 DEBUG 6: Venta creada exitosamente, ID:", venta.id)
+    console.log("🔍 DEBUG 7: Creando renglones...")
 
- // Crear renglones
+    // Crear renglones
     const renglonesCreados: Array<{ id: string; categoria: string; cantidad?: number; pesoKg?: number }> = []
 
-    if (esVentaLana) {
+    if (esVentaGranos) {
+      // GRANOS: renglones con toneladas, sin cantidad de animales
+      for (const r of ventaData.renglones) {
+        const renglon = await prisma.ventaRenglon.create({
+          data: {
+            ventaId: venta.id,
+            tipo: "GRANOS",
+            tipoAnimal: "OTRO",
+            categoria: r.tipoCultivoNombre, // "Trigo", "Soja", etc.
+            raza: null,
+            cantidad: 0,
+            pesoPromedio: 0,
+            precioKgUSD: r.precioToneladaUSD / 1000, // convertir a precio por kg
+            precioAnimalUSD: 0,
+            pesoTotalKg: r.kgNetosLiquidar,
+            importeBrutoUSD: r.importeBrutoUSD,
+            descontadoDeStock: false,
+            
+            // Campos específicos de granos
+            tipoCultivoNombre: r.tipoCultivoNombre,
+            cantidadToneladas: r.cantidadToneladas,
+            precioToneladaUSD: r.precioToneladaUSD,
+            kgRecibidos: r.kgRecibidos,
+            kgDescuentos: r.kgDescuentos,
+            kgNetosLiquidar: r.kgNetosLiquidar,
+          },
+        })
+        
+        console.log(`  ✅ Renglón GRANOS guardado:`, {
+          cultivo: r.tipoCultivoNombre,
+          toneladas: r.cantidadToneladas + ' ton',
+          precioTon: r.precioToneladaUSD.toFixed(2) + ' USD/ton',
+          importeBruto: r.importeBrutoUSD.toFixed(2) + ' USD'
+        })
+        
+        renglonesCreados.push({ 
+          id: renglon.id, 
+          categoria: r.tipoCultivoNombre
+        })
+      }
+      
+      // Guardar servicios de granos
+      if (ventaData.servicios && ventaData.servicios.length > 0) {
+        for (const servicio of ventaData.servicios) {
+          await prisma.ventaGranoServicio.create({
+            data: {
+              ventaId: venta.id,
+              concepto: servicio.concepto,
+              importeUSD: Math.abs(servicio.importeUSD), // guardar como positivo
+            },
+          })
+          console.log(`  ✅ Servicio guardado: ${servicio.concepto} -$${Math.abs(servicio.importeUSD).toFixed(2)}`)
+        }
+      }
+    } else if (esVentaLana) {
       // LANA: renglones con peso, sin cantidad de animales
       for (const r of ventaData.renglones) {
         const renglon = await prisma.ventaRenglon.create({
-  data: {
-    ventaId: venta.id,
-    tipo: "LANA",
-    tipoAnimal: "OVINO",
-    categoria: r.categoria, // Vellón, Barriga, etc.
-    raza: null,
-    cantidad: 0, // No hay cantidad de animales
-    pesoPromedio: 0,
-    precioKgUSD: r.precioKgUSD,
-    precioAnimalUSD: 0,
-    pesoTotalKg: r.pesoKg,
-    importeBrutoUSD: r.importeBrutoUSD,
-    descontadoDeStock: false,
-    
-    // Campos específicos de lana
-    esVentaLana: true,
-    kgVellon: r.categoria === "Vellón" ? r.pesoKg : null,
-    kgBarriga: r.categoria === "Barriga" ? r.pesoKg : null,
-    precioKgVellon: r.categoria === "Vellón" ? r.precioKgUSD : null,
-    precioKgBarriga: r.categoria === "Barriga" ? r.precioKgUSD : null,
-  },
-})
+          data: {
+            ventaId: venta.id,
+            tipo: "LANA",
+            tipoAnimal: "OVINO",
+            categoria: r.categoria, // Vellón, Barriga, etc.
+            raza: null,
+            cantidad: 0, // No hay cantidad de animales
+            pesoPromedio: 0,
+            precioKgUSD: r.precioKgUSD,
+            precioAnimalUSD: 0,
+            pesoTotalKg: r.pesoKg,
+            importeBrutoUSD: r.importeBrutoUSD,
+            descontadoDeStock: false,
+            
+            // Campos específicos de lana
+            esVentaLana: true,
+            kgVellon: r.categoria === "Vellón" ? r.pesoKg : null,
+            kgBarriga: r.categoria === "Barriga" ? r.pesoKg : null,
+            precioKgVellon: r.categoria === "Vellón" ? r.precioKgUSD : null,
+            precioKgBarriga: r.categoria === "Barriga" ? r.precioKgUSD : null,
+          },
+        })
         
         console.log(`  ✅ Renglón LANA guardado:`, {
           categoria: r.categoria,
@@ -392,7 +462,12 @@ console.log("🔍 DEBUG 7: Creando renglones...")
     let descripcionCategorias: string
     let descripcion: string
 
-    if (esVentaLana) {
+    if (esVentaGranos) {
+      descripcionCategorias = ventaData.renglones
+        .map((r: any) => `${r.cantidadToneladas}ton ${r.tipoCultivoNombre}`)
+        .join(', ')
+      descripcion = `Venta de granos (${descripcionCategorias})`
+    } else if (esVentaLana) {
       descripcionCategorias = ventaData.renglones
         .map((r: any) => `${r.pesoKg}kg ${r.categoria}`)
         .join(', ')
@@ -412,7 +487,7 @@ console.log("🔍 DEBUG 7: Creando renglones...")
         tipo: "INGRESO",
         fecha: new Date(ventaData.fecha),
         descripcion: descripcion,
-        categoria: esVentaLana ? "Venta de Lana" : "Venta de Ganado",
+        categoria: esVentaGranos ? "Venta de Granos" : esVentaLana ? "Venta de Lana" : "Venta de Ganado",
         comprador: ventaData.comprador,
         proveedor: null,
         metodoPago: ventaData.metodoPago || "Contado",
@@ -434,12 +509,14 @@ console.log("🔍 DEBUG 7: Creando renglones...")
       },
     })
     
-    console.log(`  ✅ Ingreso consolidado creado: ${esVentaLana ? ventaData.pesoTotalKg + 'kg lana' : ventaData.cantidadTotal + ' animales'} - $${ventaData.totalNetoUSD.toFixed(2)} USD`)
+    console.log(`  ✅ Ingreso consolidado creado: ${esVentaGranos ? ventaData.renglones[0].cantidadToneladas + 'ton granos' : esVentaLana ? ventaData.pesoTotalKg + 'kg lana' : ventaData.cantidadTotal + ' animales'} - $${ventaData.totalNetoUSD.toFixed(2)} USD`)
 
     await prisma.evento.create({
       data: {
         tipo: "VENTA",
-        descripcion: esVentaLana 
+        descripcion: esVentaGranos
+          ? `Venta de ${ventaData.renglones[0].tipoCultivoNombre} a ${ventaData.comprador}: ${ventaData.renglones[0].cantidadToneladas}ton`
+          : esVentaLana 
           ? `Venta de lana a ${ventaData.comprador}: ${ventaData.pesoTotalKg}kg`
           : `Venta a ${ventaData.comprador}: ${ventaData.cantidadTotal} animales`,
         fecha: new Date(ventaData.fecha),
@@ -452,14 +529,20 @@ console.log("🔍 DEBUG 7: Creando renglones...")
       },
     })
 
-    const mensajeConfirmacion = esVentaLana
+    const mensajeConfirmacion = esVentaGranos
+      ? `✅ *Venta de granos guardada!*\n\n${ventaData.renglones[0].cantidadToneladas}ton de ${ventaData.renglones[0].tipoCultivoNombre}\n$${ventaData.totalNetoUSD?.toFixed(2)} USD`
+      : esVentaLana
       ? `✅ *Venta de lana guardada!*\n\n${ventaData.pesoTotalKg}kg de lana\n$${ventaData.totalNetoUSD?.toFixed(2)} USD`
       : `✅ *Venta guardada!*\n\n${ventaData.cantidadTotal} animales\n$${ventaData.totalNetoUSD?.toFixed(2)} USD`
 
     await sendWhatsAppMessage(phoneNumber, mensajeConfirmacion)
 
     // Descuento de stock
-    if (esVentaLana) {
+    if (esVentaGranos) {
+      // GRANOS: no hay descuento de stock (se vende lo cosechado)
+      await sendWhatsAppMessage(phoneNumber, "💡 Recordá registrar la cosecha si aún no lo hiciste.")
+      await prisma.pendingConfirmation.delete({ where: { telefono: phoneNumber } }).catch(() => {})
+    } else if (esVentaLana) {
       // LANA: descuento automático FIFO del stock de esquilas
       await descontarStockLanaAutomatico(renglonesCreados, campoId, phoneNumber)
       // Limpiar pending
