@@ -70,26 +70,35 @@ export async function GET(request: Request) {
     ventas.forEach(venta => {
   venta.renglones.forEach(renglon => {
     if (renglon.tipo === 'LANA') {
-      // Agrupar lana por categoría
       const r = renglon as any
-      // ...
+      const categoriaLana = r.categoriaLana || r.categoria || 'Sin categoría'
+      
+      if (!resumenLana[categoriaLana]) {
+        resumenLana[categoriaLana] = {
+          pesoKg: 0,
+          importeBruto: 0,
+        }
+      }
+      
+      const pesoKg = Number(r.pesoKg || r.pesoTotalKg || 0)
+      resumenLana[categoriaLana].pesoKg += pesoKg
+      resumenLana[categoriaLana].importeBruto += r.importeBrutoUSD
     } else if (renglon.tipo === 'GANADO') {
-      // Ganado - SOLO procesar si es tipo GANADO
       const resumen = renglon.tipoAnimal === "BOVINO" ? resumenBovino : resumenOvino
 
-          if (!resumen[renglon.categoria]) {
-            resumen[renglon.categoria] = {
-              cantidad: 0,
-              pesoTotal: 0,
-              importeBruto: 0,
-            }
-          }
-
-          resumen[renglon.categoria].cantidad += renglon.cantidad
-          resumen[renglon.categoria].pesoTotal += renglon.pesoTotalKg
-          resumen[renglon.categoria].importeBruto += renglon.importeBrutoUSD
+      if (!resumen[renglon.categoria]) {
+        resumen[renglon.categoria] = {
+          cantidad: 0,
+          pesoTotal: 0,
+          importeBruto: 0,
         }
-      })
+      }
+
+      resumen[renglon.categoria].cantidad += renglon.cantidad
+      resumen[renglon.categoria].pesoTotal += renglon.pesoTotalKg
+      resumen[renglon.categoria].importeBruto += renglon.importeBrutoUSD
+    }
+  })
       
       // 🔥 DEBUG TEMPORAL - Ver qué hay en serviciosGranos
       if (venta.serviciosGranos && venta.serviciosGranos.length > 0) {
