@@ -68,7 +68,7 @@ export default function VentasPage() {
   const [vacunosAbierto, setVacunosAbierto] = useState(true)
   const [ovinosAbierto, setOvinosAbierto] = useState(false)
   const [lanaAbierto, setLanaAbierto] = useState(false)
-  const [granosAbierto, setGranosAbierto] = useState(esMixto) // ✅ Solo abierto si es mixto
+  const [granosAbierto, setGranosAbierto] = useState(false)
   
 
   // Cargar ventas con filtros
