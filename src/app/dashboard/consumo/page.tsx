@@ -56,8 +56,8 @@ export default function ConsumoYLanaPage() {
   const { data: session } = useSession()
   
   // Estados de acordeones
-  const [consumosAbierto, setConsumosAbierto] = useState(true)
-  const [lanaAbierto, setLanaAbierto] = useState(false)
+const [consumosAbierto, setConsumosAbierto] = useState(false) // Cambiar de true a false
+const [lanaAbierto, setLanaAbierto] = useState(false)
   
   // Estados de modales
   const [modalConsumo, setModalConsumo] = useState(false)
