@@ -36,7 +36,7 @@ export default function TablaVentasLana({ ventas, onRefresh }: TablaVentasLanaPr
   if (ventas.length === 0) {
     return (
       <div className="p-8 text-center">
-        <div className="text-6xl mb-4">🧶</div>
+        <div className="text-6xl mb-4">💭</div>
         <p className="text-gray-600 text-lg">No hay ventas de lana registradas</p>
         <p className="text-gray-500 text-sm mt-2">
           Creá una nueva venta desde el botón "Nueva Venta"
