@@ -275,7 +275,7 @@ const guardarNombreGrupo = async (grupoId: string) => {
     { href: "/dashboard/costos", icon: "💵", label: "Costos", roles: ["ADMIN_GENERAL", "COLABORADOR", "CONTADOR"], requiresFinance: true },
     { href: "/dashboard/ventas", icon: "💰", label: "Ventas", roles: ["ADMIN_GENERAL", "COLABORADOR", "CONTADOR"], requiresFinance: true },
     { href: "/dashboard/compras", icon: "🛒", label: "Compras", roles: ["ADMIN_GENERAL", "COLABORADOR", "CONTADOR"], requiresFinance: true },
-    { href: "/dashboard/consumo", icon: "🥩", label: "Consumo", roles: ["ADMIN_GENERAL", "COLABORADOR", "CONTADOR"], requiresFinance: true },
+    { href: "/dashboard/consumo", icon: "🥩🐑", label: "Consumo y Lana", roles: ["ADMIN_GENERAL", "COLABORADOR", "CONTADOR"], requiresFinance: true },
     { href: "/dashboard/inventario", icon: "📊", label: "Diferencia Inventario", roles: ["ADMIN_GENERAL", "COLABORADOR", "CONTADOR"], requiresFinance: true },
     ...(tieneCamposEnGrupo ? [{ href: "/dashboard/traslados", icon: "🚚", label: "Traslados", roles: ["ADMIN_GENERAL", "COLABORADOR"], requiresFinance: false }] : []),
   ],
