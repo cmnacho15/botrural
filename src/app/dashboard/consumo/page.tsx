@@ -295,7 +295,6 @@ export default function ConsumoYLanaPage() {
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-100 to-blue-100 flex items-center justify-center text-2xl">
-            🥩🧶
           </div>
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Consumo y Lana</h1>
