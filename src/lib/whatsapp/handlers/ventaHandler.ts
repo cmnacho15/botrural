@@ -1060,14 +1060,52 @@ export async function handleLotesGranosResponse(phoneNumber: string, mensaje: st
     }
     
     // CASO 3: Usuario dijo "no" al único lote
-    if (data.lotesDisponibles.length === 1 && mensajeLower === "no") {
-      await sendWhatsAppMessage(
-        phoneNumber,
-        `Completá manualmente desde la web qué lote fue.`
-      )
-      await prisma.pendingConfirmation.delete({ where: { telefono: phoneNumber } })
-      return
+if (data.lotesDisponibles.length === 1 && mensajeLower === "no") {
+  // Buscar TODOS los lotes no pastoreables
+  const todosLotesAgricolas = await prisma.lote.findMany({
+    where: {
+      campoId: data.campoId,
+      esPastoreable: false
+    },
+    orderBy: { nombre: 'asc' }
+  })
+  
+  if (todosLotesAgricolas.length <= 1) {
+    await sendWhatsAppMessage(
+      phoneNumber,
+      `No hay otros lotes agrícolas. Escribí "omitir" para completar después desde la web.`
+    )
+    return
+  }
+  
+  const lotesActualizados = todosLotesAgricolas.map(l => ({
+    id: l.id,
+    nombre: l.nombre,
+    hectareas: l.hectareas
+  }))
+  
+  // Actualizar pending con todos los lotes
+  await prisma.pendingConfirmation.update({
+    where: { telefono: phoneNumber },
+    data: {
+      data: JSON.stringify({
+        ...data,
+        lotesDisponibles: lotesActualizados
+      })
     }
+  })
+  
+  let mensaje = `📍 Todos los lotes agrícolas:\n`
+  lotesActualizados.forEach(lote => {
+    mensaje += `• ${lote.nombre} (${lote.hectareas.toFixed(0)} ha)\n`
+  })
+  mensaje += `\nRespondé así:\n`
+  mensaje += `*"${lotesActualizados[0].nombre} ${data.toneladasTotales}"*\n\n`
+  mensaje += `O escribí "omitir"`
+  
+  await sendWhatsAppMessage(phoneNumber, mensaje)
+  return
+}
     
     // CASO 4: Usuario especificó distribución por lotes
     // Formato esperado: "Norte 200, Sur 255" o "Norte 455"
