@@ -423,13 +423,19 @@ function ModalAsignarLotes({ ventaId, ventas, onClose, onSuccess }: { ventaId: s
   
   // Cargar lotes no pastoreables
   useEffect(() => {
+    console.log('🔍 Iniciando fetch de lotes...')
     fetch('/api/lotes?esPastoreable=false')
-      .then(res => res.json())
+      .then(res => {
+        console.log('📦 Response status:', res.status)
+        return res.json()
+      })
       .then(data => {
+        console.log('✅ Lotes recibidos:', data)
         setLotes(data.lotes || [])
         setLoading(false)
       })
-      .catch(() => {
+      .catch((err) => {
+        console.error('❌ Error cargando lotes:', err)
         setLoading(false)
         alert('Error cargando lotes')
       })
