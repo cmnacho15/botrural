@@ -9,6 +9,7 @@ type TablaVentasLanaProps = {
 
 export default function TablaVentasLana({ ventas, onRefresh }: TablaVentasLanaProps) {
   const [expandido, setExpandido] = useState<string | null>(null)
+  const [verImagen, setVerImagen] = useState<string | null>(null)
 
   const toggleExpansion = (ventaId: string) => {
     setExpandido(expandido === ventaId ? null : ventaId)
@@ -71,6 +72,9 @@ export default function TablaVentasLana({ ventas, onRefresh }: TablaVentasLanaPr
               Importe Neto
             </th>
             <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Factura
+            </th>
+            <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
               Acciones
             </th>
           </tr>
@@ -78,10 +82,10 @@ export default function TablaVentasLana({ ventas, onRefresh }: TablaVentasLanaPr
         <tbody className="bg-white divide-y divide-gray-200">
           {ventas.map((venta) => {
             const renglonesLana = venta.renglones.filter((r: any) => r.tipo === 'LANA')
-const kgTotales = renglonesLana.reduce((sum: number, r: any) => {
-  const kg = parseFloat(r.pesoTotalKg) || 0
-  return sum + kg
-}, 0)
+            const kgTotales = renglonesLana.reduce((sum: number, r: any) => {
+              const kg = parseFloat(r.pesoTotalKg) || 0
+              return sum + kg
+            }, 0)
             const precioPromedio = kgTotales > 0 ? (venta.subtotalUSD / kgTotales) : 0
             const estaExpandido = expandido === venta.id
 
@@ -112,6 +116,19 @@ const kgTotales = renglonesLana.reduce((sum: number, r: any) => {
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap text-sm text-right font-bold text-green-600">
                   {venta.totalNetoUSD.toLocaleString('es-UY', { minimumFractionDigits: 2 })} USD
+                </td>
+                <td className="px-4 py-3 whitespace-nowrap text-center text-sm">
+                  {venta.imageUrl ? (
+                    <button
+                      onClick={() => setVerImagen(venta.imageUrl)}
+                      className="text-blue-600 hover:text-blue-800 transition text-lg"
+                      title="Ver factura"
+                    >
+                      📄
+                    </button>
+                  ) : (
+                    <span className="text-gray-400">-</span>
+                  )}
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap text-center text-sm">
                   <div className="flex items-center justify-center gap-2">
@@ -224,9 +241,9 @@ const kgTotales = renglonesLana.reduce((sum: number, r: any) => {
                   </thead>
                   <tbody className="divide-y divide-gray-200">
                     {renglonesLana.map((renglon: any, idx: number) => {
-  const pesoKg = parseFloat(renglon.pesoTotalKg) || 0
-  const precioKg = parseFloat(renglon.precioKgUSD) || 0
-  const categoriaLana = renglon.categoria || '-'
+                      const pesoKg = parseFloat(renglon.pesoTotalKg) || 0
+                      const precioKg = parseFloat(renglon.precioKgUSD) || 0
+                      const categoriaLana = renglon.categoria || '-'
                       
                       return (
                         <tr key={idx}>
@@ -309,6 +326,28 @@ const kgTotales = renglonesLana.reduce((sum: number, r: any) => {
           </div>
         )
       })}
+
+      {/* MODAL VER IMAGEN */}
+      {verImagen && (
+        <div 
+          className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
+          onClick={() => setVerImagen(null)}
+        >
+          <div className="relative max-w-4xl w-full">
+            <button
+              onClick={() => setVerImagen(null)}
+              className="absolute -top-12 right-0 text-white text-2xl hover:text-gray-300"
+            >
+              ✕ Cerrar
+            </button>
+            <img 
+              src={verImagen} 
+              alt="Liquidación de lana" 
+              className="w-full h-auto rounded-lg shadow-2xl"
+            />
+          </div>
+        </div>
+      )}
     </div>
   )
 }
