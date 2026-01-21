@@ -102,6 +102,22 @@ export async function GET(request: Request) {
         }
       })
       
+      // 🔥 DEBUG TEMPORAL - Ver qué hay en serviciosGranos
+      if (venta.serviciosGranos && venta.serviciosGranos.length > 0) {
+        console.log('🌾 VENTA CON GRANOS DETECTADA:', {
+          ventaId: venta.id,
+          fecha: venta.fecha,
+          comprador: venta.comprador,
+          cantidadServicios: venta.serviciosGranos.length,
+          servicios: venta.serviciosGranos.map((s: any) => ({
+            cultivo: s.cultivo,
+            hectareas: s.hectareas,
+            toneladas: s.toneladas,
+            precioTotalUSD: s.precioTotalUSD
+          }))
+        })
+      }
+
       // 🌾 Procesar servicios de granos
       venta.serviciosGranos?.forEach((servicio: any) => {
         const cultivo = servicio.cultivo || 'Sin especificar'
