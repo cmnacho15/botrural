@@ -358,19 +358,9 @@ async function guardarVentaEnBD(savedData: any, phoneNumber: string) {
         })
       }
       
-      // Guardar servicios de granos
-      if (ventaData.servicios && ventaData.servicios.length > 0) {
-        for (const servicio of ventaData.servicios) {
-          await prisma.ventaGranoServicio.create({
-            data: {
-              ventaId: venta.id,
-              concepto: servicio.concepto,
-              importeUSD: Math.abs(servicio.importeUSD), // guardar como positivo
-            },
-          })
-          console.log(`  ✅ Servicio guardado: ${servicio.concepto} -$${Math.abs(servicio.importeUSD).toFixed(2)}`)
-        }
-      }
+      // NO guardar servicios de granos todavía
+      // Se guardarán después cuando el usuario indique de qué lote(s) salió la cosecha
+      console.log(`  ⏳ Esperando desglose de lotes para guardar servicios de granos...`)
     } else if (esVentaLana) {
       // LANA: renglones con peso, sin cantidad de animales
       for (const r of ventaData.renglones) {
@@ -537,11 +527,10 @@ async function guardarVentaEnBD(savedData: any, phoneNumber: string) {
 
     await sendWhatsAppMessage(phoneNumber, mensajeConfirmacion)
 
-    // Descuento de stock
+    // Descuento de stock / Asignación de lotes
     if (esVentaGranos) {
-      // GRANOS: no hay descuento de stock (se vende lo cosechado)
-      await sendWhatsAppMessage(phoneNumber, "💡 Recordá registrar la cosecha si aún no lo hiciste.")
-      await prisma.pendingConfirmation.delete({ where: { telefono: phoneNumber } }).catch(() => {})
+      // GRANOS: preguntar de qué lote(s) salió
+      await preguntarLotesGranos(phoneNumber, campoId, ventaData, venta.id)
     } else if (esVentaLana) {
       // LANA: descuento automático FIFO del stock de esquilas
       await descontarStockLanaAutomatico(renglonesCreados, campoId, phoneNumber)
@@ -834,4 +823,409 @@ async function descontarStockLanaAutomatico(
   }
   
   console.log("✅ Descuento automático de lana completado")
+}
+
+/**
+ * Pregunta de qué lote(s) salió la venta de granos
+ */
+async function preguntarLotesGranos(
+  phoneNumber: string,
+  campoId: string,
+  ventaData: ParsedVentaGranos,
+  ventaId: string
+) {
+  try {
+    const cultivoVendido = ventaData.renglones[0].tipoCultivoNombre // "Trigo", "Soja", etc.
+    const toneladasTotales = ventaData.renglones[0].cantidadToneladas
+    
+    console.log(`🌾 Buscando lotes con ${cultivoVendido}...`)
+    
+    // 1. Buscar lotes con ese cultivo actualmente
+    const lotesConCultivo = await prisma.lote.findMany({
+      where: {
+        campoId,
+        cultivos: {
+          some: {
+            tipoCultivo: cultivoVendido
+          }
+        }
+      },
+      include: {
+        cultivos: {
+          where: {
+            tipoCultivo: cultivoVendido
+          }
+        }
+      },
+      orderBy: { nombre: 'asc' }
+    })
+    
+    console.log(`  📍 Encontrados ${lotesConCultivo.length} lotes con ${cultivoVendido}`)
+    
+    // 2. Si NO encuentra → Buscar todos los lotes no pastoreables
+    let lotesDisponibles: Array<{ id: string; nombre: string; hectareas: number }> = lotesConCultivo.map(l => ({
+      id: l.id,
+      nombre: l.nombre,
+      hectareas: l.cultivos[0]?.hectareas || l.hectareas
+    }))
+    let mensajeDeteccion = ""
+    
+    if (lotesConCultivo.length === 0) {
+      console.log(`  ⚠️ No se encontró ${cultivoVendido} en ningún lote, buscando lotes no pastoreables...`)
+      
+      const todosLotesAgricolas = await prisma.lote.findMany({
+        where: {
+          campoId,
+          esPastoreable: false
+        },
+        orderBy: { nombre: 'asc' }
+      })
+      
+      lotesDisponibles = todosLotesAgricolas.map(l => ({
+        id: l.id,
+        nombre: l.nombre,
+        hectareas: l.hectareas
+      }))
+      mensajeDeteccion = `⚠️ No encontré ${cultivoVendido} registrado.\n\n`
+      
+      console.log(`  📍 Mostrando ${todosLotesAgricolas.length} lotes no pastoreables`)
+    } else {
+      mensajeDeteccion = `📍 Detecté ${cultivoVendido} en:\n`
+      lotesConCultivo.forEach(lote => {
+        const hectareas = lote.cultivos[0]?.hectareas || lote.hectareas
+        mensajeDeteccion += `• ${lote.nombre} (${hectareas.toFixed(0)} ha)\n`
+      })
+      mensajeDeteccion += `\n`
+    }
+    
+    // 3. Si no hay lotes disponibles
+    if (lotesDisponibles.length === 0) {
+      await sendWhatsAppMessage(
+        phoneNumber,
+        `⚠️ No encontré lotes agrícolas en el campo. Completá manualmente desde la web.`
+      )
+      await prisma.pendingConfirmation.delete({ where: { telefono: phoneNumber } }).catch(() => {})
+      return
+    }
+    
+    // 4. Guardar estado pendiente
+    await prisma.pendingConfirmation.upsert({
+      where: { telefono: phoneNumber },
+      create: {
+        telefono: phoneNumber,
+        data: JSON.stringify({
+          tipo: "LOTES_GRANOS",
+          ventaId,
+          cultivoVendido,
+          toneladasTotales,
+          precioTonelada: ventaData.renglones[0].precioToneladaUSD,
+          importeBruto: ventaData.renglones[0].importeBrutoUSD,
+          servicios: ventaData.servicios || [],
+          lotesDisponibles: lotesDisponibles.map(l => ({
+            id: l.id,
+            nombre: l.nombre,
+            hectareas: l.hectareas
+          })),
+          campoId
+        }),
+      },
+      update: {
+        data: JSON.stringify({
+          tipo: "LOTES_GRANOS",
+          ventaId,
+          cultivoVendido,
+          toneladasTotales,
+          precioTonelada: ventaData.renglones[0].precioToneladaUSD,
+          importeBruto: ventaData.renglones[0].importeBrutoUSD,
+          servicios: ventaData.servicios || [],
+          lotesDisponibles: lotesDisponibles.map(l => ({
+            id: l.id,
+            nombre: l.nombre,
+            hectareas: l.hectareas
+          })),
+          campoId
+        }),
+      },
+    })
+    
+    // 5. Construir mensaje
+    let mensaje = mensajeDeteccion
+    mensaje += `🌾 *${toneladasTotales}ton de ${cultivoVendido}*\n\n`
+    
+    if (lotesDisponibles.length === 1) {
+      // Solo hay 1 lote
+      const lote = lotesDisponibles[0]
+      const hectareas = lote.hectareas
+      mensaje += `¿Todo salió del lote *${lote.nombre}* (${hectareas.toFixed(0)} ha)?\n\n`
+      mensaje += `Respondé:\n`
+      mensaje += `• "si" o "confirmar"\n`
+      mensaje += `• "no" para elegir otro lote\n`
+      mensaje += `• "omitir" para completar después`
+    } else {
+      // Múltiples lotes
+      mensaje += `📍 Lotes disponibles:\n`
+      lotesDisponibles.forEach(lote => {
+        const hectareas = lote.hectareas
+        mensaje += `• ${lote.nombre} (${hectareas.toFixed(0)} ha)\n`
+      })
+      mensaje += `\nRespondé así:\n`
+      mensaje += `*"${lotesDisponibles[0].nombre} ${toneladasTotales}"*\n\n`
+      mensaje += `O si salió de varios lotes:\n`
+      mensaje += `*"${lotesDisponibles[0].nombre} 200, ${lotesDisponibles.length > 1 ? lotesDisponibles[1].nombre : 'Lote2'} 255"*\n\n`
+      mensaje += `O escribí "omitir"`
+    }
+    
+    await sendWhatsAppMessage(phoneNumber, mensaje)
+    
+  } catch (error) {
+    console.error("❌ Error preguntando lotes de granos:", error)
+    await sendWhatsAppMessage(phoneNumber, "Error procesando la venta. Completá los lotes desde la web.")
+    await prisma.pendingConfirmation.delete({ where: { telefono: phoneNumber } }).catch(() => {})
+  }
+}
+
+/**
+ * Maneja la respuesta del usuario sobre lotes de granos
+ */
+export async function handleLotesGranosResponse(phoneNumber: string, mensaje: string) {
+  try {
+    const pending = await prisma.pendingConfirmation.findUnique({
+      where: { telefono: phoneNumber }
+    })
+    
+    if (!pending) {
+      await sendWhatsAppMessage(phoneNumber, "No hay operación pendiente.")
+      return
+    }
+    
+    const data = JSON.parse(pending.data)
+    
+    if (data.tipo !== "LOTES_GRANOS") {
+      return // No es para nosotros
+    }
+    
+    const mensajeLower = mensaje.toLowerCase().trim()
+    
+    // CASO 1: Usuario quiere omitir
+    if (mensajeLower === "omitir" || mensajeLower === "skip") {
+      await sendWhatsAppMessage(
+        phoneNumber,
+        `⏭️ Omitido. Completá los lotes de la venta desde la web.`
+      )
+      await prisma.pendingConfirmation.delete({ where: { telefono: phoneNumber } })
+      return
+    }
+    
+    // CASO 2: Solo hay 1 lote y confirmó
+    if (data.lotesDisponibles.length === 1 && (mensajeLower === "si" || mensajeLower === "confirmar" || mensajeLower === "confirmo")) {
+      const lote = data.lotesDisponibles[0]
+      
+      await prisma.servicioGrano.create({
+        data: {
+          ventaId: data.ventaId,
+          cultivo: data.cultivoVendido,
+          loteId: lote.id,
+          loteNombre: lote.nombre,
+          hectareas: lote.hectareas,
+          toneladas: data.toneladasTotales,
+          precioTonelada: data.precioTonelada,
+          precioTotalUSD: data.importeBruto,
+        }
+      })
+      
+      // Guardar servicios ahora que sabemos el lote
+      if (data.servicios && data.servicios.length > 0) {
+        for (const servicio of data.servicios) {
+          await prisma.ventaGranoServicio.create({
+            data: {
+              ventaId: data.ventaId,
+              concepto: servicio.concepto,
+              importeUSD: Math.abs(servicio.importeUSD),
+            },
+          })
+        }
+      }
+      
+      const tonPorHa = data.toneladasTotales / lote.hectareas
+      
+      await sendWhatsAppMessage(
+        phoneNumber,
+        `✅ Venta asignada:\n\n` +
+        `📍 ${lote.nombre}: ${data.toneladasTotales}ton (${lote.hectareas}ha)\n` +
+        `→ Rendimiento: ${tonPorHa.toFixed(2)} ton/ha`
+      )
+      
+      await prisma.pendingConfirmation.delete({ where: { telefono: phoneNumber } })
+      return
+    }
+    
+    // CASO 3: Usuario dijo "no" al único lote
+    if (data.lotesDisponibles.length === 1 && mensajeLower === "no") {
+      await sendWhatsAppMessage(
+        phoneNumber,
+        `Completá manualmente desde la web qué lote fue.`
+      )
+      await prisma.pendingConfirmation.delete({ where: { telefono: phoneNumber } })
+      return
+    }
+    
+    // CASO 4: Usuario especificó distribución por lotes
+    // Formato esperado: "Norte 200, Sur 255" o "Norte 455"
+    const desglose = parsearDesgloseGranos(mensaje, data.lotesDisponibles, data.toneladasTotales)
+    
+    if (!desglose || desglose.length === 0) {
+      await sendWhatsAppMessage(
+        phoneNumber,
+        `⚠️ No entendí el formato.\n\n` +
+        `Escribí así:\n` +
+        `"${data.lotesDisponibles[0].nombre} ${data.toneladasTotales}"\n\n` +
+        `O para varios lotes:\n` +
+        `"${data.lotesDisponibles[0].nombre} 200, ${data.lotesDisponibles.length > 1 ? data.lotesDisponibles[1].nombre : 'Lote2'} 255"`
+      )
+      return
+    }
+    
+    // Validar que la suma coincida
+    const totalDesglosado = desglose.reduce((sum, d) => sum + d.toneladas, 0)
+    const diferencia = Math.abs(totalDesglosado - data.toneladasTotales)
+    
+    if (diferencia > 1) { // tolerancia de 1 tonelada
+      await sendWhatsAppMessage(
+        phoneNumber,
+        `⚠️ La suma no coincide:\n` +
+        `Desglosaste: ${totalDesglosado.toFixed(1)}ton\n` +
+        `Total vendido: ${data.toneladasTotales}ton\n\n` +
+        `Intentá de nuevo o escribí "omitir"`
+      )
+      return
+    }
+    
+    // Guardar desglose en BD
+    for (const item of desglose) {
+      await prisma.servicioGrano.create({
+        data: {
+          ventaId: data.ventaId,
+          cultivo: data.cultivoVendido,
+          loteId: item.loteId,
+          loteNombre: item.loteNombre,
+          hectareas: item.hectareas,
+          toneladas: item.toneladas,
+          precioTonelada: data.precioTonelada,
+          precioTotalUSD: item.toneladas * data.precioTonelada,
+        }
+      })
+    }
+    
+    // Guardar servicios ahora que sabemos los lotes
+    if (data.servicios && data.servicios.length > 0) {
+      for (const servicio of data.servicios) {
+        await prisma.ventaGranoServicio.create({
+          data: {
+            ventaId: data.ventaId,
+            concepto: servicio.concepto,
+            importeUSD: Math.abs(servicio.importeUSD),
+          },
+        })
+      }
+    }
+    
+    // Mensaje de confirmación
+    let confirmacion = `✅ Venta desglosada:\n\n`
+    for (const item of desglose) {
+      const tonPorHa = item.toneladas / item.hectareas
+      confirmacion += `📍 ${item.loteNombre}: ${item.toneladas}ton (${item.hectareas}ha) → ${tonPorHa.toFixed(2)} ton/ha\n`
+    }
+    
+    await sendWhatsAppMessage(phoneNumber, confirmacion)
+    await prisma.pendingConfirmation.delete({ where: { telefono: phoneNumber } })
+    
+  } catch (error) {
+    console.error("❌ Error procesando respuesta de lotes de granos:", error)
+    await sendWhatsAppMessage(phoneNumber, "Error procesando la respuesta. Intentá de nuevo.")
+  }
+}
+
+/**
+ * Handler principal para iniciar el flujo de lotes de granos
+ */
+export async function handleLotesGranos(phoneNumber: string, parsedData: any) {
+  const { campoId, cultivoVendido, toneladasTotales, precioTonelada, importeBruto, servicios, ventaId } = parsedData
+  
+  await preguntarLotesGranos(
+    phoneNumber,
+    campoId,
+    {
+      renglones: [{
+        tipoCultivoNombre: cultivoVendido,
+        cantidadToneladas: toneladasTotales,
+        precioToneladaUSD: precioTonelada,
+        importeBrutoUSD: importeBruto,
+      }],
+      servicios: servicios || [],
+    } as ParsedVentaGranos,
+    ventaId
+  )
+}
+
+/**
+ * Parsear el desglose de granos que escribe el usuario
+ * Ejemplos válidos:
+ * - "Norte 200, Sur 255"
+ * - "Norte 455"
+ * - "lote a 200, lote b 255"
+ */
+function parsearDesgloseGranos(
+
+
+  mensaje: string,
+  lotesDisponibles: Array<{ id: string; nombre: string; hectareas: number }>,
+  toneladasTotales: number
+): Array<{ loteId: string; loteNombre: string; hectareas: number; toneladas: number }> | null {
+  try {
+    const resultado: Array<{ loteId: string; loteNombre: string; hectareas: number; toneladas: number }> = []
+    
+    // Normalizar mensaje
+    const mensajeNorm = mensaje.toLowerCase().trim()
+    
+    // Separar por comas
+    const partes = mensajeNorm.split(',').map(p => p.trim())
+    
+    for (const parte of partes) {
+      // Buscar patrón: "nombre cantidad"
+      // Ej: "norte 200" o "lote a 255"
+      const tokens = parte.split(/\s+/)
+      
+      if (tokens.length < 2) continue
+      
+      // Último token debería ser el número
+      const cantidadStr = tokens[tokens.length - 1]
+      const cantidad = parseFloat(cantidadStr)
+      
+      if (isNaN(cantidad) || cantidad <= 0) continue
+      
+      // Todo lo demás es el nombre del lote
+      const nombreBuscado = tokens.slice(0, -1).join(' ')
+      
+      // Buscar lote que coincida
+      const loteEncontrado = lotesDisponibles.find(l => 
+        l.nombre.toLowerCase().includes(nombreBuscado) ||
+        nombreBuscado.includes(l.nombre.toLowerCase())
+      )
+      
+      if (!loteEncontrado) continue
+      
+      resultado.push({
+        loteId: loteEncontrado.id,
+        loteNombre: loteEncontrado.nombre,
+        hectareas: loteEncontrado.hectareas,
+        toneladas: cantidad
+      })
+    }
+    
+    return resultado.length > 0 ? resultado : null
+    
+  } catch (error) {
+    console.error("Error parseando desglose:", error)
+    return null
+  }
 }

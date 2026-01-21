@@ -36,6 +36,7 @@ import {
   handleMapa,
   handleDAO,
   handleReporteDAO,
+  handleLotesGranos,
 } from "@/lib/whatsapp"
 
 const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || "mi_token_secreto"
@@ -475,6 +476,14 @@ const parsedData = await parseMessageWithAI(messageText, potreros, categorias)
   if (parsedData.tipo === "REPORTE_PASTOREO") {
     await handleReportePastoreo(from)
     return NextResponse.json({ status: "reporte pastoreo initiated" })
+  }
+
+  // ========================================
+  // 🌾 LOTES DE GRANOS - Elegir lote
+  // ========================================
+  if (parsedData.tipo === "LOTES_GRANOS") {
+    await handleLotesGranos(from, parsedData)
+    return NextResponse.json({ status: "lotes granos processed" })
   }
 
   // ========================================

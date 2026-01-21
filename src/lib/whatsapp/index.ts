@@ -43,6 +43,7 @@ export {
 
 export { handleTacto, confirmarTacto } from './handlers/tactoHandler'
 export { handleDAO, confirmarDAO } from './handlers/daoHandler'
+export { handleLotesGranos, handleLotesGranosResponse } from './handlers/ventaHandler'
 export { handleReporteDAO } from './handlers/reporteDAOHandler'
 
 export { handleMapa } from "./handlers/mapaHandler"

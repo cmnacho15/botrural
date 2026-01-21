@@ -618,6 +618,7 @@ model Venta {
   campo             Campo     @relation(fields: [campoId], references: [id], onDelete: Cascade)
   renglones         VentaRenglon[]
   serviciosGranos   VentaGranoServicio[]
+  serviciosGrano    ServicioGrano[]
   firma    Firma?   @relation(fields: [firmaId], references: [id])
 
   @@index([campoId])
@@ -1103,4 +1104,22 @@ model VentaGranoServicio {
   venta      Venta    @relation(fields: [ventaId], references: [id], onDelete: Cascade)
   
   @@index([ventaId])
+}
+
+model ServicioGrano {
+  id              String   @id @default(cuid())
+  ventaId         String
+  cultivo         String
+  loteId          String
+  loteNombre      String
+  hectareas       Float
+  toneladas       Float
+  precioTonelada  Float
+  precioTotalUSD  Float
+  createdAt       DateTime @default(now())
+  
+  venta           Venta    @relation(fields: [ventaId], references: [id], onDelete: Cascade)
+  
+  @@index([ventaId])
+  @@index([loteId])
 }
