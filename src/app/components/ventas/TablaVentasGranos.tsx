@@ -431,7 +431,11 @@ function ModalAsignarLotes({ ventaId, ventas, onClose, onSuccess }: { ventaId: s
       })
       .then(data => {
         console.log('✅ Lotes recibidos:', data)
-        setLotes(data.lotes || [])
+        console.log('✅ data.lotes:', data.lotes)
+        console.log('✅ Array.isArray(data.lotes):', Array.isArray(data.lotes))
+        const lotesArray = Array.isArray(data.lotes) ? data.lotes : (Array.isArray(data) ? data : [])
+        console.log('✅ lotesArray final:', lotesArray)
+        setLotes(lotesArray)
         setLoading(false)
       })
       .catch((err) => {
