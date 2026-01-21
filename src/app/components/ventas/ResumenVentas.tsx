@@ -1,5 +1,8 @@
 'use client'
 
+import { useState } from 'react'
+import { useTipoCampo } from '@/app/contexts/TipoCampoContext'
+
 interface ResumenVentasProps {
   resumen: {
     bovino: Array<{
@@ -26,6 +29,14 @@ interface ResumenVentasProps {
       precioKg: number
       importeBruto: number
     }>
+    granos?: Array<{
+      cultivo: string
+      hectareas: number
+      toneladas: number
+      precioTonelada: number
+      precioHa: number
+      importeBruto: number
+    }>
     totales: {
       bovino: {
         cantidad: number
@@ -43,6 +54,18 @@ interface ResumenVentasProps {
         pesoPromedio: number
         precioAnimal: number
       }
+      lana?: {
+        pesoTotal: number
+        importeBruto: number
+        precioKg: number
+      }
+      granos?: {
+        hectareas: number
+        toneladas: number
+        importeBruto: number
+        precioTonelada: number
+        precioHa: number
+      }
       general: {
         cantidad: number
         pesoTotal: number
@@ -53,6 +76,21 @@ interface ResumenVentasProps {
 }
 
 export default function ResumenVentas({ resumen }: ResumenVentasProps) {
+  const { esMixto } = useTipoCampo()
+  const [cultivosExpandidos, setCultivosExpandidos] = useState<Set<string>>(new Set())
+
+  const toggleCultivo = (cultivo: string) => {
+    setCultivosExpandidos(prev => {
+      const nuevo = new Set(prev)
+      if (nuevo.has(cultivo)) {
+        nuevo.delete(cultivo)
+      } else {
+        nuevo.add(cultivo)
+      }
+      return nuevo
+    })
+  }
+
   const formatNumber = (num: number) => {
     return num.toLocaleString('es-UY', {
       minimumFractionDigits: 2,
@@ -197,6 +235,60 @@ export default function ResumenVentas({ resumen }: ResumenVentasProps) {
                     {formatNumber(resumen.lana.reduce((sum, item) => sum + item.importeBruto, 0))}
                   </td>
                 </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* TABLA GRANOS - Solo para campos mixtos */}
+      {esMixto && resumen.granos && resumen.granos.length > 0 && (
+        <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
+          <div className="bg-green-400 px-6 py-3">
+            <h2 className="text-lg font-bold text-gray-900">🌾 GRANOS</h2>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-100 border-b border-gray-200">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase">Cultivo</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase">Hectáreas</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase">Toneladas</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase">Ton/Ha</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase">US$/Ton</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase">US$/Ha</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase">US$ totales bruto</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-100">
+                {resumen.granos.map((item, idx) => {
+                  const tonPorHa = item.hectareas > 0 ? item.toneladas / item.hectareas : 0
+                  return (
+                    <tr key={idx} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 font-medium text-gray-900">🌾 {item.cultivo}</td>
+                      <td className="px-4 py-3 text-right text-gray-700">{formatNumber(item.hectareas)}</td>
+                      <td className="px-4 py-3 text-right text-gray-700">{formatNumber(item.toneladas)}</td>
+                      <td className="px-4 py-3 text-right text-gray-700">{formatNumber(tonPorHa)}</td>
+                      <td className="px-4 py-3 text-right text-gray-700">{formatNumber(item.precioTonelada)}</td>
+                      <td className="px-4 py-3 text-right text-gray-700">{formatNumber(item.precioHa)}</td>
+                      <td className="px-4 py-3 text-right font-semibold text-gray-900">{formatNumber(item.importeBruto)}</td>
+                    </tr>
+                  )
+                })}
+                {/* TOTAL GRANOS */}
+                {resumen.totales.granos && (
+                  <tr className="bg-gray-100 font-bold">
+                    <td className="px-4 py-3 text-gray-900">TOTAL</td>
+                    <td className="px-4 py-3 text-right text-gray-900">{formatNumber(resumen.totales.granos.hectareas)}</td>
+                    <td className="px-4 py-3 text-right text-gray-900">{formatNumber(resumen.totales.granos.toneladas)}</td>
+                    <td className="px-4 py-3 text-right text-gray-900">
+                      {formatNumber(resumen.totales.granos.hectareas > 0 ? resumen.totales.granos.toneladas / resumen.totales.granos.hectareas : 0)}
+                    </td>
+                    <td className="px-4 py-3 text-right text-gray-900">{formatNumber(resumen.totales.granos.precioTonelada)}</td>
+                    <td className="px-4 py-3 text-right text-gray-900">{formatNumber(resumen.totales.granos.precioHa)}</td>
+                    <td className="px-4 py-3 text-right text-gray-900">{formatNumber(resumen.totales.granos.importeBruto)}</td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
