@@ -492,7 +492,7 @@ export default function ConsumoYLanaPage() {
           className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition"
         >
           <div className="flex items-center gap-3">
-            <span className="text-2xl">🧶</span>
+            <span className="text-2xl">🐑</span>
             <h2 className="text-xl font-bold text-gray-900">STOCK DE LANA</h2>
           </div>
           <span className="text-gray-400 text-xl">
