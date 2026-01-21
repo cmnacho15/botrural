@@ -503,6 +503,8 @@ function ModalAsignarLotes({ ventaId, ventas, onClose, onSuccess }: { ventaId: s
     }
   }
   
+  console.log('🎨 Renderizando modal - lotes cargados:', lotes.length, 'loading:', loading)
+  
   if (!venta) return null
   
   return (

@@ -65,7 +65,7 @@ export default function VentasPage() {
   const [fechaFin, setFechaFin] = useState(fechaFinDefault)
 
   // Estados para acordeones
-  const [vacunosAbierto, setVacunosAbierto] = useState(true)
+  const [vacunosAbierto, setVacunosAbierto] = useState(false)
   const [ovinosAbierto, setOvinosAbierto] = useState(false)
   const [lanaAbierto, setLanaAbierto] = useState(false)
   const [granosAbierto, setGranosAbierto] = useState(false)
