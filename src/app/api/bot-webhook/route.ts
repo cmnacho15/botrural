@@ -215,11 +215,18 @@ console.log("📦 Mensaje completo:", JSON.stringify(message, null, 2))
     }
 
     if (confirmacionPendiente) {
-      const data = JSON.parse(confirmacionPendiente.data)
-      console.log("📦 data.tipo:", data.tipo)
-      
-      // 🆕 Si está eligiendo potrero con módulos
-      if (data.tipo === "ELEGIR_POTRERO_ORIGEN" || data.tipo === "ELEGIR_POTRERO_DESTINO") {
+    const data = JSON.parse(confirmacionPendiente.data)
+    console.log("📦 data.tipo:", data.tipo)
+    
+    // 🌾 Si está esperando respuesta de lotes de granos
+    if (data.tipo === "LOTES_GRANOS") {
+      const { handleLotesGranosResponse } = await import("@/lib/whatsapp/handlers/ventaHandler")
+      await handleLotesGranosResponse(from, messageText)
+      return NextResponse.json({ status: "lotes granos response processed" })
+    }
+    
+    // 🆕 Si está eligiendo potrero con módulos
+    if (data.tipo === "ELEGIR_POTRERO_ORIGEN" || data.tipo === "ELEGIR_POTRERO_DESTINO") {
         await handleSeleccionPotreroModulo(from, messageText, data)
         return NextResponse.json({ status: "modulo selection processed" })
       }
