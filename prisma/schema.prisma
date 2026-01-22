@@ -1061,7 +1061,6 @@ model Esquila {
   id              String   @id @default(cuid())
   fecha           DateTime
   nroAnimales     Int      // Cantidad de animales esquilados
-  precioRefUSD    Decimal  @db.Decimal(10, 2) // Para valorizar el stock
   notas           String?
   campoId         String
   createdAt       DateTime @default(now())
@@ -1079,6 +1078,7 @@ model EsquilaCategoria {
   esquilaId       String
   categoria       String   // "Vellón", "Barriga", "Barriguera", etc.
   pesoKg          Decimal  @db.Decimal(10, 2)
+  precioUSD       Decimal  @db.Decimal(10, 2) // 👈 NUEVO: Precio por kg de esta categoría
   pesoVendido     Decimal  @default(0) @db.Decimal(10, 2) // Se actualiza al vender
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt

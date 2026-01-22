@@ -12,6 +12,7 @@ interface ModalEsquilaProps {
 interface CategoriaLana {
   categoria: string
   pesoKg: number
+  precioUSD: number
 }
 
 const CATEGORIAS_LANA = [
@@ -28,16 +29,15 @@ export default function ModalEsquila({ isOpen, onClose, onSuccess }: ModalEsquil
   // Datos del formulario
   const [fecha, setFecha] = useState(new Date().toISOString().split('T')[0])
   const [nroAnimales, setNroAnimales] = useState('')
-  const [precioRefUSD, setPrecioRefUSD] = useState('')
   const [notas, setNotas] = useState('')
   
   // Categorías de lana
   const [categorias, setCategorias] = useState<CategoriaLana[]>([
-    { categoria: 'Vellón', pesoKg: 0 },
+    { categoria: 'Vellón', pesoKg: 0, precioUSD: 0 },
   ])
 
   const agregarCategoria = () => {
-    setCategorias([...categorias, { categoria: 'Barriga', pesoKg: 0 }])
+    setCategorias([...categorias, { categoria: 'Barriga', pesoKg: 0, precioUSD: 0 }])
   }
 
   const eliminarCategoria = (index: number) => {
@@ -46,26 +46,28 @@ export default function ModalEsquila({ isOpen, onClose, onSuccess }: ModalEsquil
     }
   }
 
-  const actualizarCategoria = (index: number, campo: 'categoria' | 'pesoKg', valor: string | number) => {
-  const nuevas = [...categorias]
-  if (campo === 'categoria') {
-    nuevas[index].categoria = valor as string
-  } else {
-    nuevas[index].pesoKg = valor as number
+  const actualizarCategoria = (index: number, campo: 'categoria' | 'pesoKg' | 'precioUSD', valor: string | number) => {
+    const nuevas = [...categorias]
+    if (campo === 'categoria') {
+      nuevas[index].categoria = valor as string
+    } else if (campo === 'pesoKg') {
+      nuevas[index].pesoKg = valor as number
+    } else {
+      nuevas[index].precioUSD = valor as number
+    }
+    setCategorias(nuevas)
   }
-  setCategorias(nuevas)
-}
 
   const totalKg = categorias.reduce((sum, cat) => sum + (Number(cat.pesoKg) || 0), 0)
   const pesoPromedioPorAnimal = nroAnimales ? totalKg / Number(nroAnimales) : 0
-  const valorEstimado = totalKg * (Number(precioRefUSD) || 0)
+  const valorEstimado = categorias.reduce((sum, cat) => sum + ((Number(cat.pesoKg) || 0) * (Number(cat.precioUSD) || 0)), 0)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
 
     // Validaciones
-    if (!fecha || !nroAnimales || !precioRefUSD) {
+    if (!fecha || !nroAnimales) {
       setError('Por favor completá todos los campos obligatorios')
       return
     }
@@ -92,11 +94,11 @@ export default function ModalEsquila({ isOpen, onClose, onSuccess }: ModalEsquil
         body: JSON.stringify({
           fecha,
           nroAnimales: parseInt(nroAnimales),
-          precioRefUSD: parseFloat(precioRefUSD),
           notas: notas || null,
           categorias: categorias.map(cat => ({
             categoria: cat.categoria,
             pesoKg: parseFloat(cat.pesoKg.toString()),
+            precioUSD: parseFloat(cat.precioUSD.toString()),
           })),
         }),
       })
@@ -119,9 +121,8 @@ export default function ModalEsquila({ isOpen, onClose, onSuccess }: ModalEsquil
   const resetForm = () => {
     setFecha(new Date().toISOString().split('T')[0])
     setNroAnimales('')
-    setPrecioRefUSD('')
     setNotas('')
-    setCategorias([{ categoria: 'Vellón', pesoKg: 0 }])
+    setCategorias([{ categoria: 'Vellón', pesoKg: 0, precioUSD: 0 }])
     setError('')
   }
 
@@ -182,22 +183,6 @@ export default function ModalEsquila({ isOpen, onClose, onSuccess }: ModalEsquil
                 required
               />
             </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Precio Referencia (USD/kg) *
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                value={precioRefUSD}
-                onChange={(e) => setPrecioRefUSD(e.target.value)}
-                placeholder="5.34"
-                min="0"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                required
-              />
-            </div>
           </div>
 
           {/* CATEGORÍAS DE LANA */}
@@ -244,6 +229,18 @@ export default function ModalEsquila({ isOpen, onClose, onSuccess }: ModalEsquil
                     />
                   </div>
 
+                  <div className="flex-1">
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={cat.precioUSD || ''}
+                      onChange={(e) => actualizarCategoria(index, 'precioUSD', parseFloat(e.target.value) || 0)}
+                      placeholder="USD/kg"
+                      min="0"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+
                   {categorias.length > 1 && (
                     <button
                       type="button"
@@ -261,7 +258,7 @@ export default function ModalEsquila({ isOpen, onClose, onSuccess }: ModalEsquil
           {/* TOTALES CALCULADOS */}
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <h3 className="font-semibold text-gray-900 mb-3">📊 Totales Calculados</h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+            <div className="grid grid-cols-3 gap-4 text-sm">
               <div>
                 <p className="text-gray-600 mb-1">Total kg</p>
                 <p className="text-lg font-bold text-gray-900">
@@ -272,12 +269,6 @@ export default function ModalEsquila({ isOpen, onClose, onSuccess }: ModalEsquil
                 <p className="text-gray-600 mb-1">Promedio/animal</p>
                 <p className="text-lg font-bold text-gray-900">
                   {pesoPromedioPorAnimal.toLocaleString('es-UY', { maximumFractionDigits: 2 })} kg
-                </p>
-              </div>
-              <div>
-                <p className="text-gray-600 mb-1">Precio ref.</p>
-                <p className="text-lg font-bold text-gray-900">
-                  ${Number(precioRefUSD || 0).toFixed(2)}/kg
                 </p>
               </div>
               <div>
