@@ -215,31 +215,67 @@ const cargaKgPV = {
     
 
     // ---------------------------------------------------------
-    // 3.5 OBTENER ESQUILAS DEL EJERCICIO
-    // ---------------------------------------------------------
-    const esquilas = await prisma.esquila.findMany({
+// 3.5 OBTENER LANA DEL EJERCICIO (Esquilas + Ventas)
+// ---------------------------------------------------------
+
+// 1️⃣ Obtener esquilas (lana en stock)
+const esquilas = await prisma.esquila.findMany({
+  where: {
+    campoId,
+    fecha: { gte: fechaDesde, lte: fechaHasta },
+  },
+  include: {
+    categorias: true,
+  },
+})
+
+let totalKgLanaEsquilas = 0
+let totalUSDLanaEsquilas = 0
+
+esquilas.forEach(esquila => {
+  esquila.categorias.forEach(cat => {
+    totalKgLanaEsquilas += Number(cat.pesoKg)
+    totalUSDLanaEsquilas += Number(cat.pesoKg) * Number(cat.precioUSD)
+  })
+})
+
+// 2️⃣ Obtener ventas de lana
+const ventasLana = await prisma.venta.findMany({
+  where: {
+    campoId,
+    fecha: { gte: fechaDesde, lte: fechaHasta },
+    tipoProducto: "LANA",
+  },
+  include: {
+    renglones: {
       where: {
-        campoId,
-        fecha: { gte: fechaDesde, lte: fechaHasta },
-      },
-      include: {
-        categorias: true,
-      },
-    })
+        tipo: "LANA"
+      }
+    }
+  }
+})
 
-    // Calcular totales de lana
-    let totalKgLana = 0
-    let totalUSDLana = 0
+let totalKgLanaVendida = 0
+let totalUSDLanaVendida = 0
 
-    esquilas.forEach(esquila => {
-      esquila.categorias.forEach(cat => {
-        totalKgLana += Number(cat.pesoKg)
-        totalUSDLana += Number(cat.pesoKg) * Number(cat.precioUSD)
-      })
-    })
+ventasLana.forEach(venta => {
+  venta.renglones.forEach(renglon => {
+    const kgLana = Number(renglon.pesoTotalKg) || 0
+    totalKgLanaVendida += kgLana
+    totalUSDLanaVendida += Number(renglon.importeBrutoUSD) || 0
+  })
+})
 
-    // Conversión lana a equivalente carne (kg lana × 2.48)
-    const lanaEquivCarne = totalKgLana * 2.48
+// 3️⃣ TOTALES DE LANA (esquilas + ventas)
+const totalKgLana = totalKgLanaEsquilas + totalKgLanaVendida
+const totalUSDLana = totalUSDLanaEsquilas + totalUSDLanaVendida
+
+console.log(`🧶 LANA - Esquilas: ${totalKgLanaEsquilas}kg ($${totalUSDLanaEsquilas})`)
+console.log(`🧶 LANA - Ventas: ${totalKgLanaVendida}kg ($${totalUSDLanaVendida})`)
+console.log(`🧶 LANA - TOTAL: ${totalKgLana}kg ($${totalUSDLana})`)
+
+// Conversión lana a equivalente carne (kg lana × 2.48)
+const lanaEquivCarne = totalKgLana * 2.48
 
     // ---------------------------------------------------------
     // 4 OBTENER CONSUMOS DEL EJERCICIO
