@@ -62,6 +62,19 @@ const [lanaAbierto, setLanaAbierto] = useState(false)
   // Estados de modales
   const [modalConsumo, setModalConsumo] = useState(false)
   const [modalEsquila, setModalEsquila] = useState(false)
+  const [esquilaEditando, setEsquilaEditando] = useState<{
+    id: string
+    fecha: string
+    nroAnimales: number
+    notas: string | null
+    categorias: {
+      categoria: string
+      pesoKg: number
+      precioUSD: number
+      micras: number | null
+      rendimientoLavado: number | null
+    }[]
+  } | null>(null)
 
   // ============================================
   // LÓGICA DE CONSUMOS
@@ -258,6 +271,50 @@ const [lanaAbierto, setLanaAbierto] = useState(false)
   // LÓGICA DE STOCK LANA
   // ============================================
   const { data: esquilas, mutate: mutateEsquilas, isLoading: loadingLana } = useSWR('/api/esquilas', fetcher)
+  
+  const handleEliminarEsquila = async (esquilaId: string, porcentaje: number) => {
+    if (porcentaje < 100) {
+      alert('No podés eliminar una esquila que tiene ventas asociadas')
+      return
+    }
+
+    if (!confirm('¿Estás seguro de eliminar esta esquila? Esta acción no se puede deshacer.')) {
+      return
+    }
+
+    try {
+      const res = await fetch(`/api/esquilas/${esquilaId}`, {
+        method: 'DELETE',
+      })
+
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error)
+      }
+
+      mutateEsquilas()
+      alert('Esquila eliminada correctamente')
+    } catch (error: any) {
+      alert(error.message || 'Error al eliminar esquila')
+    }
+  }
+
+  const handleEditarEsquila = (esquila: any) => {
+    setEsquilaEditando({
+      id: esquila.id,
+      fecha: esquila.fecha,
+      nroAnimales: esquila.nroAnimales,
+      notas: esquila.notas,
+      categorias: esquila.categorias.map((cat: any) => ({
+        categoria: cat.categoria,
+        pesoKg: Number(cat.pesoKg),
+        precioUSD: Number(cat.precioUSD),
+        micras: cat.micras ? Number(cat.micras) : null,
+        rendimientoLavado: cat.rendimientoLavado ? Number(cat.rendimientoLavado) : null,
+      }))
+    })
+    setModalEsquila(true)
+  }
 
   // Calcular totales de stock actual
   const stockActual = esquilas?.reduce(
@@ -584,6 +641,7 @@ const [lanaAbierto, setLanaAbierto] = useState(false)
         <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase">Valor Est.</th>
         <th className="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase">Estado</th>
         <th className="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase">Detalle</th>
+        <th className="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase">Acciones</th>
       </tr>
     </thead>
                         <tbody className="divide-y divide-gray-100">
@@ -648,11 +706,34 @@ const [lanaAbierto, setLanaAbierto] = useState(false)
               👁️ Ver
             </button>
           </td>
+          <td className="px-4 py-3 text-center">
+            <div className="flex gap-2 justify-center">
+              <button
+                onClick={() => handleEditarEsquila(esquila)}
+                className="px-3 py-1 text-xs bg-amber-100 text-amber-700 rounded hover:bg-amber-200 font-medium"
+                title="Editar esquila"
+              >
+                ✏️ Editar
+              </button>
+              <button
+                onClick={() => handleEliminarEsquila(esquila.id, porcentaje)}
+                className={`px-3 py-1 text-xs rounded font-medium ${
+                  porcentaje < 100
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    : 'bg-red-100 text-red-700 hover:bg-red-200'
+                }`}
+                disabled={porcentaje < 100}
+                title={porcentaje < 100 ? 'No se puede eliminar una esquila con ventas' : 'Eliminar esquila'}
+              >
+                🗑️ Eliminar
+              </button>
+            </div>
+          </td>
         </tr>
 
         {/* FILA EXPANDIBLE CON DETALLE */}
         <tr id={`detalle-${esquila.id}`} style={{ display: 'none' }} className="bg-blue-50">
-          <td colSpan={9} className="px-4 py-4">
+          <td colSpan={10} className="px-4 py-4">
             <div className="space-y-3">
               <h4 className="font-semibold text-gray-900 mb-3">📋 Detalle por Categoría</h4>
               
@@ -746,11 +827,17 @@ const [lanaAbierto, setLanaAbierto] = useState(false)
       {modalEsquila && (
         <ModalEsquila
           isOpen={modalEsquila}
-          onClose={() => setModalEsquila(false)}
+          onClose={() => {
+            setModalEsquila(false)
+            setEsquilaEditando(null)
+          }}
           onSuccess={() => {
             mutateEsquilas()
             setModalEsquila(false)
+            setEsquilaEditando(null)
           }}
+          esquilaId={esquilaEditando?.id ?? undefined}
+esquilaData={esquilaEditando ?? undefined}
         />
       )}
     </div>

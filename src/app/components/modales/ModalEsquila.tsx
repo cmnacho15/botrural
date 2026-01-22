@@ -1,12 +1,25 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { X } from 'lucide-react'
 
 interface ModalEsquilaProps {
   isOpen: boolean
   onClose: () => void
   onSuccess: () => void
+  esquilaId?: string
+  esquilaData?: {
+    fecha: string
+    nroAnimales: number
+    notas: string | null
+    categorias: {
+      categoria: string
+      pesoKg: number
+      precioUSD: number
+      micras: number | null
+      rendimientoLavado: number | null
+    }[]
+  }
 }
 
 interface CategoriaLana {
@@ -24,7 +37,9 @@ const CATEGORIAS_LANA = [
   { id: 'pedazeria', nombre: 'Pedacería' },
 ]
 
-export default function ModalEsquila({ isOpen, onClose, onSuccess }: ModalEsquilaProps) {
+export default function ModalEsquila({ isOpen, onClose, onSuccess, esquilaId, esquilaData }: ModalEsquilaProps) {
+  const modoEdicion = !!esquilaId
+
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -37,6 +52,22 @@ export default function ModalEsquila({ isOpen, onClose, onSuccess }: ModalEsquil
   const [categorias, setCategorias] = useState<CategoriaLana[]>([
     { categoria: 'Vellón', pesoKg: 0, precioUSD: 0, micras: null, rendimientoLavado: null },
   ])
+
+  // Cargar datos si es edición
+  useEffect(() => {
+    if (esquilaData && modoEdicion) {
+      setFecha(esquilaData.fecha.split('T')[0])
+      setNroAnimales(esquilaData.nroAnimales.toString())
+      setNotas(esquilaData.notas || '')
+      setCategorias(esquilaData.categorias.map(cat => ({
+        categoria: cat.categoria,
+        pesoKg: cat.pesoKg,
+        precioUSD: cat.precioUSD,
+        micras: cat.micras,
+        rendimientoLavado: cat.rendimientoLavado,
+      })))
+    }
+  }, [esquilaData, modoEdicion])
 
   const agregarCategoria = () => {
     setCategorias([...categorias, { categoria: 'Barriga', pesoKg: 0, precioUSD: 0, micras: null, rendimientoLavado: null }])
@@ -94,8 +125,11 @@ export default function ModalEsquila({ isOpen, onClose, onSuccess }: ModalEsquil
     setLoading(true)
 
     try {
-      const response = await fetch('/api/esquilas', {
-        method: 'POST',
+      const url = modoEdicion ? `/api/esquilas/${esquilaId}` : '/api/esquilas'
+      const method = modoEdicion ? 'PATCH' : 'POST'
+      
+      const response = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           fecha,
@@ -113,14 +147,14 @@ export default function ModalEsquila({ isOpen, onClose, onSuccess }: ModalEsquil
 
       if (!response.ok) {
         const data = await response.json()
-        throw new Error(data.error || 'Error al crear esquila')
+        throw new Error(data.error || (modoEdicion ? 'Error al editar esquila' : 'Error al crear esquila'))
       }
 
       onSuccess()
       resetForm()
       onClose()
     } catch (err: any) {
-      setError(err.message || 'Error al crear esquila')
+      setError(err.message || (modoEdicion ? 'Error al editar esquila' : 'Error al crear esquila'))
     } finally {
       setLoading(false)
     }
@@ -142,8 +176,12 @@ export default function ModalEsquila({ isOpen, onClose, onSuccess }: ModalEsquil
         {/* HEADER */}
         <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">🐑  Registrar Esquila</h2>
-            <p className="text-sm text-gray-600 mt-1">Registrá la esquila y el stock de lana obtenido</p>
+            <h2 className="text-2xl font-bold text-gray-900">
+              🐑 {modoEdicion ? 'Editar Esquila' : 'Registrar Esquila'}
+            </h2>
+            <p className="text-sm text-gray-600 mt-1">
+              {modoEdicion ? 'Modificá los datos de la esquila' : 'Registrá la esquila y el stock de lana obtenido'}
+            </p>
           </div>
           <button
             onClick={onClose}
@@ -351,7 +389,7 @@ export default function ModalEsquila({ isOpen, onClose, onSuccess }: ModalEsquil
               disabled={loading}
               className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Guardando...' : 'Guardar Esquila'}
+              {loading ? 'Guardando...' : (modoEdicion ? 'Actualizar Esquila' : 'Guardar Esquila')}
             </button>
           </div>
         </form>
