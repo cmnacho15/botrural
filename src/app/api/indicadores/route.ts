@@ -212,6 +212,34 @@ const cargaKgPV = {
       pesoTotalKg: comprasPorTipo.BOVINO.pesoTotalKg + comprasPorTipo.OVINO.pesoTotalKg + comprasPorTipo.EQUINO.pesoTotalKg,
       importeBrutoUSD: comprasPorTipo.BOVINO.importeBrutoUSD + comprasPorTipo.OVINO.importeBrutoUSD + comprasPorTipo.EQUINO.importeBrutoUSD,
     }
+    
+
+    // ---------------------------------------------------------
+    // 3.5 OBTENER ESQUILAS DEL EJERCICIO
+    // ---------------------------------------------------------
+    const esquilas = await prisma.esquila.findMany({
+      where: {
+        campoId,
+        fecha: { gte: fechaDesde, lte: fechaHasta },
+      },
+      include: {
+        categorias: true,
+      },
+    })
+
+    // Calcular totales de lana
+    let totalKgLana = 0
+    let totalUSDLana = 0
+
+    esquilas.forEach(esquila => {
+      esquila.categorias.forEach(cat => {
+        totalKgLana += Number(cat.pesoKg)
+        totalUSDLana += Number(cat.pesoKg) * Number(cat.precioUSD)
+      })
+    })
+
+    // Conversión lana a equivalente carne (kg lana × 2.48)
+    const lanaEquivCarne = totalKgLana * 2.48
 
     // ---------------------------------------------------------
     // 4 OBTENER CONSUMOS DEL EJERCICIO
@@ -459,19 +487,19 @@ const cargaKgPV = {
     // 7 CALCULAR INDICADORES
     // ---------------------------------------------------------
 
-    // Producción de carne (kg) = Ventas + Consumo - Compras +/- Dif Inventario
+    // Producción de carne (kg) = Ventas + Consumo - Compras +/- Dif Inventario + Lana equiv
     const produccionCarne = {
-      global: ventasTotales.pesoTotalKg + consumosTotales.pesoTotalKg - comprasTotales.pesoTotalKg + difInventarioTotales.difKg,
+      global: ventasTotales.pesoTotalKg + consumosTotales.pesoTotalKg - comprasTotales.pesoTotalKg + difInventarioTotales.difKg + lanaEquivCarne,
       vacunos: ventasPorTipo.BOVINO.pesoTotalKg + consumosPorTipo.BOVINO.pesoTotalKg - comprasPorTipo.BOVINO.pesoTotalKg + difInventarioPorTipo.BOVINO.difKg,
-      ovinos: ventasPorTipo.OVINO.pesoTotalKg + consumosPorTipo.OVINO.pesoTotalKg - comprasPorTipo.OVINO.pesoTotalKg + difInventarioPorTipo.OVINO.difKg,
+      ovinos: ventasPorTipo.OVINO.pesoTotalKg + consumosPorTipo.OVINO.pesoTotalKg - comprasPorTipo.OVINO.pesoTotalKg + difInventarioPorTipo.OVINO.difKg + lanaEquivCarne,
       equinos: ventasPorTipo.EQUINO.pesoTotalKg + consumosPorTipo.EQUINO.pesoTotalKg - comprasPorTipo.EQUINO.pesoTotalKg + difInventarioPorTipo.EQUINO.difKg,
     }
 
-    // Producto Bruto (U$S) = Ventas + Consumo - Compras +/- Dif Inventario
+    // Producto Bruto (U$S) = Ventas + Consumo - Compras +/- Dif Inventario + Valor lana
     const productoBruto = {
-      global: ventasTotales.importeBrutoUSD + consumosTotales.valorTotalUSD - comprasTotales.importeBrutoUSD + difInventarioTotales.difUSD,
+      global: ventasTotales.importeBrutoUSD + consumosTotales.valorTotalUSD - comprasTotales.importeBrutoUSD + difInventarioTotales.difUSD + totalUSDLana,
       vacunos: ventasPorTipo.BOVINO.importeBrutoUSD + consumosPorTipo.BOVINO.valorTotalUSD - comprasPorTipo.BOVINO.importeBrutoUSD + difInventarioPorTipo.BOVINO.difUSD,
-      ovinos: ventasPorTipo.OVINO.importeBrutoUSD + consumosPorTipo.OVINO.valorTotalUSD - comprasPorTipo.OVINO.importeBrutoUSD + difInventarioPorTipo.OVINO.difUSD,
+      ovinos: ventasPorTipo.OVINO.importeBrutoUSD + consumosPorTipo.OVINO.valorTotalUSD - comprasPorTipo.OVINO.importeBrutoUSD + difInventarioPorTipo.OVINO.difUSD + totalUSDLana,
       equinos: ventasPorTipo.EQUINO.importeBrutoUSD + consumosPorTipo.EQUINO.valorTotalUSD - comprasPorTipo.EQUINO.importeBrutoUSD + difInventarioPorTipo.EQUINO.difUSD,
     }
 
@@ -809,16 +837,21 @@ const relacionInsumoProducto = {
       // Datos crudos para debugging
       _debug: {
   ventas: ventasTotales,
-  ventasPorTipo,  // 🆕 AGREGAR
+  ventasPorTipo,
   compras: comprasTotales,
-  comprasPorTipo,  // 🆕 AGREGAR
+  comprasPorTipo,
   consumos: consumosTotales,
-  consumosPorTipo,  // 🆕 AGREGAR
+  consumosPorTipo,
   difInventario: difInventarioTotales,
-  difInventarioPorTipo,  // 🆕 AGREGAR
+  difInventarioPorTipo,
         costosVariables: totalVariables,
         costosFijos: totalFijos,
         costosRenta: totalRenta,
+        lana: {
+          totalKgLana,
+          totalUSDLana,
+          lanaEquivCarne,
+        },
       },
     })
 
