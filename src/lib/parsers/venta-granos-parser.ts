@@ -1,4 +1,4 @@
-// lib/parsers/venta-granos-parser.ts
+// src/lib/parsers/venta-granos-parser.ts
 import OpenAI from "openai";
 
 const openai = new OpenAI({
@@ -22,10 +22,17 @@ export interface ServicioGrano {
 }
 
 export interface ImpuestosVentaGranos {
+  iva?: number;
   imeba?: number;
-  mevir?: number;
   inia?: number;
+  mevir?: number;
+  comision?: number;
   otros?: number;
+  
+  otrosDetalle?: {
+    concepto: string;
+    monto: number;
+  }[];
 }
 
 export interface ParsedVentaGranos {
@@ -54,7 +61,7 @@ export interface ParsedVentaGranos {
   servicios: ServicioGrano[];
   totalServiciosUSD: number;
   
-  // Retenciones
+  // Retenciones/Costos comerciales
   impuestos: ImpuestosVentaGranos;
   totalImpuestosUSD: number;
   
@@ -69,7 +76,7 @@ export interface ParsedVentaGranos {
 }
 
 /**
- * Procesar liquidación de VENTA DE GRANOS
+ * Procesar liquidación de VENTA DE GRANOS con extracción automática de costos comerciales
  */
 export async function processVentaGranosImage(imageUrl: string, campoId?: string): Promise<ParsedVentaGranos | null> {
   try {
@@ -104,6 +111,10 @@ RESUMEN (datos a extraer):
 - Precio (US$/tm): precio por tonelada métrica
 - Monto bruto (US$): cantidad neta × precio
 
+BONIFICACIONES Y AJUSTES DE PRECIO:
+- Bonificación viajes a puerto (US$): puede sumarse al monto bruto
+- Ajuste precio Factores (US$): puede ser positivo o negativo
+
 SERVICIOS (descuentos del monto bruto):
 - Secado (US$)
 - Prelimpeza (US$)
@@ -112,15 +123,32 @@ SERVICIOS (descuentos del monto bruto):
 - Otros servicios
 → Total servicios (US$)
 
-Monto neto sin retenciones (US$) = Monto bruto - Total servicios
+Monto neto sin retenciones (US$) = Monto bruto + Bonificaciones - Total servicios
 
-RETENCIONES (descuentos adicionales):
+RETENCIONES/COSTOS COMERCIALES (descuentos adicionales):
+- IVA (US$) - si existe
 - IMEBA (US$)
 - INIA (US$)
 - MEVIR (US$)
+- Comisión (US$) - del consignatario
+- Otros (US$) - cualquier otro descuento no clasificado
 → Total retenciones (US$)
 
 Monto final (US$) = Monto neto sin retenciones - Total retenciones
+
+====== EXTRACCIÓN DE COSTOS COMERCIALES (CRÍTICO) ======
+
+CLASIFICACIÓN DE RETENCIONES:
+1. **IVA**: Si existe impuesto al valor agregado (22% en Uruguay)
+2. **IMEBA**: Impuesto a la Enajenación de Bienes Agropecuarios
+3. **INIA**: Instituto Nacional de Investigación Agropecuaria
+4. **MEVIR**: Movimiento para Erradicar la Vivienda Insalubre Rural
+5. **Comisión**: Del consignatario o intermediario
+6. **Otros**: TODO lo demás que reste del monto neto
+
+⚠️ IMPORTANTE: 
+- Guardá el detalle de "otros" en "otrosDetalle" con concepto y monto
+- Si NO hay retenciones/costos, todos los campos van en 0
 
 ====== EXTRACCIÓN DE DATOS ======
 
@@ -186,11 +214,15 @@ Monto final (US$) = Monto neto sin retenciones - Total retenciones
    * -1,673.25 → -1673.25
    * 1.673,25 → -1673.25 (agregar signo negativo si falta)
 
-5. EXTRAER RETENCIONES:
+5. EXTRAER RETENCIONES/COSTOS COMERCIALES:
    impuestos: {
+     iva: 0,            // si existe
      imeba: 65.24,      // sin signo negativo
      inia: 260.98,      // sin signo negativo
-     mevir: 130.49      // sin signo negativo
+     mevir: 130.49,     // sin signo negativo
+     comision: 0,       // si existe
+     otros: 0,          // suma de otros conceptos no clasificados
+     otrosDetalle: []   // detalle de "otros"
    }
    
    totalImpuestosUSD: suma de todas las retenciones
@@ -275,9 +307,13 @@ RESPONDE SOLO JSON (sin markdown ni explicaciones):
   ],
   "totalServiciosUSD": 16989.35,
   "impuestos": {
+    "iva": 0,
     "imeba": 65.24,
     "inia": 260.98,
-    "mevir": 130.49
+    "mevir": 130.49,
+    "comision": 0,
+    "otros": 0,
+    "otrosDetalle": []
   },
   "totalImpuestosUSD": 456.71,
   "subtotalUSD": 82856.50,
@@ -288,12 +324,12 @@ RESPONDE SOLO JSON (sin markdown ni explicaciones):
         {
           role: "user",
           content: [
-            { type: "text", text: "Extrae todos los datos de esta liquidación de venta de granos:" },
+            { type: "text", text: "Extrae TODOS los datos de esta liquidación de venta de granos, incluyendo TODOS los servicios y costos comerciales/retenciones:" },
             { type: "image_url", image_url: { url: imageUrl, detail: "high" } }
           ]
         }
       ],
-      max_tokens: 2500,
+      max_tokens: 3000,
       temperature: 0.05
     });
 
@@ -304,9 +340,10 @@ RESPONDE SOLO JSON (sin markdown ni explicaciones):
     const jsonStr = content.replace(/```json/g, "").replace(/```/g, "").trim();
     const data = JSON.parse(jsonStr) as ParsedVentaGranos;
 
-    // Validaciones y correcciones
-    console.log("✅ Validando liquidación de GRANOS...")
+    console.log("✅ Datos extraídos de liquidación de granos");
+    console.log("📊 Costos comerciales detectados:", data.impuestos);
 
+    // ====== VALIDACIONES Y CORRECCIONES ======
     if (!data.renglones?.length) {
       throw new Error("No se encontraron renglones de granos");
     }
@@ -357,7 +394,13 @@ RESPONDE SOLO JSON (sin markdown ni explicaciones):
     }
 
     if (!data.totalImpuestosUSD && data.impuestos) {
-      data.totalImpuestosUSD = Object.values(data.impuestos).reduce((sum, val) => sum + (val || 0), 0);
+      data.totalImpuestosUSD = 
+        (data.impuestos.iva || 0) +
+        (data.impuestos.imeba || 0) +
+        (data.impuestos.inia || 0) +
+        (data.impuestos.mevir || 0) +
+        (data.impuestos.comision || 0) +
+        (data.impuestos.otros || 0);
     }
 
     if (!data.totalNetoUSD) {
@@ -369,13 +412,13 @@ RESPONDE SOLO JSON (sin markdown ni explicaciones):
       throw new Error("El productor y el comprador no pueden ser la misma entidad");
     }
 
-    console.log("✅ Liquidación de GRANOS procesada:", {
-      comprador: data.comprador,
-      productor: data.productor,
-      grano: data.renglones[0].tipoCultivoNombre,
-      toneladas: data.renglones[0].cantidadToneladas + " ton",
-      totalNeto: data.totalNetoUSD + " USD"
-    });
+    console.log("✅ Liquidación de GRANOS procesada exitosamente");
+    console.log(`   Grano: ${data.renglones[0].tipoCultivoNombre}`);
+    console.log(`   Toneladas: ${data.renglones[0].cantidadToneladas} ton`);
+    console.log(`   Subtotal: $${data.subtotalUSD.toFixed(2)} USD`);
+    console.log(`   Servicios: -$${data.totalServiciosUSD.toFixed(2)} USD`);
+    console.log(`   Costos comerciales: -$${data.totalImpuestosUSD.toFixed(2)} USD`);
+    console.log(`   Neto final: $${data.totalNetoUSD.toFixed(2)} USD`);
 
     return data;
 

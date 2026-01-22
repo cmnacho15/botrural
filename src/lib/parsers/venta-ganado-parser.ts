@@ -1,4 +1,4 @@
-// lib/parsers/venta-ganado-parser.ts
+// src/lib/parsers/venta-ganado-parser.ts
 import OpenAI from "openai";
 
 const openai = new OpenAI({
@@ -23,13 +23,18 @@ export interface VentaGanadoRenglonParsed {
 }
 
 export interface ImpuestosVenta {
-  mevir?: number;
-  inia?: number;
-  imeba?: number;
-  decreto364_003?: number;
-  decreto117_015?: number;
-  mgap?: number;
-  otros?: number;
+  iva?: number;
+  imeba?: number;          // Ley 16736
+  inia?: number;           // Ley 16065
+  mevir?: number;          // Ley 15851
+  comision?: number;       // Del consignatario
+  otros?: number;          // Suma de todo lo demás
+  
+  // Detalle de "otros" (opcional, para el contador)
+  otrosDetalle?: {
+    concepto: string;
+    monto: number;
+  }[];
 }
 
 export interface ParsedVentaGanado {
@@ -73,7 +78,7 @@ export interface ParsedVentaGanado {
 }
 
 /**
- * Procesar factura de VENTA DE GANADO
+ * Procesar factura de VENTA DE GANADO con extracción automática de costos comerciales
  */
 export async function processVentaGanadoImage(imageUrl: string, campoId?: string): Promise<ParsedVentaGanado | null> {
   try {
@@ -103,12 +108,34 @@ ESTRUCTURA TÍPICA:
 TIPO A - FRIGORÍFICO:
 - Tiene balanzas: "Primera Balanza", "Segunda Balanza" (ovinos) o "4ta Balanza" (bovinos)
 - Tiene "Rendimiento"
-- Impuestos: MEVIR, INIA, IMEBA
+- Impuestos: MEVIR, INIA, IMEBA, D364, Ley 19300, Ley 19355, etc.
 
 TIPO B - CAMPO A CAMPO:
 - NO tiene balanzas
 - Precio directo en kg EN PIE
 - Puede tener columna "% Destare"
+- Puede NO tener impuestos, o solo comisión
+
+====== EXTRACCIÓN DE COSTOS COMERCIALES (CRÍTICO) ======
+
+CLASIFICACIÓN DE COSTOS:
+1. **IVA**: Si existe impuesto al valor agregado (22% en Uruguay)
+2. **IMEBA**: Ley 16736 / A655 (Impuesto a la Enajenación de Bienes Agropecuarios)
+3. **INIA**: Ley 16065 (Instituto Nacional de Investigación Agropecuaria)
+4. **MEVIR**: Ley 15851 (Movimiento para Erradicar la Vivienda Insalubre Rural)
+5. **Comisión**: Del consignatario o intermediario
+6. **Otros**: TODO lo demás que reste del subtotal
+
+EJEMPLOS DE "OTROS":
+- D364/432/003
+- Ley 19300/19438 SCEPB
+- Ley 19355 Certif Elec
+- Cualquier otro descuento no clasificado arriba
+
+⚠️ IMPORTANTE: 
+- Si hay costos/impuestos que NO son IVA, IMEBA, INIA, MEVIR, ni Comisión → van a "otros"
+- Guardá el detalle en "otrosDetalle" con concepto y monto
+- Si NO hay costos comerciales (venta campo a campo simple), todos los campos van en 0
 
 ====== EXTRACCIÓN SEGÚN TIPO ======
 
@@ -139,33 +166,64 @@ TIPO B (CAMPO A CAMPO):
 - rutEmisor: SIEMPRE del RUT VENDEDOR/EMISOR
 - productor: nombre asociado al RUT VENDEDOR
 - comprador: de la sección "Comprador:"
-- consignatario: empresa del logo/header (ej: MEGAAGRO)
+- consignatario: empresa del logo/header (ej: MEGAAGRO, MARFRIG)
 
-RESPONDE SOLO JSON (sin markdown):
+====== FORMATO DE RESPUESTA ======
+
+RESPONDE SOLO JSON (sin markdown, sin explicaciones):
 {
   "tipo": "VENTA",
   "tipoProducto": "GANADO",
   "comprador": "...",
   "productor": "...",
   "rutEmisor": "...",
+  "consignatario": "...",
   "fecha": "YYYY-MM-DD",
   "nroFactura": "...",
-  "renglones": [...],
-  "subtotalUSD": 0,
-  "totalImpuestosUSD": 0,
-  "totalNetoUSD": 0,
-  "metodoPago": "Contado"
+  "nroTropa": "...",
+  "renglones": [
+    {
+      "categoria": "NOVILLO GORDO",
+      "tipoAnimal": "BOVINO",
+      "cantidad": 9,
+      "pesoTotalKg": 4520,
+      "pesoPromedio": 502,
+      "precioKgUSD": 5.25,
+      "importeBrutoUSD": 12650.95
+    }
+  ],
+  "cantidadTotal": 9,
+  "pesoTotalKg": 4520,
+  "subtotalUSD": 84596.10,
+  "impuestos": {
+    "iva": 0,
+    "imeba": 1649.05,
+    "inia": 329.81,
+    "mevir": 164.90,
+    "comision": 0,
+    "otros": 490.94,
+    "otrosDetalle": [
+      {"concepto": "D364/432/003", "monto": 340.62},
+      {"concepto": "Ley 19300/19438 SCEPB", "monto": 142.00},
+      {"concepto": "Ley 19355 Certif Elec", "monto": 8.32}
+    ]
+  },
+  "totalImpuestosUSD": 2634.70,
+  "totalNetoUSD": 81961.40,
+  "metodoPago": "Plazo",
+  "diasPlazo": 45,
+  "fechaVencimiento": "2025-12-15"
 }`
         },
         {
           role: "user",
           content: [
-            { type: "text", text: "Extrae todos los datos de esta factura de venta de ganado:" },
+            { type: "text", text: "Extrae TODOS los datos de esta factura de venta de ganado, incluyendo TODOS los costos comerciales e impuestos:" },
             { type: "image_url", image_url: { url: imageUrl, detail: "high" } }
           ]
         }
       ],
-      max_tokens: 2500,
+      max_tokens: 3000,
       temperature: 0.05
     });
 
@@ -175,25 +233,36 @@ RESPONDE SOLO JSON (sin markdown):
     const jsonStr = content.replace(/```json/g, "").replace(/```/g, "").trim();
     const data = JSON.parse(jsonStr) as ParsedVentaGanado;
 
-    // Validaciones y conversiones (código existente)
+    console.log("✅ Datos extraídos de factura de ganado");
+    console.log("📊 Costos comerciales detectados:", data.impuestos);
+
+    // ====== CONVERSIÓN DE DATOS DE FRIGORÍFICO A EN PIE ======
     console.log("🔄 Procesando renglones para conversión a datos EN PIE...")
     
     for (let i = 0; i < data.renglones.length; i++) {
       const r = data.renglones[i];
       
+      // Si tiene datos de balanza post-faena, convertir a EN PIE
       if (r.pesoTotal2da4ta && r.pesoTotalPie && r.precio2da4ta) {
-        const importeCalculado = r.pesoTotal2da4ta * r.precio2da4ta;
+        console.log(`  🔄 Convirtiendo renglón ${i + 1}: ${r.categoria}`);
+        
+        // El importe bruto ya está correcto (precio post-faena × peso post-faena)
+        // Ahora calculamos precio EN PIE equivalente
         r.pesoTotalKg = r.pesoTotalPie;
         r.pesoPromedio = r.pesoTotalPie / r.cantidad;
         r.precioKgUSD = r.importeBrutoUSD / r.pesoTotalPie;
         
+        console.log(`    ✅ Peso EN PIE: ${r.pesoTotalKg.toFixed(2)} kg`);
+        console.log(`    ✅ Precio EN PIE equivalente: $${r.precioKgUSD.toFixed(4)}/kg`);
+        
+        // Limpiar campos temporales
         delete (r as any).pesoTotal2da4ta;
         delete (r as any).pesoTotalPie;
         delete (r as any).precio2da4ta;
       }
     }
 
-    // Calcular totales si faltan
+    // ====== CALCULAR TOTALES SI FALTAN ======
     if (!data.cantidadTotal) {
       data.cantidadTotal = data.renglones.reduce((sum, r) => sum + r.cantidad, 0);
     }
@@ -203,14 +272,23 @@ RESPONDE SOLO JSON (sin markdown):
     if (!data.subtotalUSD) {
       data.subtotalUSD = data.renglones.reduce((sum, r) => sum + r.importeBrutoUSD, 0);
     }
+    
+    // Calcular total de impuestos si falta
     if (!data.totalImpuestosUSD && data.impuestos) {
-      data.totalImpuestosUSD = Object.values(data.impuestos).reduce((sum, val) => sum + (val || 0), 0);
+      data.totalImpuestosUSD = 
+        (data.impuestos.iva || 0) +
+        (data.impuestos.imeba || 0) +
+        (data.impuestos.inia || 0) +
+        (data.impuestos.mevir || 0) +
+        (data.impuestos.comision || 0) +
+        (data.impuestos.otros || 0);
     }
+    
     if (!data.totalNetoUSD) {
       data.totalNetoUSD = data.subtotalUSD - (data.totalImpuestosUSD || 0);
     }
 
-    // Calcular método de pago
+    // ====== CALCULAR MÉTODO DE PAGO ======
     if (data.fechaVencimiento) {
       const fechaFactura = new Date(data.fecha + 'T12:00:00Z');
       const fechaVenc = new Date(data.fechaVencimiento + 'T12:00:00Z');
@@ -227,12 +305,19 @@ RESPONDE SOLO JSON (sin markdown):
       data.metodoPago = data.metodoPago || "Contado";
     }
 
-    // Validación final
+    // ====== VALIDACIÓN FINAL ======
     if (data.productor === data.comprador) {
       throw new Error("El productor y el comprador no pueden ser la misma entidad");
     }
 
     data.tipoProducto = "GANADO";
+    
+    console.log("✅ Factura de ganado procesada exitosamente");
+    console.log(`   Total animales: ${data.cantidadTotal}`);
+    console.log(`   Subtotal: $${data.subtotalUSD.toFixed(2)} USD`);
+    console.log(`   Costos comerciales: $${data.totalImpuestosUSD.toFixed(2)} USD`);
+    console.log(`   Neto: $${data.totalNetoUSD.toFixed(2)} USD`);
+    
     return data;
 
   } catch (error) {
