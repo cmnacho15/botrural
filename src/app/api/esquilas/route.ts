@@ -29,20 +29,26 @@ export async function GET(req: NextRequest) {
     });
 
     // Calcular disponible para cada esquila
-    const esquilasConDisponible = esquilas.map(esquila => {
-      const totalKg = esquila.categorias.reduce((sum, cat) => sum + Number(cat.pesoKg), 0);
-      const totalVendido = esquila.categorias.reduce((sum, cat) => sum + Number(cat.pesoVendido), 0);
-      const disponible = totalKg - totalVendido;
-      const porcentajeDisponible = totalKg > 0 ? (disponible / totalKg) * 100 : 0;
+const esquilasConDisponible = esquilas.map(esquila => {
+  const totalKg = esquila.categorias.reduce((sum, cat) => sum + Number(cat.pesoKg), 0);
+  const totalVendido = esquila.categorias.reduce((sum, cat) => sum + Number(cat.pesoVendido), 0);
+  const disponible = totalKg - totalVendido;
+  const porcentajeDisponible = totalKg > 0 ? (disponible / totalKg) * 100 : 0;
 
-      return {
-        ...esquila,
-        totalKg,
-        totalVendido,
-        disponible,
-        porcentajeDisponible,
-      };
-    });
+  // Calcular precio de referencia promedio ponderado de esta esquila
+  const precioRefUSD = esquila.categorias.reduce((sum, cat) => {
+    return sum + (Number(cat.pesoKg) * Number(cat.precioUSD));
+  }, 0) / (totalKg > 0 ? totalKg : 1);
+
+  return {
+    ...esquila,
+    totalKg,
+    totalVendido,
+    disponible,
+    porcentajeDisponible,
+    precioRefUSD,
+  };
+});
 
     return NextResponse.json(esquilasConDisponible);
   } catch (error) {

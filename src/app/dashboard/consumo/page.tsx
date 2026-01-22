@@ -572,61 +572,150 @@ const [lanaAbierto, setLanaAbierto] = useState(false)
                     </div>
                   ) : (
                     <div className="overflow-x-auto">
-                      <table className="w-full bg-white rounded-lg shadow">
-                        <thead className="bg-gray-50 border-b border-gray-200">
-                          <tr>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase">Fecha</th>
-                            <th className="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase">Animales</th>
-                            <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase">Total kg</th>
-                            <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase">Disponible</th>
-                            <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase">% Stock</th>
-                            <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase">Precio Ref.</th>
-                            <th className="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase">Estado</th>
-                          </tr>
-                        </thead>
+  <table className="w-full bg-white rounded-lg shadow">
+    <thead className="bg-gray-50 border-b border-gray-200">
+      <tr>
+        <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase">Fecha</th>
+        <th className="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase">Animales</th>
+        <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase">Total kg</th>
+        <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase">Disponible</th>
+        <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase">% Stock</th>
+        <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase">Precio Ref.</th>
+        <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase">Valor Est.</th>
+        <th className="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase">Estado</th>
+        <th className="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase">Detalle</th>
+      </tr>
+    </thead>
                         <tbody className="divide-y divide-gray-100">
-                          {esquilas.map((esquila: any) => {
-                            const porcentaje = esquila.porcentajeDisponible || 0
-                            let estadoColor = 'bg-green-100 text-green-800'
-                            let estadoTexto = '🟢 En Stock'
-                            
-                            if (porcentaje < 100 && porcentaje > 0) {
-                              estadoColor = 'bg-yellow-100 text-yellow-800'
-                              estadoTexto = '🟡 Parcial'
-                            } else if (porcentaje === 0) {
-                              estadoColor = 'bg-red-100 text-red-800'
-                              estadoTexto = '🔴 Vendida'
-                            }
+  {esquilas.map((esquila: any) => {
+    const porcentaje = esquila.porcentajeDisponible || 0
+    let estadoColor = 'bg-green-100 text-green-800'
+    let estadoTexto = '🟢 En Stock'
+    
+    if (porcentaje < 100 && porcentaje > 0) {
+      estadoColor = 'bg-yellow-100 text-yellow-800'
+      estadoTexto = '🟡 Parcial'
+    } else if (porcentaje === 0) {
+      estadoColor = 'bg-red-100 text-red-800'
+      estadoTexto = '🔴 Vendida'
+    }
 
-                            return (
-                              <tr key={esquila.id} className="hover:bg-gray-50">
-                                <td className="px-4 py-3 text-gray-700">
-                                  {new Date(esquila.fecha).toLocaleDateString('es-UY')}
-                                </td>
-                                <td className="px-4 py-3 text-center font-medium text-gray-900">
-                                  {esquila.nroAnimales.toLocaleString('es-UY')}
-                                </td>
-                                <td className="px-4 py-3 text-right text-gray-700">
-                                  {esquila.totalKg?.toLocaleString('es-UY', { maximumFractionDigits: 0 })} kg
-                                </td>
-                                <td className="px-4 py-3 text-right font-semibold text-gray-900">
-                                  {esquila.disponible?.toLocaleString('es-UY', { maximumFractionDigits: 0 })} kg
-                                </td>
-                                <td className="px-4 py-3 text-right text-gray-600">
-                                  {porcentaje.toFixed(0)}%
-                                </td>
-                                <td className="px-4 py-3 text-right text-gray-700">
-                                  ${Number(esquila.precioRefUSD).toFixed(2)}/kg
-                                </td>
-                                <td className="px-4 py-3 text-center">
-                                  <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${estadoColor}`}>
-                                    {estadoTexto}
-                                  </span>
-                                </td>
-                              </tr>
-                            )
-                          })}
-                        </tbody>
+    const valorEstimado = esquila.disponible * Number(esquila.precioRefUSD)
+    const promedioKgPorAnimal = esquila.nroAnimales > 0 ? esquila.totalKg / esquila.nroAnimales : 0
+
+    return (
+      <>
+        <tr key={esquila.id} className="hover:bg-gray-50">
+          <td className="px-4 py-3 text-gray-700">
+            {new Date(esquila.fecha).toLocaleDateString('es-UY')}
+          </td>
+          <td className="px-4 py-3 text-center font-medium text-gray-900">
+            {esquila.nroAnimales.toLocaleString('es-UY')}
+            <span className="block text-xs text-gray-500 mt-0.5">
+              {promedioKgPorAnimal.toFixed(2)} kg/animal
+            </span>
+          </td>
+          <td className="px-4 py-3 text-right text-gray-700">
+            {esquila.totalKg?.toLocaleString('es-UY', { maximumFractionDigits: 0 })} kg
+          </td>
+          <td className="px-4 py-3 text-right font-semibold text-gray-900">
+            {esquila.disponible?.toLocaleString('es-UY', { maximumFractionDigits: 0 })} kg
+          </td>
+          <td className="px-4 py-3 text-right text-gray-600">
+            {porcentaje.toFixed(0)}%
+          </td>
+          <td className="px-4 py-3 text-right text-gray-700">
+            ${Number(esquila.precioRefUSD).toFixed(2)}/kg
+          </td>
+          <td className="px-4 py-3 text-right font-semibold text-green-600">
+            ${valorEstimado.toLocaleString('es-UY', { maximumFractionDigits: 0 })}
+          </td>
+          <td className="px-4 py-3 text-center">
+            <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${estadoColor}`}>
+              {estadoTexto}
+            </span>
+          </td>
+          <td className="px-4 py-3 text-center">
+            <button
+              onClick={() => {
+                const detalleDiv = document.getElementById(`detalle-${esquila.id}`)
+                if (detalleDiv) {
+                  detalleDiv.style.display = detalleDiv.style.display === 'none' ? 'table-row' : 'none'
+                }
+              }}
+              className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 font-medium"
+            >
+              👁️ Ver
+            </button>
+          </td>
+        </tr>
+
+        {/* FILA EXPANDIBLE CON DETALLE */}
+        <tr id={`detalle-${esquila.id}`} style={{ display: 'none' }} className="bg-blue-50">
+          <td colSpan={9} className="px-4 py-4">
+            <div className="space-y-3">
+              <h4 className="font-semibold text-gray-900 mb-3">📋 Detalle por Categoría</h4>
+              
+              {esquila.notas && (
+                <div className="mb-3 p-2 bg-yellow-50 border border-yellow-200 rounded text-sm">
+                  <strong>Notas:</strong> {esquila.notas}
+                </div>
+              )}
+
+              <table className="w-full text-sm">
+                <thead className="bg-blue-100">
+                  <tr>
+                    <th className="px-3 py-2 text-left font-semibold text-gray-700">Categoría</th>
+                    <th className="px-3 py-2 text-right font-semibold text-gray-700">Peso (kg)</th>
+                    <th className="px-3 py-2 text-right font-semibold text-gray-700">Vendido (kg)</th>
+                    <th className="px-3 py-2 text-right font-semibold text-gray-700">Stock (kg)</th>
+                    <th className="px-3 py-2 text-right font-semibold text-gray-700">Precio USD/kg</th>
+                    <th className="px-3 py-2 text-right font-semibold text-gray-700">Micras</th>
+                    <th className="px-3 py-2 text-right font-semibold text-gray-700">Rend. Lavado</th>
+                    <th className="px-3 py-2 text-right font-semibold text-gray-700">Valor Stock</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {esquila.categorias.map((cat: any) => {
+                    const stockCat = Number(cat.pesoKg) - Number(cat.pesoVendido)
+                    const valorStockCat = stockCat * Number(cat.precioUSD)
+                    
+                    return (
+                      <tr key={cat.id} className="border-b border-blue-100">
+                        <td className="px-3 py-2 text-gray-900">{cat.categoria}</td>
+                        <td className="px-3 py-2 text-right text-gray-700">
+                          {Number(cat.pesoKg).toLocaleString('es-UY', { maximumFractionDigits: 2 })}
+                        </td>
+                        <td className="px-3 py-2 text-right text-gray-700">
+                          {Number(cat.pesoVendido).toLocaleString('es-UY', { maximumFractionDigits: 2 })}
+                        </td>
+                        <td className="px-3 py-2 text-right font-semibold text-gray-900">
+                          {stockCat.toLocaleString('es-UY', { maximumFractionDigits: 2 })}
+                        </td>
+                        <td className="px-3 py-2 text-right text-gray-700">
+                          ${Number(cat.precioUSD).toFixed(2)}
+                        </td>
+                        <td className="px-3 py-2 text-right text-gray-700">
+                          {cat.micras ? `${Number(cat.micras).toFixed(1)}μ` : '-'}
+                        </td>
+                        <td className="px-3 py-2 text-right text-gray-700">
+                          {cat.rendimientoLavado ? `${Number(cat.rendimientoLavado).toFixed(1)}%` : '-'}
+                        </td>
+                        <td className="px-3 py-2 text-right font-semibold text-green-600">
+                          ${valorStockCat.toLocaleString('es-UY', { maximumFractionDigits: 0 })}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </td>
+        </tr>
+      </>
+    )
+  })}
+</tbody>
                       </table>
                     </div>
                   )}
