@@ -1074,16 +1074,18 @@ model Esquila {
 }
 
 model EsquilaCategoria {
-  id              String   @id @default(cuid())
-  esquilaId       String
-  categoria       String   // "Vellón", "Barriga", "Barriguera", etc.
-  pesoKg          Decimal  @db.Decimal(10, 2)
-  precioUSD       Decimal  @db.Decimal(10, 2) // 👈 NUEVO: Precio por kg de esta categoría
-  pesoVendido     Decimal  @default(0) @db.Decimal(10, 2) // Se actualiza al vender
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id                  String   @id @default(cuid())
+  esquilaId           String
+  categoria           String   // "Vellón", "Barriga", "Barriguera", etc.
+  pesoKg              Decimal  @db.Decimal(10, 2)
+  precioUSD           Decimal  @db.Decimal(10, 2) // Precio por kg de esta categoría
+  pesoVendido         Decimal  @default(0) @db.Decimal(10, 2) // Se actualiza al vender
+  micras              Decimal? @db.Decimal(5, 1) // Finura de la lana (opcional)
+  rendimientoLavado   Decimal? @db.Decimal(5, 2) // % rendimiento al lavar (opcional)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
   
-  esquila         Esquila  @relation(fields: [esquilaId], references: [id], onDelete: Cascade)
+  esquila             Esquila  @relation(fields: [esquilaId], references: [id], onDelete: Cascade)
   
   @@index([esquilaId])
   @@index([categoria])
