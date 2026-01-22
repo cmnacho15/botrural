@@ -12,12 +12,12 @@ interface ModalEsquilaProps {
     fecha: string
     nroAnimales: number
     notas: string | null
+    micras: number | null
+    rendimientoLavado: number | null
     categorias: {
       categoria: string
       pesoKg: number
       precioUSD: number
-      micras: number | null
-      rendimientoLavado: number | null
     }[]
   }
 }
@@ -26,8 +26,6 @@ interface CategoriaLana {
   categoria: string
   pesoKg: number
   precioUSD: number
-  micras: number | null
-  rendimientoLavado: number | null
 }
 
 const CATEGORIAS_LANA = [
@@ -47,10 +45,12 @@ export default function ModalEsquila({ isOpen, onClose, onSuccess, esquilaId, es
   const [fecha, setFecha] = useState(new Date().toISOString().split('T')[0])
   const [nroAnimales, setNroAnimales] = useState('')
   const [notas, setNotas] = useState('')
+  const [micras, setMicras] = useState<string>('')
+  const [rendimientoLavado, setRendimientoLavado] = useState<string>('')
   
   // Categorías de lana
   const [categorias, setCategorias] = useState<CategoriaLana[]>([
-    { categoria: 'Vellón', pesoKg: 0, precioUSD: 0, micras: null, rendimientoLavado: null },
+    { categoria: 'Vellón', pesoKg: 0, precioUSD: 0 },
   ])
 
   // Cargar datos si es edición
@@ -59,18 +59,18 @@ export default function ModalEsquila({ isOpen, onClose, onSuccess, esquilaId, es
       setFecha(esquilaData.fecha.split('T')[0])
       setNroAnimales(esquilaData.nroAnimales.toString())
       setNotas(esquilaData.notas || '')
+      setMicras(esquilaData.micras?.toString() || '')
+      setRendimientoLavado(esquilaData.rendimientoLavado?.toString() || '')
       setCategorias(esquilaData.categorias.map(cat => ({
         categoria: cat.categoria,
         pesoKg: cat.pesoKg,
         precioUSD: cat.precioUSD,
-        micras: cat.micras,
-        rendimientoLavado: cat.rendimientoLavado,
       })))
     }
   }, [esquilaData, modoEdicion])
 
   const agregarCategoria = () => {
-    setCategorias([...categorias, { categoria: 'Barriga', pesoKg: 0, precioUSD: 0, micras: null, rendimientoLavado: null }])
+    setCategorias([...categorias, { categoria: 'Barriga', pesoKg: 0, precioUSD: 0 }])
   }
 
   const eliminarCategoria = (index: number) => {
@@ -79,7 +79,7 @@ export default function ModalEsquila({ isOpen, onClose, onSuccess, esquilaId, es
     }
   }
 
-  const actualizarCategoria = (index: number, campo: 'categoria' | 'pesoKg' | 'precioUSD' | 'micras' | 'rendimientoLavado', valor: string | number | null) => {
+  const actualizarCategoria = (index: number, campo: 'categoria' | 'pesoKg' | 'precioUSD', valor: string | number) => {
     const nuevas = [...categorias]
     if (campo === 'categoria') {
       nuevas[index].categoria = valor as string
@@ -87,10 +87,6 @@ export default function ModalEsquila({ isOpen, onClose, onSuccess, esquilaId, es
       nuevas[index].pesoKg = valor as number
     } else if (campo === 'precioUSD') {
       nuevas[index].precioUSD = valor as number
-    } else if (campo === 'micras') {
-      nuevas[index].micras = valor as number | null
-    } else if (campo === 'rendimientoLavado') {
-      nuevas[index].rendimientoLavado = valor as number | null
     }
     setCategorias(nuevas)
   }
@@ -135,12 +131,12 @@ export default function ModalEsquila({ isOpen, onClose, onSuccess, esquilaId, es
           fecha,
           nroAnimales: parseInt(nroAnimales),
           notas: notas || null,
+          micras: micras ? parseFloat(micras) : null,
+          rendimientoLavado: rendimientoLavado ? parseFloat(rendimientoLavado) : null,
           categorias: categorias.map(cat => ({
             categoria: cat.categoria,
             pesoKg: parseFloat(cat.pesoKg.toString()),
             precioUSD: parseFloat(cat.precioUSD.toString()),
-            micras: cat.micras,
-            rendimientoLavado: cat.rendimientoLavado,
           })),
         }),
       })
@@ -164,7 +160,9 @@ export default function ModalEsquila({ isOpen, onClose, onSuccess, esquilaId, es
     setFecha(new Date().toISOString().split('T')[0])
     setNroAnimales('')
     setNotas('')
-    setCategorias([{ categoria: 'Vellón', pesoKg: 0, precioUSD: 0, micras: null, rendimientoLavado: null }])
+    setMicras('')
+    setRendimientoLavado('')
+    setCategorias([{ categoria: 'Vellón', pesoKg: 0, precioUSD: 0 }])
     setError('')
   }
 
@@ -231,6 +229,40 @@ export default function ModalEsquila({ isOpen, onClose, onSuccess, esquilaId, es
             </div>
           </div>
 
+          {/* ANÁLISIS DE LANA */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Micras (opcional)
+              </label>
+              <input
+                type="number"
+                step="0.1"
+                value={micras}
+                onChange={(e) => setMicras(e.target.value)}
+                placeholder="Ej: 19.5"
+                min="0"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Rendimiento Lavado % (opcional)
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                value={rendimientoLavado}
+                onChange={(e) => setRendimientoLavado(e.target.value)}
+                placeholder="Ej: 68.5"
+                min="0"
+                max="100"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+          </div>
+
           {/* CATEGORÍAS DE LANA */}
           <div>
             <div className="flex items-center justify-between mb-3">
@@ -248,88 +280,54 @@ export default function ModalEsquila({ isOpen, onClose, onSuccess, esquilaId, es
 
             <div className="space-y-3">
               {categorias.map((cat, index) => (
-                <div key={index} className="space-y-2">
-                  {/* FILA 1: Categoría, Peso, Precio */}
-                  <div className="flex gap-3 items-start">
-                    <div className="flex-1">
-                      <select
-                        value={cat.categoria}
-                        onChange={(e) => actualizarCategoria(index, 'categoria', e.target.value)}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      >
-                        {CATEGORIAS_LANA.map((catOpt) => (
-                          <option key={catOpt.id} value={catOpt.nombre}>
-                            {catOpt.nombre}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    
-                    <div className="flex-1">
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={cat.pesoKg || ''}
-                        onChange={(e) => actualizarCategoria(index, 'pesoKg', parseFloat(e.target.value) || 0)}
-                        placeholder="Peso en kg"
-                        min="0"
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                    </div>
-
-                    <div className="flex-1">
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={cat.precioUSD || ''}
-                        onChange={(e) => actualizarCategoria(index, 'precioUSD', parseFloat(e.target.value) || 0)}
-                        placeholder="USD/kg"
-                        min="0"
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                    </div>
-
-                    {categorias.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => eliminarCategoria(index)}
-                        className="px-3 py-2 text-red-600 hover:text-red-700"
-                      >
-                        <X size={20} />
-                      </button>
-                    )}
+                <div key={index} className="flex gap-3 items-start">
+                  <div className="flex-1">
+                    <select
+                      value={cat.categoria}
+                      onChange={(e) => actualizarCategoria(index, 'categoria', e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      {CATEGORIAS_LANA.map((catOpt) => (
+                        <option key={catOpt.id} value={catOpt.nombre}>
+                          {catOpt.nombre}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  <div className="flex-1">
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={cat.pesoKg || ''}
+                      onChange={(e) => actualizarCategoria(index, 'pesoKg', parseFloat(e.target.value) || 0)}
+                      placeholder="Peso en kg"
+                      min="0"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
                   </div>
 
-                  {/* FILA 2: Micras y Rendimiento */}
-                  <div className="flex gap-3 items-start pl-0">
-                    <div className="flex-1">
-                      <input
-                        type="number"
-                        step="0.1"
-                        value={cat.micras || ''}
-                        onChange={(e) => actualizarCategoria(index, 'micras', e.target.value ? parseFloat(e.target.value) : null)}
-                        placeholder="Micras (opcional)"
-                        min="0"
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                      />
-                    </div>
-                    
-                    <div className="flex-1">
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={cat.rendimientoLavado || ''}
-                        onChange={(e) => actualizarCategoria(index, 'rendimientoLavado', e.target.value ? parseFloat(e.target.value) : null)}
-                        placeholder="Rend. Lavado % (opcional)"
-                        min="0"
-                        max="100"
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                      />
-                    </div>
-
-                    <div className="flex-1"></div>
-                    {categorias.length > 1 && <div className="w-[44px]"></div>}
+                  <div className="flex-1">
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={cat.precioUSD || ''}
+                      onChange={(e) => actualizarCategoria(index, 'precioUSD', parseFloat(e.target.value) || 0)}
+                      placeholder="USD/kg"
+                      min="0"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
                   </div>
+
+                  {categorias.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => eliminarCategoria(index)}
+                      className="px-3 py-2 text-red-600 hover:text-red-700"
+                    >
+                      <X size={20} />
+                    </button>
+                  )}
                 </div>
               ))}
             </div>

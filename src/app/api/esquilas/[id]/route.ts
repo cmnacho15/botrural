@@ -24,7 +24,7 @@ export async function PATCH(
     }
 
     const body = await req.json();
-    const { fecha, nroAnimales, notas, categorias } = body;
+    const { fecha, nroAnimales, notas, micras, rendimientoLavado, categorias } = body;
 
     // Verificar que la esquila pertenezca al campo del usuario
     const esquilaExistente = await prisma.esquila.findFirst({
@@ -70,6 +70,8 @@ export async function PATCH(
         fecha: new Date(fecha),
         nroAnimales: parseInt(nroAnimales),
         notas: notas || null,
+        micras: micras || null,
+        rendimientoLavado: rendimientoLavado || null,
         categorias: {
           create: categorias.map((cat: any) => {
             const catAnterior = esquilaExistente.categorias.find(

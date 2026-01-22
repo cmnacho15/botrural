@@ -67,12 +67,12 @@ const [lanaAbierto, setLanaAbierto] = useState(false)
     fecha: string
     nroAnimales: number
     notas: string | null
+    micras: number | null
+    rendimientoLavado: number | null
     categorias: {
       categoria: string
       pesoKg: number
       precioUSD: number
-      micras: number | null
-      rendimientoLavado: number | null
     }[]
   } | null>(null)
 
@@ -305,12 +305,12 @@ const [lanaAbierto, setLanaAbierto] = useState(false)
       fecha: esquila.fecha,
       nroAnimales: esquila.nroAnimales,
       notas: esquila.notas,
+      micras: esquila.micras ? Number(esquila.micras) : null,
+      rendimientoLavado: esquila.rendimientoLavado ? Number(esquila.rendimientoLavado) : null,
       categorias: esquila.categorias.map((cat: any) => ({
         categoria: cat.categoria,
         pesoKg: Number(cat.pesoKg),
         precioUSD: Number(cat.precioUSD),
-        micras: cat.micras ? Number(cat.micras) : null,
-        rendimientoLavado: cat.rendimientoLavado ? Number(cat.rendimientoLavado) : null,
       }))
     })
     setModalEsquila(true)

@@ -1058,34 +1058,34 @@ model ConfigRecategorizacion {
 // ==========================================
 
 model Esquila {
-  id              String   @id @default(cuid())
-  fecha           DateTime
-  nroAnimales     Int      // Cantidad de animales esquilados
-  notas           String?
-  campoId         String
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id                  String   @id @default(cuid())
+  fecha               DateTime
+  nroAnimales         Int
+  notas               String?
+  micras              Decimal? @db.Decimal(5, 1)
+  rendimientoLavado   Decimal? @db.Decimal(5, 2)
+  campoId             String
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
   
-  campo           Campo              @relation(fields: [campoId], references: [id], onDelete: Cascade)
-  categorias      EsquilaCategoria[]
+  campo               Campo              @relation(fields: [campoId], references: [id], onDelete: Cascade)
+  categorias          EsquilaCategoria[]
   
   @@index([campoId])
   @@index([fecha])
 }
 
 model EsquilaCategoria {
-  id                  String   @id @default(cuid())
-  esquilaId           String
-  categoria           String   // "Vellón", "Barriga", "Barriguera", etc.
-  pesoKg              Decimal  @db.Decimal(10, 2)
-  precioUSD           Decimal  @db.Decimal(10, 2) // Precio por kg de esta categoría
-  pesoVendido         Decimal  @default(0) @db.Decimal(10, 2) // Se actualiza al vender
-  micras              Decimal? @db.Decimal(5, 1) // Finura de la lana (opcional)
-  rendimientoLavado   Decimal? @db.Decimal(5, 2) // % rendimiento al lavar (opcional)
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  id              String   @id @default(cuid())
+  esquilaId       String
+  categoria       String
+  pesoKg          Decimal  @db.Decimal(10, 2)
+  precioUSD       Decimal  @db.Decimal(10, 2)
+  pesoVendido     Decimal  @default(0) @db.Decimal(10, 2)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
   
-  esquila             Esquila  @relation(fields: [esquilaId], references: [id], onDelete: Cascade)
+  esquila         Esquila  @relation(fields: [esquilaId], references: [id], onDelete: Cascade)
   
   @@index([esquilaId])
   @@index([categoria])

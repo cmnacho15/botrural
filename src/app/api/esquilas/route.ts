@@ -1,3 +1,4 @@
+//src/app/api/esquilas/route
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-helpers";
@@ -78,7 +79,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { fecha, nroAnimales, precioRefUSD, notas, categorias } = body;
+    const { fecha, nroAnimales, notas, micras, rendimientoLavado, categorias } = body;
 
     // Validaciones
     if (!fecha || !nroAnimales || !categorias || categorias.length === 0) {
@@ -94,6 +95,8 @@ export async function POST(req: NextRequest) {
     fecha: new Date(fecha),
     nroAnimales: parseInt(nroAnimales),
     notas: notas || null,
+    micras: micras || null,
+    rendimientoLavado: rendimientoLavado || null,
     campoId: user.campoId,
     categorias: {
       create: categorias.map((cat: any) => ({
