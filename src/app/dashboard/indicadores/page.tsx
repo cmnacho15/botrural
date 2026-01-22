@@ -414,15 +414,7 @@ console.log('🔍 INDICADORES - usarSPG desde Context:', usarSPG)
       <td className="px-3 py-2 text-center border-b border-gray-100 text-gray-400">-</td>
     </tr>
     
-    <tr className="hover:bg-gray-50">
-      <td className="px-4 py-2 font-medium text-gray-500 border-b border-gray-100 sticky left-0 bg-white z-10">Lana total y lana/animal</td>
-      <td colSpan={8} className="px-3 py-2 text-center border-b border-gray-100 text-gray-400">-</td>
-    </tr>
     
-    <tr className="hover:bg-gray-50">
-      <td className="px-4 py-2 font-medium text-gray-500 border-b border-gray-100 sticky left-0 bg-white z-10">U$S en lana y U$S lana/kg</td>
-      <td colSpan={8} className="px-3 py-2 text-center border-b border-gray-100 text-gray-400">-</td>
-    </tr>
     
     <tr className="hover:bg-gray-50">
       <td className="px-4 py-2 font-medium text-gray-900 border-b border-gray-100 sticky left-0 bg-white z-10">Peso promedio venta</td>
