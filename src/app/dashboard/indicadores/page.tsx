@@ -107,6 +107,11 @@ _debug?: {
     costosVariables: number
     costosFijos: number
     costosRenta: number
+    lana?: {
+      totalKgLana: number
+      totalUSDLana: number
+      lanaEquivCarne: number
+    }
   }
 }
 
@@ -543,6 +548,26 @@ console.log('🔍 INDICADORES - usarSPG desde Context:', usarSPG)
             {fmt(Math.round((data._debug.difInventarioPorTipo?.EQUINO?.difKg || 0) / data.eficienciaTecnica.superficieTotal.equinos))}
           </td>
         </tr>
+
+        <tr className="bg-yellow-25 hover:bg-gray-50">
+  <td className="px-4 py-2 pl-12 text-sm text-gray-700 border-b border-gray-100 sticky left-0 bg-white z-10">+ Lana (kg equiv.)</td>
+  <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">
+    {fmt(data._debug?.lana?.lanaEquivCarne || 0)}
+  </td>
+  <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">
+    {fmt(Math.round((data._debug?.lana?.lanaEquivCarne || 0) / (data.superficie.usandoSPG ? data.superficie.spg : data.superficie.total)))}
+  </td>
+  <td className="px-3 py-2 text-center border-b border-gray-100 text-sm text-gray-400">-</td>
+  <td className="px-3 py-2 text-center border-b border-gray-100 text-sm text-gray-400">-</td>
+  <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">
+    {fmt(data._debug?.lana?.lanaEquivCarne || 0)}
+  </td>
+  <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">
+    {fmt(Math.round((data._debug?.lana?.lanaEquivCarne || 0) / data.eficienciaTecnica.superficieTotal.ovinos))}
+  </td>
+  <td className="px-3 py-2 text-center border-b border-gray-100 text-sm text-gray-400">-</td>
+  <td className="px-3 py-2 text-center border-b border-gray-100 text-sm text-gray-400">-</td>
+</tr>
       </>
     )}
   </>
@@ -669,6 +694,26 @@ console.log('🔍 INDICADORES - usarSPG desde Context:', usarSPG)
         {fmt(Math.round((data._debug?.difInventarioPorTipo?.EQUINO?.difUSD || 0) / data.eficienciaTecnica.superficieTotal.equinos))}
       </td>
     </tr>
+
+    <tr className="bg-blue-25 hover:bg-gray-50">
+  <td className="px-4 py-2 pl-12 text-sm text-gray-700 border-b border-gray-100 sticky left-0 bg-white z-10">+ Lana (U$S)</td>
+  <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">
+    {fmt(data._debug?.lana?.totalUSDLana || 0)}
+  </td>
+  <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">
+    {fmt(Math.round((data._debug?.lana?.totalUSDLana || 0) / (data.superficie.usandoSPG ? data.superficie.spg : data.superficie.total)))}
+  </td>
+  <td className="px-3 py-2 text-center border-b border-gray-100 text-sm text-gray-400">-</td>
+  <td className="px-3 py-2 text-center border-b border-gray-100 text-sm text-gray-400">-</td>
+  <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">
+    {fmt(data._debug?.lana?.totalUSDLana || 0)}
+  </td>
+  <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">
+    {fmt(Math.round((data._debug?.lana?.totalUSDLana || 0) / data.eficienciaTecnica.superficieTotal.ovinos))}
+  </td>
+  <td className="px-3 py-2 text-center border-b border-gray-100 text-sm text-gray-400">-</td>
+  <td className="px-3 py-2 text-center border-b border-gray-100 text-sm text-gray-400">-</td>
+</tr>
   </>
 )}
                   
