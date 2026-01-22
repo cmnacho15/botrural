@@ -24,6 +24,13 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const campoId = user!.campoId!
 
+    // 🆕 Obtener tipo de campo
+    const campo = await prisma.campo.findUnique({
+      where: { id: campoId },
+      select: { tipoCampo: true }
+    })
+    const esMixto = campo?.tipoCampo === 'MIXTO'
+
     // ---------------------------------------------------------
     // CALCULAR EJERCICIO FISCAL (1 julio - 30 junio)
     // ---------------------------------------------------------
@@ -54,20 +61,20 @@ export async function GET(request: Request) {
     // 1 OBTENER LOTES Y CALCULAR UG/HECTÁREAS
     // ---------------------------------------------------------
     const lotes = await prisma.lote.findMany({
-  where: { campoId },
-  select: {  // 🆕 CAMBIAR include por select
-    id: true,
-    nombre: true,
-    hectareas: true,
-    esPastoreable: true,  // 🆕 NUEVO
-    animalesLote: {
+      where: { campoId },
       select: {
-        categoria: true,
-        cantidad: true,
+        id: true,
+        nombre: true,
+        hectareas: true,
+        esPastoreable: true,
+        animalesLote: {
+          select: {
+            categoria: true,
+            cantidad: true,
+          },
+        },
       },
-    },
-  },
-})
+    })
 
     // Obtener equivalencias personalizadas del campo
     const pesosPersonalizados = await getEquivalenciasUG(campoId)
@@ -78,33 +85,53 @@ export async function GET(request: Request) {
     const { relacion: relacionLanarVacuno } = calcularRelacionLanarVacuno(lotes)
     
     // 🆕 CALCULAR SPG (solo potreros pastoreables)
-const lotesPastoreables = lotes.filter(l => l.esPastoreable)
-const spg = lotesPastoreables.reduce((sum, l) => sum + l.hectareas, 0)
+    const lotesPastoreables = lotes.filter(l => l.esPastoreable)
+    const spg = lotesPastoreables.reduce((sum, l) => sum + l.hectareas, 0)
 
-// 🆕 CALCULAR SUPERFICIE MEJORADA (pastoreables con cultivos)
-const lotesConCultivos = await prisma.lote.findMany({
-  where: {
-    campoId,
-    esPastoreable: true,
-  },
-  include: {
-    cultivos: {
+    // 🆕 CALCULAR SUPERFICIE MEJORADA (pastoreables con cultivos)
+    const lotesConCultivos = await prisma.lote.findMany({
       where: {
-        fechaSiembra: {
-          gte: fechaDesde,
-          lte: fechaHasta,
+        campoId,
+        esPastoreable: true,
+      },
+      include: {
+        cultivos: {
+          where: {
+            fechaSiembra: {
+              gte: fechaDesde,
+              lte: fechaHasta,
+            }
+          }
         }
       }
+    })
+
+    const superficieMejorada = lotesConCultivos
+      .filter(lote => lote.cultivos.length > 0)
+      .reduce((sum, lote) => sum + lote.hectareas, 0)
+
+    // 🆕 CALCULAR SUPERFICIE AGRÍCOLA (solo si MIXTO)
+    let superficieAgricola = 0
+    if (esMixto) {
+      const lotesConCultivosActivos = await prisma.lote.findMany({
+        where: {
+          campoId,
+          cultivos: {
+            some: {
+              fechaSiembra: {
+                gte: fechaDesde,
+                lte: fechaHasta
+              }
+            }
+          }
+        },
+        select: { hectareas: true }
+      })
+      superficieAgricola = lotesConCultivosActivos.reduce((sum, l) => sum + l.hectareas, 0)
     }
-  }
-})
 
-const superficieMejorada = lotesConCultivos
-  .filter(lote => lote.cultivos.length > 0)
-  .reduce((sum, lote) => sum + lote.hectareas, 0)
-
-// 🆕 DECIDIR QUÉ SUPERFICIE USAR
-const superficieParaCalculos = usarSPG ? spg : totalHectareas
+    // 🆕 DECIDIR QUÉ SUPERFICIE USAR
+    const superficieParaCalculos = usarSPG ? spg : totalHectareas
 
     // Calcular hectáreas por especie (proporcional a % UG)
     let porcentajesUG = { vacunos: 0, ovinos: 0, equinos: 0 }
@@ -117,27 +144,28 @@ const superficieParaCalculos = usarSPG ? spg : totalHectareas
     }
 
     const hectareasPorEspecie = {
-  vacunos: (superficieParaCalculos * porcentajesUG.vacunos) / 100,  // 🆕 CAMBIO
-  ovinos: (superficieParaCalculos * porcentajesUG.ovinos) / 100,    // 🆕 CAMBIO
-  equinos: (superficieParaCalculos * porcentajesUG.equinos) / 100,  // 🆕 CAMBIO
-  total: superficieParaCalculos,  // 🆕 CAMBIO
-}
+      vacunos: (superficieParaCalculos * porcentajesUG.vacunos) / 100,
+      ovinos: (superficieParaCalculos * porcentajesUG.ovinos) / 100,
+      equinos: (superficieParaCalculos * porcentajesUG.equinos) / 100,
+      total: superficieParaCalculos,
+    }
 
     // Carga (UG/ha)
     const carga = {
-  global: superficieParaCalculos > 0 ? ugTotalesCampo / superficieParaCalculos : 0,
-  vacunos: superficieParaCalculos > 0 ? desglosePorTipo.vacunos / superficieParaCalculos : 0,
-  ovinos: superficieParaCalculos > 0 ? desglosePorTipo.ovinos / superficieParaCalculos : 0,
-  equinos: superficieParaCalculos > 0 ? desglosePorTipo.yeguarizos / superficieParaCalculos : 0,
-}
+      global: superficieParaCalculos > 0 ? ugTotalesCampo / superficieParaCalculos : 0,
+      vacunos: superficieParaCalculos > 0 ? desglosePorTipo.vacunos / superficieParaCalculos : 0,
+      ovinos: superficieParaCalculos > 0 ? desglosePorTipo.ovinos / superficieParaCalculos : 0,
+      equinos: superficieParaCalculos > 0 ? desglosePorTipo.yeguarizos / superficieParaCalculos : 0,
+    }
 
-// 🆕 Carga en kg de peso vivo (UG × 380)
-const cargaKgPV = {
-  global: carga.global * 380,
-  vacunos: carga.vacunos * 380,
-  ovinos: carga.ovinos * 380,
-  equinos: carga.equinos * 380,
-}
+    // 🆕 Carga en kg de peso vivo (UG × 380)
+    const cargaKgPV = {
+      global: carga.global * 380,
+      vacunos: carga.vacunos * 380,
+      ovinos: carga.ovinos * 380,
+      equinos: carga.equinos * 380,
+    }
+
     // ---------------------------------------------------------
     // 2 OBTENER VENTAS DEL EJERCICIO
     // ---------------------------------------------------------
@@ -212,70 +240,122 @@ const cargaKgPV = {
       pesoTotalKg: comprasPorTipo.BOVINO.pesoTotalKg + comprasPorTipo.OVINO.pesoTotalKg + comprasPorTipo.EQUINO.pesoTotalKg,
       importeBrutoUSD: comprasPorTipo.BOVINO.importeBrutoUSD + comprasPorTipo.OVINO.importeBrutoUSD + comprasPorTipo.EQUINO.importeBrutoUSD,
     }
-    
 
     // ---------------------------------------------------------
-// 3.5 OBTENER LANA DEL EJERCICIO (Esquilas + Ventas)
-// ---------------------------------------------------------
+    // 3.5 OBTENER LANA DEL EJERCICIO (Esquilas + Ventas)
+    // ---------------------------------------------------------
 
-// 1️⃣ Obtener esquilas (lana en stock)
-const esquilas = await prisma.esquila.findMany({
-  where: {
-    campoId,
-    fecha: { gte: fechaDesde, lte: fechaHasta },
-  },
-  include: {
-    categorias: true,
-  },
-})
-
-let totalKgLanaEsquilas = 0
-let totalUSDLanaEsquilas = 0
-
-esquilas.forEach(esquila => {
-  esquila.categorias.forEach(cat => {
-    totalKgLanaEsquilas += Number(cat.pesoKg)
-    totalUSDLanaEsquilas += Number(cat.pesoKg) * Number(cat.precioUSD)
-  })
-})
-
-// 2️⃣ Obtener ventas de lana
-const ventasLana = await prisma.venta.findMany({
-  where: {
-    campoId,
-    fecha: { gte: fechaDesde, lte: fechaHasta },
-    tipoProducto: "LANA",
-  },
-  include: {
-    renglones: {
+    // 1️⃣ Obtener esquilas (lana en stock)
+    const esquilas = await prisma.esquila.findMany({
       where: {
-        tipo: "LANA"
+        campoId,
+        fecha: { gte: fechaDesde, lte: fechaHasta },
+      },
+      include: {
+        categorias: true,
+      },
+    })
+
+    let totalKgLanaEsquilas = 0
+    let totalUSDLanaEsquilas = 0
+
+    esquilas.forEach(esquila => {
+      esquila.categorias.forEach(cat => {
+        totalKgLanaEsquilas += Number(cat.pesoKg)
+        totalUSDLanaEsquilas += Number(cat.pesoKg) * Number(cat.precioUSD)
+      })
+    })
+
+    // 2️⃣ Obtener ventas de lana
+    const ventasLana = await prisma.venta.findMany({
+      where: {
+        campoId,
+        fecha: { gte: fechaDesde, lte: fechaHasta },
+        tipoProducto: "LANA",
+      },
+      include: {
+        renglones: {
+          where: {
+            tipo: "LANA"
+          }
+        }
       }
+    })
+
+    let totalKgLanaVendida = 0
+    let totalUSDLanaVendida = 0
+
+    ventasLana.forEach(venta => {
+      venta.renglones.forEach(renglon => {
+        const kgLana = Number(renglon.pesoTotalKg) || 0
+        totalKgLanaVendida += kgLana
+        totalUSDLanaVendida += Number(renglon.importeBrutoUSD) || 0
+      })
+    })
+
+    // 3️⃣ TOTALES DE LANA (esquilas + ventas)
+    const totalKgLana = totalKgLanaEsquilas + totalKgLanaVendida
+    const totalUSDLana = totalUSDLanaEsquilas + totalUSDLanaVendida
+
+    console.log(`🧶 LANA - Esquilas: ${totalKgLanaEsquilas}kg ($${totalUSDLanaEsquilas})`)
+    console.log(`🧶 LANA - Ventas: ${totalKgLanaVendida}kg ($${totalUSDLanaVendida})`)
+    console.log(`🧶 LANA - TOTAL: ${totalKgLana}kg ($${totalUSDLana})`)
+
+    // Conversión lana a equivalente carne (kg lana × 2.48)
+    const lanaEquivCarne = totalKgLana * 2.48
+
+    // ---------------------------------------------------------
+    // 3.6 OBTENER VENTAS DE GRANOS (solo si MIXTO)
+    // ---------------------------------------------------------
+    let ventasGranosTotales = { totalUSD: 0, totalKg: 0 }
+    const ventasGranosPorCultivo: Record<string, { kg: number; usd: number; hectareas: number }> = {}
+
+    if (esMixto) {
+      const ventasGranosDB = await prisma.venta.findMany({
+        where: {
+          campoId,
+          tipoProducto: "GRANOS",
+          fecha: { gte: fechaDesde, lte: fechaHasta }
+        },
+        include: {
+          renglones: {
+            where: {
+              tipo: "GRANOS"
+            }
+          },
+          serviciosGrano: true
+        }
+      })
+
+      ventasGranosDB.forEach(venta => {
+        venta.renglones.forEach(renglon => {
+          const kgVenta = Number(renglon.cantidadToneladas || 0) * 1000
+          const usdVenta = Number(renglon.importeBrutoUSD || 0)
+          
+          ventasGranosTotales.totalKg += kgVenta
+          ventasGranosTotales.totalUSD += usdVenta
+
+          // Agrupar por tipo de cultivo
+          const cultivo = renglon.tipoCultivoNombre || 'Otro'
+          if (!ventasGranosPorCultivo[cultivo]) {
+            ventasGranosPorCultivo[cultivo] = { kg: 0, usd: 0, hectareas: 0 }
+          }
+          
+          ventasGranosPorCultivo[cultivo].kg += kgVenta
+          ventasGranosPorCultivo[cultivo].usd += usdVenta
+        })
+      })
+
+      // Obtener hectáreas por cultivo desde serviciosGrano
+      ventasGranosDB.forEach(venta => {
+        venta.serviciosGrano.forEach(servicio => {
+          const cultivo = servicio.cultivo
+          if (ventasGranosPorCultivo[cultivo]) {
+            ventasGranosPorCultivo[cultivo].hectareas += servicio.hectareas
+          }
+        })
+      })
     }
-  }
-})
-
-let totalKgLanaVendida = 0
-let totalUSDLanaVendida = 0
-
-ventasLana.forEach(venta => {
-  venta.renglones.forEach(renglon => {
-    const kgLana = Number(renglon.pesoTotalKg) || 0
-    totalKgLanaVendida += kgLana
-    totalUSDLanaVendida += Number(renglon.importeBrutoUSD) || 0
-  })
-})
-
-// 3️⃣ TOTALES DE LANA (esquilas + ventas)
-const totalKgLana = totalKgLanaEsquilas + totalKgLanaVendida
-const totalUSDLana = totalUSDLanaEsquilas + totalUSDLanaVendida
-
-console.log(`🧶 LANA - Esquilas: ${totalKgLanaEsquilas}kg ($${totalUSDLanaEsquilas})`)
-console.log(`🧶 LANA - Ventas: ${totalKgLanaVendida}kg ($${totalUSDLanaVendida})`)
-console.log(`🧶 LANA - TOTAL: ${totalKgLana}kg ($${totalUSDLana})`)
-
-// Conversión lana a equivalente carne (kg lana × 2.48)
-const lanaEquivCarne = totalKgLana * 2.48
 
     // ---------------------------------------------------------
     // 4 OBTENER CONSUMOS DEL EJERCICIO
@@ -445,17 +525,17 @@ const lanaEquivCarne = totalKgLana * 2.48
     // 6 OBTENER COSTOS DEL EJERCICIO
     // ---------------------------------------------------------
     const gastos = await prisma.gasto.findMany({
-  where: {
-    campoId,
-    fecha: { gte: fechaDesde, lte: fechaHasta },
-    tipo: "GASTO",  // 🔥 AGREGAR ESTA LÍNEA
-  },
-  select: {
-    categoria: true,
-    montoEnUSD: true,
-    especie: true,
-  },
-})
+      where: {
+        campoId,
+        fecha: { gte: fechaDesde, lte: fechaHasta },
+        tipo: "GASTO",
+      },
+      select: {
+        categoria: true,
+        montoEnUSD: true,
+        especie: true,
+      },
+    })
 
     // Separar en fijos, variables y RENTA
     const gastosVariables = gastos.filter(g => CATEGORIAS_VARIABLES.includes(g.categoria as any))
@@ -519,7 +599,7 @@ const lanaEquivCarne = totalKgLana * 2.48
     }
 
     const costosSinRentaGeneral = totalVariables + totalFijos
-
+    
     // ---------------------------------------------------------
     // 7 CALCULAR INDICADORES
     // ---------------------------------------------------------
@@ -532,9 +612,14 @@ const lanaEquivCarne = totalKgLana * 2.48
       equinos: ventasPorTipo.EQUINO.pesoTotalKg + consumosPorTipo.EQUINO.pesoTotalKg - comprasPorTipo.EQUINO.pesoTotalKg + difInventarioPorTipo.EQUINO.difKg,
     }
 
-    // Producto Bruto (U$S) = Ventas + Consumo - Compras +/- Dif Inventario + Valor lana
+    // Producto Bruto (U$S) = Ventas + Consumo - Compras +/- Dif Inventario + Valor lana + Granos
+    const productoBrutoGanaderia = ventasTotales.importeBrutoUSD + consumosTotales.valorTotalUSD - comprasTotales.importeBrutoUSD + difInventarioTotales.difUSD + totalUSDLana
+    const productoBrutoAgricultura = esMixto ? ventasGranosTotales.totalUSD : 0
+    
     const productoBruto = {
-      global: ventasTotales.importeBrutoUSD + consumosTotales.valorTotalUSD - comprasTotales.importeBrutoUSD + difInventarioTotales.difUSD + totalUSDLana,
+      ganaderia: productoBrutoGanaderia,
+      agricultura: productoBrutoAgricultura,
+      global: productoBrutoGanaderia + productoBrutoAgricultura,
       vacunos: ventasPorTipo.BOVINO.importeBrutoUSD + consumosPorTipo.BOVINO.valorTotalUSD - comprasPorTipo.BOVINO.importeBrutoUSD + difInventarioPorTipo.BOVINO.difUSD,
       ovinos: ventasPorTipo.OVINO.importeBrutoUSD + consumosPorTipo.OVINO.valorTotalUSD - comprasPorTipo.OVINO.importeBrutoUSD + difInventarioPorTipo.OVINO.difUSD + totalUSDLana,
       equinos: ventasPorTipo.EQUINO.importeBrutoUSD + consumosPorTipo.EQUINO.valorTotalUSD - comprasPorTipo.EQUINO.importeBrutoUSD + difInventarioPorTipo.EQUINO.difUSD,
@@ -611,15 +696,15 @@ const lanaEquivCarne = totalKgLana * 2.48
       ovinos: usdPorKgProducido.ovinos - costoPorKgProducido.ovinos,
       equinos: usdPorKgProducido.equinos - costoPorKgProducido.equinos,
     }
-    
-    
-// Relación Insumo Producto = Costos (sin renta) / Producto Bruto
-const relacionInsumoProducto = {
-  global: productoBruto.global > 0 ? costosSinRentaGeneral / productoBruto.global : 0,
-  vacunos: productoBruto.vacunos > 0 ? costosSinRentaPorEspecie.vacunos / productoBruto.vacunos : 0,
-  ovinos: productoBruto.ovinos > 0 ? costosSinRentaPorEspecie.ovinos / productoBruto.ovinos : 0,
-  equinos: productoBruto.equinos > 0 ? costosSinRentaPorEspecie.equinos / productoBruto.equinos : 0,
-}
+
+    // Relación Insumo Producto = Costos (sin renta) / Producto Bruto
+    const relacionInsumoProducto = {
+      global: productoBruto.global > 0 ? costosSinRentaGeneral / productoBruto.global : 0,
+      vacunos: productoBruto.vacunos > 0 ? costosSinRentaPorEspecie.vacunos / productoBruto.vacunos : 0,
+      ovinos: productoBruto.ovinos > 0 ? costosSinRentaPorEspecie.ovinos / productoBruto.ovinos : 0,
+      equinos: productoBruto.equinos > 0 ? costosSinRentaPorEspecie.equinos / productoBruto.equinos : 0,
+    }
+
     // ---------------------------------------------------------
     // 8 CALCULAR "POR HA" PARA CADA INDICADOR
     // ---------------------------------------------------------
@@ -635,14 +720,15 @@ const relacionInsumoProducto = {
         fechaDesde: fechaDesde.toISOString().split('T')[0],
         fechaHasta: fechaHasta.toISOString().split('T')[0],
       },
-     
-      // 🆕 AGREGAR ESTA SECCIÓN
-  superficie: {
-  total: totalHectareas,
-  spg: spg,
-  mejorada: superficieMejorada,  // 🆕 AGREGAR ESTA LÍNEA
-  usandoSPG: usarSPG,
-},
+
+      superficie: {
+        total: totalHectareas,
+        spg: spg,
+        mejorada: superficieMejorada,
+        agricola: esMixto ? superficieAgricola : undefined,
+        usandoSPG: usarSPG,
+      },
+
       // Indicadores de eficiencia técnica
       eficienciaTecnica: {
         superficieTotal: {
@@ -654,6 +740,22 @@ const relacionInsumoProducto = {
         relacionLanarVacuno: relacionLanarVacuno || 0,
       },
 
+      // 🆕 Indicadores de agricultura (solo si MIXTO)
+      ...(esMixto && {
+        agricultura: {
+          superficiePorCultivo: Object.entries(ventasGranosPorCultivo).reduce((acc, [cultivo, data]) => {
+            acc[cultivo] = data.hectareas
+            return acc
+          }, {} as Record<string, number>),
+          ventasGranos: {
+            totalUSD: ventasGranosTotales.totalUSD,
+            totalKg: ventasGranosTotales.totalKg,
+            porHa: superficieAgricola > 0 ? ventasGranosTotales.totalUSD / superficieAgricola : 0,
+            porCultivo: ventasGranosPorCultivo
+          }
+        }
+      }),
+
       // Indicadores de la ganadería
       ganaderia: {
         carga: {
@@ -663,13 +765,12 @@ const relacionInsumoProducto = {
           equinos: Math.round(carga.equinos * 100) / 100,
         },
         cargaKgPV: {
-    global: Math.round(cargaKgPV.global),
-    vacunos: Math.round(cargaKgPV.vacunos),
-    ovinos: Math.round(cargaKgPV.ovinos),
-    equinos: Math.round(cargaKgPV.equinos),
-  },
+          global: Math.round(cargaKgPV.global),
+          vacunos: Math.round(cargaKgPV.vacunos),
+          ovinos: Math.round(cargaKgPV.ovinos),
+          equinos: Math.round(cargaKgPV.equinos),
+        },
         mortandad: {
-          // TODO: Implementar cuando se conecte con eventos MORTANDAD
           global: 0,
           vacunos: 0,
           ovinos: 0,
@@ -682,7 +783,6 @@ const relacionInsumoProducto = {
           equinos: Math.round(tasaExtraccion.equinos * 10) / 10,
         },
         lana: {
-          // TODO: Implementar cuando se complete ventas de lana
           totalKg: 0,
           kgPorAnimal: 0,
           usdTotal: 0,
@@ -719,6 +819,8 @@ const relacionInsumoProducto = {
       // Indicadores económicos
       economicos: {
         productoBruto: {
+          ganaderia: Math.round(productoBruto.ganaderia),
+          agricultura: Math.round(productoBruto.agricultura),
           total: {
             global: Math.round(productoBruto.global),
             vacunos: Math.round(productoBruto.vacunos),
@@ -862,25 +964,24 @@ const relacionInsumoProducto = {
           ovinos: Math.round(margenPorKg.ovinos * 100) / 100,
           equinos: Math.round(margenPorKg.equinos * 100) / 100,
         },
-
         relacionInsumoProducto: {
-  global: Math.round(relacionInsumoProducto.global * 100) / 100,
-  vacunos: Math.round(relacionInsumoProducto.vacunos * 100) / 100,
-  ovinos: Math.round(relacionInsumoProducto.ovinos * 100) / 100,
-  equinos: Math.round(relacionInsumoProducto.equinos * 100) / 100,
-},
+          global: Math.round(relacionInsumoProducto.global * 100) / 100,
+          vacunos: Math.round(relacionInsumoProducto.vacunos * 100) / 100,
+          ovinos: Math.round(relacionInsumoProducto.ovinos * 100) / 100,
+          equinos: Math.round(relacionInsumoProducto.equinos * 100) / 100,
+        },
       },
-      
+
       // Datos crudos para debugging
       _debug: {
-  ventas: ventasTotales,
-  ventasPorTipo,
-  compras: comprasTotales,
-  comprasPorTipo,
-  consumos: consumosTotales,
-  consumosPorTipo,
-  difInventario: difInventarioTotales,
-  difInventarioPorTipo,
+        ventas: ventasTotales,
+        ventasPorTipo,
+        compras: comprasTotales,
+        comprasPorTipo,
+        consumos: consumosTotales,
+        consumosPorTipo,
+        difInventario: difInventarioTotales,
+        difInventarioPorTipo,
         costosVariables: totalVariables,
         costosFijos: totalFijos,
         costosRenta: totalRenta,
