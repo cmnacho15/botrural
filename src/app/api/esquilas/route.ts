@@ -75,33 +75,33 @@ export async function POST(req: NextRequest) {
     const { fecha, nroAnimales, precioRefUSD, notas, categorias } = body;
 
     // Validaciones
-    if (!fecha || !nroAnimales || !precioRefUSD || !categorias || categorias.length === 0) {
-      return NextResponse.json(
-        { error: "Faltan datos requeridos" },
-        { status: 400 }
-      );
-    }
+    if (!fecha || !nroAnimales || !categorias || categorias.length === 0) {
+  return NextResponse.json(
+    { error: "Faltan datos requeridos" },
+    { status: 400 }
+  );
+}
 
     // Crear esquila con categorías
     const esquila = await prisma.esquila.create({
-      data: {
-        fecha: new Date(fecha),
-        nroAnimales: parseInt(nroAnimales),
-        precioRefUSD,
-        notas: notas || null,
-        campoId: user.campoId,
-        categorias: {
-          create: categorias.map((cat: any) => ({
-            categoria: cat.categoria,
-            pesoKg: cat.pesoKg,
-            pesoVendido: 0,
-          })),
-        },
-      },
-      include: {
-        categorias: true,
-      },
-    });
+  data: {
+    fecha: new Date(fecha),
+    nroAnimales: parseInt(nroAnimales),
+    notas: notas || null,
+    campoId: user.campoId,
+    categorias: {
+      create: categorias.map((cat: any) => ({
+        categoria: cat.categoria,
+        pesoKg: cat.pesoKg,
+        precioUSD: cat.precioUSD,
+        pesoVendido: 0,
+      })),
+    },
+  },
+  include: {
+    categorias: true,
+  },
+});
 
     return NextResponse.json(esquila, { status: 201 });
   } catch (error) {
