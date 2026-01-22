@@ -445,16 +445,17 @@ const lanaEquivCarne = totalKgLana * 2.48
     // 6 OBTENER COSTOS DEL EJERCICIO
     // ---------------------------------------------------------
     const gastos = await prisma.gasto.findMany({
-      where: {
-        campoId,
-        fecha: { gte: fechaDesde, lte: fechaHasta },
-      },
-      select: {
-        categoria: true,
-        montoEnUSD: true,
-        especie: true,
-      },
-    })
+  where: {
+    campoId,
+    fecha: { gte: fechaDesde, lte: fechaHasta },
+    tipo: "GASTO",  // 🔥 AGREGAR ESTA LÍNEA
+  },
+  select: {
+    categoria: true,
+    montoEnUSD: true,
+    especie: true,
+  },
+})
 
     // Separar en fijos, variables y RENTA
     const gastosVariables = gastos.filter(g => CATEGORIAS_VARIABLES.includes(g.categoria as any))
