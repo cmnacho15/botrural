@@ -255,7 +255,18 @@ export function calcularEstadisticasCampo(
   const totalHectareas = lotes.reduce((sum, l) => sum + l.hectareas, 0)
   const todosLosAnimales = lotes.flatMap(l => l.animalesLote || [])
   
-  const ugTotalesCampo = calcularUGTotales(todosLosAnimales, personalizadas)
+  // 🔥 AGRUPAR animales por categoría antes de calcular UG
+  const animalesAgrupados = todosLosAnimales.reduce((acc, animal) => {
+    const existing = acc.find(a => a.categoria === animal.categoria)
+    if (existing) {
+      existing.cantidad += animal.cantidad
+    } else {
+      acc.push({ categoria: animal.categoria, cantidad: animal.cantidad })
+    }
+    return acc
+  }, [] as Animal[])
+  
+  const ugTotalesCampo = calcularUGTotales(animalesAgrupados, personalizadas)
   const cargaGlobalCampo = totalHectareas > 0 
     ? ugTotalesCampo / totalHectareas 
     : 0
@@ -267,7 +278,7 @@ export function calcularEstadisticasCampo(
     yeguarizos: 0
   }
 
-  const ugVacas = calcularUGVacas(todosLosAnimales, personalizadas)
+  const ugVacas = calcularUGVacas(animalesAgrupados, personalizadas)
   desglosePorTipo.vacunos += ugVacas
 
   const categoriasVacunas = ['Toros', 'Vacas Gordas', 'Novillos +3 años', 'Novillos 2–3 años', 
@@ -279,7 +290,7 @@ export function calcularEstadisticasCampo(
   
   const categoriasEquinas = ['Padrillos', 'Yeguas', 'Caballos', 'Potrillos']
 
-  todosLosAnimales.forEach(animal => {
+  animalesAgrupados.forEach(animal => {
     if (animal.categoria === 'Vacas') return
 
     const equivalencia = getEquivalencia(animal.categoria, personalizadas)
@@ -299,7 +310,7 @@ export function calcularEstadisticasCampo(
     ugTotalesCampo,
     cargaGlobalCampo,
     desglosePorTipo,
-    totalAnimales: todosLosAnimales.reduce((sum, a) => sum + a.cantidad, 0),
+    totalAnimales: animalesAgrupados.reduce((sum, a) => sum + a.cantidad, 0),
     cantidadLotes: lotes.length
   }
 }
