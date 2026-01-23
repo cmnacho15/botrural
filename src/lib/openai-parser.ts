@@ -132,23 +132,54 @@ TIPOS DE EVENTOS QUE DEBES DETECTAR:
 
 4. TRATAMIENTO:
    - "apliqué ivermectina a 50 vacas"
-   - "vacuné 30 terneros con aftosa"
-   - "di antibiótico a 10 vacas en el norte"
-   - "desparasité 20 novillos"
-   - "tratamiento antiparasitario a 15 animales"
+   - "vacuné 30 terneros con aftosa y 20 vacas en el norte"
+   - "di antibiótico a 10 vacas en el norte y 15 terneros en el sur"
+   - "desparasité todo el campo con ivermectina"
+   - "vacuné a todas las vacas del campo"
+   - "tratamiento antiparasitario"
    
    IMPORTANTE: 
    - "producto" es el medicamento/tratamiento (ivermectina, aftosa, antibiótico, etc.)
-   - Si no especifica cantidad, asume que es a todos los animales del potrero
-   - Si no especifica potrero, déjalo en null
+   - PUEDE HABER MÚLTIPLES TRATAMIENTOS EN UN MENSAJE
+   - "todoElCampo": true si dice "todo el campo", "todos los potreros", "en todo el establecimiento"
+   - Si no especifica cantidad/categoría/potrero, son opcionales (null)
+   - Si menciona múltiples aplicaciones, retorna array "tratamientos"
    
-   Retorna:
+   FORMATO ÚNICO (un solo tratamiento):
    {
      "tipo": "TRATAMIENTO",
      "producto": "ivermectina",
      "cantidad": 50,
      "categoria": "vacas",
-     "potrero": "Norte"
+     "potrero": "Norte",
+     "todoElCampo": false
+   }
+   
+   FORMATO MÚLTIPLE (varios tratamientos):
+   {
+     "tipo": "TRATAMIENTO",
+     "tratamientos": [
+       {
+         "producto": "ivermectina",
+         "cantidad": 50,
+         "categoria": "vacas",
+         "potrero": "Norte"
+       },
+       {
+         "producto": "ivermectina",
+         "cantidad": 30,
+         "categoria": "terneros",
+         "potrero": "Sur"
+       }
+     ]
+   }
+   
+   FORMATO TODO EL CAMPO:
+   {
+     "tipo": "TRATAMIENTO",
+     "producto": "aftosa",
+     "categoria": "vacas",
+     "todoElCampo": true
    }
 
 

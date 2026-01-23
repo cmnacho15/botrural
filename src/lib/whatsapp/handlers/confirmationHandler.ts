@@ -258,6 +258,26 @@ export async function handleConfirmacion(
           .catch(() => {})
         
         return
+      } else if (data.tipo === "TRATAMIENTO_MULTIPLE") {
+        const { confirmarTratamientoMultiple } = await import("./tratamientoHandler")
+        await confirmarTratamientoMultiple(phone, data)
+        
+        // Limpiar confirmación pendiente
+        await prisma.pendingConfirmation
+          .delete({ where: { telefono: phone } })
+          .catch(() => {})
+        
+        return
+      } else if (data.tipo === "TRATAMIENTO_TODO_CAMPO") {
+        const { confirmarTratamientoTodoCampo } = await import("./tratamientoHandler")
+        await confirmarTratamientoTodoCampo(phone, data)
+        
+        // Limpiar confirmación pendiente
+        await prisma.pendingConfirmation
+          .delete({ where: { telefono: phone } })
+          .catch(() => {})
+        
+        return
       } else {
         await handleDataEntry(data)
       }
