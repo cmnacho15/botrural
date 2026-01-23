@@ -226,6 +226,7 @@ export default function IndicadoresPage() {
 
   const fmt = (val: number) => val.toLocaleString('es-UY')
   const fmtDec = (val: number) => val.toLocaleString('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  const fmtHa = (val: number) => val.toLocaleString('es-UY', { maximumFractionDigits: 2 })
   const fmtPct = (val: number) => `${val.toFixed(1)}%`
 
   return (
@@ -332,7 +333,7 @@ export default function IndicadoresPage() {
                       {!usarSPG && <span className="ml-2 text-xs text-blue-600">✔ Usada para cálculos</span>}
                     </td>
                     <td className={`px-3 py-2 text-center border-b border-gray-200 font-medium ${!usarSPG ? 'text-blue-900' : ''}`}>
-                      {fmt(data.superficie.total)}
+                      {fmtHa(data.superficie.total)}
                     </td>
                     <td colSpan={7} className="px-3 py-2 text-center border-b border-gray-200 text-gray-400">-</td>
                   </tr>
@@ -344,7 +345,7 @@ export default function IndicadoresPage() {
                       {usarSPG && <span className="ml-2 text-xs text-blue-600">✔ Usada para cálculos</span>}
                     </td>
                     <td className={`px-3 py-2 text-center border-b border-gray-200 font-medium ${usarSPG ? 'text-blue-900' : ''}`}>
-                      {fmt(data.superficie.spg)}
+                      {fmtHa(data.superficie.spg)}
                     </td>
                     <td colSpan={7} className="px-3 py-2 text-center border-b border-gray-200 text-gray-400">-</td>
                   </tr>
@@ -356,7 +357,7 @@ export default function IndicadoresPage() {
                       <span className="block text-xs text-gray-500 mt-1">Pastoreable con cultivos activos</span>
                     </td>
                     <td className="px-3 py-2 text-center border-b border-gray-200 font-medium">
-                      {fmt(data.superficie.mejorada)}
+                      {fmtHa(data.superficie.mejorada)}
                       {data.superficie.spg > 0 && (
                         <span className="block text-xs text-gray-500 mt-1">
                           ({((data.superficie.mejorada / data.superficie.spg) * 100).toFixed(1)}% de SPG)
@@ -374,7 +375,7 @@ export default function IndicadoresPage() {
                         <span className="block text-xs text-gray-500 mt-1">Lotes con cultivos activos</span>
                       </td>
                       <td className="px-3 py-2 text-center border-b border-gray-200 font-medium">
-                        {fmt(data.superficie.agricola!)}
+                        {fmtHa(data.superficie.agricola!)}
                         {data.superficie.total > 0 && (
                           <span className="block text-xs text-gray-500 mt-1">
                             ({((data.superficie.agricola! / data.superficie.total) * 100).toFixed(1)}% del total)
