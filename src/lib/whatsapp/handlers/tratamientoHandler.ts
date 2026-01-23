@@ -16,7 +16,6 @@ export async function handleTratamiento(
     categorias?: string[]
     potrero?: string
     _potreroId?: string
-    todoElCampo?: boolean
     tratamientos?: Array<{
       producto: string
       cantidad?: number
@@ -46,11 +45,8 @@ export async function handleTratamiento(
       return
     }
 
-    // 🔥 CASO 2: TODO EL CAMPO
-    if (parsedData.todoElCampo) {
-      await handleTratamientoTodoElCampo(telefono, user, parsedData)
-      return
-    }
+    // 🔥 CASO 2 ELIMINADO: Ya no existe "todo el campo"
+    // Ahora "todo" significa "todo en ese potrero" y se maneja como tratamiento simple
 
     // 🔥 CASO 3: TRATAMIENTO SIMPLE (lógica original)
     await handleTratamientoSimple(telefono, user, parsedData)
@@ -350,87 +346,6 @@ async function handleTratamientosMultiples(
 }
 
 /**
- * 🔥 Manejar tratamiento a todo el campo
- */
-async function handleTratamientoTodoElCampo(
-  telefono: string,
-  user: { id: string; campoId: string },
-  parsedData: any
-) {
-  // Obtener todos los potreros del campo
-  const potreros = await prisma.lote.findMany({
-    where: { campoId: user.campoId },
-    select: { id: true, nombre: true }
-  })
-
-  if (potreros.length === 0) {
-    await sendWhatsAppMessage(
-      telefono,
-      "❌ No tenés potreros creados en el campo."
-    )
-    return
-  }
-
-  // Guardar en pending confirmation
-  await prisma.pendingConfirmation.upsert({
-    where: { telefono },
-    create: {
-      telefono,
-      data: JSON.stringify({
-        tipo: 'TRATAMIENTO_TODO_CAMPO',
-        producto: parsedData.producto,
-        cantidad: parsedData.cantidad || null,
-        categoria: parsedData.categoria || null,
-        categorias: parsedData.categorias || null,
-        potreros: potreros.map(p => ({ id: p.id, nombre: p.nombre })),
-        campoId: user.campoId,
-        usuarioId: user.id,
-        telefono
-      })
-    },
-    update: {
-      data: JSON.stringify({
-        tipo: 'TRATAMIENTO_TODO_CAMPO',
-        producto: parsedData.producto,
-        cantidad: parsedData.cantidad || null,
-        categoria: parsedData.categoria || null,
-        categorias: parsedData.categorias || null,
-        potreros: potreros.map(p => ({ id: p.id, nombre: p.nombre })),
-        campoId: user.campoId,
-        usuarioId: user.id,
-        telefono
-      })
-    }
-  })
-
-  // Construir mensaje de confirmación
-  let mensaje = `💉 *Tratamiento a TODO EL CAMPO*\n\n`
-  mensaje += `💊 Producto: ${parsedData.producto}\n`
-  
-  if (parsedData.categorias && parsedData.categorias.length > 0) {
-    mensaje += `🐄 Aplicado a: ${parsedData.categorias.join(', ')}\n`
-  } else if (parsedData.cantidad && parsedData.categoria) {
-    mensaje += `🐄 Aplicado a: ${parsedData.cantidad} ${parsedData.categoria}\n`
-  } else if (parsedData.categoria) {
-    mensaje += `🐄 Aplicado a: ${parsedData.categoria}\n`
-  }
-  
-  mensaje += `📍 En todos los potreros: ${potreros.map(p => p.nombre).join(', ')}\n`
-  mensaje += `\n_Escribí "editar" para modificar o clickeá confirmar_`
-
-  await sendWhatsAppButtons(
-    telefono,
-    mensaje,
-    [
-      { id: 'confirmar_tratamiento', title: '✅ Confirmar' },
-      { id: 'cancelar', title: '❌ Cancelar' }
-    ]
-  )
-
-  console.log("✅ Solicitud de confirmación tratamiento todo el campo enviada")
-}
-
-/**
  * 💉 Confirmar y registrar el tratamiento
  */
 export async function confirmarTratamiento(telefono: string, data: any) {
@@ -590,65 +505,3 @@ export async function confirmarTratamientoMultiple(telefono: string, data: any) 
   }
 }
 
-/**
- * 💉 Confirmar y registrar tratamiento a todo el campo
- */
-export async function confirmarTratamientoTodoCampo(telefono: string, data: any) {
-  try {
-    const { producto, cantidad, categoria, potreros, campoId, usuarioId } = data
-    
-    // 🔥 UN SOLO EVENTO para todo el campo
-    let descripcion = `Tratamiento: ${producto}`
-    
-    const categorias = data.categorias
-    
-    if (categorias && categorias.length > 0) {
-      descripcion += ` aplicado a ${categorias.join(', ')}`
-    } else if (cantidad && categoria) {
-      descripcion += ` aplicado a ${cantidad} ${categoria}`
-    } else if (categoria) {
-      descripcion += ` aplicado a ${categoria}`
-    } else if (cantidad) {
-      descripcion += ` aplicado a ${cantidad} animales`
-    }
-    
-    descripcion += ` en todo el campo (${potreros.length} potreros)`
-    
-    await prisma.evento.create({
-      data: {
-        campoId,
-        tipo: 'TRATAMIENTO',
-        fecha: new Date(),
-        descripcion,
-        loteId: null, // NULL porque es todo el campo
-        cantidad: cantidad || null,
-        categoria: categoria || null,
-        usuarioId
-      }
-    })
-    
-    // Mensaje de confirmación
-    let mensaje = `✅ *Tratamiento registrado en TODO EL CAMPO*\n\n`
-    mensaje += `💊 ${producto}\n`
-    
-    if (categorias && categorias.length > 0) {
-      mensaje += `🐄 ${categorias.join(', ')}\n`
-    } else if (cantidad && categoria) {
-      mensaje += `🐄 ${cantidad} ${categoria}\n`
-    } else if (categoria) {
-      mensaje += `🐄 ${categoria}\n`
-    }
-    
-    mensaje += `📍 Aplicado en: ${potreros.map((p: any) => p.nombre).join(', ')}`
-    
-    await sendWhatsAppMessage(telefono, mensaje)
-    console.log("✅ Tratamiento todo el campo registrado")
-    
-  } catch (error) {
-    console.error("❌ Error confirmando tratamiento todo el campo:", error)
-    await sendWhatsAppMessage(
-      telefono,
-      "❌ Error al registrar el tratamiento. Intentá de nuevo."
-    )
-  }
-}

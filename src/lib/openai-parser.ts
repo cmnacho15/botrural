@@ -195,12 +195,18 @@ TIPOS DE EVENTOS QUE DEBES DETECTAR:
      ]
    }
    
-   FORMATO TODO EL CAMPO:
+   IMPORTANTE - "TODO" se refiere a TODO LO QUE HAY EN ESE POTRERO:
+   - "Bañé todo el norte" = baño en potrero norte a todos los animales presentes
+   - "Vacuné el sur" = vacuna en potrero sur a todos los animales presentes
+   - "Desparasité todo en el este" = antiparasitario en potrero este a todos
+   
+   NO retornes "todoElCampo": true NUNCA. Solo potrero sin categoría.
+   
+   Ejemplo: "Bañé todo el norte"
    {
      "tipo": "TRATAMIENTO",
-     "producto": "aftosa",
-     "categoria": "vacas",
-     "todoElCampo": true
+     "producto": "baño",
+     "potrero": "Norte"
    }
 
 
