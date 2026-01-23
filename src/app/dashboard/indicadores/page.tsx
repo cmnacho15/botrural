@@ -54,6 +54,14 @@ interface IndicadoresData {
   }
   economicos: {
     productoBruto: {
+      // Componentes del PB (detalle)
+      ventas: { global: number; vacunos: number; ovinos: number; equinos: number }
+      consumo: { global: number; vacunos: number; ovinos: number; equinos: number }
+      compras: { global: number; vacunos: number; ovinos: number; equinos: number }
+      difInventario: { global: number; vacunos: number; ovinos: number; equinos: number }
+      lana: { global: number; ovinos: number }
+      
+      // PB consolidado
       ganaderia: number
       ganaderiaHa: number
       porcentajeGanaderia: number
@@ -778,151 +786,141 @@ export default function IndicadoresPage() {
                   {/* Desglose de Producto Bruto */}
                   {productoBrutoAbierto && (
                     <>
-                      {/* 🆕 Si es MIXTO, mostrar desglose Ganadería + Agricultura */}
-                      {esMixto ? (
+                      {/* Ventas (U$S) */}
+                      <tr className="bg-blue-25 hover:bg-gray-50">
+                        <td className="px-4 py-2 pl-12 text-sm text-gray-700 border-b border-gray-100 sticky left-0 bg-white z-10">Ventas (U$S)</td>
+                        <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">{fmt(data.economicos.productoBruto.ventas.global)}</td>
+                        <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">
+                          {fmt(Math.round(data.economicos.productoBruto.ventas.global / (data.superficie.usandoSPG ? data.superficie.spg : data.superficie.total)))}
+                        </td>
+                        <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">{fmt(data.economicos.productoBruto.ventas.vacunos)}</td>
+                        <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">
+                          {fmt(Math.round(data.economicos.productoBruto.ventas.vacunos / data.eficienciaTecnica.superficieTotal.vacunos))}
+                        </td>
+                        <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">{fmt(data.economicos.productoBruto.ventas.ovinos)}</td>
+                        <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">
+                          {fmt(Math.round(data.economicos.productoBruto.ventas.ovinos / data.eficienciaTecnica.superficieTotal.ovinos))}
+                        </td>
+                        <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">{fmt(data.economicos.productoBruto.ventas.equinos)}</td>
+                        <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">
+                          {data.eficienciaTecnica.superficieTotal.equinos > 0 ? fmt(Math.round(data.economicos.productoBruto.ventas.equinos / data.eficienciaTecnica.superficieTotal.equinos)) : '-'}
+                        </td>
+                      </tr>
+
+                      {/* + Consumo (U$S) */}
+                      <tr className="bg-blue-25 hover:bg-gray-50">
+                        <td className="px-4 py-2 pl-12 text-sm text-gray-700 border-b border-gray-100 sticky left-0 bg-white z-10">+ Consumo (U$S)</td>
+                        <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">{fmt(data.economicos.productoBruto.consumo.global)}</td>
+                        <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">
+                          {fmt(Math.round(data.economicos.productoBruto.consumo.global / (data.superficie.usandoSPG ? data.superficie.spg : data.superficie.total)))}
+                        </td>
+                        <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">{fmt(data.economicos.productoBruto.consumo.vacunos)}</td>
+                        <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">
+                          {fmt(Math.round(data.economicos.productoBruto.consumo.vacunos / data.eficienciaTecnica.superficieTotal.vacunos))}
+                        </td>
+                        <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">{fmt(data.economicos.productoBruto.consumo.ovinos)}</td>
+                        <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">
+                          {fmt(Math.round(data.economicos.productoBruto.consumo.ovinos / data.eficienciaTecnica.superficieTotal.ovinos))}
+                        </td>
+                        <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">{fmt(data.economicos.productoBruto.consumo.equinos)}</td>
+                        <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">
+                          {data.eficienciaTecnica.superficieTotal.equinos > 0 ? fmt(Math.round(data.economicos.productoBruto.consumo.equinos / data.eficienciaTecnica.superficieTotal.equinos)) : '-'}
+                        </td>
+                      </tr>
+
+                      {/* - Compras (U$S) */}
+                      <tr className="bg-blue-25 hover:bg-gray-50">
+                        <td className="px-4 py-2 pl-12 text-sm text-gray-700 border-b border-gray-100 sticky left-0 bg-white z-10">- Compras (U$S)</td>
+                        <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">{fmt(data.economicos.productoBruto.compras.global)}</td>
+                        <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">
+                          {fmt(Math.round(data.economicos.productoBruto.compras.global / (data.superficie.usandoSPG ? data.superficie.spg : data.superficie.total)))}
+                        </td>
+                        <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">{fmt(data.economicos.productoBruto.compras.vacunos)}</td>
+                        <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">
+                          {fmt(Math.round(data.economicos.productoBruto.compras.vacunos / data.eficienciaTecnica.superficieTotal.vacunos))}
+                        </td>
+                        <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">{fmt(data.economicos.productoBruto.compras.ovinos)}</td>
+                        <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">
+                          {fmt(Math.round(data.economicos.productoBruto.compras.ovinos / data.eficienciaTecnica.superficieTotal.ovinos))}
+                        </td>
+                        <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">{fmt(data.economicos.productoBruto.compras.equinos)}</td>
+                        <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">
+                          {data.eficienciaTecnica.superficieTotal.equinos > 0 ? fmt(Math.round(data.economicos.productoBruto.compras.equinos / data.eficienciaTecnica.superficieTotal.equinos)) : '-'}
+                        </td>
+                      </tr>
+
+                      {/* +/- Dif. Inventario (U$S) */}
+                      <tr className="bg-blue-25 hover:bg-gray-50">
+                        <td className="px-4 py-2 pl-12 text-sm text-gray-700 border-b border-gray-100 sticky left-0 bg-white z-10">+/- Dif. Inventario (U$S)</td>
+                        <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">{fmt(data.economicos.productoBruto.difInventario.global)}</td>
+                        <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">
+                          {fmt(Math.round(data.economicos.productoBruto.difInventario.global / (data.superficie.usandoSPG ? data.superficie.spg : data.superficie.total)))}
+                        </td>
+                        <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">{fmt(data.economicos.productoBruto.difInventario.vacunos)}</td>
+                        <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">
+                          {fmt(Math.round(data.economicos.productoBruto.difInventario.vacunos / data.eficienciaTecnica.superficieTotal.vacunos))}
+                        </td>
+                        <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">{fmt(data.economicos.productoBruto.difInventario.ovinos)}</td>
+                        <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">
+                          {fmt(Math.round(data.economicos.productoBruto.difInventario.ovinos / data.eficienciaTecnica.superficieTotal.ovinos))}
+                        </td>
+                        <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">{fmt(data.economicos.productoBruto.difInventario.equinos)}</td>
+                        <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">
+                          {data.eficienciaTecnica.superficieTotal.equinos > 0 ? fmt(Math.round(data.economicos.productoBruto.difInventario.equinos / data.eficienciaTecnica.superficieTotal.equinos)) : '-'}
+                        </td>
+                      </tr>
+
+                      {/* + Lana (U$S) */}
+                      <tr className="bg-blue-25 hover:bg-gray-50">
+                        <td className="px-4 py-2 pl-12 text-sm text-gray-700 border-b border-gray-100 sticky left-0 bg-white z-10">+ Lana (U$S)</td>
+                        <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">
+                          {fmt(data.economicos.productoBruto.lana.global)}
+                        </td>
+                        <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">
+                          {fmt(Math.round(data.economicos.productoBruto.lana.global / (data.superficie.usandoSPG ? data.superficie.spg : data.superficie.total)))}
+                        </td>
+                        <td className="px-3 py-2 text-center border-b border-gray-100 text-sm text-gray-400">-</td>
+                        <td className="px-3 py-2 text-center border-b border-gray-100 text-sm text-gray-400">-</td>
+                        <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">
+                          {fmt(data.economicos.productoBruto.lana.ovinos)}
+                        </td>
+                        <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">
+                          {fmt(Math.round(data.economicos.productoBruto.lana.ovinos / data.eficienciaTecnica.superficieTotal.ovinos))}
+                        </td>
+                        <td className="px-3 py-2 text-center border-b border-gray-100 text-sm text-gray-400">-</td>
+                        <td className="px-3 py-2 text-center border-b border-gray-100 text-sm text-gray-400">-</td>
+                      </tr>
+
+                      {/* 🆕 Si es MIXTO, agregar filas consolidadas */}
+                      {esMixto && (
                         <>
-                          <tr className="bg-blue-25 hover:bg-gray-50">
-                            <td className="px-4 py-2 pl-12 text-sm font-semibold text-gray-900 border-b border-gray-200 sticky left-0 bg-white z-10">
-                              Producto Bruto Ganadería
+                          <tr className="bg-yellow-50 hover:bg-yellow-100">
+                            <td className="px-4 py-2 pl-12 text-sm font-semibold text-gray-900 border-b border-gray-200 sticky left-0 bg-yellow-50 z-10">
+                              = PB Ganadería
                             </td>
                             <td className="px-3 py-2 text-center border-b border-gray-200 text-sm font-medium">
                               {fmt(data.economicos.productoBruto.ganaderia)}
                             </td>
                             <td className="px-3 py-2 text-center border-b border-gray-200 text-sm">
-                              {fmt(Math.round(data.economicos.productoBruto.ganaderia / (data.superficie.usandoSPG ? data.superficie.spg : data.superficie.total)))}
+                              {fmt(data.economicos.productoBruto.ganaderiaHa)}
                             </td>
-                            <td colSpan={6} className="px-3 py-2 text-center border-b border-gray-200 text-sm text-gray-400">-</td>
+                            <td colSpan={6} className="px-3 py-2 text-center border-b border-gray-200 text-sm text-gray-500">
+                              {data.economicos.productoBruto.porcentajeGanaderia.toFixed(1)}% del PB total
+                            </td>
                           </tr>
-                          <tr className="bg-blue-25 hover:bg-gray-50">
-                            <td className="px-4 py-2 pl-12 text-sm font-semibold text-gray-900 border-b border-gray-200 sticky left-0 bg-white z-10">
-                              Producto Bruto Agricultura
+                          <tr className="bg-green-50 hover:bg-green-100">
+                            <td className="px-4 py-2 pl-12 text-sm font-semibold text-gray-900 border-b border-gray-200 sticky left-0 bg-green-50 z-10">
+                              + PB Agricultura
                             </td>
                             <td className="px-3 py-2 text-center border-b border-gray-200 text-sm font-medium">
                               {fmt(data.economicos.productoBruto.agricultura)}
                             </td>
                             <td className="px-3 py-2 text-center border-b border-gray-200 text-sm">
-                              {data.superficie.agricola! > 0 ? fmt(Math.round(data.economicos.productoBruto.agricultura / data.superficie.agricola!)) : '-'}
+                              {fmt(data.economicos.productoBruto.agriculturaHa)}
                             </td>
-                            <td colSpan={6} className="px-3 py-2 text-center border-b border-gray-200 text-sm text-gray-400">-</td>
-                          </tr>
-                          <tr className="bg-blue-100 hover:bg-blue-50">
-                            <td className="px-4 py-2 pl-12 text-sm font-bold text-gray-900 border-b border-gray-200 sticky left-0 bg-blue-100 z-10">
-                              = Producto Bruto TOTAL
+                            <td colSpan={6} className="px-3 py-2 text-center border-b border-gray-200 text-sm text-gray-500">
+                              {data.economicos.productoBruto.porcentajeAgricultura.toFixed(1)}% del PB total
                             </td>
-                            <td className="px-3 py-2 text-center border-b border-gray-200 text-sm font-bold">
-                              {fmt(data.economicos.productoBruto.total.global)}
-                            </td>
-                            <td className="px-3 py-2 text-center border-b border-gray-200 text-sm font-bold">
-                              {fmt(data.economicos.productoBruto.porHa.global)}
-                            </td>
-                            <td colSpan={6} className="px-3 py-2 text-center border-b border-gray-200 text-sm text-gray-400">-</td>
-                          </tr>
-                        </>
-                      ) : (
-                        /* Si es GANADERO, mostrar desglose normal */
-                        <>
-                          {/* Ventas (U$S) - YA COMPLETO */}
-                          <tr className="bg-blue-25 hover:bg-gray-50">
-                            <td className="px-4 py-2 pl-12 text-sm text-gray-700 border-b border-gray-100 sticky left-0 bg-white z-10">Ventas (U$S)</td>
-                            <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">{fmt(data._debug?.ventas?.importeBrutoUSD || 0)}</td>
-                            <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">
-                              {fmt(Math.round((data._debug?.ventas?.importeBrutoUSD || 0) / (data.superficie.usandoSPG ? data.superficie.spg : data.superficie.total)))}
-                            </td>
-                            <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">{fmt(data._debug?.ventasPorTipo?.BOVINO?.importeBrutoUSD || 0)}</td>
-                            <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">
-                              {fmt(Math.round((data._debug?.ventasPorTipo?.BOVINO?.importeBrutoUSD || 0) / data.eficienciaTecnica.superficieTotal.vacunos))}
-                            </td>
-                            <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">{fmt(data._debug?.ventasPorTipo?.OVINO?.importeBrutoUSD || 0)}</td>
-                            <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">
-                              {fmt(Math.round((data._debug?.ventasPorTipo?.OVINO?.importeBrutoUSD || 0) / data.eficienciaTecnica.superficieTotal.ovinos))}
-                            </td>
-                            <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">{fmt(data._debug?.ventasPorTipo?.EQUINO?.importeBrutoUSD || 0)}</td>
-                            <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">
-                              {fmt(Math.round((data._debug?.ventasPorTipo?.EQUINO?.importeBrutoUSD || 0) / data.eficienciaTecnica.superficieTotal.equinos))}
-                            </td>
-                          </tr>
-
-                          {/* + Consumo (U$S) - COMPLETO CON POR HA */}
-                          <tr className="bg-blue-25 hover:bg-gray-50">
-                            <td className="px-4 py-2 pl-12 text-sm text-gray-700 border-b border-gray-100 sticky left-0 bg-white z-10">+ Consumo (U$S)</td>
-                            <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">{fmt(data._debug?.consumos?.valorTotalUSD || 0)}</td>
-                            <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">
-                              {fmt(Math.round((data._debug?.consumos?.valorTotalUSD || 0) / (data.superficie.usandoSPG ? data.superficie.spg : data.superficie.total)))}
-                            </td>
-                            <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">{fmt(data._debug?.consumosPorTipo?.BOVINO?.valorTotalUSD || 0)}</td>
-                            <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">
-                              {fmt(Math.round((data._debug?.consumosPorTipo?.BOVINO?.valorTotalUSD || 0) / data.eficienciaTecnica.superficieTotal.vacunos))}
-                            </td>
-                            <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">{fmt(data._debug?.consumosPorTipo?.OVINO?.valorTotalUSD || 0)}</td>
-                            <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">
-                              {fmt(Math.round((data._debug?.consumosPorTipo?.OVINO?.valorTotalUSD || 0) / data.eficienciaTecnica.superficieTotal.ovinos))}
-                            </td>
-                            <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">{fmt(data._debug?.consumosPorTipo?.EQUINO?.valorTotalUSD || 0)}</td>
-                            <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">
-                              {fmt(Math.round((data._debug?.consumosPorTipo?.EQUINO?.valorTotalUSD || 0) / data.eficienciaTecnica.superficieTotal.equinos))}
-                            </td>
-                          </tr>
-
-                          {/* - Compras (U$S) - COMPLETO CON POR HA */}
-                          <tr className="bg-blue-25 hover:bg-gray-50">
-                            <td className="px-4 py-2 pl-12 text-sm text-gray-700 border-b border-gray-100 sticky left-0 bg-white z-10">- Compras (U$S)</td>
-                            <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">{fmt(data._debug?.compras?.importeBrutoUSD || 0)}</td>
-                            <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">
-                              {fmt(Math.round((data._debug?.compras?.importeBrutoUSD || 0) / (data.superficie.usandoSPG ? data.superficie.spg : data.superficie.total)))}
-                            </td>
-                            <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">{fmt(data._debug?.comprasPorTipo?.BOVINO?.importeBrutoUSD || 0)}</td>
-                            <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">
-                              {fmt(Math.round((data._debug?.comprasPorTipo?.BOVINO?.importeBrutoUSD || 0) / data.eficienciaTecnica.superficieTotal.vacunos))}
-                            </td>
-                            <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">{fmt(data._debug?.comprasPorTipo?.OVINO?.importeBrutoUSD || 0)}</td>
-                            <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">
-                              {fmt(Math.round((data._debug?.comprasPorTipo?.OVINO?.importeBrutoUSD || 0) / data.eficienciaTecnica.superficieTotal.ovinos))}
-                            </td>
-                            <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">{fmt(data._debug?.comprasPorTipo?.EQUINO?.importeBrutoUSD || 0)}</td>
-                            <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">
-                              {fmt(Math.round((data._debug?.comprasPorTipo?.EQUINO?.importeBrutoUSD || 0) / data.eficienciaTecnica.superficieTotal.equinos))}
-                            </td>
-                          </tr>
-
-                          {/* +/- Dif. Inventario (U$S) - COMPLETO CON POR HA */}
-                          <tr className="bg-blue-25 hover:bg-gray-50">
-                            <td className="px-4 py-2 pl-12 text-sm text-gray-700 border-b border-gray-100 sticky left-0 bg-white z-10">+/- Dif. Inventario (U$S)</td>
-                            <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">{fmt(data._debug?.difInventario?.difUSD || 0)}</td>
-                            <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">
-                              {fmt(Math.round((data._debug?.difInventario?.difUSD || 0) / (data.superficie.usandoSPG ? data.superficie.spg : data.superficie.total)))}
-                            </td>
-                            <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">{fmt(data._debug?.difInventarioPorTipo?.BOVINO?.difUSD || 0)}</td>
-                            <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">
-                              {fmt(Math.round((data._debug?.difInventarioPorTipo?.BOVINO?.difUSD || 0) / data.eficienciaTecnica.superficieTotal.vacunos))}
-                            </td>
-                            <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">{fmt(data._debug?.difInventarioPorTipo?.OVINO?.difUSD || 0)}</td>
-                            <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">
-                              {fmt(Math.round((data._debug?.difInventarioPorTipo?.OVINO?.difUSD || 0) / data.eficienciaTecnica.superficieTotal.ovinos))}
-                            </td>
-                            <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">{fmt(data._debug?.difInventarioPorTipo?.EQUINO?.difUSD || 0)}</td>
-                            <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">
-                              {fmt(Math.round((data._debug?.difInventarioPorTipo?.EQUINO?.difUSD || 0) / data.eficienciaTecnica.superficieTotal.equinos))}
-                            </td>
-                          </tr>
-
-                          <tr className="bg-blue-25 hover:bg-gray-50">
-                            <td className="px-4 py-2 pl-12 text-sm text-gray-700 border-b border-gray-100 sticky left-0 bg-white z-10">+ Lana (U$S)</td>
-                            <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">
-                              {fmt(data._debug?.lana?.totalUSDLana || 0)}
-                            </td>
-                            <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">
-                              {fmt(Math.round((data._debug?.lana?.totalUSDLana || 0) / (data.superficie.usandoSPG ? data.superficie.spg : data.superficie.total)))}
-                            </td>
-                            <td className="px-3 py-2 text-center border-b border-gray-100 text-sm text-gray-400">-</td>
-                            <td className="px-3 py-2 text-center border-b border-gray-100 text-sm text-gray-400">-</td>
-                            <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">
-                              {fmt(data._debug?.lana?.totalUSDLana || 0)}
-                            </td>
-                            <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">
-                              {fmt(Math.round((data._debug?.lana?.totalUSDLana || 0) / data.eficienciaTecnica.superficieTotal.ovinos))}
-                            </td>
-                            <td className="px-3 py-2 text-center border-b border-gray-100 text-sm text-gray-400">-</td>
-                            <td className="px-3 py-2 text-center border-b border-gray-100 text-sm text-gray-400">-</td>
                           </tr>
                         </>
                       )}
