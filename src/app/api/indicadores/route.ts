@@ -1,3 +1,4 @@
+//src/app/api/indicadores/route
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { requireAuth, canAccessFinanzas } from "@/lib/auth-helpers"
