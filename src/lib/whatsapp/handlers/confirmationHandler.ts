@@ -175,20 +175,111 @@ export async function handleConfirmacion(
     
     const potreroSeleccionado = data.opciones[numero - 1]
     
-    // Actualizar el tratamiento actual con el potrero seleccionado
-    const tratamientosActualizados = [...data.tratamientos]
-    tratamientosActualizados[data.indiceTratamiento] = {
-      ...data.tratamientoActual,
-      potrero: potreroSeleccionado.nombre,
-      _potreroId: potreroSeleccionado.id
-    }
-    
-    // Llamar nuevamente a handleTratamiento con los tratamientos actualizados
-    const { handleTratamiento } = await import("./tratamientoHandler")
-    await handleTratamiento(phone, {
-      tratamientos: tratamientosActualizados
+    // 🔥 PROCESAR DIRECTAMENTE SIN VOLVER A BUSCAR
+    const usuario = await prisma.user.findUnique({
+      where: { telefono: phone },
+      select: { id: true, campoId: true }
     })
     
+    if (!usuario?.campoId) {
+      await sendWhatsAppMessage(phone, "❌ No estás registrado en ningún campo.")
+      return
+    }
+    
+    // Procesar todos los tratamientos con el potrero ya resuelto
+    const tratamientosProcesados = []
+    
+    for (let i = 0; i < data.tratamientos.length; i++) {
+      const trat = data.tratamientos[i]
+      let potreroId = null
+      let potreroNombre = null
+      
+      // Si es el tratamiento que tenía duplicados, usar el seleccionado
+      if (i === data.indiceTratamiento) {
+        potreroId = potreroSeleccionado.id
+        potreroNombre = potreroSeleccionado.nombre
+      } else if (trat._potreroId) {
+        // Si ya tenía ID explícito, usarlo
+        potreroId = trat._potreroId
+        potreroNombre = trat.potrero
+      } else if (trat.potrero) {
+        // Buscar potrero solo si aún no está resuelto
+        const { buscarPotreroConModulos } = await import("@/lib/potrero-helpers")
+        const resultado = await buscarPotreroConModulos(trat.potrero, usuario.campoId)
+        if (resultado.unico && resultado.lote) {
+          potreroId = resultado.lote.id
+          potreroNombre = resultado.lote.nombre
+        }
+      }
+      
+      tratamientosProcesados.push({
+        producto: trat.producto,
+        cantidad: trat.cantidad || null,
+        categoria: trat.categoria || null,
+        categorias: trat.categorias || null,
+        potreroId,
+        potrero: potreroNombre
+      })
+    }
+    
+    // Guardar en pending confirmation FINAL
+    await prisma.pendingConfirmation.upsert({
+      where: { telefono: phone },
+      create: {
+        telefono: phone,
+        data: JSON.stringify({
+          tipo: 'TRATAMIENTO_MULTIPLE',
+          tratamientos: tratamientosProcesados,
+          campoId: usuario.campoId,
+          usuarioId: usuario.id,
+          telefono: phone
+        })
+      },
+      update: {
+        data: JSON.stringify({
+          tipo: 'TRATAMIENTO_MULTIPLE',
+          tratamientos: tratamientosProcesados,
+          campoId: usuario.campoId,
+          usuarioId: usuario.id,
+          telefono: phone
+        })
+      }
+    })
+    
+    // Construir mensaje de confirmación
+    const { sendWhatsAppButtons } = await import("../sendMessage")
+    
+    let mensaje = `💉 *Tratamientos - Confirmá los datos*\n\n`
+    
+    tratamientosProcesados.forEach((trat, index) => {
+      mensaje += `${index + 1}. ${trat.producto}\n`
+      
+      if (trat.categorias && trat.categorias.length > 0) {
+        mensaje += `   🐄 Aplicado a: ${trat.categorias.join(', ')}\n`
+      } else if (trat.cantidad && trat.categoria) {
+        mensaje += `   🐄 Aplicado a: ${trat.cantidad} ${trat.categoria}\n`
+      } else if (trat.categoria) {
+        mensaje += `   🐄 Aplicado a: ${trat.categoria}\n`
+      }
+      
+      if (trat.potrero) {
+        mensaje += `   📍 Potrero: ${trat.potrero}\n`
+      }
+      mensaje += `\n`
+    })
+    
+    mensaje += `_Escribí "editar" para modificar o clickeá confirmar_`
+    
+    await sendWhatsAppButtons(
+      phone,
+      mensaje,
+      [
+        { id: 'confirmar_tratamiento', title: '✅ Confirmar' },
+        { id: 'cancelar', title: '❌ Cancelar' }
+      ]
+    )
+    
+    console.log("✅ Confirmación de tratamientos múltiples enviada después de resolver duplicado")
     return
   }
 
