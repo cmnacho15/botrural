@@ -239,6 +239,42 @@ async function handleTratamientosMultiples(
     if (trat.potrero) {
       const resultadoPotrero = await buscarPotreroConModulos(trat.potrero, user.campoId)
       
+      // 🔥 SI HAY DUPLICADOS, PREGUNTAR
+      if (!resultadoPotrero.unico && resultadoPotrero.opciones && resultadoPotrero.opciones.length > 1) {
+        const mensaje = `Encontré varios "${trat.potrero}":\n\n` +
+          resultadoPotrero.opciones.map((opt, i) => 
+            `${i + 1}️⃣ ${opt.nombre}${opt.moduloNombre ? ` (${opt.moduloNombre})` : ''}`
+          ).join('\n') +
+          `\n\n¿En cuál aplicaste ${trat.producto}? Respondé con el número.`
+        
+        await sendWhatsAppMessage(telefono, mensaje)
+        
+        // Guardar estado pendiente con TODOS los tratamientos
+        await prisma.pendingConfirmation.upsert({
+          where: { telefono },
+          create: {
+            telefono,
+            data: JSON.stringify({
+              tipo: "ELEGIR_POTRERO_TRATAMIENTO_MULTIPLE",
+              opciones: resultadoPotrero.opciones,
+              tratamientos: tratamientos, // Guardar TODOS para reintentarlo después
+              tratamientoActual: trat,
+              indiceTratamiento: tratamientos.indexOf(trat)
+            }),
+          },
+          update: {
+            data: JSON.stringify({
+              tipo: "ELEGIR_POTRERO_TRATAMIENTO_MULTIPLE",
+              opciones: resultadoPotrero.opciones,
+              tratamientos: tratamientos,
+              tratamientoActual: trat,
+              indiceTratamiento: tratamientos.indexOf(trat)
+            }),
+          },
+        })
+        return // SALIR para esperar respuesta del usuario
+      }
+      
       if (resultadoPotrero.unico && resultadoPotrero.lote) {
         potreroId = resultadoPotrero.lote.id
         potreroNombre = resultadoPotrero.lote.nombre

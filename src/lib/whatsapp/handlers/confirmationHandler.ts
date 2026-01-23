@@ -164,8 +164,8 @@ export async function handleConfirmacion(
     return
   }
 
-  // 🆕 Manejar selección de potrero para TRATAMIENTO
-  if (data.tipo === "ELEGIR_POTRERO_TRATAMIENTO") {
+  // 🆕 Manejar selección de potrero para TRATAMIENTO MÚLTIPLE
+  if (data.tipo === "ELEGIR_POTRERO_TRATAMIENTO_MULTIPLE") {
     const numero = parseInt(respuesta.trim())
     
     if (isNaN(numero) || numero < 1 || numero > data.opciones.length) {
@@ -175,14 +175,18 @@ export async function handleConfirmacion(
     
     const potreroSeleccionado = data.opciones[numero - 1]
     
-    // Llamar a handleTratamiento nuevamente con el potrero específico
-    const { handleTratamiento } = await import("./tratamientoHandler")
-    await handleTratamiento(phone, {
-      producto: data.producto,
-      cantidad: data.cantidad,
-      categoria: data.categoria,
+    // Actualizar el tratamiento actual con el potrero seleccionado
+    const tratamientosActualizados = [...data.tratamientos]
+    tratamientosActualizados[data.indiceTratamiento] = {
+      ...data.tratamientoActual,
       potrero: potreroSeleccionado.nombre,
       _potreroId: potreroSeleccionado.id
+    }
+    
+    // Llamar nuevamente a handleTratamiento con los tratamientos actualizados
+    const { handleTratamiento } = await import("./tratamientoHandler")
+    await handleTratamiento(phone, {
+      tratamientos: tratamientosActualizados
     })
     
     return
