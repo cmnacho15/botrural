@@ -526,16 +526,18 @@ export async function confirmarTratamientoMultiple(telefono: string, data: any) 
     let mensaje = `✅ *${tratamientos.length} tratamientos registrados correctamente*\n\n`
     
     tratamientos.forEach((trat: any, index: number) => {
-      mensaje += `${index + 1}. ${trat.producto}`
+      mensaje += `${index + 1}. ${trat.producto}\n`
       
       if (trat.categorias && trat.categorias.length > 0) {
-        mensaje += ` → ${trat.categorias.join(', ')}`
+        mensaje += `   🐄 Aplicado a: ${trat.categorias.join(', ')}\n`
       } else if (trat.cantidad && trat.categoria) {
-        mensaje += ` → ${trat.cantidad} ${trat.categoria}`
+        mensaje += `   🐄 Aplicado a: ${trat.cantidad} ${trat.categoria}\n`
+      } else if (trat.categoria) {
+        mensaje += `   🐄 Aplicado a: ${trat.categoria}\n`
       }
       
       if (trat.potrero) {
-        mensaje += ` (${trat.potrero})`
+        mensaje += `   📍 Potrero: ${trat.potrero}\n`
       }
       mensaje += `\n`
     })
