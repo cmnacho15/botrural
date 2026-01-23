@@ -877,12 +877,44 @@ export async function GET(request: Request) {
       // Indicadores económicos
       economicos: {
         productoBruto: {
+          // Componentes del PB Ganadero (detalle)
+          ventas: {
+            global: Math.round(ventasTotales.importeBrutoUSD),
+            vacunos: Math.round(ventasPorTipo.BOVINO.importeBrutoUSD),
+            ovinos: Math.round(ventasPorTipo.OVINO.importeBrutoUSD),
+            equinos: Math.round(ventasPorTipo.EQUINO.importeBrutoUSD),
+          },
+          consumo: {
+            global: Math.round(consumosTotales.valorTotalUSD),
+            vacunos: Math.round(consumosPorTipo.BOVINO.valorTotalUSD),
+            ovinos: Math.round(consumosPorTipo.OVINO.valorTotalUSD),
+            equinos: Math.round(consumosPorTipo.EQUINO.valorTotalUSD),
+          },
+          compras: {
+            global: Math.round(comprasTotales.importeBrutoUSD),
+            vacunos: Math.round(comprasPorTipo.BOVINO.importeBrutoUSD),
+            ovinos: Math.round(comprasPorTipo.OVINO.importeBrutoUSD),
+            equinos: Math.round(comprasPorTipo.EQUINO.importeBrutoUSD),
+          },
+          difInventario: {
+            global: Math.round(difInventarioTotales.difUSD),
+            vacunos: Math.round(difInventarioPorTipo.BOVINO.difUSD),
+            ovinos: Math.round(difInventarioPorTipo.OVINO.difUSD),
+            equinos: Math.round(difInventarioPorTipo.EQUINO.difUSD),
+          },
+          lana: {
+            global: Math.round(totalUSDLana),
+            ovinos: Math.round(totalUSDLana),
+          },
+          
+          // PB consolidado por rubro
           ganaderia: Math.round(productoBruto.ganaderia),
           ganaderiaHa: Math.round(productoBruto.ganaderiaHa),
           porcentajeGanaderia: Math.round(productoBruto.porcentajeGanaderia),
           agricultura: Math.round(productoBruto.agricultura),
           agriculturaHa: Math.round(productoBruto.agriculturaHa),
           porcentajeAgricultura: Math.round(productoBruto.porcentajeAgricultura),
+          
           total: {
             global: Math.round(productoBruto.global),
             vacunos: Math.round(productoBruto.vacunos),
