@@ -462,21 +462,42 @@ export async function confirmarTratamientoMultiple(telefono: string, data: any) 
   try {
     const { tratamientos, campoId, usuarioId } = data
     
-    // Crear todos los eventos en una transacción
+    // Agrupar tratamientos por producto (mismo producto = 1 evento con múltiples potreros)
+    const tratamientosAgrupados = new Map<string, any>()
+    
+    for (const trat of tratamientos) {
+      const key = `${trat.producto}_${trat.categoria || 'sin-cat'}_${trat.cantidad || 'sin-cant'}`
+      
+      if (!tratamientosAgrupados.has(key)) {
+        tratamientosAgrupados.set(key, {
+          producto: trat.producto,
+          cantidad: trat.cantidad,
+          categoria: trat.categoria,
+          potreros: []
+        })
+      }
+      
+      if (trat.potrero) {
+        tratamientosAgrupados.get(key)!.potreros.push(trat.potrero)
+      }
+    }
+    
+    // Crear eventos agrupados
     await prisma.$transaction(async (tx) => {
-      for (const trat of tratamientos) {
-        let descripcion = `Tratamiento: ${trat.producto}`
+      for (const [_, tratAgrupado] of tratamientosAgrupados) {
+        let descripcion = `Tratamiento: ${tratAgrupado.producto}`
         
-        if (trat.cantidad && trat.categoria) {
-          descripcion += ` aplicado a ${trat.cantidad} ${trat.categoria}`
-        } else if (trat.categoria) {
-          descripcion += ` aplicado a ${trat.categoria}`
-        } else if (trat.cantidad) {
-          descripcion += ` aplicado a ${trat.cantidad} animales`
+        if (tratAgrupado.cantidad && tratAgrupado.categoria) {
+          descripcion += ` aplicado a ${tratAgrupado.cantidad} ${tratAgrupado.categoria}`
+        } else if (tratAgrupado.categoria) {
+          descripcion += ` aplicado a ${tratAgrupado.categoria}`
+        } else if (tratAgrupado.cantidad) {
+          descripcion += ` aplicado a ${tratAgrupado.cantidad} animales`
         }
         
-        if (trat.potrero) {
-          descripcion += ` en potrero ${trat.potrero}`
+        // Si hay potreros, listarlos en la descripción
+        if (tratAgrupado.potreros.length > 0) {
+          descripcion += ` en potreros ${tratAgrupado.potreros.join(', ')}`
         }
         
         await tx.evento.create({
@@ -485,9 +506,9 @@ export async function confirmarTratamientoMultiple(telefono: string, data: any) 
             tipo: 'TRATAMIENTO',
             fecha: new Date(),
             descripcion,
-            loteId: trat.potreroId || null,
-            cantidad: trat.cantidad || null,
-            categoria: trat.categoria || null,
+            loteId: null, // NULL porque son múltiples potreros
+            cantidad: tratAgrupado.cantidad || null,
+            categoria: tratAgrupado.categoria || null,
             usuarioId
           }
         })
@@ -527,33 +548,29 @@ export async function confirmarTratamientoTodoCampo(telefono: string, data: any)
   try {
     const { producto, cantidad, categoria, potreros, campoId, usuarioId } = data
     
-    // Crear eventos para todos los potreros
-    await prisma.$transaction(async (tx) => {
-      for (const potrero of potreros) {
-        let descripcion = `Tratamiento: ${producto}`
-        
-        if (cantidad && categoria) {
-          descripcion += ` aplicado a ${cantidad} ${categoria}`
-        } else if (categoria) {
-          descripcion += ` aplicado a ${categoria}`
-        } else if (cantidad) {
-          descripcion += ` aplicado a ${cantidad} animales`
-        }
-        
-        descripcion += ` en potrero ${potrero.nombre}`
-        
-        await tx.evento.create({
-          data: {
-            campoId,
-            tipo: 'TRATAMIENTO',
-            fecha: new Date(),
-            descripcion,
-            loteId: potrero.id,
-            cantidad: cantidad || null,
-            categoria: categoria || null,
-            usuarioId
-          }
-        })
+    // 🔥 UN SOLO EVENTO para todo el campo
+    let descripcion = `Tratamiento: ${producto}`
+    
+    if (cantidad && categoria) {
+      descripcion += ` aplicado a ${cantidad} ${categoria}`
+    } else if (categoria) {
+      descripcion += ` aplicado a ${categoria}`
+    } else if (cantidad) {
+      descripcion += ` aplicado a ${cantidad} animales`
+    }
+    
+    descripcion += ` en todo el campo (${potreros.length} potreros)`
+    
+    await prisma.evento.create({
+      data: {
+        campoId,
+        tipo: 'TRATAMIENTO',
+        fecha: new Date(),
+        descripcion,
+        loteId: null, // NULL porque es todo el campo
+        cantidad: cantidad || null,
+        categoria: categoria || null,
+        usuarioId
       }
     })
     
