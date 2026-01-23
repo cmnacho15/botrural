@@ -113,23 +113,42 @@ export async function GET(request: Request) {
     // 🆕 CALCULAR SUPERFICIE AGRÍCOLA (solo si MIXTO)
     let superficieAgricola = 0
     if (esMixto) {
-      const lotesConCultivosActivos = await prisma.lote.findMany({
+      // Obtener IDs de lotes que tuvieron ventas de granos en el ejercicio
+      const ventasGranos = await prisma.venta.findMany({
         where: {
           campoId,
-          esPastoreable: false,  // 🔥 SOLO lotes NO pastoreables
-          cultivos: {
-            some: {
-              fechaSiembra: {
-                gte: fechaDesde,
-                lte: fechaHasta
-              }
-            }
-          }
+          tipoProducto: "GRANOS",
+          fecha: { gte: fechaDesde, lte: fechaHasta }
         },
-        select: { hectareas: true }
+        include: {
+          serviciosGrano: {
+            select: { loteId: true }
+          }
+        }
       })
-      superficieAgricola = lotesConCultivosActivos.reduce((sum, l) => sum + l.hectareas, 0)
+
+      // Extraer IDs únicos de lotes
+      const loteIdsUnicos = new Set<string>()
+      ventasGranos.forEach(venta => {
+        venta.serviciosGrano.forEach(servicio => {
+          loteIdsUnicos.add(servicio.loteId)
+        })
+      })
+
+      // Obtener hectáreas totales de esos lotes
+      if (loteIdsUnicos.size > 0) {
+        const lotes = await prisma.lote.findMany({
+          where: {
+            id: { in: Array.from(loteIdsUnicos) }
+          },
+          select: { hectareas: true }
+        })
+        superficieAgricola = lotes.reduce((sum, l) => sum + l.hectareas, 0)
+      }
     }
+
+    // 🆕 CALCULAR SUPERFICIE ÚTIL (lo que produce)
+    const superficieUtil = esMixto ? spg + superficieAgricola : spg
 
     // 🆕 DECIDIR QUÉ SUPERFICIE USAR
     const superficieParaCalculos = usarSPG ? spg : totalHectareas
@@ -309,7 +328,7 @@ export async function GET(request: Request) {
     // 3.6 OBTENER VENTAS DE GRANOS (solo si MIXTO)
     // ---------------------------------------------------------
     let ventasGranosTotales = { totalUSD: 0, totalKg: 0 }
-    const ventasGranosPorCultivo: Record<string, { kg: number; usd: number; hectareas: number }> = {}
+    const ventasGranosPorCultivo: Record<string, { kg: number; usd: number; hectareas: number; rendimiento: number }> = {}
 
     if (esMixto) {
       const ventasGranosDB = await prisma.venta.findMany({
@@ -339,7 +358,7 @@ export async function GET(request: Request) {
           // Agrupar por tipo de cultivo
           const cultivo = renglon.tipoCultivoNombre || 'Otro'
           if (!ventasGranosPorCultivo[cultivo]) {
-            ventasGranosPorCultivo[cultivo] = { kg: 0, usd: 0, hectareas: 0 }
+            ventasGranosPorCultivo[cultivo] = { kg: 0, usd: 0, hectareas: 0, rendimiento: 0 }
           }
           
           ventasGranosPorCultivo[cultivo].kg += kgVenta
@@ -347,14 +366,32 @@ export async function GET(request: Request) {
         })
       })
 
-      // Obtener hectáreas por cultivo desde serviciosGrano
+      // Obtener hectáreas por cultivo desde serviciosGrano (evitar duplicados)
+      const hectareasPorCultivoYLote = new Map<string, Set<string>>()
       ventasGranosDB.forEach(venta => {
         venta.serviciosGrano.forEach(servicio => {
           const cultivo = servicio.cultivo
-          if (ventasGranosPorCultivo[cultivo]) {
-            ventasGranosPorCultivo[cultivo].hectareas += servicio.hectareas
+          if (!hectareasPorCultivoYLote.has(cultivo)) {
+            hectareasPorCultivoYLote.set(cultivo, new Set())
+          }
+          
+          const loteKey = `${servicio.loteId}-${servicio.hectareas}`
+          if (!hectareasPorCultivoYLote.get(cultivo)!.has(loteKey)) {
+            hectareasPorCultivoYLote.get(cultivo)!.add(loteKey)
+            
+            if (ventasGranosPorCultivo[cultivo]) {
+              ventasGranosPorCultivo[cultivo].hectareas += servicio.hectareas
+            }
           }
         })
+      })
+
+      // Calcular rendimiento (ton/ha) por cultivo
+      Object.keys(ventasGranosPorCultivo).forEach(cultivo => {
+        const datos = ventasGranosPorCultivo[cultivo]
+        if (datos.hectareas > 0) {
+          datos.rendimiento = (datos.kg / 1000) / datos.hectareas // ton/ha
+        }
       })
     }
 
@@ -601,6 +638,13 @@ export async function GET(request: Request) {
 
     const costosSinRentaGeneral = totalVariables + totalFijos
     
+    // 🆕 Separar costos operativos por rubro (agricultura vs ganadería)
+    const costosOperativosAgricola = gastosVariables
+      .filter(g => g.especie === 'AGRICULTURA' || g.categoria?.toLowerCase().includes('semilla') || g.categoria?.toLowerCase().includes('herbicida') || g.categoria?.toLowerCase().includes('fertilizante'))
+      .reduce((sum, g) => sum + g.montoEnUSD, 0)
+    
+    const costosOperativosGanadero = totalVariables - costosOperativosAgricola
+    
     // ---------------------------------------------------------
     // 7 CALCULAR INDICADORES
     // ---------------------------------------------------------
@@ -616,11 +660,16 @@ export async function GET(request: Request) {
     // Producto Bruto (U$S) = Ventas + Consumo - Compras +/- Dif Inventario + Valor lana + Granos
     const productoBrutoGanaderia = ventasTotales.importeBrutoUSD + consumosTotales.valorTotalUSD - comprasTotales.importeBrutoUSD + difInventarioTotales.difUSD + totalUSDLana
     const productoBrutoAgricultura = esMixto ? ventasGranosTotales.totalUSD : 0
+    const productoBrutoTotal = productoBrutoGanaderia + productoBrutoAgricultura
     
     const productoBruto = {
       ganaderia: productoBrutoGanaderia,
+      ganaderiaHa: spg > 0 ? productoBrutoGanaderia / spg : 0,
       agricultura: productoBrutoAgricultura,
-      global: productoBrutoGanaderia + productoBrutoAgricultura,
+      agriculturaHa: superficieAgricola > 0 ? productoBrutoAgricultura / superficieAgricola : 0,
+      porcentajeGanaderia: productoBrutoTotal > 0 ? (productoBrutoGanaderia / productoBrutoTotal) * 100 : 0,
+      porcentajeAgricultura: productoBrutoTotal > 0 ? (productoBrutoAgricultura / productoBrutoTotal) * 100 : 0,
+      global: productoBrutoTotal,
       vacunos: ventasPorTipo.BOVINO.importeBrutoUSD + consumosPorTipo.BOVINO.valorTotalUSD - comprasPorTipo.BOVINO.importeBrutoUSD + difInventarioPorTipo.BOVINO.difUSD,
       ovinos: ventasPorTipo.OVINO.importeBrutoUSD + consumosPorTipo.OVINO.valorTotalUSD - comprasPorTipo.OVINO.importeBrutoUSD + difInventarioPorTipo.OVINO.difUSD + totalUSDLana,
       equinos: ventasPorTipo.EQUINO.importeBrutoUSD + consumosPorTipo.EQUINO.valorTotalUSD - comprasPorTipo.EQUINO.importeBrutoUSD + difInventarioPorTipo.EQUINO.difUSD,
@@ -635,16 +684,20 @@ export async function GET(request: Request) {
     }
 
     // IK = Producto Bruto - Costos (SIN renta)
+    const ikGlobal = productoBruto.global - costosSinRentaGeneral
     const ik = {
-      global: productoBruto.global - costosSinRentaGeneral,
+      global: ikGlobal,
+      globalPorHa: superficieUtil > 0 ? ikGlobal / superficieUtil : 0,
       vacunos: productoBruto.vacunos - costosSinRentaPorEspecie.vacunos,
       ovinos: productoBruto.ovinos - costosSinRentaPorEspecie.ovinos,
       equinos: productoBruto.equinos - costosSinRentaPorEspecie.equinos,
     }
 
     // IKP = Producto Bruto - Costos Totales (CON renta)
+    const ikpGlobal = productoBruto.global - costosTotalesGeneral
     const ikp = {
-      global: productoBruto.global - costosTotalesGeneral,
+      global: ikpGlobal,
+      globalPorHa: superficieUtil > 0 ? ikpGlobal / superficieUtil : 0,
       vacunos: productoBruto.vacunos - costosTotalesPorEspecie.vacunos,
       ovinos: productoBruto.ovinos - costosTotalesPorEspecie.ovinos,
       equinos: productoBruto.equinos - costosTotalesPorEspecie.equinos,
@@ -725,6 +778,7 @@ export async function GET(request: Request) {
       superficie: {
         total: totalHectareas,
         spg: spg,
+        util: superficieUtil,
         mejorada: superficieMejorada,
         agricola: esMixto ? superficieAgricola : undefined,
         usandoSPG: usarSPG,
@@ -753,7 +807,10 @@ export async function GET(request: Request) {
             totalKg: ventasGranosTotales.totalKg,
             porHa: superficieAgricola > 0 ? ventasGranosTotales.totalUSD / superficieAgricola : 0,
             porCultivo: ventasGranosPorCultivo
-          }
+          },
+          pbAgricola: productoBruto.agricultura,
+          pbAgricolaPorHa: productoBruto.agriculturaHa,
+          porcentajePBTotal: productoBruto.porcentajeAgricultura
         }
       }),
 
@@ -821,7 +878,11 @@ export async function GET(request: Request) {
       economicos: {
         productoBruto: {
           ganaderia: Math.round(productoBruto.ganaderia),
+          ganaderiaHa: Math.round(productoBruto.ganaderiaHa),
+          porcentajeGanaderia: Math.round(productoBruto.porcentajeGanaderia),
           agricultura: Math.round(productoBruto.agricultura),
+          agriculturaHa: Math.round(productoBruto.agriculturaHa),
+          porcentajeAgricultura: Math.round(productoBruto.porcentajeAgricultura),
           total: {
             global: Math.round(productoBruto.global),
             vacunos: Math.round(productoBruto.vacunos),
@@ -905,6 +966,14 @@ export async function GET(request: Request) {
             equinos: Math.round(porHa(costosRentaPorEspecie.equinos, hectareasPorEspecie.equinos)),
           },
         },
+        costos: {
+          operativosAgricola: Math.round(costosOperativosAgricola),
+          operativosGanadero: Math.round(costosOperativosGanadero),
+          estructura: Math.round(totalFijos),
+          renta: Math.round(totalRenta),
+          total: Math.round(costosTotalesGeneral),
+          totalPorHa: Math.round(porHa(costosTotalesGeneral, superficieUtil)),
+        },
         ik: {
           total: {
             global: Math.round(ik.global),
@@ -913,7 +982,7 @@ export async function GET(request: Request) {
             equinos: Math.round(ik.equinos),
           },
           porHa: {
-            global: Math.round(porHa(ik.global, superficieParaCalculos)),
+            global: Math.round(ik.globalPorHa),
             vacunos: Math.round(porHa(ik.vacunos, hectareasPorEspecie.vacunos)),
             ovinos: Math.round(porHa(ik.ovinos, hectareasPorEspecie.ovinos)),
             equinos: Math.round(porHa(ik.equinos, hectareasPorEspecie.equinos)),
@@ -927,7 +996,7 @@ export async function GET(request: Request) {
             equinos: Math.round(ikp.equinos),
           },
           porHa: {
-            global: Math.round(porHa(ikp.global, superficieParaCalculos)),
+            global: Math.round(ikp.globalPorHa),
             vacunos: Math.round(porHa(ikp.vacunos, hectareasPorEspecie.vacunos)),
             ovinos: Math.round(porHa(ikp.ovinos, hectareasPorEspecie.ovinos)),
             equinos: Math.round(porHa(ikp.equinos, hectareasPorEspecie.equinos)),

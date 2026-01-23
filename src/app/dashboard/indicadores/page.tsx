@@ -18,6 +18,7 @@ interface IndicadoresData {
   superficie: {
     total: number
     spg: number
+    util: number
     mejorada: number
     agricola?: number
     usandoSPG: boolean
@@ -28,8 +29,11 @@ interface IndicadoresData {
       totalUSD: number
       totalKg: number
       porHa: number
-      porCultivo: Record<string, { kg: number; usd: number; hectareas: number }>
+      porCultivo: Record<string, { kg: number; usd: number; hectareas: number; rendimiento: number }>
     }
+    pbAgricola: number
+    pbAgricolaPorHa: number
+    porcentajePBTotal: number
   }
   eficienciaTecnica: {
     superficieTotal: { global: number; vacunos: number; ovinos: number; equinos: number }
@@ -51,7 +55,11 @@ interface IndicadoresData {
   economicos: {
     productoBruto: {
       ganaderia: number
+      ganaderiaHa: number
+      porcentajeGanaderia: number
       agricultura: number
+      agriculturaHa: number
+      porcentajeAgricultura: number
       total: { global: number; vacunos: number; ovinos: number; equinos: number }
       porHa: { global: number; vacunos: number; ovinos: number; equinos: number }
     }
@@ -74,6 +82,14 @@ interface IndicadoresData {
     costosRenta: {
       total: { global: number; vacunos: number; ovinos: number; equinos: number }
       porHa: { global: number; vacunos: number; ovinos: number; equinos: number }
+    }
+    costos: {
+      operativosAgricola: number
+      operativosGanadero: number
+      estructura: number
+      renta: number
+      total: number
+      totalPorHa: number
     }
     ik: {
       total: { global: number; vacunos: number; ovinos: number; equinos: number }
@@ -372,7 +388,7 @@ export default function IndicadoresPage() {
                     <tr className="bg-gray-50">
                       <td className="px-4 py-2 font-medium text-gray-900 border-b border-gray-200 sticky left-0 bg-gray-50 z-10">
                         Superficie Agrícola (ha)
-                        <span className="block text-xs text-gray-500 mt-1">Lotes con cultivos activos</span>
+                        <span className="block text-xs text-gray-500 mt-1">Hectáreas con cultivos del ejercicio</span>
                       </td>
                       <td className="px-3 py-2 text-center border-b border-gray-200 font-medium">
                         {fmtHa(data.superficie.agricola!)}
@@ -381,6 +397,23 @@ export default function IndicadoresPage() {
                             ({((data.superficie.agricola! / data.superficie.total) * 100).toFixed(1)}% del total)
                           </span>
                         )}
+                      </td>
+                      <td colSpan={7} className="px-3 py-2 text-center border-b border-gray-200 text-gray-400">-</td>
+                    </tr>
+                  )}
+
+                  {/* 🆕 FILA 3.6: Superficie Útil (si MIXTO) */}
+                  {esMixto && (
+                    <tr className={`${true ? 'bg-blue-50 border-l-4 border-l-blue-500' : 'bg-gray-50'}`}>
+                      <td className="px-4 py-2 font-medium border-b border-gray-200 sticky left-0 bg-blue-50 text-blue-900 z-10">
+                        Superficie Útil (ha)
+                        <span className="block text-xs text-blue-600 mt-1">SPG + Agrícola (usada para cálculos económicos) ✔</span>
+                      </td>
+                      <td className="px-3 py-2 text-center border-b border-gray-200 font-medium text-blue-900">
+                        {fmtHa(data.superficie.util)}
+                        <span className="block text-xs text-gray-500 mt-1">
+                          ({fmtHa(data.superficie.spg)} + {fmtHa(data.superficie.agricola!)})
+                        </span>
                       </td>
                       <td colSpan={7} className="px-3 py-2 text-center border-b border-gray-200 text-gray-400">-</td>
                     </tr>
@@ -618,37 +651,90 @@ export default function IndicadoresPage() {
                   </tr>
                   {agriculturaAbierto && (
                     <>
-                      {/* Ventas de granos totales */}
-                      <tr className="hover:bg-gray-50">
-                        <td className="px-4 py-2 font-medium text-gray-900 border-b border-gray-100 sticky left-0 bg-white z-10">
-                          Ventas de granos totales
-                        </td>
-                        <td className="px-3 py-2 text-center border-b border-gray-100 font-medium">
-                          {fmt(data.agricultura!.ventasGranos.totalUSD)}
-                        </td>
-                        <td className="px-3 py-2 text-center border-b border-gray-100">
-                          {fmt(data.agricultura!.ventasGranos.porHa)}
-                        </td>
-                        <td colSpan={6} className="px-3 py-2 text-center border-b border-gray-100 text-gray-400">-</td>
+                      {/* Header de tabla agrícola */}
+                      <tr className="bg-gray-100">
+                        <th className="px-4 py-2 text-left font-semibold text-gray-700 border-b border-gray-300 sticky left-0 bg-gray-100 z-10">
+                          Cultivo
+                        </th>
+                        <th className="px-3 py-2 text-center font-semibold text-gray-700 border-b border-gray-300">
+                          Ventas<br/><span className="font-normal text-xs">(USD)</span>
+                        </th>
+                        <th className="px-3 py-2 text-center font-semibold text-gray-700 border-b border-gray-300">
+                          Superficie<br/><span className="font-normal text-xs">(ha)</span>
+                        </th>
+                        <th className="px-3 py-2 text-center font-semibold text-gray-700 border-b border-gray-300">
+                          Rendimiento<br/><span className="font-normal text-xs">(ton/ha)</span>
+                        </th>
+                        <th className="px-3 py-2 text-center font-semibold text-gray-700 border-b border-gray-300">
+                          Producción<br/><span className="font-normal text-xs">(kg)</span>
+                        </th>
+                        <th className="px-3 py-2 text-center font-semibold text-gray-700 border-b border-gray-300">
+                          Ingreso/ha<br/><span className="font-normal text-xs">(USD/ha)</span>
+                        </th>
+                        <th colSpan={3} className="px-3 py-2 text-center border-b border-gray-300"></th>
                       </tr>
 
-                      {/* Ventas por cultivo */}
+                      {/* Filas por cultivo */}
                       {Object.entries(data.agricultura!.ventasGranos.porCultivo).map(([cultivo, valores]) => (
                         <tr key={cultivo} className="hover:bg-gray-50">
-                          <td className="px-4 py-2 pl-8 text-sm text-gray-700 border-b border-gray-100 sticky left-0 bg-white z-10">
+                          <td className="px-4 py-2 font-medium text-gray-900 border-b border-gray-100 sticky left-0 bg-white z-10">
                             {cultivo}
                           </td>
-                          <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">
+                          <td className="px-3 py-2 text-center border-b border-gray-100">
                             {fmt(valores.usd)}
                           </td>
-                          <td className="px-3 py-2 text-center border-b border-gray-100 text-sm">
+                          <td className="px-3 py-2 text-center border-b border-gray-100">
+                            {fmtHa(valores.hectareas)}
+                          </td>
+                          <td className="px-3 py-2 text-center border-b border-gray-100">
+                            {fmtDec(valores.rendimiento)}
+                          </td>
+                          <td className="px-3 py-2 text-center border-b border-gray-100">
+                            {fmt(valores.kg)}
+                          </td>
+                          <td className="px-3 py-2 text-center border-b border-gray-100 font-medium">
                             {valores.hectareas > 0 ? fmt(Math.round(valores.usd / valores.hectareas)) : '-'}
                           </td>
-                          <td colSpan={6} className="px-3 py-2 text-center border-b border-gray-100 text-sm text-gray-400">
-                            {fmt(valores.kg)} kg ({valores.hectareas} ha)
-                          </td>
+                          <td colSpan={3} className="px-3 py-2 text-center border-b border-gray-100"></td>
                         </tr>
                       ))}
+
+                      {/* Fila TOTAL */}
+                      <tr className="bg-green-50 font-semibold">
+                        <td className="px-4 py-2 text-gray-900 border-b border-gray-200 sticky left-0 bg-green-50 z-10">
+                          TOTAL AGRÍCOLA
+                        </td>
+                        <td className="px-3 py-2 text-center border-b border-gray-200">
+                          {fmt(data.agricultura!.ventasGranos.totalUSD)}
+                        </td>
+                        <td className="px-3 py-2 text-center border-b border-gray-200">
+                          {fmtHa(data.superficie.agricola!)}
+                        </td>
+                        <td className="px-3 py-2 text-center border-b border-gray-200 text-gray-400">
+                          -
+                        </td>
+                        <td className="px-3 py-2 text-center border-b border-gray-200">
+                          {fmt(data.agricultura!.ventasGranos.totalKg)}
+                        </td>
+                        <td className="px-3 py-2 text-center border-b border-gray-200">
+                          {fmt(Math.round(data.agricultura!.pbAgricolaPorHa))}
+                        </td>
+                        <td colSpan={3} className="px-3 py-2 text-center border-b border-gray-200"></td>
+                      </tr>
+
+                      {/* PB Agrícola */}
+                      <tr className="bg-green-100">
+                        <td colSpan={9} className="px-4 py-3 border-b border-gray-300 sticky left-0 bg-green-100 z-10">
+                          <div className="flex items-center justify-between">
+                            <span className="font-semibold text-gray-900">
+                              Producto Bruto Agrícola: <span className="text-green-800">{fmt(data.agricultura!.pbAgricola)} USD</span>
+                            </span>
+                            <span className="text-sm text-gray-700">
+                              ({data.agricultura!.porcentajePBTotal.toFixed(1)}% del PB total) • {fmt(Math.round(data.agricultura!.pbAgricolaPorHa))} USD/ha
+                            </span>
+                          </div>
+                        </td>
+                      </tr>
                     </>
                   )}
                 </>
