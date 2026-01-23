@@ -116,6 +116,7 @@ export async function GET(request: Request) {
       const lotesConCultivosActivos = await prisma.lote.findMany({
         where: {
           campoId,
+          esPastoreable: false,  // 🔥 SOLO lotes NO pastoreables
           cultivos: {
             some: {
               fechaSiembra: {
