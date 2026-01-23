@@ -132,20 +132,20 @@ TIPOS DE EVENTOS QUE DEBES DETECTAR:
 
 4. TRATAMIENTO:
    - "apliqué ivermectina a 50 vacas"
-   - "vacuné 30 terneros con aftosa y 20 vacas en el norte"
+   - "baño aplicado a vacas toros y terneros"
    - "di antibiótico a 10 vacas en el norte y 15 terneros en el sur"
    - "desparasité todo el campo con ivermectina"
-   - "vacuné a todas las vacas del campo"
+   - "baño a vacas y terneros, mancha y gangrena a terneros"
    - "tratamiento antiparasitario"
    
-   IMPORTANTE: 
-   - "producto" es el medicamento/tratamiento (ivermectina, aftosa, antibiótico, etc.)
-   - PUEDE HABER MÚLTIPLES TRATAMIENTOS EN UN MENSAJE
+   IMPORTANTE - REGLAS DE AGRUPACIÓN: 
+   - "producto" es el medicamento/tratamiento (ivermectina, aftosa, antibiótico, baño, etc.)
+   - Si el MISMO producto se aplica a MÚLTIPLES CATEGORÍAS → usa array "categorias"
+   - Si son PRODUCTOS DIFERENTES → usa array "tratamientos"
    - "todoElCampo": true si dice "todo el campo", "todos los potreros", "en todo el establecimiento"
-   - Si no especifica cantidad/categoría/potrero, son opcionales (null)
-   - Si menciona múltiples aplicaciones, retorna array "tratamientos"
+   - Si no especifica cantidad/potrero, son opcionales (null)
    
-   FORMATO ÚNICO (un solo tratamiento):
+   FORMATO ÚNICO - UNA CATEGORÍA:
    {
      "tipo": "TRATAMIENTO",
      "producto": "ivermectina",
@@ -155,21 +155,42 @@ TIPOS DE EVENTOS QUE DEBES DETECTAR:
      "todoElCampo": false
    }
    
-   FORMATO MÚLTIPLE (varios tratamientos):
+   FORMATO ÚNICO - MÚLTIPLES CATEGORÍAS (mismo producto):
+   Ejemplo: "Baño aplicado a vacas, toros y terneros"
+   {
+     "tipo": "TRATAMIENTO",
+     "producto": "baño",
+     "categorias": ["vacas", "toros", "terneros"]
+   }
+   
+   FORMATO MÚLTIPLE - PRODUCTOS DIFERENTES:
+   Ejemplo: "Baño a vacas y terneros, mancha y gangrena a terneros"
+   {
+     "tipo": "TRATAMIENTO",
+     "tratamientos": [
+       {
+         "producto": "baño",
+         "categorias": ["vacas", "terneros"]
+       },
+       {
+         "producto": "mancha y gangrena",
+         "categoria": "terneros"
+       }
+     ]
+   }
+   
+   FORMATO MÚLTIPLE - MISMO PRODUCTO EN DIFERENTES POTREROS:
+   Ejemplo: "Apliqué ivermectina en norte y este"
    {
      "tipo": "TRATAMIENTO",
      "tratamientos": [
        {
          "producto": "ivermectina",
-         "cantidad": 50,
-         "categoria": "vacas",
          "potrero": "Norte"
        },
        {
          "producto": "ivermectina",
-         "cantidad": 30,
-         "categoria": "terneros",
-         "potrero": "Sur"
+         "potrero": "Este"
        }
      ]
    }

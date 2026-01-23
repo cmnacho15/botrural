@@ -13,6 +13,7 @@ export async function handleTratamiento(
     producto?: string
     cantidad?: number
     categoria?: string
+    categorias?: string[]
     potrero?: string
     _potreroId?: string
     todoElCampo?: boolean
@@ -20,6 +21,7 @@ export async function handleTratamiento(
       producto: string
       cantidad?: number
       categoria?: string
+      categorias?: string[]
       potrero?: string
     }>
   }
@@ -114,7 +116,8 @@ async function handleTratamientoSimple(
                 opciones: resultadoPotrero.opciones,
                 producto: parsedData.producto,
                 cantidad: parsedData.cantidad,
-                categoria: parsedData.categoria
+                categoria: parsedData.categoria,
+                categorias: parsedData.categorias
               }),
             },
             update: {
@@ -123,7 +126,8 @@ async function handleTratamientoSimple(
                 opciones: resultadoPotrero.opciones,
                 producto: parsedData.producto,
                 cantidad: parsedData.cantidad,
-                categoria: parsedData.categoria
+                categoria: parsedData.categoria,
+                categorias: parsedData.categorias
               }),
             },
           })
@@ -160,6 +164,7 @@ async function handleTratamientoSimple(
         producto: parsedData.producto,
         cantidad: parsedData.cantidad || null,
         categoria: parsedData.categoria || null,
+        categorias: parsedData.categorias || null,
         potrero: potreroNombre,
         potreroId: potrero?.id || null,
         campoId: user.campoId,
@@ -173,6 +178,7 @@ async function handleTratamientoSimple(
         producto: parsedData.producto,
         cantidad: parsedData.cantidad || null,
         categoria: parsedData.categoria || null,
+        categorias: parsedData.categorias || null,
         potrero: potreroNombre,
         potreroId: potrero?.id || null,
         campoId: user.campoId,
@@ -186,7 +192,10 @@ async function handleTratamientoSimple(
   let mensaje = `💉 *Tratamiento - Confirmá los datos*\n\n`
   mensaje += `💊 Producto: ${parsedData.producto}\n`
   
-  if (parsedData.cantidad && parsedData.categoria) {
+  // Manejar múltiples categorías
+  if (parsedData.categorias && parsedData.categorias.length > 0) {
+    mensaje += `🐄 Aplicado a: ${parsedData.categorias.join(', ')}\n`
+  } else if (parsedData.cantidad && parsedData.categoria) {
     mensaje += `🐄 Aplicado a: ${parsedData.cantidad} ${parsedData.categoria}\n`
   } else if (parsedData.categoria) {
     mensaje += `🐄 Aplicado a: ${parsedData.categoria}\n`
@@ -240,6 +249,7 @@ async function handleTratamientosMultiples(
       producto: trat.producto,
       cantidad: trat.cantidad || null,
       categoria: trat.categoria || null,
+      categorias: trat.categorias || null,
       potreroId,
       potrero: potreroNombre
     })
@@ -273,14 +283,18 @@ async function handleTratamientosMultiples(
   let mensaje = `💉 *Tratamientos - Confirmá los datos*\n\n`
   
   tratamientosProcesados.forEach((trat, index) => {
-    mensaje += `${index + 1}. ${trat.producto}`
-    if (trat.cantidad && trat.categoria) {
-      mensaje += ` → ${trat.cantidad} ${trat.categoria}`
+    mensaje += `${index + 1}. ${trat.producto}\n`
+    
+    if (trat.categorias && trat.categorias.length > 0) {
+      mensaje += `   🐄 Aplicado a: ${trat.categorias.join(', ')}\n`
+    } else if (trat.cantidad && trat.categoria) {
+      mensaje += `   🐄 Aplicado a: ${trat.cantidad} ${trat.categoria}\n`
     } else if (trat.categoria) {
-      mensaje += ` → ${trat.categoria}`
+      mensaje += `   🐄 Aplicado a: ${trat.categoria}\n`
     }
+    
     if (trat.potrero) {
-      mensaje += ` (${trat.potrero})`
+      mensaje += `   📍 Potrero: ${trat.potrero}\n`
     }
     mensaje += `\n`
   })
@@ -331,6 +345,7 @@ async function handleTratamientoTodoElCampo(
         producto: parsedData.producto,
         cantidad: parsedData.cantidad || null,
         categoria: parsedData.categoria || null,
+        categorias: parsedData.categorias || null,
         potreros: potreros.map(p => ({ id: p.id, nombre: p.nombre })),
         campoId: user.campoId,
         usuarioId: user.id,
@@ -343,6 +358,7 @@ async function handleTratamientoTodoElCampo(
         producto: parsedData.producto,
         cantidad: parsedData.cantidad || null,
         categoria: parsedData.categoria || null,
+        categorias: parsedData.categorias || null,
         potreros: potreros.map(p => ({ id: p.id, nombre: p.nombre })),
         campoId: user.campoId,
         usuarioId: user.id,
@@ -355,7 +371,9 @@ async function handleTratamientoTodoElCampo(
   let mensaje = `💉 *Tratamiento a TODO EL CAMPO*\n\n`
   mensaje += `💊 Producto: ${parsedData.producto}\n`
   
-  if (parsedData.cantidad && parsedData.categoria) {
+  if (parsedData.categorias && parsedData.categorias.length > 0) {
+    mensaje += `🐄 Aplicado a: ${parsedData.categorias.join(', ')}\n`
+  } else if (parsedData.cantidad && parsedData.categoria) {
     mensaje += `🐄 Aplicado a: ${parsedData.cantidad} ${parsedData.categoria}\n`
   } else if (parsedData.categoria) {
     mensaje += `🐄 Aplicado a: ${parsedData.categoria}\n`
@@ -403,19 +421,23 @@ export async function confirmarTratamiento(telefono: string, data: any) {
     }
 
     // Construir descripción
-let descripcion = `Tratamiento: ${producto}`
+    let descripcion = `Tratamiento: ${producto}`
 
-if (cantidad && categoria) {
-  descripcion += ` aplicado a ${cantidad} ${categoria}`
-} else if (categoria) {
-  descripcion += ` aplicado a ${categoria}`
-} else if (cantidad) {
-  descripcion += ` aplicado a ${cantidad} animales`
-}
+    const categorias = data.categorias
 
-if (nombrePotreroConModulo) {
-  descripcion += ` en potrero ${nombrePotreroConModulo}`
-}
+    if (categorias && categorias.length > 0) {
+      descripcion += ` aplicado a ${categorias.join(', ')}`
+    } else if (cantidad && categoria) {
+      descripcion += ` aplicado a ${cantidad} ${categoria}`
+    } else if (categoria) {
+      descripcion += ` aplicado a ${categoria}`
+    } else if (cantidad) {
+      descripcion += ` aplicado a ${cantidad} animales`
+    }
+
+    if (nombrePotreroConModulo) {
+      descripcion += ` en potrero ${nombrePotreroConModulo}`
+    }
 
     // Crear evento con módulo en descripción
     await prisma.evento.create({
@@ -434,7 +456,11 @@ if (nombrePotreroConModulo) {
     // Mensaje de confirmación
     let mensajeConfirmacion = `✅ *Tratamiento registrado correctamente*\n\n💊 ${producto}`
     
-    if (cantidad && categoria) {
+    const categoriasMsg = data.categorias
+    
+    if (categoriasMsg && categoriasMsg.length > 0) {
+      mensajeConfirmacion += `\n🐄 ${categoriasMsg.join(', ')}`
+    } else if (cantidad && categoria) {
       mensajeConfirmacion += `\n🐄 ${cantidad} ${categoria}`
     }
     
@@ -462,42 +488,23 @@ export async function confirmarTratamientoMultiple(telefono: string, data: any) 
   try {
     const { tratamientos, campoId, usuarioId } = data
     
-    // Agrupar tratamientos por producto (mismo producto = 1 evento con múltiples potreros)
-    const tratamientosAgrupados = new Map<string, any>()
-    
-    for (const trat of tratamientos) {
-      const key = `${trat.producto}_${trat.categoria || 'sin-cat'}_${trat.cantidad || 'sin-cant'}`
-      
-      if (!tratamientosAgrupados.has(key)) {
-        tratamientosAgrupados.set(key, {
-          producto: trat.producto,
-          cantidad: trat.cantidad,
-          categoria: trat.categoria,
-          potreros: []
-        })
-      }
-      
-      if (trat.potrero) {
-        tratamientosAgrupados.get(key)!.potreros.push(trat.potrero)
-      }
-    }
-    
-    // Crear eventos agrupados
+    // Crear eventos individuales para cada tratamiento
     await prisma.$transaction(async (tx) => {
-      for (const [_, tratAgrupado] of tratamientosAgrupados) {
-        let descripcion = `Tratamiento: ${tratAgrupado.producto}`
+      for (const trat of tratamientos) {
+        let descripcion = `Tratamiento: ${trat.producto}`
         
-        if (tratAgrupado.cantidad && tratAgrupado.categoria) {
-          descripcion += ` aplicado a ${tratAgrupado.cantidad} ${tratAgrupado.categoria}`
-        } else if (tratAgrupado.categoria) {
-          descripcion += ` aplicado a ${tratAgrupado.categoria}`
-        } else if (tratAgrupado.cantidad) {
-          descripcion += ` aplicado a ${tratAgrupado.cantidad} animales`
+        if (trat.categorias && trat.categorias.length > 0) {
+          descripcion += ` aplicado a ${trat.categorias.join(', ')}`
+        } else if (trat.cantidad && trat.categoria) {
+          descripcion += ` aplicado a ${trat.cantidad} ${trat.categoria}`
+        } else if (trat.categoria) {
+          descripcion += ` aplicado a ${trat.categoria}`
+        } else if (trat.cantidad) {
+          descripcion += ` aplicado a ${trat.cantidad} animales`
         }
         
-        // Si hay potreros, listarlos en la descripción
-        if (tratAgrupado.potreros.length > 0) {
-          descripcion += ` en potreros ${tratAgrupado.potreros.join(', ')}`
+        if (trat.potrero) {
+          descripcion += ` en potrero ${trat.potrero}`
         }
         
         await tx.evento.create({
@@ -506,9 +513,9 @@ export async function confirmarTratamientoMultiple(telefono: string, data: any) 
             tipo: 'TRATAMIENTO',
             fecha: new Date(),
             descripcion,
-            loteId: null, // NULL porque son múltiples potreros
-            cantidad: tratAgrupado.cantidad || null,
-            categoria: tratAgrupado.categoria || null,
+            loteId: trat.potreroId || null,
+            cantidad: trat.cantidad || null,
+            categoria: trat.categoria || null,
             usuarioId
           }
         })
@@ -520,9 +527,13 @@ export async function confirmarTratamientoMultiple(telefono: string, data: any) 
     
     tratamientos.forEach((trat: any, index: number) => {
       mensaje += `${index + 1}. ${trat.producto}`
-      if (trat.cantidad && trat.categoria) {
+      
+      if (trat.categorias && trat.categorias.length > 0) {
+        mensaje += ` → ${trat.categorias.join(', ')}`
+      } else if (trat.cantidad && trat.categoria) {
         mensaje += ` → ${trat.cantidad} ${trat.categoria}`
       }
+      
       if (trat.potrero) {
         mensaje += ` (${trat.potrero})`
       }
@@ -551,7 +562,11 @@ export async function confirmarTratamientoTodoCampo(telefono: string, data: any)
     // 🔥 UN SOLO EVENTO para todo el campo
     let descripcion = `Tratamiento: ${producto}`
     
-    if (cantidad && categoria) {
+    const categorias = data.categorias
+    
+    if (categorias && categorias.length > 0) {
+      descripcion += ` aplicado a ${categorias.join(', ')}`
+    } else if (cantidad && categoria) {
       descripcion += ` aplicado a ${cantidad} ${categoria}`
     } else if (categoria) {
       descripcion += ` aplicado a ${categoria}`
@@ -578,7 +593,9 @@ export async function confirmarTratamientoTodoCampo(telefono: string, data: any)
     let mensaje = `✅ *Tratamiento registrado en TODO EL CAMPO*\n\n`
     mensaje += `💊 ${producto}\n`
     
-    if (cantidad && categoria) {
+    if (categorias && categorias.length > 0) {
+      mensaje += `🐄 ${categorias.join(', ')}\n`
+    } else if (cantidad && categoria) {
       mensaje += `🐄 ${cantidad} ${categoria}\n`
     } else if (categoria) {
       mensaje += `🐄 ${categoria}\n`
