@@ -133,36 +133,43 @@ export async function processInvoiceImage(
               text: `Eres un sistema de OCR para contabilidad agrícola uruguaya. Extrae los datos de esta factura/boleta.
 
 IMPORTANTE - PROVEEDOR:
-El "proveedor" es la EMPRESA que EMITE la factura, NO el cliente/titular/consumidor.
-Ejemplos:
-- Factura de luz → proveedor: "UTE" (no el nombre del titular de la cuenta)
-- Factura BPS → proveedor: "BPS" (no la empresa que paga aportes)
-- Factura DGI → proveedor: "DGI" (no el contribuyente)
-- Factura de veterinaria → proveedor: nombre de la veterinaria/laboratorio
-- Factura de ferretería → proveedor: nombre del comercio
-Busca el logo, membrete o razón social del EMISOR en la parte superior de la factura.
+El "proveedor" es la EMPRESA que EMITE la factura, NO el cliente/titular.
+- Factura de luz → "UTE"
+- Factura BPS → "BPS"
+- Factura DGI → "DGI"
+- Otros → nombre del comercio/empresa emisora (buscar logo/membrete arriba)
 
-CATEGORÍAS VÁLIDAS: ${CATEGORIAS_GASTOS.join(", ")}
+IMPORTANTE - ITEMS:
+Para facturas de SERVICIOS PÚBLICOS (UTE, BPS, DGI, OSE):
+- Crear UN SOLO item con el total del servicio
+- NO desglosar sub-conceptos (cargo fijo, consumo punta, etc.)
+- Usar la sección SUBTOTALES o IMPORTE TOTAL para los montos
+- Ejemplo UTE: un item "Consumo eléctrico mes XX/XXXX"
 
-MAPEO DE CATEGORÍAS:
-- UTE/electricidad/energía → "Electricidad"
-- BPS/aportes patronales/contribuciones → "Sueldos"
+Para facturas de COMPRAS (ferreterías, veterinarias, agronomías):
+- Crear un item por cada producto/línea de la factura
+- precio = importe sin IVA, iva = monto del IVA, precioFinal = precio + iva
+
+CATEGORÍAS: ${CATEGORIAS_GASTOS.join(", ")}
+
+MAPEO:
+- UTE/electricidad → "Electricidad"
+- BPS/aportes → "Sueldos"
 - DGI/impuestos/IMEBA → "Impuestos"
-- Veterinaria/medicamentos/vacunas → "Sanidad y Manejo"
-- Semillas pasturas (raigras, lotus, trébol, festuca) → "Insumos Pasturas"
-- Semillas agrícolas (maíz, soja, trigo, sorgo) → "Insumos de Cultivos"
-- Alambres, postes, pinturas, construcción → "Estructuras"
-- Balanceados, forrajes, raciones → "Alimentación"
-- Gasoil, nafta, combustible → "Combustible"
+- Veterinaria/medicamentos → "Sanidad y Manejo"
+- Semillas pasturas → "Insumos Pasturas"
+- Semillas agrícolas → "Insumos de Cultivos"
+- Alambres/postes/pinturas → "Estructuras"
+- Balanceados/forrajes → "Alimentación"
+- Gasoil/nafta → "Combustible"
 
 MONEDA: "USD" si dice dólares/USD/U$S, sino "UYU"
-PAGO: "Plazo" si dice crédito/CTA CTE/días, sino "Contado"
-Si es plazo → pagado=false, si es contado → pagado=true
+PAGO: "Plazo" si dice crédito/CTA CTE/e-Factura Crédito, sino "Contado"
 
-RESPONDE SOLO JSON VÁLIDO (sin markdown, sin explicaciones):
+RESPONDE SOLO JSON (sin markdown):
 {
   "tipo": "GASTO",
-  "proveedor": "NOMBRE DE LA EMPRESA EMISORA",
+  "proveedor": "EMPRESA EMISORA",
   "fecha": "YYYY-MM-DD",
   "moneda": "UYU",
   "montoTotal": 0,
