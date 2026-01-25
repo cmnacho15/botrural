@@ -132,26 +132,38 @@ export async function processInvoiceImage(
               type: "text",
               text: `Eres un sistema de OCR para contabilidad agrícola uruguaya. Extrae los datos de esta factura/boleta.
 
-IMPORTANTE - PROVEEDOR:
-El "proveedor" es la EMPRESA que EMITE la factura, NO el cliente/titular.
-- Factura de luz → "UTE"
-- Factura BPS → "BPS"
-- Factura DGI → "DGI"
-- Otros → nombre del comercio/empresa emisora (buscar logo/membrete arriba)
+⚠️ REGLA CRÍTICA DE VALIDACIÓN MATEMÁTICA:
+La suma de precioFinal de TODOS los items DEBE ser EXACTAMENTE igual al TOTAL de la factura.
+PROCESO OBLIGATORIO:
+1. Primero identificar el TOTAL FINAL de la factura (buscar "TOTAL", "TOTAL A PAGAR", "IMPORTE TOTAL")
+2. Luego extraer cada item con sus montos
+3. Verificar: Σ(precioFinal) = TOTAL. Si no coincide, reinterpretar las columnas.
 
-IMPORTANTE - ITEMS:
-Para facturas de SERVICIOS PÚBLICOS (UTE, BPS, DGI, OSE):
+📊 CÓMO LEER TABLAS DE FACTURAS:
+Las facturas uruguayas típicamente tienen estas columnas:
+- Cantidad | Precio Unitario | Total/Monto/Importe | IVA
+
+REGLAS PARA EXTRAER MONTOS:
+- "precio" = valor de columna "Total", "Monto", "Importe" o "Total (doc.)" → ya es Cantidad × Precio Unitario
+- "iva" = valor de columna "IVA" (si existe y no es "E" o "EXE")
+- "precioFinal" = precio + iva
+- Si IVA = "E", "EXE", "IVA_EXE" o vacío → iva = 0, precioFinal = precio
+- NUNCA usar el precio unitario como precioFinal (error común)
+
+EJEMPLO DE LECTURA CORRECTA:
+| Descripción | Cant | P.Unit | Total | IVA |
+| Producto A  |   8  | $89.87 | $718.96 | $158.17 |
+→ precio: 718.96, iva: 158.17, precioFinal: 877.13 ✓
+→ INCORRECTO sería: precio: 89.87 (eso es unitario!)
+
+PROVEEDOR:
+- Es la EMPRESA que EMITE la factura (logo/membrete arriba), NO el cliente
+- UTE, BPS, DGI → usar ese nombre
+- Otros → nombre del comercio emisor
+
+ITEMS PARA SERVICIOS PÚBLICOS (UTE, BPS, DGI, OSE):
 - Crear UN SOLO item con el total del servicio
-- NO desglosar sub-conceptos (cargo fijo, consumo punta, etc.)
-- Usar la sección SUBTOTALES o IMPORTE TOTAL para los montos
-- Ejemplo UTE: un item "Consumo eléctrico mes XX/XXXX"
-
-Para facturas de COMPRAS (ferreterías, veterinarias, agronomías):
-- Crear un item por cada producto/línea de la factura
-- IMPORTANTE: Leer la columna "Monto" o "Importe" (Cantidad x Precio), NO el precio unitario
-- Si IVA = "E" (exento) o no hay IVA → precio = monto, iva = 0, precioFinal = monto
-- Si hay IVA → precio = monto sin IVA, iva = monto IVA, precioFinal = precio + iva
-- La suma de precioFinal de todos los items debe igualar el TOTAL A PAGAR
+- Ejemplo: "Consumo eléctrico mes XX/XXXX"
 
 CATEGORÍAS: ${CATEGORIAS_GASTOS.join(", ")}
 
@@ -160,15 +172,14 @@ MAPEO:
 - BPS/aportes → "Sueldos"
 - DGI/impuestos/IMEBA → "Impuestos"
 - Veterinaria/medicamentos/vacunas → "Sanidad y Manejo"
-- Pinturas para marcar ganado (Celocheck, celo, marcador) → "Sanidad y Manejo"
-- Semillas pasturas (raigras, lotus, trébol) → "Insumos Pasturas"
-- Semillas agrícolas (maíz, soja, trigo) → "Insumos de Cultivos"
-- Alambres/postes/varillas/tranqueras → "Estructuras"
-- Pinturas construcción/galpones → "Estructuras"
-- Balanceados/forrajes/raciones → "Alimentación"
+- Pinturas para marcar ganado (Celocheck) → "Sanidad y Manejo"
+- Semillas pasturas → "Insumos Pasturas"
+- Semillas agrícolas → "Insumos de Cultivos"
+- Alambres/postes/varillas/bebederos/tanques/tubos/caños → "Estructuras"
+- Balanceados/forrajes → "Alimentación"
 - Gasoil/nafta → "Combustible"
 
-MONEDA: "USD" si dice dólares/USD/U$S, sino "UYU"
+MONEDA: "USD" si dice dólares/USD/U$S/US$, sino "UYU"
 PAGO: "Plazo" si dice crédito/CTA CTE/e-Factura Crédito, sino "Contado"
 
 RESPONDE SOLO JSON (sin markdown):
@@ -249,11 +260,30 @@ RESPONDE SOLO JSON (sin markdown):
       data.pagado = false;
     }
 
+    // 🔢 VALIDACIÓN MATEMÁTICA: Suma de items vs Total
+    const sumaItems = data.items.reduce((sum, item) => sum + (item.precioFinal || 0), 0);
+    const diferencia = Math.abs(sumaItems - data.montoTotal);
+
+    if (diferencia > 0.50) {
+      console.log('⚠️ [VISION-GASTO] DISCREPANCIA MATEMÁTICA DETECTADA:');
+      console.log(`   📊 Suma de items: ${sumaItems.toFixed(2)}`);
+      console.log(`   💰 Total factura: ${data.montoTotal.toFixed(2)}`);
+      console.log(`   ❌ Diferencia: ${diferencia.toFixed(2)}`);
+      console.log('   📋 Items detectados:');
+      data.items.forEach((item, i) => {
+        console.log(`      ${i + 1}. ${item.descripcion}: precio=${item.precio}, iva=${item.iva}, final=${item.precioFinal}`);
+      });
+
+      // Si la diferencia es muy grande, puede que haya leído precios unitarios
+      if (diferencia > data.montoTotal * 0.1) {
+        console.log('   ⚠️ Posible error: Claude puede haber leído precios unitarios en vez de totales');
+      }
+    } else {
+      console.log(`✅ [VISION-GASTO] Validación OK: Suma items (${sumaItems.toFixed(2)}) ≈ Total (${data.montoTotal.toFixed(2)})`);
+    }
+
     if (!data.montoTotal) {
-      data.montoTotal = data.items.reduce(
-        (sum, item) => sum + item.precioFinal,
-        0
-      );
+      data.montoTotal = sumaItems;
     }
 
     console.log("✅ [VISION-GASTO] Factura procesada:", data);
