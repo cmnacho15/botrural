@@ -130,28 +130,39 @@ export async function processInvoiceImage(
             },
             {
               type: "text",
-              text: `Eres un sistema de OCR para contabilidad agrícola. Extrae los datos de esta factura/boleta uruguaya.
+              text: `Eres un sistema de OCR para contabilidad agrícola uruguaya. Extrae los datos de esta factura/boleta.
+
+IMPORTANTE - PROVEEDOR:
+El "proveedor" es la EMPRESA que EMITE la factura, NO el cliente/titular/consumidor.
+Ejemplos:
+- Factura de luz → proveedor: "UTE" (no el nombre del titular de la cuenta)
+- Factura BPS → proveedor: "BPS" (no la empresa que paga aportes)
+- Factura DGI → proveedor: "DGI" (no el contribuyente)
+- Factura de veterinaria → proveedor: nombre de la veterinaria/laboratorio
+- Factura de ferretería → proveedor: nombre del comercio
+Busca el logo, membrete o razón social del EMISOR en la parte superior de la factura.
 
 CATEGORÍAS VÁLIDAS: ${CATEGORIAS_GASTOS.join(", ")}
 
 MAPEO DE CATEGORÍAS:
-- UTE/electricidad → "Electricidad"
-- BPS/aportes patronales → "Sueldos"
-- DGI/impuestos → "Impuestos"
-- Veterinaria/medicamentos → "Sanidad y Manejo"
-- Semillas pasturas (raigras, lotus, trébol) → "Insumos Pasturas"
-- Semillas agrícolas (maíz, soja, trigo) → "Insumos de Cultivos"
-- Alambres, pinturas, construcción → "Estructuras"
-- Balanceados, forrajes → "Alimentación"
+- UTE/electricidad/energía → "Electricidad"
+- BPS/aportes patronales/contribuciones → "Sueldos"
+- DGI/impuestos/IMEBA → "Impuestos"
+- Veterinaria/medicamentos/vacunas → "Sanidad y Manejo"
+- Semillas pasturas (raigras, lotus, trébol, festuca) → "Insumos Pasturas"
+- Semillas agrícolas (maíz, soja, trigo, sorgo) → "Insumos de Cultivos"
+- Alambres, postes, pinturas, construcción → "Estructuras"
+- Balanceados, forrajes, raciones → "Alimentación"
+- Gasoil, nafta, combustible → "Combustible"
 
 MONEDA: "USD" si dice dólares/USD/U$S, sino "UYU"
-PAGO: "Plazo" si dice crédito/CTA CTE/días comerciales, sino "Contado"
+PAGO: "Plazo" si dice crédito/CTA CTE/días, sino "Contado"
 Si es plazo → pagado=false, si es contado → pagado=true
 
 RESPONDE SOLO JSON VÁLIDO (sin markdown, sin explicaciones):
 {
   "tipo": "GASTO",
-  "proveedor": "nombre del emisor",
+  "proveedor": "NOMBRE DE LA EMPRESA EMISORA",
   "fecha": "YYYY-MM-DD",
   "moneda": "UYU",
   "montoTotal": 0,
