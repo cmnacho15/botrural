@@ -1,27 +1,45 @@
 // Vision API para procesar facturas src/lib/vision-parser.ts
-import OpenAI from "openai";
+// Usa Claude (Anthropic) para OCR de facturas - más permisivo con documentos comerciales
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+import Anthropic from "@anthropic-ai/sdk";
+
+const anthropic = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
-// Categorías disponibles
+// Categorías disponibles - sincronizadas con constants.ts
 const CATEGORIAS_GASTOS = [
-  "Semillas",
-  "Fertilizantes",
-  "Agroquímicos",
-  "Combustible",
-  "Maquinaria",
-  "Reparaciones",
-  "Mano de Obra",
-  "Transporte",
-  "Veterinaria",
-  "Alimentos Animales",
-  "Servicios",
-  "Asesoramiento",
-  "Estructuras",
-  "Insumos Agrícolas",
-  "Otros",
+  // Variables - Ganadería
+  "Alimentación",       // Alimentos animales, balanceados, forrajes
+  "Genética",           // Semen, embriones, reproductores
+  "Sanidad y Manejo",   // Veterinaria, vacunas, medicamentos
+  "Insumos Pasturas",   // Semillas pasturas, fertilizantes praderas
+
+  // Variables - Agricultura
+  "Insumos de Cultivos", // Semillas, fertilizantes, agroquímicos para cultivos
+
+  // Variables - Mixtos
+  "Combustible",        // Gasoil, nafta
+  "Flete",              // Transporte, logística
+  "Labores",            // Servicios de maquinaria, contratistas
+
+  // Fijos - Puros
+  "Administración",     // Gastos administrativos, oficina
+  "Asesoramiento",      // Consultoría, contadores, agrónomos
+  "Impuestos",          // DGI, contribución inmobiliaria, IMEBA
+  "Seguro/Patente",     // Seguros, patentes vehículos
+  "Estructuras",        // Alambrados, galpones, construcciones
+  "Otros",              // Lo que no encaje en ninguna
+
+  // Fijos - Asignables
+  "Sueldos",            // BPS, aportes patronales, salarios
+  "Maquinaria",         // Compra/reparación maquinaria
+  "Electricidad",       // UTE, energía eléctrica
+  "Mantenimiento",      // Reparaciones generales
+
+  // Financieros
+  "Renta",              // Arrendamientos
+  "Intereses",          // Intereses bancarios, financieros
 ];
 
 interface InvoiceItem {
@@ -45,171 +63,145 @@ export interface ParsedInvoice {
   moneda: "USD" | "UYU";
 }
 
+/**
+ * Convierte una URL de imagen a base64 para enviar a Claude
+ */
+type ImageMediaType = "image/jpeg" | "image/png" | "image/gif" | "image/webp";
+
+async function urlToBase64(imageUrl: string): Promise<{ base64: string; mediaType: ImageMediaType } | null> {
+  try {
+    const response = await fetch(imageUrl);
+    if (!response.ok) {
+      console.log('❌ Error fetching image:', response.status);
+      return null;
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    const base64 = buffer.toString('base64');
+
+    const contentType = response.headers.get('content-type') || 'image/jpeg';
+    const rawType = contentType.split(';')[0].toLowerCase();
+
+    // Mapear a tipos válidos de Claude
+    let mediaType: ImageMediaType = "image/jpeg";
+    if (rawType === "image/png") mediaType = "image/png";
+    else if (rawType === "image/gif") mediaType = "image/gif";
+    else if (rawType === "image/webp") mediaType = "image/webp";
+
+    return { base64, mediaType };
+  } catch (error) {
+    console.error('❌ Error converting URL to base64:', error);
+    return null;
+  }
+}
+
 export async function processInvoiceImage(
   imageUrl: string
 ): Promise<ParsedInvoice | null> {
   try {
-    console.log('🔍 [VISION-GASTO] Iniciando procesamiento')
+    console.log('🔍 [VISION-GASTO] Iniciando procesamiento con Claude')
     console.log('📸 [VISION-GASTO] URL:', imageUrl)
-    console.log('🔑 [VISION-GASTO] API Key presente:', !!process.env.OPENAI_API_KEY)
-    console.log('🔑 [VISION-GASTO] API Key (10 chars):', process.env.OPENAI_API_KEY?.substring(0, 10))
-    
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        {
-          role: "system",
-          content: `
-Eres un asistente experto en procesar facturas agrícolas de Uruguay y Argentina.
+    console.log('🔑 [VISION-GASTO] Anthropic API Key presente:', !!process.env.ANTHROPIC_API_KEY)
 
-====== MONEDA ======
-REGLAS PARA DETECTAR:
-- Si aparece: "USD", "US$", "U$S", "Dólares", "USD$", "U.S.D" → moneda = "USD"
-- Si aparece: "$U", "UYU", "$ Uruguayo", "Pesos" → moneda = "UYU"
-- Si aparecen ambos → usar "USD"
-- Si no hay señal → usar "UYU" por defecto
-
-====== CATEGORIZACIÓN DE ÍTEMS ======
-Para cada ítem de la factura, DEBES asignar UNA categoría de esta lista:
-
-${CATEGORIAS_GASTOS.map((cat, i) => `${i + 1}. ${cat}`).join('\n')}
-
-REGLAS DE CATEGORIZACIÓN:
-- Semillas: maíz, soja, trigo, pasturas, semillas forrajeras
-- Fertilizantes: urea, fosfatos, NPK, cal, compost, fertilizantes líquidos
-- Agroquímicos: herbicidas, insecticidas, fungicidas, productos fitosanitarios
-- Combustible: gasoil, nafta, diesel, GNC
-- Maquinaria: tractores, cosechadoras, implementos agrícolas, equipos
-- Reparaciones: repuestos, mantenimiento, service, arreglos
-- Mano de Obra: jornales, salarios, contratistas
-- Transporte: fletes, logística, camiones
-- Veterinaria: medicamentos, vacunas, suplementos para animales
-- Alimentos Animales: balanceados, concentrados, forrajes, sales minerales
-- Servicios: electricidad, agua, internet, telefonía
-- Asesoramiento: consultoría, estudios, análisis de suelo
-- Estructuras: alambrados, galpones, silos, construcciones
-- Insumos Agrícolas: herramientas, bolsas, envases, materiales varios
-- Otros: lo que no encaje en ninguna categoría anterior
-
-SI NO ESTÁS SEGURO: usa "Insumos Agrícolas" para materiales generales u "Otros" como último recurso.
-
-====== EXTRACCIÓN DE ÍTEMS ======
-Para cada ítem extraer:
-- descripcion: incluir cantidad si existe ("Fertilizante x6")
-- categoria: UNA de las ${CATEGORIAS_GASTOS.length} categorías listadas arriba
-- precio: SIEMPRE el TOTAL sin IVA
-- iva: 0, 10 o 22
-- precioFinal: TOTAL con IVA
-
-REGLA DE ORO:
-Si existe "Total ítem", "Importe", "Monto", "Subtotal" o "Total" → ese es el precio total.
-Ignorar precio unitario siempre que exista total por ítem.
-
-====== FECHA ======
-Detectar DD/MM/YYYY o DD-MM-YYYY → devolver como YYYY-MM-DD.
-
-====== FORMA DE PAGO ======
-CRÍTICO: Buscar indicadores de pago a PLAZO en TODA la factura:
-
-PAGO A PLAZO si encuentra:
-- Texto: "Crédito", "Credito", "CTA CTE", "Cuenta Corriente", "PLAZO"
-- Días comerciales: "30 días", "60 días", "90 días", "30 dias Comerciales"
-- Plazos: "A 30 días", "A plazo", "Financiado"
-
-PAGO CONTADO si encuentra:
-- Texto: "CONTADO", "EFECTIVO", "AL CONTADO", "Cash"
-
-REGLAS:
-1. Si aparece "Crédito" o "CTA CTE" → metodoPago = "Plazo"
-2. Si aparece un número seguido de "días" (30 días, 60 días) → metodoPago = "Plazo" y diasPlazo = ese número
-3. Si dice "30 dias Comerciales" → metodoPago = "Plazo" y diasPlazo = 30
-4. Si NO aparece ningún indicador → metodoPago = "Contado"
-5. Si es a plazo → pagado = false (porque aún no se pagó)
-6. Si es contado → pagado = true (porque se paga al momento)
-
-EJEMPLOS:
-- "30 días Comerciales - ARS" → metodoPago: "Plazo", diasPlazo: 30, pagado: false
-- "Crédito" → metodoPago: "Plazo", diasPlazo: 30, pagado: false
-- "CTA CTE" → metodoPago: "Plazo", diasPlazo: null, pagado: false
-- "CONTADO" → metodoPago: "Contado", diasPlazo: null, pagado: true
-
-====== EJEMPLOS DE CATEGORIZACIÓN ======
-- "Pintura Celocheck" → "Estructuras"
-- "Alambre CAUDILLO" → "Estructuras"
-- "Alambrado" → "Estructuras"
-- "Soja RR" → "Semillas"
-- "Urea granulada" → "Fertilizantes"
-- "Glifosato" → "Agroquímicos"
-- "Gasoil" → "Combustible"
-- "Ivermectina" → "Veterinaria"
-- "Balanceado vacuno" → "Alimentos Animales"
-
-====== SALIDA OBLIGATORIA (SIN MARKDOWN) ======
-{
-  "tipo": "GASTO",
-  "moneda": "USD" | "UYU",
-  "items": [
-    {
-      "descripcion": "...",
-      "categoria": "una de las ${CATEGORIAS_GASTOS.length} categorías",
-      "precio": 0,
-      "iva": 0,
-      "precioFinal": 0
+    // Convertir URL a base64 (Claude requiere base64)
+    const imageData = await urlToBase64(imageUrl);
+    if (!imageData) {
+      console.log('❌ [VISION-GASTO] No se pudo obtener la imagen');
+      return null;
     }
-  ],
-  "proveedor": "...",
-  "fecha": "YYYY-MM-DD",
-  "montoTotal": 0,
-  "metodoPago": "Contado" | "Plazo",
-  "diasPlazo": número | null,
-  "pagado": true | false
-}
-          `,
-        },
+
+    console.log('📷 [VISION-GASTO] Imagen obtenida, tipo:', imageData.mediaType);
+
+    const response = await anthropic.messages.create({
+      model: "claude-3-5-haiku-20241022",
+      max_tokens: 2000,
+      messages: [
         {
           role: "user",
           content: [
             {
-              type: "text",
-              text: "Extrae todos los datos de esta factura en formato JSON. IMPORTANTE: Detecta correctamente si es pago a plazo (crédito, CTA CTE, días comerciales) o contado.",
+              type: "image",
+              source: {
+                type: "base64",
+                media_type: imageData.mediaType,
+                data: imageData.base64,
+              },
             },
             {
-              type: "image_url",
-              image_url: {
-                url: imageUrl,
-                detail: "high",
-              },
+              type: "text",
+              text: `Eres un sistema de OCR para contabilidad agrícola. Extrae los datos de esta factura/boleta uruguaya.
+
+CATEGORÍAS VÁLIDAS: ${CATEGORIAS_GASTOS.join(", ")}
+
+MAPEO DE CATEGORÍAS:
+- UTE/electricidad → "Electricidad"
+- BPS/aportes patronales → "Sueldos"
+- DGI/impuestos → "Impuestos"
+- Veterinaria/medicamentos → "Sanidad y Manejo"
+- Semillas pasturas (raigras, lotus, trébol) → "Insumos Pasturas"
+- Semillas agrícolas (maíz, soja, trigo) → "Insumos de Cultivos"
+- Alambres, pinturas, construcción → "Estructuras"
+- Balanceados, forrajes → "Alimentación"
+
+MONEDA: "USD" si dice dólares/USD/U$S, sino "UYU"
+PAGO: "Plazo" si dice crédito/CTA CTE/días comerciales, sino "Contado"
+Si es plazo → pagado=false, si es contado → pagado=true
+
+RESPONDE SOLO JSON VÁLIDO (sin markdown, sin explicaciones):
+{
+  "tipo": "GASTO",
+  "proveedor": "nombre del emisor",
+  "fecha": "YYYY-MM-DD",
+  "moneda": "UYU",
+  "montoTotal": 0,
+  "items": [{"descripcion": "", "categoria": "", "precio": 0, "iva": 0, "precioFinal": 0}],
+  "metodoPago": "Contado",
+  "diasPlazo": null,
+  "pagado": true
+}`,
             },
           ],
         },
       ],
-      max_tokens: 2000,
-      temperature: 0.05,
     });
 
-    const content = response.choices[0].message.content;
-    
-    console.log('✅ [VISION-GASTO] Respuesta OpenAI recibida')
-    console.log('📝 [VISION-GASTO] Content:', content?.substring(0, 200))
+    // Extraer el contenido de la respuesta de Claude
+    const textBlock = response.content.find(block => block.type === 'text');
+    const content = textBlock && textBlock.type === 'text' ? textBlock.text : null;
+
+    console.log('✅ [VISION-GASTO] Respuesta Claude recibida')
+    console.log('📝 [VISION-GASTO] Content:', content?.substring(0, 300))
     console.log('📊 [VISION-GASTO] Metadata:', {
       model: response.model,
-      finish_reason: response.choices[0].finish_reason
+      stop_reason: response.stop_reason,
+      usage: response.usage
     })
-    
+
     if (!content) {
       console.log('❌ [VISION-GASTO] Content vacío')
       return null;
     }
 
+    // Limpiar el JSON (quitar markdown si lo hay)
     const jsonStr = content
       .replace(/```json/g, "")
       .replace(/```/g, "")
       .trim();
 
-    const data = JSON.parse(jsonStr) as ParsedInvoice;
+    let data: ParsedInvoice;
+    try {
+      data = JSON.parse(jsonStr) as ParsedInvoice;
+    } catch (parseError) {
+      console.log('❌ [VISION-GASTO] Error parseando JSON:', jsonStr.substring(0, 200))
+      return null;
+    }
 
     // Validaciones mínimas
-    if (!data.items?.length) throw new Error("No se encontraron ítems");
+    if (!data.items?.length) {
+      console.log('❌ [VISION-GASTO] No se encontraron ítems');
+      return null;
+    }
 
     if (!data.moneda) data.moneda = "UYU"; // fallback Uruguay
 
@@ -217,21 +209,19 @@ EJEMPLOS:
       data.proveedor = "Proveedor no identificado";
     }
 
-    // ✅ VALIDACIÓN: Asegurar que todos los ítems tengan categoría válida
+    // Asegurar que todos los ítems tengan categoría válida
     data.items = data.items.map(item => ({
       ...item,
-      categoria: CATEGORIAS_GASTOS.includes(item.categoria) 
-        ? item.categoria 
+      categoria: CATEGORIAS_GASTOS.includes(item.categoria)
+        ? item.categoria
         : "Otros"
     }));
 
-    // ✅ NUEVA VALIDACIÓN: Consistencia de pago
-    // Si es a plazo pero no hay diasPlazo, usar 30 días por defecto
+    // Consistencia de pago
     if (data.metodoPago === "Plazo" && !data.diasPlazo) {
       data.diasPlazo = 30;
     }
 
-    // Si es a plazo, debe estar como no pagado
     if (data.metodoPago === "Plazo") {
       data.pagado = false;
     }
@@ -243,7 +233,7 @@ EJEMPLOS:
       );
     }
 
-    console.log("✅ Factura procesada:", data);
+    console.log("✅ [VISION-GASTO] Factura procesada:", data);
     return data;
   } catch (error) {
     console.error("❌ Error en processInvoiceImage:", error);

@@ -37,6 +37,8 @@ import {
   handleDAO,
   handleReporteDAO,
   handleLotesGranos,
+  handlePagoButtonResponse,
+  handlePagoTextResponse,
 } from "@/lib/whatsapp"
 
 const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || "mi_token_secreto"
@@ -130,6 +132,11 @@ console.log("📦 Mensaje completo:", JSON.stringify(message, null, 2))
           return NextResponse.json({ status: "pastoreo button processed" })
         }
 
+        if (messageText.startsWith("pago_")) {
+          await handlePagoButtonResponse(from, messageText)
+          return NextResponse.json({ status: "pago button processed" })
+        }
+
         if (messageText.startsWith("campo_")) {
           await handleCambiarCampoSeleccion(from, messageText)
           return NextResponse.json({ status: "campo change processed" })
@@ -217,7 +224,15 @@ console.log("📦 Mensaje completo:", JSON.stringify(message, null, 2))
     if (confirmacionPendiente) {
     const data = JSON.parse(confirmacionPendiente.data)
     console.log("📦 data.tipo:", data.tipo)
-    
+
+    // 💰 Si está esperando selección de pagos
+    if (data.tipo === "ESTADO_CUENTA_PAGO") {
+      const procesado = await handlePagoTextResponse(from, messageText)
+      if (procesado) {
+        return NextResponse.json({ status: "pago selection processed" })
+      }
+    }
+
     // 🌾 Si está esperando respuesta de lotes de granos
     if (data.tipo === "LOTES_GRANOS") {
       const { handleLotesGranosResponse } = await import("@/lib/whatsapp/handlers/ventaHandler")

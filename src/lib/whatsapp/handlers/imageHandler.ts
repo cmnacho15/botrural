@@ -1,7 +1,7 @@
 // src/lib/whatsapp/handlers/imageHandler.ts
 
 import { prisma } from "@/lib/prisma"
-import { detectarTipoFactura } from "@/lib/vision-venta-parser"
+import { detectarTipoFactura, detectarEstadoDeCuenta } from "@/lib/vision-venta-parser"
 import {
   downloadWhatsAppImage,
   uploadInvoiceToSupabase,
@@ -9,6 +9,7 @@ import {
 import { sendWhatsAppMessage } from "../services/messageService"
 import { handleGastoImage } from "./gastoHandler"
 import { handleVentaImage } from "./ventaHandler"
+import { handleEstadoDeCuenta } from "./pagoHandler"
 
 /**
  * Punto de entrada principal para procesar imágenes (facturas)
@@ -58,9 +59,25 @@ export async function handleImageMessage(message: any, phoneNumber: string) {
       return
     }
 
-    console.log("Detectando tipo de factura...", uploadResult.url)
+    console.log("Detectando tipo de documento...", uploadResult.url)
 
-    let tipoFactura: "VENTA" | "GASTO" | null = null
+    // PASO 1: Detectar si es un estado de cuenta
+    let esEstadoCuenta = false
+    try {
+      esEstadoCuenta = await detectarEstadoDeCuenta(uploadResult.url)
+      console.log("¿Es estado de cuenta?:", esEstadoCuenta)
+    } catch (err: any) {
+      console.error("Error detectando estado de cuenta:", err?.message)
+    }
+
+    if (esEstadoCuenta) {
+      console.log("DELEGANDO a handleEstadoDeCuenta")
+      await handleEstadoDeCuenta(phoneNumber, uploadResult.url, uploadResult.fileName, user.campoId)
+      return
+    }
+
+    // PASO 2: Detectar si es VENTA o GASTO
+    let tipoFactura: "VENTA" | "GASTO" | "ESTADO_CUENTA" | null = null
 
     try {
       tipoFactura = await detectarTipoFactura(uploadResult.url, user.campoId)

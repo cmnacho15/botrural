@@ -1,7 +1,7 @@
 // lib/vision-venta-parser.ts
 // ORQUESTADOR MINIMALISTA - Mantiene compatibilidad hacia atrás
 
-import { detectarTipoFactura } from "./detectors/tipo-factura-detector";
+import { detectarTipoFactura, detectarEstadoDeCuenta } from "./detectors/tipo-factura-detector";
 import { detectarTipoVentaEspecifico } from "./detectors/venta-especifico-detector";
 import { processVentaGanadoImage, ParsedVentaGanado } from "./parsers/venta-ganado-parser";
 import { processVentaLanaImage, ParsedVentaLana } from "./parsers/venta-lana-parser";
@@ -19,8 +19,8 @@ export type { VentaGanadoRenglonParsed, ImpuestosVenta } from "./parsers/venta-g
 export type { VentaLanaRenglonParsed, ImpuestosVentaLana } from "./parsers/venta-lana-parser";
 export type { VentaGranosRenglonParsed, ImpuestosVentaGranos } from "./parsers/venta-granos-parser";
 
-// Re-exportar función de detección (compatibilidad)
-export { detectarTipoFactura };
+// Re-exportar funciones de detección (compatibilidad)
+export { detectarTipoFactura, detectarEstadoDeCuenta };
 
 // ==========================================
 // FUNCIÓN PRINCIPAL - ORQUESTADOR

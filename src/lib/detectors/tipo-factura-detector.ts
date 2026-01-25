@@ -1,5 +1,5 @@
 // lib/detectors/tipo-factura-detector.ts
-// Detecta si una factura es de VENTA o GASTO
+// Detecta si una factura es de VENTA, GASTO o ESTADO_CUENTA
 
 import OpenAI from "openai";
 
@@ -7,10 +7,61 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+export type TipoDocumento = "VENTA" | "GASTO" | "ESTADO_CUENTA" | null;
+
+/**
+ * Detectar si una imagen es un estado de cuenta (no procesar como gasto)
+ */
+export async function detectarEstadoDeCuenta(imageUrl: string): Promise<boolean> {
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "system",
+          content: `Detecta si esta imagen es un ESTADO DE CUENTA o RESUMEN DE CUENTA.
+
+SEÑALES DE ESTADO DE CUENTA (SI tiene 2+ de estas → es estado de cuenta):
+1. Dice "ESTADO DE CUENTA", "RESUMEN DE CUENTA", "Estado de Cta"
+2. Tiene columnas: FECHA, MOVIMIENTO, DEBE, HABER, SALDO
+3. Muestra "SALDO ANTERIOR", "SALDO ACTUAL", "SALDO A PAGAR"
+4. Lista movimientos históricos (recibos, pagos, ventas crédito)
+5. NO tiene ítems de productos con precio unitario
+6. Tiene "Nro.Cta" o número de cuenta corriente
+
+SEÑALES DE QUE NO ES ESTADO DE CUENTA:
+- Tiene lista de productos/servicios con precios
+- Dice "FACTURA", "e-Factura", "TICKET"
+- Tiene ítems con cantidad x precio
+- Es una boleta de compra/venta
+
+RESPONDE SOLO:
+- "SI" si es un estado de cuenta
+- "NO" si es una factura normal`
+        },
+        {
+          role: "user",
+          content: [{ type: "image_url", image_url: { url: imageUrl, detail: "low" } }]
+        }
+      ],
+      max_tokens: 10,
+      temperature: 0
+    });
+
+    const respuesta = response.choices[0].message.content?.toUpperCase().trim() || "";
+    console.log("📊 ¿Es estado de cuenta?:", respuesta);
+
+    return respuesta.includes("SI");
+  } catch (error) {
+    console.error("Error detectando estado de cuenta:", error);
+    return false;
+  }
+}
+
 /**
  * Detectar si una imagen es una factura de VENTA (no de gasto)
  */
-export async function detectarTipoFactura(imageUrl: string, campoId?: string): Promise<"VENTA" | "GASTO" | null> {
+export async function detectarTipoFactura(imageUrl: string, campoId?: string): Promise<TipoDocumento> {
   console.log("🔍 Detectando tipo factura:", imageUrl);
 
   // ESTRATEGIA 1: Extraer RUT rápido y verificar si es de una firma conocida
