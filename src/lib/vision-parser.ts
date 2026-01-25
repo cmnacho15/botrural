@@ -148,7 +148,10 @@ Para facturas de SERVICIOS PÚBLICOS (UTE, BPS, DGI, OSE):
 
 Para facturas de COMPRAS (ferreterías, veterinarias, agronomías):
 - Crear un item por cada producto/línea de la factura
-- precio = importe sin IVA, iva = monto del IVA, precioFinal = precio + iva
+- IMPORTANTE: Leer la columna "Monto" o "Importe" (Cantidad x Precio), NO el precio unitario
+- Si IVA = "E" (exento) o no hay IVA → precio = monto, iva = 0, precioFinal = monto
+- Si hay IVA → precio = monto sin IVA, iva = monto IVA, precioFinal = precio + iva
+- La suma de precioFinal de todos los items debe igualar el TOTAL A PAGAR
 
 CATEGORÍAS: ${CATEGORIAS_GASTOS.join(", ")}
 
@@ -156,11 +159,13 @@ MAPEO:
 - UTE/electricidad → "Electricidad"
 - BPS/aportes → "Sueldos"
 - DGI/impuestos/IMEBA → "Impuestos"
-- Veterinaria/medicamentos → "Sanidad y Manejo"
-- Semillas pasturas → "Insumos Pasturas"
-- Semillas agrícolas → "Insumos de Cultivos"
-- Alambres/postes/pinturas → "Estructuras"
-- Balanceados/forrajes → "Alimentación"
+- Veterinaria/medicamentos/vacunas → "Sanidad y Manejo"
+- Pinturas para marcar ganado (Celocheck, celo, marcador) → "Sanidad y Manejo"
+- Semillas pasturas (raigras, lotus, trébol) → "Insumos Pasturas"
+- Semillas agrícolas (maíz, soja, trigo) → "Insumos de Cultivos"
+- Alambres/postes/varillas/tranqueras → "Estructuras"
+- Pinturas construcción/galpones → "Estructuras"
+- Balanceados/forrajes/raciones → "Alimentación"
 - Gasoil/nafta → "Combustible"
 
 MONEDA: "USD" si dice dólares/USD/U$S, sino "UYU"
