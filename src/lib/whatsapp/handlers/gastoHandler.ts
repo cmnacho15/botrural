@@ -102,10 +102,20 @@ export async function handleGastoImage(
       },
     })
 
-    const flowSent = await sendInvoiceFlowMessage(phoneNumber, invoiceData)
-    if (!flowSent) {
-      // Si falla el flow, usar botones con soporte de multicampo
-      await sendInvoiceConfirmation(phoneNumber, invoiceData, campoId)
+    // 🏢 Verificar si hay multicampo ANTES de decidir Flow vs Botones
+    const grupoInfo = await obtenerCamposDelGrupo(campoId)
+
+    if (grupoInfo) {
+      // Si hay multicampo, usar botones (Flow no soporta multicampo)
+      console.log("🏢 Multicampo detectado, usando botones en vez de Flow")
+      await sendInvoiceConfirmation(phoneNumber, invoiceData, campoId, grupoInfo)
+    } else {
+      // Sin multicampo, intentar Flow primero
+      const flowSent = await sendInvoiceFlowMessage(phoneNumber, invoiceData)
+      if (!flowSent) {
+        // Si falla el flow, usar botones
+        await sendInvoiceConfirmation(phoneNumber, invoiceData, campoId, null)
+      }
     }
   } catch (error) {
     console.error("Error en handleGastoImage:", error)
@@ -222,8 +232,9 @@ export async function sendInvoiceFlowMessage(
 
 /**
  * Envía confirmación con botones (fallback cuando no hay flow)
+ * @param grupoInfo - Si ya se obtuvo antes, pasar para evitar doble query
  */
-async function sendInvoiceConfirmation(phoneNumber: string, data: any, campoId?: string) {
+async function sendInvoiceConfirmation(phoneNumber: string, data: any, campoId?: string, grupoInfo?: any) {
   const itemsList = data.items
     .map(
       (item: any, i: number) =>
@@ -243,9 +254,8 @@ async function sendInvoiceConfirmation(phoneNumber: string, data: any, campoId?:
     }\n\n` +
     `*Ítems:*\n${itemsList}\n\n`
 
-  // 🏢 Verificar si hay multicampo
-  let grupoInfo = null
-  if (campoId) {
+  // 🏢 Usar grupoInfo si ya fue pasado, sino obtenerlo
+  if (grupoInfo === undefined && campoId) {
     grupoInfo = await obtenerCamposDelGrupo(campoId)
   }
 
