@@ -284,12 +284,16 @@ async function sendInvoiceConfirmation(phoneNumber: string, data: any, campoId?:
       let finalText = itemsList + "\n\n"
 
       if (grupoInfo) {
+        // Obtener nombre del campo actual
+        const campoActual = grupoInfo.campos.find((c: any) => c.id === campoId)
+        const nombreCampo = campoActual?.nombre || "este campo"
+
         finalText += `🏢 *Detectamos ${grupoInfo.campos.length} campos en el grupo*\n\n`
-        finalText += `¿Es un gasto compartido?`
+        finalText += `¿Compartir entre todos o solo para *${nombreCampo}*?`
 
         await sendCustomButtons(phoneNumber, finalText, [
           { id: "invoice_shared", title: "🏢 Compartir" },
-          { id: "invoice_single", title: "📍 Solo este campo" },
+          { id: "invoice_single", title: `📍 ${nombreCampo.substring(0, 14)}` },
           { id: "invoice_cancel", title: "❌ Cancelar" },
         ])
       } else {
