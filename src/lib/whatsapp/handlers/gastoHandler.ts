@@ -235,24 +235,31 @@ export async function sendInvoiceFlowMessage(
  * @param grupoInfo - Si ya se obtuvo antes, pasar para evitar doble query
  */
 async function sendInvoiceConfirmation(phoneNumber: string, data: any, campoId?: string, grupoInfo?: any) {
-  const itemsList = data.items
+  // Limitar items mostrados para no exceder 1024 caracteres de WhatsApp
+  const MAX_ITEMS_DISPLAY = 5
+  const totalItems = data.items.length
+  const itemsToShow = data.items.slice(0, MAX_ITEMS_DISPLAY)
+
+  const itemsList = itemsToShow
     .map(
       (item: any, i: number) =>
-        `${i + 1}. ${item.descripcion} - $${item.precioFinal.toFixed(
-          2
-        )} (${item.categoria})`
+        `${i + 1}. ${item.descripcion.substring(0, 40)}${item.descripcion.length > 40 ? '...' : ''} - $${item.precioFinal.toFixed(2)}`
     )
     .join("\n")
+
+  const itemsExtra = totalItems > MAX_ITEMS_DISPLAY
+    ? `\n...y ${totalItems - MAX_ITEMS_DISPLAY} items más`
+    : ""
 
   let bodyText =
     `*Factura procesada:*\n\n` +
     `Proveedor: ${data.proveedor}\n` +
     `Fecha: ${data.fecha}\n` +
-    `Total: $${data.montoTotal.toFixed(2)}\n` +
+    `Total: $${data.montoTotal.toFixed(2)} ${data.moneda || ''}\n` +
     `Pago: ${data.metodoPago}${
       data.diasPlazo ? ` (${data.diasPlazo} días)` : ""
     }\n\n` +
-    `*Ítems:*\n${itemsList}\n\n`
+    `*Ítems (${totalItems}):*\n${itemsList}${itemsExtra}\n\n`
 
   // 🏢 Usar grupoInfo si ya fue pasado, sino obtenerlo
   if (grupoInfo === undefined && campoId) {
