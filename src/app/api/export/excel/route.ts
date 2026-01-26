@@ -1063,6 +1063,12 @@ export async function POST(request: Request) {
 
       const sheet = workbook.addWorksheet('Ventas')
 
+      // Helper para formatear números
+      const formatNum = (num: number): string =>
+        num.toLocaleString('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+      const formatNeg = (num: number): string =>
+        (-num).toLocaleString('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+
       // Estilo para títulos de sección
       const estiloSeccion: Partial<ExcelJS.Style> = {
         font: { bold: true, size: 14, color: { argb: 'FFFFFFFF' } },
@@ -1145,26 +1151,29 @@ export async function POST(request: Request) {
               const totalImpRenglon = imebaRenglon + iniaRenglon + mevirRenglon + comisionRenglon + ivaRenglon + otrosRenglon
               const netoRenglon = r.importeBrutoUSD - totalImpRenglon
 
+              const pesoLana = r.esVentaLana ? (r.kgVellon || 0) + (r.kgBarriga || 0) : r.pesoTotalKg
+              const precioLana = r.esVentaLana ? (r.precioKgVellon || r.precioKgUSD) : r.precioKgUSD
+
               row.values = [
                 formatearFecha(v.fecha),
                 v.nroFactura || '',
                 v.comprador,
                 v.consignatario || '',
                 r.categoria,
-                r.esVentaLana ? (r.kgVellon || 0) + (r.kgBarriga || 0) : r.pesoTotalKg,
-                r.esVentaLana ? (r.precioKgVellon || r.precioKgUSD) : r.precioKgUSD,
-                r.importeBrutoUSD,
-                imebaRenglon > 0 ? -Math.round(imebaRenglon * 100) / 100 : '',
-                iniaRenglon > 0 ? -Math.round(iniaRenglon * 100) / 100 : '',
-                mevirRenglon > 0 ? -Math.round(mevirRenglon * 100) / 100 : '',
-                comisionRenglon > 0 ? -Math.round(comisionRenglon * 100) / 100 : '',
-                ivaRenglon > 0 ? -Math.round(ivaRenglon * 100) / 100 : '',
-                otrosRenglon > 0 ? -Math.round(otrosRenglon * 100) / 100 : '',
-                totalImpRenglon > 0 ? -Math.round(totalImpRenglon * 100) / 100 : '',
-                Math.round(netoRenglon * 100) / 100,
+                formatNum(pesoLana),
+                formatNum(precioLana),
+                formatNum(r.importeBrutoUSD),
+                imebaRenglon > 0 ? formatNeg(imebaRenglon) : '',
+                iniaRenglon > 0 ? formatNeg(iniaRenglon) : '',
+                mevirRenglon > 0 ? formatNeg(mevirRenglon) : '',
+                comisionRenglon > 0 ? formatNeg(comisionRenglon) : '',
+                ivaRenglon > 0 ? formatNeg(ivaRenglon) : '',
+                otrosRenglon > 0 ? formatNeg(otrosRenglon) : '',
+                totalImpRenglon > 0 ? formatNeg(totalImpRenglon) : '',
+                formatNum(netoRenglon),
               ]
 
-              totalPeso += r.esVentaLana ? (r.kgVellon || 0) + (r.kgBarriga || 0) : r.pesoTotalKg
+              totalPeso += pesoLana
               totalSubtotal += r.importeBrutoUSD
               totalImeba += imebaRenglon
               totalInia += iniaRenglon
@@ -1192,16 +1201,16 @@ export async function POST(request: Request) {
                 v.consignatario || '',
                 r.categoria,
                 r.cantidad,
-                r.pesoTotalKg,
-                Math.round(r.precioKgUSD * 100) / 100,
-                r.importeBrutoUSD,
-                imebaRenglon > 0 ? -Math.round(imebaRenglon * 100) / 100 : '',
-                iniaRenglon > 0 ? -Math.round(iniaRenglon * 100) / 100 : '',
-                mevirRenglon > 0 ? -Math.round(mevirRenglon * 100) / 100 : '',
-                comisionRenglon > 0 ? -Math.round(comisionRenglon * 100) / 100 : '',
-                ivaRenglon > 0 ? -Math.round(ivaRenglon * 100) / 100 : '',
-                otrosRenglon > 0 ? -Math.round(otrosRenglon * 100) / 100 : '',
-                Math.round(netoRenglon * 100) / 100,
+                formatNum(r.pesoTotalKg),
+                formatNum(r.precioKgUSD),
+                formatNum(r.importeBrutoUSD),
+                imebaRenglon > 0 ? formatNeg(imebaRenglon) : '',
+                iniaRenglon > 0 ? formatNeg(iniaRenglon) : '',
+                mevirRenglon > 0 ? formatNeg(mevirRenglon) : '',
+                comisionRenglon > 0 ? formatNeg(comisionRenglon) : '',
+                ivaRenglon > 0 ? formatNeg(ivaRenglon) : '',
+                otrosRenglon > 0 ? formatNeg(otrosRenglon) : '',
+                formatNum(netoRenglon),
               ]
 
               totalCantidad += r.cantidad
@@ -1228,37 +1237,39 @@ export async function POST(request: Request) {
 
         // Fila de TOTALES
         const totalRow = sheet.getRow(startRow)
+        const totalImpuestos = totalImeba + totalInia + totalMevir + totalComision + totalIva + totalOtros
+
         if (tipoProducto === 'LANA') {
           totalRow.values = [
             '', '', '', 'TOTAL',
             '',
-            Math.round(totalPeso * 100) / 100,
+            formatNum(totalPeso),
             '',
-            Math.round(totalSubtotal * 100) / 100,
-            totalImeba > 0 ? -Math.round(totalImeba * 100) / 100 : '',
-            totalInia > 0 ? -Math.round(totalInia * 100) / 100 : '',
-            totalMevir > 0 ? -Math.round(totalMevir * 100) / 100 : '',
-            totalComision > 0 ? -Math.round(totalComision * 100) / 100 : '',
-            totalIva > 0 ? -Math.round(totalIva * 100) / 100 : '',
-            totalOtros > 0 ? -Math.round(totalOtros * 100) / 100 : '',
-            -(Math.round((totalImeba + totalInia + totalMevir + totalComision + totalIva + totalOtros) * 100) / 100),
-            Math.round(totalNeto * 100) / 100,
+            formatNum(totalSubtotal),
+            totalImeba > 0 ? formatNeg(totalImeba) : '',
+            totalInia > 0 ? formatNeg(totalInia) : '',
+            totalMevir > 0 ? formatNeg(totalMevir) : '',
+            totalComision > 0 ? formatNeg(totalComision) : '',
+            totalIva > 0 ? formatNeg(totalIva) : '',
+            totalOtros > 0 ? formatNeg(totalOtros) : '',
+            totalImpuestos > 0 ? formatNeg(totalImpuestos) : '',
+            formatNum(totalNeto),
           ]
         } else {
           totalRow.values = [
             '', '', '', 'TOTAL',
             '',
             totalCantidad,
-            Math.round(totalPeso * 100) / 100,
+            formatNum(totalPeso),
             '',
-            Math.round(totalSubtotal * 100) / 100,
-            totalImeba > 0 ? -Math.round(totalImeba * 100) / 100 : '',
-            totalInia > 0 ? -Math.round(totalInia * 100) / 100 : '',
-            totalMevir > 0 ? -Math.round(totalMevir * 100) / 100 : '',
-            totalComision > 0 ? -Math.round(totalComision * 100) / 100 : '',
-            totalIva > 0 ? -Math.round(totalIva * 100) / 100 : '',
-            totalOtros > 0 ? -Math.round(totalOtros * 100) / 100 : '',
-            Math.round(totalNeto * 100) / 100,
+            formatNum(totalSubtotal),
+            totalImeba > 0 ? formatNeg(totalImeba) : '',
+            totalInia > 0 ? formatNeg(totalInia) : '',
+            totalMevir > 0 ? formatNeg(totalMevir) : '',
+            totalComision > 0 ? formatNeg(totalComision) : '',
+            totalIva > 0 ? formatNeg(totalIva) : '',
+            totalOtros > 0 ? formatNeg(totalOtros) : '',
+            formatNum(totalNeto),
           ]
         }
         totalRow.eachCell((cell) => {
