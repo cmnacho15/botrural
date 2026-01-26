@@ -32,7 +32,6 @@ type FirmaResumen = {
 }
 
 export default function VentasPorFirmasPage() {
-  const [expandedFirmas, setExpandedFirmas] = useState<Set<string>>(new Set())
   // Calcular fechas iniciales (ejercicio fiscal: 1/7 a 30/6)
   const fechaInicioDefault = useMemo(() => {
     const hoy = new Date()
@@ -68,18 +67,6 @@ export default function VentasPorFirmasPage() {
   const formatDate = (fecha: string) => {
     const d = new Date(fecha)
     return d.toLocaleDateString('es-UY', { day: '2-digit', month: '2-digit', year: 'numeric' })
-  }
-
-  const toggleFirma = (firmaKey: string) => {
-    setExpandedFirmas(prev => {
-      const next = new Set(prev)
-      if (next.has(firmaKey)) {
-        next.delete(firmaKey)
-      } else {
-        next.add(firmaKey)
-      }
-      return next
-    })
   }
 
   if (error) {
@@ -223,109 +210,69 @@ export default function VentasPorFirmasPage() {
                   RUT
                 </th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Cantidad Ventas
+                  Cant.
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Facturas
                 </th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Total USD
                 </th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  % del Total
+                  %
                 </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {resumen.map((firma: FirmaResumen) => {
-                const firmaKey = firma.firmaId || 'sin-asignar'
-                const isExpanded = expandedFirmas.has(firmaKey)
-
-                return (
-                  <>
-                    <tr
-                      key={firmaKey}
-                      className="hover:bg-gray-50 cursor-pointer"
-                      onClick={() => toggleFirma(firmaKey)}
-                    >
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <span className={`transition-transform ${isExpanded ? 'rotate-90' : ''}`}>
-                            ▶
+              {resumen.map((firma: FirmaResumen) => (
+                <tr key={firma.firmaId || 'sin-asignar'} className="hover:bg-gray-50">
+                  <td className="px-6 py-4">
+                    <span className="text-sm font-medium text-gray-900">{firma.razonSocial}</span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className="text-sm text-gray-500 font-mono">{firma.rut}</span>
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <span className="text-sm text-gray-900">{firma.cantidadVentas}</span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex flex-wrap gap-1.5">
+                      {firma.ventas.map((venta) => (
+                        <span
+                          key={venta.id}
+                          className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md border ${
+                            venta.pagado
+                              ? 'bg-green-50 border-green-200 text-green-700'
+                              : 'bg-amber-50 border-amber-200 text-amber-700'
+                          }`}
+                          title={`${formatDate(venta.fecha)} - ${venta.comprador} - U$S ${formatNumber(venta.totalNetoUSD)}${!venta.pagado ? ' (Pendiente)' : ''}`}
+                        >
+                          <span className="font-medium">
+                            {venta.nroFactura || 'S/N'}
                           </span>
-                          <span className="text-sm font-medium text-gray-900">{firma.razonSocial}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="text-sm text-gray-500 font-mono">{firma.rut}</span>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <span className="text-sm text-gray-900">{firma.cantidadVentas}</span>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <span className="text-sm font-semibold text-gray-900">
-                          U$S {formatNumber(firma.totalUSD)}
+                          <span className="text-[10px] opacity-70">
+                            {formatDate(venta.fecha).slice(0, 5)}
+                          </span>
                         </span>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <span className="text-sm text-gray-600">
-                          {totalGeneral > 0 ? ((firma.totalUSD / totalGeneral) * 100).toFixed(1) : 0}%
-                        </span>
-                      </td>
-                    </tr>
-
-                    {/* Facturas expandidas */}
-                    {isExpanded && firma.ventas.map((venta) => (
-                      <tr key={venta.id} className="bg-blue-50/50">
-                        <td className="px-6 py-3 pl-12" colSpan={2}>
-                          <div className="flex items-center gap-4">
-                            <span className="text-xs text-gray-500">{formatDate(venta.fecha)}</span>
-                            <span className="text-sm font-medium text-gray-800">
-                              {venta.nroFactura ? `Factura ${venta.nroFactura}` : 'Sin nº factura'}
-                            </span>
-                            <span className="text-xs text-gray-600">→ {venta.comprador}</span>
-                            <span className={`text-xs px-2 py-0.5 rounded-full ${
-                              venta.tipoProducto === 'LANA'
-                                ? 'bg-amber-100 text-amber-700'
-                                : 'bg-green-100 text-green-700'
-                            }`}>
-                              {venta.tipoProducto || 'GANADO'}
-                            </span>
-                            {!venta.pagado && (
-                              <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700">
-                                Pendiente
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-6 py-3 text-right">
-                          <div className="text-xs text-gray-500">
-                            Bruto: U$S {formatNumber(venta.subtotalUSD)}
-                          </div>
-                        </td>
-                        <td className="px-6 py-3 text-right">
-                          <div className="text-xs text-red-600">
-                            -{formatNumber(venta.totalImpuestosUSD)}
-                          </div>
-                          <div className="text-sm font-medium text-gray-900">
-                            U$S {formatNumber(venta.totalNetoUSD)}
-                          </div>
-                        </td>
-                        <td className="px-6 py-3 text-right">
-                          <Link
-                            href={`/dashboard/ventas?id=${venta.id}`}
-                            onClick={(e) => e.stopPropagation()}
-                            className="text-xs text-blue-600 hover:text-blue-800 hover:underline"
-                          >
-                            Ver detalle →
-                          </Link>
-                        </td>
-                      </tr>
-                    ))}
-                  </>
-                )
-              })}
+                      ))}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <span className="text-sm font-semibold text-gray-900">
+                      U$S {formatNumber(firma.totalUSD)}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <span className="text-sm text-gray-600">
+                      {totalGeneral > 0 ? ((firma.totalUSD / totalGeneral) * 100).toFixed(1) : 0}%
+                    </span>
+                  </td>
+                </tr>
+              ))}
               
               {/* TOTAL */}
               <tr className="bg-blue-50 font-bold border-t-2 border-blue-200">
-                <td colSpan={3} className="px-6 py-4 text-gray-900">
+                <td colSpan={4} className="px-6 py-4 text-gray-900">
                   TOTAL GENERAL
                 </td>
                 <td className="px-6 py-4 text-right text-blue-900">
