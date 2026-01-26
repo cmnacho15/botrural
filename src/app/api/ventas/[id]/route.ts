@@ -3,6 +3,83 @@ import { prisma } from "@/lib/prisma"
 import { requireAuth, canWriteFinanzas } from "@/lib/auth-helpers"
 
 /**
+ * PATCH /api/ventas/[id]
+ * Actualizar campos de una venta (ej: firmaId)
+ */
+export async function PATCH(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const { error, user } = await requireAuth()
+    if (error) return error
+
+    if (!canWriteFinanzas(user!)) {
+      return NextResponse.json(
+        { error: "No tienes permisos para editar ventas" },
+        { status: 403 }
+      )
+    }
+
+    const ventaId = params.id
+    const body = await request.json()
+
+    // Verificar que la venta pertenece al campo del usuario
+    const venta = await prisma.venta.findUnique({
+      where: { id: ventaId },
+    })
+
+    if (!venta) {
+      return NextResponse.json(
+        { error: "Venta no encontrada" },
+        { status: 404 }
+      )
+    }
+
+    if (venta.campoId !== user!.campoId) {
+      return NextResponse.json(
+        { error: "No tienes permiso para editar esta venta" },
+        { status: 403 }
+      )
+    }
+
+    // Si se está actualizando la firma, verificar que pertenece al campo
+    if (body.firmaId) {
+      const firma = await prisma.firma.findUnique({
+        where: { id: body.firmaId },
+      })
+
+      if (!firma || firma.campoId !== user!.campoId) {
+        return NextResponse.json(
+          { error: "Firma no válida" },
+          { status: 400 }
+        )
+      }
+    }
+
+    // Actualizar venta
+    const ventaActualizada = await prisma.venta.update({
+      where: { id: ventaId },
+      data: {
+        ...(body.firmaId !== undefined && { firmaId: body.firmaId }),
+      },
+      include: {
+        firma: { select: { razonSocial: true, rut: true } },
+      },
+    })
+
+    return NextResponse.json(ventaActualizada)
+
+  } catch (error: any) {
+    console.error("Error actualizando venta:", error)
+    return NextResponse.json(
+      { error: error.message || "Error actualizando venta" },
+      { status: 500 }
+    )
+  }
+}
+
+/**
  * DELETE /api/ventas/[id]
  * Eliminar venta y revertir stock
  */

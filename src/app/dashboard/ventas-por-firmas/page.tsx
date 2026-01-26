@@ -32,8 +32,16 @@ type FirmaResumen = {
   ventas: VentaDetalle[]
 }
 
+type Firma = {
+  id: string
+  razonSocial: string
+  rut: string
+}
+
 export default function VentasPorFirmasPage() {
   const [verImagen, setVerImagen] = useState<string | null>(null)
+  const [editandoVenta, setEditandoVenta] = useState<string | null>(null)
+  const [guardando, setGuardando] = useState(false)
   // Calcular fechas iniciales (ejercicio fiscal: 1/7 a 30/6)
   const fechaInicioDefault = useMemo(() => {
     const hoy = new Date()
@@ -51,13 +59,36 @@ export default function VentasPorFirmasPage() {
   const [fechaFin, setFechaFin] = useState(fechaFinDefault)
 
   // Cargar resumen
-  const { data, isLoading, error } = useSWR(
+  const { data, isLoading, error, mutate } = useSWR(
     `/api/ventas/resumen-por-firma?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}`,
     fetcher
   )
 
+  // Cargar firmas disponibles
+  const { data: firmasData } = useSWR<Firma[]>('/api/firmas', fetcher)
+  const firmas = firmasData || []
+
   const resumen = data?.resumen || []
   const totalGeneral = data?.totalGeneral || 0
+
+  // Asignar firma a una venta
+  const asignarFirma = async (ventaId: string, firmaId: string) => {
+    setGuardando(true)
+    try {
+      const res = await fetch(`/api/ventas/${ventaId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ firmaId }),
+      })
+      if (!res.ok) throw new Error('Error asignando firma')
+      await mutate() // Recargar datos
+      setEditandoVenta(null)
+    } catch (err) {
+      alert('Error al asignar firma')
+    } finally {
+      setGuardando(false)
+    }
+  }
 
   const formatNumber = (num: number) => {
     return num.toLocaleString('es-UY', {
@@ -240,10 +271,12 @@ export default function VentasPorFirmasPage() {
                   <td className="px-6 py-4">
                     <div className="flex flex-wrap gap-1.5">
                       {firma.ventas.map((venta) => (
-                        <div key={venta.id} className="inline-flex items-center gap-0.5">
+                        <div key={venta.id} className="inline-flex items-center gap-0.5 relative">
                           {/* Chip de factura */}
                           <span
-                            className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded-l-md border-y border-l ${
+                            className={`inline-flex items-center gap-1 text-xs px-2 py-1 border-y border-l ${
+                              !firma.firmaId ? 'rounded-l-md' : 'rounded-l-md'
+                            } ${
                               venta.pagado
                                 ? 'bg-green-50 border-green-200 text-green-700'
                                 : 'bg-amber-50 border-amber-200 text-amber-700'
@@ -257,6 +290,43 @@ export default function VentasPorFirmasPage() {
                               {formatDate(venta.fecha).slice(0, 5)}
                             </span>
                           </span>
+
+                          {/* Botón asignar firma (solo para ventas sin asignar) */}
+                          {!firma.firmaId && (
+                            <div className="relative">
+                              <button
+                                onClick={() => setEditandoVenta(editandoVenta === venta.id ? null : venta.id)}
+                                className="px-1.5 py-1 text-xs border-y bg-blue-50 border-blue-200 text-blue-600 hover:bg-blue-100 transition"
+                                title="Asignar firma"
+                              >
+                                ✏️
+                              </button>
+
+                              {/* Dropdown de firmas */}
+                              {editandoVenta === venta.id && (
+                                <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-gray-300 rounded-lg shadow-lg min-w-[200px] max-h-48 overflow-y-auto">
+                                  {firmas.length === 0 ? (
+                                    <div className="px-3 py-2 text-sm text-gray-500">
+                                      No hay firmas configuradas
+                                    </div>
+                                  ) : (
+                                    firmas.map((f) => (
+                                      <button
+                                        key={f.id}
+                                        onClick={() => asignarFirma(venta.id, f.id)}
+                                        disabled={guardando}
+                                        className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 transition disabled:opacity-50"
+                                      >
+                                        <div className="font-medium text-gray-900">{f.razonSocial}</div>
+                                        <div className="text-xs text-gray-500">{f.rut}</div>
+                                      </button>
+                                    ))
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          )}
+
                           {/* Botón ver imagen */}
                           {venta.imageUrl ? (
                             <button
