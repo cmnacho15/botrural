@@ -1056,7 +1056,7 @@ export async function POST(request: Request) {
         },
         include: {
           renglones: true,
-          firma: { select: { nombre: true } },
+          firma: { select: { razonSocial: true } },
         },
         orderBy: { fecha: 'asc' },
       })
