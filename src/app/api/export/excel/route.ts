@@ -997,12 +997,13 @@ export async function POST(request: Request) {
         { header: 'Tipo', key: 'tipo', width: 12 },
         { header: 'Descripción', key: 'descripcion', width: 35 },
         { header: 'Categoría', key: 'categoria', width: 18 },
-        { header: 'Monto', key: 'monto', width: 15 },
-        { header: 'Moneda', key: 'moneda', width: 10 },
-        { header: 'Monto UYU', key: 'montoUYU', width: 15 },
-        { header: 'Monto USD', key: 'montoUSD', width: 15 },
-        { header: 'IVA', key: 'iva', width: 12 },
         { header: 'Proveedor/Comprador', key: 'contraparte', width: 20 },
+        { header: 'Moneda', key: 'moneda', width: 10 },
+        { header: 'Monto s/IVA', key: 'montoSinIva', width: 14 },
+        { header: 'IVA', key: 'iva', width: 12 },
+        { header: 'Total', key: 'montoTotal', width: 14 },
+        { header: 'Monto UYU', key: 'montoUYU', width: 14 },
+        { header: 'Monto USD', key: 'montoUSD', width: 14 },
         { header: 'Método Pago', key: 'metodoPago', width: 15 },
         { header: 'Pagado', key: 'pagado', width: 10 },
         { header: 'Potrero', key: 'potrero', width: 18 },
@@ -1013,18 +1014,24 @@ export async function POST(request: Request) {
         const nombrePotrero = g.lote?.moduloPastoreo?.nombre
           ? `${g.lote.nombre} (${g.lote.moduloPastoreo.nombre})`
           : g.lote?.nombre || ''
-          
+
+        // Calcular monto sin IVA
+        const ivaAmount = g.iva ? Number(g.iva) : 0
+        const montoTotal = g.montoOriginal ? Number(g.montoOriginal) : (g.monto ? Number(g.monto) : 0)
+        const montoSinIva = montoTotal - ivaAmount
+
         sheet.addRow({
           fecha: formatearFecha(g.fecha),
           tipo: g.tipo === 'INGRESO' ? 'Ingreso' : 'Gasto',
           descripcion: g.descripcion || '',
           categoria: g.categoria || '',
-          monto: g.monto ? Number(g.monto) : '',
+          contraparte: g.proveedor || g.comprador || '',
           moneda: g.moneda || 'UYU',
+          montoSinIva: ivaAmount > 0 ? montoSinIva : '',
+          iva: ivaAmount > 0 ? ivaAmount : '',
+          montoTotal: montoTotal || '',
           montoUYU: g.montoEnUYU ? Number(g.montoEnUYU) : '',
           montoUSD: g.montoEnUSD ? Number(g.montoEnUSD) : '',
-          iva: g.iva ? Number(g.iva) : '',
-          contraparte: g.proveedor || g.comprador || '',
           metodoPago: g.metodoPago || '',
           pagado: g.pagado ? 'Sí' : 'No',
           potrero: nombrePotrero,
@@ -1034,7 +1041,7 @@ export async function POST(request: Request) {
       aplicarEstiloEncabezado(sheet.getRow(1))
       aplicarEstiloDatos(sheet, 2)
       autoAjustarColumnas(sheet, columnas)
-      sheet.autoFilter = { from: 'A1', to: 'M1' }
+      sheet.autoFilter = { from: 'A1', to: 'N1' }
     }
 
     // ========================================
