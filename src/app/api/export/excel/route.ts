@@ -9,7 +9,7 @@ type HojasSeleccionadas = {
   tratamientos?: boolean
   movimientosGanaderos?: boolean
   cambiosPotrero?: boolean
-  tactos?: boolean 
+  tactos?: boolean
   dao?: boolean
   recategorizaciones?: boolean
   siembras?: boolean
@@ -23,6 +23,7 @@ type HojasSeleccionadas = {
   heladas?: boolean
   insumos?: boolean
   gastosIngresos?: boolean
+  ventas?: boolean
   traslados?: boolean
 }
 
@@ -1042,6 +1043,259 @@ export async function POST(request: Request) {
       aplicarEstiloDatos(sheet, 2)
       autoAjustarColumnas(sheet, columnas)
       sheet.autoFilter = { from: 'A1', to: 'N1' }
+    }
+
+    // ========================================
+    // HOJA: VENTAS (VACUNO, OVINO, LANA)
+    // ========================================
+    if (hojas.ventas) {
+      const ventas = await prisma.venta.findMany({
+        where: {
+          campoId: usuario.campoId,
+          ...(fechaDesde || fechaHasta ? { fecha: filtroFecha } : {}),
+        },
+        include: {
+          renglones: true,
+          firma: { select: { nombre: true } },
+        },
+        orderBy: { fecha: 'asc' },
+      })
+
+      const sheet = workbook.addWorksheet('Ventas')
+
+      // Estilo para títulos de sección
+      const estiloSeccion: Partial<ExcelJS.Style> = {
+        font: { bold: true, size: 14, color: { argb: 'FFFFFFFF' } },
+        fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E40AF' } },
+        alignment: { horizontal: 'center', vertical: 'middle' },
+      }
+
+      // Función para agregar una sección
+      const agregarSeccion = (
+        titulo: string,
+        tipoAnimal: string | null, // null para LANA
+        tipoProducto: string,
+        startRow: number
+      ): number => {
+        // Filtrar ventas por tipo
+        const ventasFiltradas = ventas.filter(v => {
+          if (tipoProducto === 'LANA') {
+            return v.tipoProducto === 'LANA'
+          }
+          return v.tipoProducto === 'GANADO' && v.renglones.some(r => r.tipoAnimal === tipoAnimal)
+        })
+
+        if (ventasFiltradas.length === 0) {
+          return startRow // No hay datos, no agregar sección
+        }
+
+        // Título de sección
+        const tituloRow = sheet.getRow(startRow)
+        sheet.mergeCells(startRow, 1, startRow, 16)
+        tituloRow.getCell(1).value = titulo
+        tituloRow.getCell(1).style = estiloSeccion
+        tituloRow.height = 25
+        startRow++
+
+        // Encabezados de columna
+        const headers = tipoProducto === 'LANA'
+          ? ['Fecha', 'Nº Factura', 'Comprador', 'Consignatario', 'Categoría', 'Peso kg', '$/kg', 'Subtotal USD', 'IMEBA', 'INIA', 'MEVIR', 'Comisión', 'IVA', 'Otros', 'Total Imp', 'Neto USD']
+          : ['Fecha', 'Nº Factura', 'Comprador', 'Consignatario', 'Categoría', 'Cant', 'Peso kg', '$/kg', 'Subtotal USD', 'IMEBA', 'INIA', 'MEVIR', 'Comisión', 'IVA', 'Otros', 'Neto USD']
+
+        const headerRow = sheet.getRow(startRow)
+        headers.forEach((h, i) => {
+          headerRow.getCell(i + 1).value = h
+        })
+        aplicarEstiloEncabezado(headerRow)
+        startRow++
+
+        // Totales para subtotal
+        let totalSubtotal = 0
+        let totalImeba = 0
+        let totalInia = 0
+        let totalMevir = 0
+        let totalComision = 0
+        let totalIva = 0
+        let totalOtros = 0
+        let totalNeto = 0
+        let totalCantidad = 0
+        let totalPeso = 0
+
+        // Datos
+        ventasFiltradas.forEach(v => {
+          const impuestos = (v.impuestos as any) || {}
+
+          // Filtrar renglones por tipo
+          const renglonesDelTipo = tipoProducto === 'LANA'
+            ? v.renglones.filter(r => r.tipo === 'LANA' || r.esVentaLana)
+            : v.renglones.filter(r => r.tipoAnimal === tipoAnimal)
+
+          renglonesDelTipo.forEach(r => {
+            const row = sheet.getRow(startRow)
+
+            if (tipoProducto === 'LANA') {
+              // Calcular proporcionales de impuestos por renglón
+              const proporcion = v.subtotalUSD > 0 ? r.importeBrutoUSD / v.subtotalUSD : 0
+              const imebaRenglon = (impuestos.imeba || 0) * proporcion
+              const iniaRenglon = (impuestos.inia || 0) * proporcion
+              const mevirRenglon = (impuestos.mevir || 0) * proporcion
+              const comisionRenglon = (impuestos.comision || 0) * proporcion
+              const ivaRenglon = (impuestos.iva || 0) * proporcion
+              const otrosRenglon = (impuestos.otros || 0) * proporcion
+              const totalImpRenglon = imebaRenglon + iniaRenglon + mevirRenglon + comisionRenglon + ivaRenglon + otrosRenglon
+              const netoRenglon = r.importeBrutoUSD - totalImpRenglon
+
+              row.values = [
+                formatearFecha(v.fecha),
+                v.nroFactura || '',
+                v.comprador,
+                v.consignatario || '',
+                r.categoria,
+                r.esVentaLana ? (r.kgVellon || 0) + (r.kgBarriga || 0) : r.pesoTotalKg,
+                r.esVentaLana ? (r.precioKgVellon || r.precioKgUSD) : r.precioKgUSD,
+                r.importeBrutoUSD,
+                imebaRenglon > 0 ? -Math.round(imebaRenglon * 100) / 100 : '',
+                iniaRenglon > 0 ? -Math.round(iniaRenglon * 100) / 100 : '',
+                mevirRenglon > 0 ? -Math.round(mevirRenglon * 100) / 100 : '',
+                comisionRenglon > 0 ? -Math.round(comisionRenglon * 100) / 100 : '',
+                ivaRenglon > 0 ? -Math.round(ivaRenglon * 100) / 100 : '',
+                otrosRenglon > 0 ? -Math.round(otrosRenglon * 100) / 100 : '',
+                totalImpRenglon > 0 ? -Math.round(totalImpRenglon * 100) / 100 : '',
+                Math.round(netoRenglon * 100) / 100,
+              ]
+
+              totalPeso += r.esVentaLana ? (r.kgVellon || 0) + (r.kgBarriga || 0) : r.pesoTotalKg
+              totalSubtotal += r.importeBrutoUSD
+              totalImeba += imebaRenglon
+              totalInia += iniaRenglon
+              totalMevir += mevirRenglon
+              totalComision += comisionRenglon
+              totalIva += ivaRenglon
+              totalOtros += otrosRenglon
+              totalNeto += netoRenglon
+            } else {
+              // GANADO (VACUNO/OVINO)
+              const proporcion = v.subtotalUSD > 0 ? r.importeBrutoUSD / v.subtotalUSD : 0
+              const imebaRenglon = (impuestos.imeba || 0) * proporcion
+              const iniaRenglon = (impuestos.inia || 0) * proporcion
+              const mevirRenglon = (impuestos.mevir || 0) * proporcion
+              const comisionRenglon = (impuestos.comision || 0) * proporcion
+              const ivaRenglon = (impuestos.iva || 0) * proporcion
+              const otrosRenglon = (impuestos.otros || 0) * proporcion
+              const totalImpRenglon = imebaRenglon + iniaRenglon + mevirRenglon + comisionRenglon + ivaRenglon + otrosRenglon
+              const netoRenglon = r.importeBrutoUSD - totalImpRenglon
+
+              row.values = [
+                formatearFecha(v.fecha),
+                v.nroFactura || '',
+                v.comprador,
+                v.consignatario || '',
+                r.categoria,
+                r.cantidad,
+                r.pesoTotalKg,
+                Math.round(r.precioKgUSD * 100) / 100,
+                r.importeBrutoUSD,
+                imebaRenglon > 0 ? -Math.round(imebaRenglon * 100) / 100 : '',
+                iniaRenglon > 0 ? -Math.round(iniaRenglon * 100) / 100 : '',
+                mevirRenglon > 0 ? -Math.round(mevirRenglon * 100) / 100 : '',
+                comisionRenglon > 0 ? -Math.round(comisionRenglon * 100) / 100 : '',
+                ivaRenglon > 0 ? -Math.round(ivaRenglon * 100) / 100 : '',
+                otrosRenglon > 0 ? -Math.round(otrosRenglon * 100) / 100 : '',
+                Math.round(netoRenglon * 100) / 100,
+              ]
+
+              totalCantidad += r.cantidad
+              totalPeso += r.pesoTotalKg
+              totalSubtotal += r.importeBrutoUSD
+              totalImeba += imebaRenglon
+              totalInia += iniaRenglon
+              totalMevir += mevirRenglon
+              totalComision += comisionRenglon
+              totalIva += ivaRenglon
+              totalOtros += otrosRenglon
+              totalNeto += netoRenglon
+            }
+
+            // Estilo alternado
+            if (startRow % 2 === 0) {
+              row.eachCell((cell) => {
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF9FAFB' } }
+              })
+            }
+            startRow++
+          })
+        })
+
+        // Fila de TOTALES
+        const totalRow = sheet.getRow(startRow)
+        if (tipoProducto === 'LANA') {
+          totalRow.values = [
+            '', '', '', 'TOTAL',
+            '',
+            Math.round(totalPeso * 100) / 100,
+            '',
+            Math.round(totalSubtotal * 100) / 100,
+            totalImeba > 0 ? -Math.round(totalImeba * 100) / 100 : '',
+            totalInia > 0 ? -Math.round(totalInia * 100) / 100 : '',
+            totalMevir > 0 ? -Math.round(totalMevir * 100) / 100 : '',
+            totalComision > 0 ? -Math.round(totalComision * 100) / 100 : '',
+            totalIva > 0 ? -Math.round(totalIva * 100) / 100 : '',
+            totalOtros > 0 ? -Math.round(totalOtros * 100) / 100 : '',
+            -(Math.round((totalImeba + totalInia + totalMevir + totalComision + totalIva + totalOtros) * 100) / 100),
+            Math.round(totalNeto * 100) / 100,
+          ]
+        } else {
+          totalRow.values = [
+            '', '', '', 'TOTAL',
+            '',
+            totalCantidad,
+            Math.round(totalPeso * 100) / 100,
+            '',
+            Math.round(totalSubtotal * 100) / 100,
+            totalImeba > 0 ? -Math.round(totalImeba * 100) / 100 : '',
+            totalInia > 0 ? -Math.round(totalInia * 100) / 100 : '',
+            totalMevir > 0 ? -Math.round(totalMevir * 100) / 100 : '',
+            totalComision > 0 ? -Math.round(totalComision * 100) / 100 : '',
+            totalIva > 0 ? -Math.round(totalIva * 100) / 100 : '',
+            totalOtros > 0 ? -Math.round(totalOtros * 100) / 100 : '',
+            Math.round(totalNeto * 100) / 100,
+          ]
+        }
+        totalRow.eachCell((cell) => {
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD1FAE5' } }
+          cell.font = { bold: true }
+        })
+        startRow++
+
+        // Fila vacía de separación
+        startRow += 2
+
+        return startRow
+      }
+
+      // Agregar las 3 secciones
+      let currentRow = 1
+      currentRow = agregarSeccion('🐄 VENTAS VACUNO', 'BOVINO', 'GANADO', currentRow)
+      currentRow = agregarSeccion('🐑 VENTAS OVINO', 'OVINO', 'GANADO', currentRow)
+      currentRow = agregarSeccion('🧶 VENTAS LANA', null, 'LANA', currentRow)
+
+      // Ajustar anchos de columna
+      sheet.getColumn(1).width = 12  // Fecha
+      sheet.getColumn(2).width = 14  // Nº Factura
+      sheet.getColumn(3).width = 22  // Comprador
+      sheet.getColumn(4).width = 18  // Consignatario
+      sheet.getColumn(5).width = 18  // Categoría
+      sheet.getColumn(6).width = 10  // Cant/Peso
+      sheet.getColumn(7).width = 12  // Peso/$/kg
+      sheet.getColumn(8).width = 10  // $/kg/Subtotal
+      sheet.getColumn(9).width = 14  // Subtotal/IMEBA
+      sheet.getColumn(10).width = 12 // IMEBA/INIA
+      sheet.getColumn(11).width = 12 // INIA/MEVIR
+      sheet.getColumn(12).width = 12 // MEVIR/Comisión
+      sheet.getColumn(13).width = 12 // Comisión/IVA
+      sheet.getColumn(14).width = 12 // IVA/Otros
+      sheet.getColumn(15).width = 12 // Otros/Total Imp
+      sheet.getColumn(16).width = 14 // Neto USD
     }
 
     // ========================================
