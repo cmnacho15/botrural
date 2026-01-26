@@ -1,6 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+
+type Firma = {
+  id: string
+  razonSocial: string
+  rut: string
+}
 
 type TablaVentasLanaProps = {
   ventas: any[]
@@ -10,6 +16,36 @@ type TablaVentasLanaProps = {
 export default function TablaVentasLana({ ventas, onRefresh }: TablaVentasLanaProps) {
   const [expandido, setExpandido] = useState<string | null>(null)
   const [verImagen, setVerImagen] = useState<string | null>(null)
+  const [editandoFirma, setEditandoFirma] = useState<string | null>(null)
+  const [firmas, setFirmas] = useState<Firma[]>([])
+  const [guardandoFirma, setGuardandoFirma] = useState(false)
+
+  // Cargar firmas disponibles
+  useEffect(() => {
+    fetch('/api/firmas')
+      .then(res => res.json())
+      .then(data => setFirmas(data || []))
+      .catch(() => setFirmas([]))
+  }, [])
+
+  // Asignar firma a una venta
+  const asignarFirma = async (ventaId: string, firmaId: string) => {
+    setGuardandoFirma(true)
+    try {
+      const res = await fetch(`/api/ventas/${ventaId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ firmaId }),
+      })
+      if (!res.ok) throw new Error('Error asignando firma')
+      onRefresh()
+      setEditandoFirma(null)
+    } catch (err) {
+      alert('Error al asignar firma')
+    } finally {
+      setGuardandoFirma(false)
+    }
+  }
 
   const toggleExpansion = (ventaId: string) => {
     setExpandido(expandido === ventaId ? null : ventaId)
@@ -102,8 +138,42 @@ export default function TablaVentasLana({ ventas, onRefresh }: TablaVentasLanaPr
                     </div>
                   )}
                 </td>
-                <td className="px-4 py-3 text-sm text-gray-600">
-                  {venta.firma?.razonSocial || '-'}
+                <td className="px-4 py-3 text-sm text-gray-600 relative">
+                  {venta.firma ? (
+                    <span>{venta.firma.razonSocial}</span>
+                  ) : (
+                    <div className="relative">
+                      <button
+                        onClick={() => setEditandoFirma(editandoFirma === venta.id ? null : venta.id)}
+                        className="text-blue-600 hover:text-blue-800 italic text-xs underline cursor-pointer"
+                      >
+                        Sin asignar ✏️
+                      </button>
+
+                      {/* Dropdown de firmas */}
+                      {editandoFirma === venta.id && (
+                        <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-gray-300 rounded-lg shadow-lg min-w-[220px] max-h-48 overflow-y-auto">
+                          {firmas.length === 0 ? (
+                            <div className="px-3 py-2 text-sm text-gray-500">
+                              No hay firmas configuradas
+                            </div>
+                          ) : (
+                            firmas.map((f) => (
+                              <button
+                                key={f.id}
+                                onClick={() => asignarFirma(venta.id, f.id)}
+                                disabled={guardandoFirma}
+                                className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 transition disabled:opacity-50 border-b border-gray-100 last:border-0"
+                              >
+                                <div className="font-medium text-gray-900">{f.razonSocial}</div>
+                                <div className="text-xs text-gray-500">{f.rut}</div>
+                              </button>
+                            ))
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap text-sm text-right font-medium text-gray-900">
                   {kgTotales.toLocaleString('es-UY', { minimumFractionDigits: 0 })} kg
