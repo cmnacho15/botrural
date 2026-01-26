@@ -49,11 +49,22 @@ export async function GET(request: Request) {
       rut: string
       cantidadVentas: number
       totalUSD: number
+      ventas: {
+        id: string
+        fecha: Date
+        nroFactura: string | null
+        comprador: string
+        tipoProducto: string | null
+        subtotalUSD: number
+        totalImpuestosUSD: number
+        totalNetoUSD: number
+        pagado: boolean
+      }[]
     }> = {}
 
     ventas.forEach(venta => {
       const key = venta.firmaId || 'sin-asignar'
-      
+
       if (!resumenPorFirma[key]) {
         resumenPorFirma[key] = {
           firmaId: venta.firmaId,
@@ -61,15 +72,32 @@ export async function GET(request: Request) {
           rut: venta.firma?.rut || '-',
           cantidadVentas: 0,
           totalUSD: 0,
+          ventas: [],
         }
       }
 
       resumenPorFirma[key].cantidadVentas += 1
       resumenPorFirma[key].totalUSD += venta.totalNetoUSD
+      resumenPorFirma[key].ventas.push({
+        id: venta.id,
+        fecha: venta.fecha,
+        nroFactura: venta.nroFactura,
+        comprador: venta.comprador,
+        tipoProducto: venta.tipoProducto,
+        subtotalUSD: venta.subtotalUSD,
+        totalImpuestosUSD: venta.totalImpuestosUSD,
+        totalNetoUSD: venta.totalNetoUSD,
+        pagado: venta.pagado,
+      })
     })
 
-    // Convertir a array y ordenar por total descendente
-    const resumenArray = Object.values(resumenPorFirma).sort((a, b) => b.totalUSD - a.totalUSD)
+    // Convertir a array, ordenar ventas por fecha y ordenar firmas por total descendente
+    const resumenArray = Object.values(resumenPorFirma)
+      .map(firma => ({
+        ...firma,
+        ventas: firma.ventas.sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime())
+      }))
+      .sort((a, b) => b.totalUSD - a.totalUSD)
 
     // Calcular total general
     const totalGeneral = resumenArray.reduce((sum, item) => sum + item.totalUSD, 0)
