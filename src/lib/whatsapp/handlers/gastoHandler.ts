@@ -232,61 +232,76 @@ export async function sendInvoiceFlowMessage(
 
 /**
  * Envía confirmación con botones (fallback cuando no hay flow)
+ * Divide los items en múltiples mensajes si son muchos
  * @param grupoInfo - Si ya se obtuvo antes, pasar para evitar doble query
  */
 async function sendInvoiceConfirmation(phoneNumber: string, data: any, campoId?: string, grupoInfo?: any) {
-  // Limitar items mostrados para no exceder 1024 caracteres de WhatsApp
-  const MAX_ITEMS_DISPLAY = 5
+  const ITEMS_PER_MESSAGE = 7
   const totalItems = data.items.length
-  const itemsToShow = data.items.slice(0, MAX_ITEMS_DISPLAY)
 
-  const itemsList = itemsToShow
-    .map(
-      (item: any, i: number) =>
-        `${i + 1}. ${item.descripcion.substring(0, 40)}${item.descripcion.length > 40 ? '...' : ''} - $${item.precioFinal.toFixed(2)}`
-    )
-    .join("\n")
-
-  const itemsExtra = totalItems > MAX_ITEMS_DISPLAY
-    ? `\n...y ${totalItems - MAX_ITEMS_DISPLAY} items más`
-    : ""
-
-  let bodyText =
+  // Mensaje inicial con datos de la factura
+  const headerText =
     `*Factura procesada:*\n\n` +
-    `Proveedor: ${data.proveedor}\n` +
-    `Fecha: ${data.fecha}\n` +
-    `Total: $${data.montoTotal.toFixed(2)} ${data.moneda || ''}\n` +
-    `Pago: ${data.metodoPago}${
-      data.diasPlazo ? ` (${data.diasPlazo} días)` : ""
-    }\n\n` +
-    `*Ítems (${totalItems}):*\n${itemsList}${itemsExtra}\n\n`
+    `📋 Proveedor: ${data.proveedor}\n` +
+    `📅 Fecha: ${data.fecha}\n` +
+    `💰 Total: $${data.montoTotal.toFixed(2)} ${data.moneda || ''}\n` +
+    `💳 Pago: ${data.metodoPago}${data.diasPlazo ? ` (${data.diasPlazo} días)` : ""}\n\n` +
+    `*Ítems (${totalItems}):*`
 
-  // 🏢 Usar grupoInfo si ya fue pasado, sino obtenerlo
-  if (grupoInfo === undefined && campoId) {
-    grupoInfo = await obtenerCamposDelGrupo(campoId)
+  await sendWhatsAppMessage(phoneNumber, headerText)
+
+  // Dividir items en chunks y enviar cada uno
+  const chunks: any[][] = []
+  for (let i = 0; i < data.items.length; i += ITEMS_PER_MESSAGE) {
+    chunks.push(data.items.slice(i, i + ITEMS_PER_MESSAGE))
   }
 
-  if (grupoInfo) {
-    // Mostrar opción de gasto compartido
-    const totalHectareas = grupoInfo.campos.reduce((sum, c) => sum + c.hectareas, 0)
-    
-    bodyText += `🏢 *Detectamos ${grupoInfo.campos.length} campos en el grupo*\n\n`
-    bodyText += `¿Es un gasto compartido?\n\n`
+  for (let chunkIndex = 0; chunkIndex < chunks.length; chunkIndex++) {
+    const chunk = chunks[chunkIndex]
+    const startIndex = chunkIndex * ITEMS_PER_MESSAGE
 
-    await sendCustomButtons(phoneNumber, bodyText, [
-      { id: "invoice_shared", title: "🏢 Compartir" },
-      { id: "invoice_single", title: "📍 Solo este campo" },
-      { id: "invoice_cancel", title: "❌ Cancelar" },
-    ])
-  } else {
-    // Sin multicampo, confirmación normal
-    bodyText += `¿Todo correcto?`
-    
-    await sendCustomButtons(phoneNumber, bodyText, [
-      { id: "invoice_confirm", title: "✅ Confirmar" },
-      { id: "invoice_edit", title: "✏️ Editar" },
-      { id: "invoice_cancel", title: "❌ Cancelar" },
-    ])
+    const itemsList = chunk
+      .map((item: any, i: number) => {
+        const num = startIndex + i + 1
+        const desc = item.descripcion.length > 35
+          ? item.descripcion.substring(0, 35) + '...'
+          : item.descripcion
+        return `${num}. ${desc} - $${item.precioFinal.toFixed(2)}`
+      })
+      .join("\n")
+
+    // Si NO es el último chunk, enviar como mensaje normal
+    if (chunkIndex < chunks.length - 1) {
+      await sendWhatsAppMessage(phoneNumber, itemsList)
+    } else {
+      // Último chunk: agregar pregunta y botones
+
+      // 🏢 Usar grupoInfo si ya fue pasado, sino obtenerlo
+      if (grupoInfo === undefined && campoId) {
+        grupoInfo = await obtenerCamposDelGrupo(campoId)
+      }
+
+      let finalText = itemsList + "\n\n"
+
+      if (grupoInfo) {
+        finalText += `🏢 *Detectamos ${grupoInfo.campos.length} campos en el grupo*\n\n`
+        finalText += `¿Es un gasto compartido?`
+
+        await sendCustomButtons(phoneNumber, finalText, [
+          { id: "invoice_shared", title: "🏢 Compartir" },
+          { id: "invoice_single", title: "📍 Solo este campo" },
+          { id: "invoice_cancel", title: "❌ Cancelar" },
+        ])
+      } else {
+        finalText += `¿Todo correcto?`
+
+        await sendCustomButtons(phoneNumber, finalText, [
+          { id: "invoice_confirm", title: "✅ Confirmar" },
+          { id: "invoice_edit", title: "✏️ Editar" },
+          { id: "invoice_cancel", title: "❌ Cancelar" },
+        ])
+      }
+    }
   }
 }
 
