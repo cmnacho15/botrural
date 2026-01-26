@@ -406,8 +406,13 @@ async function guardarVentaEnBD(savedData: any, phoneNumber: string) {
       for (const r of ventaData.renglones) {
         const mapped = mapearCategoriaVenta(r.categoria)
         
-        const pesoPromedio = r.pesoPromedio || (r.pesoTotalKg / r.cantidad);
-        const precioAnimalUSD = pesoPromedio * r.precioKgUSD;
+        // Evitar división por cero cuando cantidad es 0 (ej: "Compensación Kilos")
+        const pesoPromedio = r.cantidad > 0
+          ? (r.pesoPromedio || (r.pesoTotalKg / r.cantidad))
+          : 0;
+        const precioAnimalUSD = r.cantidad > 0
+          ? (pesoPromedio * r.precioKgUSD)
+          : 0;
         
         const renglon = await prisma.ventaRenglon.create({
           data: {
