@@ -1,3 +1,4 @@
+//src/app/components/modales/modalexportexcel.tsx
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -55,7 +56,7 @@ const obtenerGruposHojas = (tieneCamposEnGrupo: boolean): GrupoHojas[] => [
 export default function ModalExportExcel({ isOpen, onClose }: ModalExportExcelProps) {
   const [hojasSeleccionadas, setHojasSeleccionadas] = useState<Record<string, boolean>>({})
   const [gruposAbiertos, setGruposAbiertos] = useState<Record<string, boolean>>({
-    ganaderos: true,
+    ganaderos: false,
     agricultura: false,
     otros: false,
   })
