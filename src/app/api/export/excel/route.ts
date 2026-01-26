@@ -1011,32 +1011,32 @@ export async function POST(request: Request) {
       sheet.columns = columnas
 
       gastos.forEach((g) => {
-        const nombrePotrero = g.lote?.moduloPastoreo?.nombre
-          ? `${g.lote.nombre} (${g.lote.moduloPastoreo.nombre})`
-          : g.lote?.nombre || ''
+  const nombrePotrero = g.lote?.moduloPastoreo?.nombre
+    ? `${g.lote.nombre} (${g.lote.moduloPastoreo.nombre})`
+    : g.lote?.nombre || ''
 
-        // Calcular monto sin IVA
-        const ivaAmount = g.iva ? Number(g.iva) : 0
-        const montoTotal = g.montoOriginal ? Number(g.montoOriginal) : (g.monto ? Number(g.monto) : 0)
-        const montoSinIva = montoTotal - ivaAmount
+  // Calcular monto sin IVA
+  const ivaAmount = g.iva ? Number(g.iva) : 0
+  const montoTotal = g.montoOriginal ? Number(g.montoOriginal) : (g.monto ? Number(g.monto) : 0)
+  const montoSinIva = montoTotal - ivaAmount
 
-        sheet.addRow({
-          fecha: formatearFecha(g.fecha),
-          tipo: g.tipo === 'INGRESO' ? 'Ingreso' : 'Gasto',
-          descripcion: g.descripcion || '',
-          categoria: g.categoria || '',
-          contraparte: g.proveedor || g.comprador || '',
-          moneda: g.moneda || 'UYU',
-          montoSinIva: ivaAmount > 0 ? montoSinIva : '',
-          iva: ivaAmount > 0 ? ivaAmount : '',
-          montoTotal: montoTotal || '',
-          montoUYU: g.montoEnUYU ? Math.round(Number(g.montoEnUYU) * 100) / 100 : '',
-          montoUSD: g.montoEnUSD ? Math.round(Number(g.montoEnUSD) * 100) / 100 : '',
-          metodoPago: g.metodoPago || '',
-          pagado: g.pagado ? 'Sí' : 'No',
-          potrero: nombrePotrero,
-        })
-      })
+  sheet.addRow({
+    fecha: formatearFecha(g.fecha),
+    tipo: g.tipo === 'INGRESO' ? 'Ingreso' : 'Gasto',
+    descripcion: g.descripcion || '',
+    categoria: g.categoria || '',
+    contraparte: g.proveedor || g.comprador || '',
+    moneda: g.moneda || 'UYU',
+    montoSinIva: ivaAmount > 0 ? montoSinIva.toLocaleString('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '',
+    iva: ivaAmount > 0 ? ivaAmount.toLocaleString('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '',
+    montoTotal: montoTotal ? montoTotal.toLocaleString('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '',
+    montoUYU: g.montoEnUYU ? Number(g.montoEnUYU).toLocaleString('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '',
+    montoUSD: g.montoEnUSD ? Number(g.montoEnUSD).toLocaleString('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '',
+    metodoPago: g.metodoPago || '',
+    pagado: g.pagado ? 'Sí' : 'No',
+    potrero: nombrePotrero,
+  })
+})
 
       aplicarEstiloEncabezado(sheet.getRow(1))
       aplicarEstiloDatos(sheet, 2)
