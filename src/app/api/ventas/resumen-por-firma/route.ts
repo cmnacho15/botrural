@@ -59,6 +59,7 @@ export async function GET(request: Request) {
         totalImpuestosUSD: number
         totalNetoUSD: number
         pagado: boolean
+        imageUrl: string | null
       }[]
     }> = {}
 
@@ -88,6 +89,7 @@ export async function GET(request: Request) {
         totalImpuestosUSD: venta.totalImpuestosUSD,
         totalNetoUSD: venta.totalNetoUSD,
         pagado: venta.pagado,
+        imageUrl: venta.imageUrl,
       })
     })
 

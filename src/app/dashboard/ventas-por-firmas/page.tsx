@@ -20,6 +20,7 @@ type VentaDetalle = {
   totalImpuestosUSD: number
   totalNetoUSD: number
   pagado: boolean
+  imageUrl: string | null
 }
 
 type FirmaResumen = {
@@ -32,6 +33,7 @@ type FirmaResumen = {
 }
 
 export default function VentasPorFirmasPage() {
+  const [verImagen, setVerImagen] = useState<string | null>(null)
   // Calcular fechas iniciales (ejercicio fiscal: 1/7 a 30/6)
   const fechaInicioDefault = useMemo(() => {
     const hoy = new Date()
@@ -238,22 +240,49 @@ export default function VentasPorFirmasPage() {
                   <td className="px-6 py-4">
                     <div className="flex flex-wrap gap-1.5">
                       {firma.ventas.map((venta) => (
-                        <span
-                          key={venta.id}
-                          className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md border ${
-                            venta.pagado
-                              ? 'bg-green-50 border-green-200 text-green-700'
-                              : 'bg-amber-50 border-amber-200 text-amber-700'
-                          }`}
-                          title={`${formatDate(venta.fecha)} - ${venta.comprador} - U$S ${formatNumber(venta.totalNetoUSD)}${!venta.pagado ? ' (Pendiente)' : ''}`}
-                        >
-                          <span className="font-medium">
-                            {venta.nroFactura || 'S/N'}
+                        <div key={venta.id} className="inline-flex items-center gap-0.5">
+                          {/* Chip de factura */}
+                          <span
+                            className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded-l-md border-y border-l ${
+                              venta.pagado
+                                ? 'bg-green-50 border-green-200 text-green-700'
+                                : 'bg-amber-50 border-amber-200 text-amber-700'
+                            }`}
+                            title={`${formatDate(venta.fecha)} - ${venta.comprador} - U$S ${formatNumber(venta.totalNetoUSD)}${!venta.pagado ? ' (Pendiente)' : ''}`}
+                          >
+                            <span className="font-medium">
+                              {venta.nroFactura || 'S/N'}
+                            </span>
+                            <span className="text-[10px] opacity-70">
+                              {formatDate(venta.fecha).slice(0, 5)}
+                            </span>
                           </span>
-                          <span className="text-[10px] opacity-70">
-                            {formatDate(venta.fecha).slice(0, 5)}
-                          </span>
-                        </span>
+                          {/* Botón ver imagen */}
+                          {venta.imageUrl ? (
+                            <button
+                              onClick={() => setVerImagen(venta.imageUrl)}
+                              className={`px-1.5 py-1 text-xs rounded-r-md border transition hover:opacity-80 ${
+                                venta.pagado
+                                  ? 'bg-green-100 border-green-200 text-green-700 hover:bg-green-200'
+                                  : 'bg-amber-100 border-amber-200 text-amber-700 hover:bg-amber-200'
+                              }`}
+                              title="Ver factura"
+                            >
+                              📎
+                            </button>
+                          ) : (
+                            <span
+                              className={`px-1.5 py-1 text-xs rounded-r-md border opacity-30 ${
+                                venta.pagado
+                                  ? 'bg-green-50 border-green-200 text-green-400'
+                                  : 'bg-amber-50 border-amber-200 text-amber-400'
+                              }`}
+                              title="Sin imagen adjunta"
+                            >
+                              📎
+                            </span>
+                          )}
+                        </div>
                       ))}
                     </div>
                   </td>
@@ -286,6 +315,28 @@ export default function VentasPorFirmasPage() {
           </table>
         </div>
       </div>
+
+      {/* MODAL VER IMAGEN */}
+      {verImagen && (
+        <div
+          className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
+          onClick={() => setVerImagen(null)}
+        >
+          <div className="relative max-w-4xl max-h-[90vh]">
+            <button
+              onClick={() => setVerImagen(null)}
+              className="absolute -top-10 right-0 text-white text-3xl hover:text-gray-300"
+            >
+              ✕
+            </button>
+            <img
+              src={verImagen}
+              alt="Factura de venta"
+              className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl"
+            />
+          </div>
+        </div>
+      )}
     </div>
   )
 }
