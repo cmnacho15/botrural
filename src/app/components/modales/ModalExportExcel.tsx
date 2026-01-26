@@ -48,6 +48,7 @@ const obtenerGruposHojas = (tieneCamposEnGrupo: boolean): GrupoHojas[] => [
       { key: 'heladas', label: 'Heladas' },
       { key: 'insumos', label: 'Insumos' },
       { key: 'gastosIngresos', label: 'Gastos e Ingresos' },
+      { key: 'ventas', label: '💰 Ventas (Ganado y Lana)' },
       ...(tieneCamposEnGrupo ? [{ key: 'traslados', label: 'Traslados' }] : []),
     ],
   },
