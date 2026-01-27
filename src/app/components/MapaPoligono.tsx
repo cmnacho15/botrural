@@ -115,8 +115,9 @@ interface MapaPoligonoProps {
   coordinates: number[][]
   color?: string
   moduloPastoreoId?: string | null
-  isDashed?: boolean      // 🆕 NUEVO
-  isEditing?: boolean     // 🆕 NUEVO
+  isDashed?: boolean
+  isEditing?: boolean
+  isDimmed?: boolean  // 🔥 NUEVO
   info?: {
     hectareas?: number
     cultivos?: any[]
@@ -138,6 +139,8 @@ interface MapaPoligonoProps {
     hectareas: number
     color: string
   }>
+  cultivoSeleccionado?: string | null
+  onCultivoClick?: (tipo: string | null) => void
 }
 
 function calcularAreaPoligono(latlngs: any[]): number {
@@ -278,6 +281,8 @@ export default function MapaPoligono({
   // 🌾 NUEVOS PARÁMETROS
   mostrarResumenCultivos = false,
   resumenCultivos = [],
+  cultivoSeleccionado = null,
+  onCultivoClick,
 }: MapaPoligonoProps) {
 
   const mapRef = useRef<any>(null)
@@ -484,14 +489,13 @@ L.control.layers({ 'Satélite': satelitalLayer, 'Mapa': osmLayer }).addTo(map)
   }
 
   // DESPUÉS: Dibujar el polígono encima (borde visible)
-  const polygon = (L as any).polygon(coordsParaMapa, {
-    color: potrero.isEditing ? '#9ca3af' : (potrero.color || '#10b981'), // 🔥 Gris si está editando
-    fillColor: potrero.isEditing ? '#e5e7eb' : 'transparent', // 🔥 Gris claro si está editando
-    fillOpacity: potrero.isEditing ? 0.15 : 0, // 🔥 Ligeramente visible si está editando
-    weight: potrero.isEditing ? 2 : 3, // 🔥 Más delgado si está editando
-    opacity: potrero.isEditing ? 0.6 : 1, // 🔥 Más transparente si está editando
-    dashArray: potrero.isDashed ? '10, 10' : undefined, // 🔥 LÍNEA PUNTEADA
-  })
+const polygon = (L as any).polygon(coordsParaMapa, {
+  color: potrero.color || '#10b981',
+  fillColor: 'transparent',
+  fillOpacity: 0,
+  weight: 3,
+  opacity: potrero.isDimmed ? 0.2 : 1, // 🔥 ATENUAR si está filtrado
+})
 
   existingLayersRef.current.addLayer(polygon)
     })
@@ -618,12 +622,13 @@ L.control.layers({ 'Satélite': satelitalLayer, 'Mapa': osmLayer }).addTo(map)
       }
 
       // DESPUÉS: Dibujar el polígono encima (borde visible)
-      const polygon = (L as any).polygon(coordsParaMapa, {
-        color: potrero.color || '#10b981',
-        fillColor: 'transparent', // ✅ Totalmente transparente para ver el NDVI
-        fillOpacity: 0,
-        weight: 3,
-      })
+const polygon = (L as any).polygon(coordsParaMapa, {
+  color: potrero.color || '#10b981',
+  fillColor: 'transparent',
+  fillOpacity: 0,
+  weight: 3,
+  opacity: potrero.isDimmed ? 0.2 : 1, // 🔥 ATENUAR si está filtrado
+})
 
       existingLayersRef.current.addLayer(polygon)
 
@@ -1347,17 +1352,34 @@ if (esCierre) {
 {/* 🌾 RESUMEN DE CULTIVOS - Solo visible en PANTALLA COMPLETA cuando mostrarResumenCultivos está activo */}
 {isFullscreen && mostrarResumenCultivos && resumenCultivos.length > 0 && (
   <div className="absolute top-[120px] right-3 z-[1000] bg-white/95 backdrop-blur-sm rounded-xl shadow-2xl border border-gray-200 p-4 max-w-[320px] max-h-[calc(100vh-140px)] overflow-y-auto">
-    <h3 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
-      <span>🌾</span> Cultivos por potrero
-    </h3>
+    <div className="flex items-center justify-between mb-3">
+      <h3 className="text-sm font-bold text-gray-800 flex items-center gap-2">
+        <span>🌾</span> Cultivos por potrero
+      </h3>
+      {cultivoSeleccionado && (
+        <button
+          onClick={() => onCultivoClick?.(null)}
+          className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full hover:bg-red-200 transition"
+        >
+          ✕ Limpiar
+        </button>
+      )}
+    </div>
     
     <div className="mb-6">
       <h4 className="text-sm font-semibold text-gray-700 mb-3">🌾 Resumen de cultivos</h4>
       <div className="space-y-2">
         {resumenCultivos.map((cultivo, idx) => (
-          <div
+          <button
             key={idx}
-            className="flex items-center justify-between p-3 rounded-lg border border-gray-200"
+            onClick={() => onCultivoClick?.(cultivoSeleccionado === cultivo.tipo ? null : cultivo.tipo)}
+            className={`w-full flex items-center justify-between p-3 rounded-lg border-2 transition-all cursor-pointer hover:scale-105 ${
+              cultivoSeleccionado === cultivo.tipo
+                ? 'border-blue-500 shadow-lg'
+                : cultivoSeleccionado === null
+                ? 'border-gray-200 hover:border-gray-300'
+                : 'border-gray-200 opacity-50'
+            }`}
             style={{ backgroundColor: `${cultivo.color}20` }}
           >
             <div className="flex items-center gap-3">
@@ -1372,7 +1394,7 @@ if (esCierre) {
             <span className="text-xs text-gray-600 bg-white/80 px-2 py-1 rounded-full">
               {cultivo.hectareas.toFixed(1)} ha
             </span>
-          </div>
+          </button>
         ))}
       </div>
     </div>
