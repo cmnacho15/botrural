@@ -302,19 +302,23 @@ export default function MapaPage() {
       // Vista cultivos
       else if (vistaActual === 'cultivo') {
         if (lote.cultivos && lote.cultivos.length > 0) {
-          const cultivoPrincipal = lote.cultivos[0].tipoCultivo
+          // Crear nombre de combinación ordenado alfabéticamente
+          const nombreCombinacion = lote.cultivos
+            .map(c => c.tipoCultivo)
+            .sort()
+            .join(' + ')
           
-          // Si no tiene color definido, generar uno único basado en el nombre
-          if (!COLORES_CULTIVOS[cultivoPrincipal]) {
-            // Generar hash del nombre para color consistente
+          // Si no tiene color definido, generar uno único basado en la combinación
+          if (!COLORES_CULTIVOS[nombreCombinacion]) {
+            // Generar hash del nombre de combinación para color consistente
             let hash = 0
-            for (let i = 0; i < cultivoPrincipal.length; i++) {
-              hash = cultivoPrincipal.charCodeAt(i) + ((hash << 5) - hash)
+            for (let i = 0; i < nombreCombinacion.length; i++) {
+              hash = nombreCombinacion.charCodeAt(i) + ((hash << 5) - hash)
             }
             const hue = hash % 360
             color = `hsl(${hue}, 70%, 50%)`
           } else {
-            color = COLORES_CULTIVOS[cultivoPrincipal]
+            color = COLORES_CULTIVOS[nombreCombinacion]
           }
         } else {
           // Potreros sin cultivo = "Natural"
@@ -348,14 +352,20 @@ export default function MapaPage() {
       }
     })
 
-  // Resumen cultivos
+  // Resumen cultivos - Agrupar por combinación
   const resumenCultivos = lotes.reduce((acc, lote) => {
-    lote.cultivos?.forEach((cultivo) => {
-      if (!acc[cultivo.tipoCultivo]) {
-        acc[cultivo.tipoCultivo] = 0
+    if (lote.cultivos && lote.cultivos.length > 0) {
+      // Crear nombre de combinación ordenado
+      const nombreCombinacion = lote.cultivos
+        .map(c => c.tipoCultivo)
+        .sort()
+        .join(' + ')
+      
+      if (!acc[nombreCombinacion]) {
+        acc[nombreCombinacion] = 0
       }
-      acc[cultivo.tipoCultivo] += cultivo.hectareas
-    })
+      acc[nombreCombinacion] += lote.hectareas
+    }
     return acc
   }, {} as Record<string, number>)
 
@@ -942,13 +952,13 @@ export default function MapaPage() {
                             return hectareasNaturales > 0 ? [['Natural', hectareasNaturales] as [string, number]] : []
                           })())
                         ].map(
-                          ([cultivo, hectareas]) => {
+                          ([nombreCombinacion, hectareas]) => {
                             // Generar el mismo color que en el mapa
-                            let colorCultivo = COLORES_CULTIVOS[cultivo]
+                            let colorCultivo = COLORES_CULTIVOS[nombreCombinacion]
                             if (!colorCultivo) {
                               let hash = 0
-                              for (let i = 0; i < cultivo.length; i++) {
-                                hash = cultivo.charCodeAt(i) + ((hash << 5) - hash)
+                              for (let i = 0; i < nombreCombinacion.length; i++) {
+                                hash = nombreCombinacion.charCodeAt(i) + ((hash << 5) - hash)
                               }
                               const hue = hash % 360
                               colorCultivo = `hsl(${hue}, 70%, 50%)`
@@ -956,7 +966,7 @@ export default function MapaPage() {
                             
                             return (
                             <div
-                              key={cultivo}
+                              key={nombreCombinacion}
                               className="flex items-center justify-between p-2.5 sm:p-3 rounded-lg border border-gray-200 hover:bg-gray-100 transition"
                               style={{
                                 backgroundColor: `${colorCultivo}20`,
@@ -970,7 +980,7 @@ export default function MapaPage() {
                                   }}
                                 />
                                 <span className="font-medium text-gray-900 text-xs sm:text-sm">
-                                  {cultivo}
+                                  {nombreCombinacion}
                                 </span>
                                 <span className="text-[11px] sm:text-xs text-gray-500">
                                   ({hectareas.toFixed(1)} ha)
@@ -1021,12 +1031,15 @@ export default function MapaPage() {
                                 vistaActual === 'cultivo'
                                   ? lote.cultivos && lote.cultivos.length > 0
                                     ? (() => {
-                                        const cultivoPrincipal = lote.cultivos[0].tipoCultivo
-                                        let colorCultivo = COLORES_CULTIVOS[cultivoPrincipal]
+                                        const nombreCombinacion = lote.cultivos
+                                          .map(c => c.tipoCultivo)
+                                          .sort()
+                                          .join(' + ')
+                                        let colorCultivo = COLORES_CULTIVOS[nombreCombinacion]
                                         if (!colorCultivo) {
                                           let hash = 0
-                                          for (let i = 0; i < cultivoPrincipal.length; i++) {
-                                            hash = cultivoPrincipal.charCodeAt(i) + ((hash << 5) - hash)
+                                          for (let i = 0; i < nombreCombinacion.length; i++) {
+                                            hash = nombreCombinacion.charCodeAt(i) + ((hash << 5) - hash)
                                           }
                                           const hue = hash % 360
                                           colorCultivo = `hsl(${hue}, 70%, 50%)`
@@ -1084,7 +1097,7 @@ export default function MapaPage() {
                           <div className="mb-1.5">
                             {lote.cultivos && lote.cultivos.length > 0 ? (
                               <div className="text-[11px] sm:text-xs text-gray-600">
-                                🌾 {lote.cultivos.map((c) => c.tipoCultivo).join(', ')}
+                                🌾 {lote.cultivos.map((c) => c.tipoCultivo).sort().join(' + ')}
                               </div>
                             ) : (
                               <div className="text-[11px] sm:text-xs text-gray-600 font-medium">
