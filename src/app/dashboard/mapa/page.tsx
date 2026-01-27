@@ -38,17 +38,19 @@ interface Lote {
 
 // 🎨 Colores por tipo de cultivo - Profesionales y bien diferenciados
 const COLORES_CULTIVOS: Record<string, string> = {
+  // Cultivos principales - colores distintivos
   Soja: '#FFD700',      // Amarillo dorado
-  'Maíz': '#FF8C00',    // Naranja oscuro
+  'Maíz': '#FF8C00',    // Naranja intenso
   Trigo: '#DAA520',     // Dorado
   Girasol: '#FFA500',   // Naranja
   Sorgo: '#CD853F',     // Marrón claro
   Cebada: '#D2691E',    // Chocolate
   Avena: '#F4A460',     // Sandy brown
-  Arroz: '#90EE90',     // Verde claro
-  Alfalfa: '#32CD32',   // Verde lima
+  Arroz: '#00CED1',     // Turquesa (distintivo del verde natural)
+  Alfalfa: '#9932CC',   // Púrpura (distintivo)
   Pradera: '#228B22',   // Verde bosque
-  Natural: '#9CA3AF',   // Gris - Para potreros sin cultivo
+  // Sin cultivo = verde natural
+  Natural: '#10B981',   // Verde esmeralda - Campo natural sin sembrar
 }
 
 // 🎨 Colores por módulo de pastoreo
@@ -369,6 +371,20 @@ export default function MapaPage() {
     return acc
   }, {} as Record<string, number>)
 
+  // 🌾 Preparar resumen de cultivos para el mapa (convertir a array con colores)
+  const resumenCultivosParaMapa = Object.entries(resumenCultivos).map(([tipo, hectareas]) => {
+    let color = COLORES_CULTIVOS[tipo]
+    if (!color) {
+      let hash = 0
+      for (let i = 0; i < tipo.length; i++) {
+        hash = tipo.charCodeAt(i) + ((hash << 5) - hash)
+      }
+      const hue = hash % 360
+      color = `hsl(${hue}, 70%, 50%)`
+    }
+    return { tipo, hectareas, color }
+  })
+
   if (loading) {
     return (
       <div className="min-h-[60vh] bg-gray-50 flex items-center justify-center rounded-xl">
@@ -496,6 +512,8 @@ export default function MapaPage() {
   mostrarConeat={vistaActual === 'coneat'}
   opacidadCurvas={opacidadCurvas}
   onOpacidadCurvasChange={setOpacidadCurvas}
+  mostrarResumenCultivos={vistaActual === 'cultivo'}
+  resumenCultivos={resumenCultivosParaMapa}
 />
               )}
             </div>

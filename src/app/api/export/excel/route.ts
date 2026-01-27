@@ -156,10 +156,16 @@ export async function POST(request: Request) {
         const nombrePotrero = e.lote?.moduloPastoreo?.nombre
           ? `${e.lote.nombre} (${e.lote.moduloPastoreo.nombre})`
           : e.lote?.nombre || ''
-          
+
+        // Limpiar prefijo "Tratamiento:" de la descripción
+        let descripcionLimpia = e.descripcion || ''
+        if (descripcionLimpia.toLowerCase().startsWith('tratamiento:')) {
+          descripcionLimpia = descripcionLimpia.substring(12).trim()
+        }
+
         sheet.addRow({
           fecha: formatearFecha(e.fecha),
-          descripcion: e.descripcion || '',
+          descripcion: descripcionLimpia,
           potrero: nombrePotrero,
           cantidad: e.cantidad || '',
           categoria: e.categoria || '',

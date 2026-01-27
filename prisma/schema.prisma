@@ -19,10 +19,18 @@ model User {
   createdAt             DateTime     @default(now())
   updatedAt             DateTime     @updatedAt
   lastMessageAt         DateTime?    @db.Timestamp(6)
+  lastLoginAt           DateTime?    @db.Timestamp(6) // 🆕 Último login web
   onboardingCompletedAt DateTime?    @db.Timestamp(6)
   onboardingStartedAt   DateTime?    @db.Timestamp(6)
   telefono              String?      @unique
   whatsappState         String?      @default("IDLE")
+
+  // 🔐 SUSCRIPCIÓN (para futura implementación)
+  subscriptionStatus    String?      @default("TRIAL") // TRIAL, ACTIVE, EXPIRED, CANCELLED
+  subscriptionPlan      String?      // FREE, BASIC, PRO, ENTERPRISE
+  trialEndsAt           DateTime?
+  subscriptionEndsAt    DateTime?
+
   accounts              Account[]
   eventos               Evento[]
   createdInvitations    Invitation[] @relation("CreatedInvitations")
@@ -30,11 +38,17 @@ model User {
   sessions              Session[]
   campo                 Campo?       @relation(fields: [campoId], references: [id])
   campos                UsuarioCampo[]
-  
+
   // 🟢 LADO INVERSO DE SnigUploadSession
   snigUploadSessions    SnigUploadSession[]
 
   grupos    UsuarioGrupo[]
+
+  // 📊 Consumo de IA
+  aiUsage               AIUsage[]
+
+  // 📝 Logs de actividad para admin
+  activityLogs          ActivityLog[]
 }
 
 model Account {
@@ -430,10 +444,11 @@ model ManoObra {
 
 // ✅ ENUM DE ROLES DE USUARIO
 enum Role {
-  ADMIN_GENERAL // Primer usuario, acceso total
-  COLABORADOR // Acceso web + bot, finanzas opcional
-  EMPLEADO // Solo bot, sin web
-  CONTADOR // Solo lectura finanzas en web
+  MEGA_ADMIN    // Super admin de la plataforma (solo nosotros)
+  ADMIN_GENERAL // Primer usuario del campo, acceso total
+  COLABORADOR   // Acceso web + bot, finanzas opcional
+  EMPLEADO      // Solo bot, sin web
+  CONTADOR      // Solo lectura finanzas en web
 }
 
 // ✅ ENUM DE TIPOS DE INVITACIÓN
@@ -1119,9 +1134,88 @@ model ServicioGrano {
   precioTonelada  Float
   precioTotalUSD  Float
   createdAt       DateTime @default(now())
-  
+
   venta           Venta    @relation(fields: [ventaId], references: [id], onDelete: Cascade)
-  
+
   @@index([ventaId])
   @@index([loteId])
+}
+
+
+// ==========================================
+// 🤖 CONSUMO DE IA
+// ==========================================
+
+model AIUsage {
+  id            String   @id @default(cuid())
+  userId        String
+  provider      String   // "OPENAI" | "CLAUDE"
+  model         String   // "gpt-4o", "claude-3-sonnet", etc.
+  feature       String   // "FACTURA_PARSER", "BOT_RESPONSE", "VENTA_PARSER", etc.
+  inputTokens   Int
+  outputTokens  Int
+  totalTokens   Int
+  costUSD       Float?   // Costo estimado en USD
+  metadata      Json?    // Info adicional (ej: campoId, tipo de documento)
+  createdAt     DateTime @default(now())
+
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([provider])
+  @@index([feature])
+  @@index([createdAt])
+}
+
+
+// ==========================================
+// 💬 MENSAJES DEL BOT WHATSAPP
+// ==========================================
+
+model BotMessage {
+  id            String   @id @default(cuid())
+  waId          String   // WhatsApp ID del usuario
+  telefono      String
+  direction     String   // "INBOUND" | "OUTBOUND"
+  messageType   String   // "TEXT", "IMAGE", "DOCUMENT", "AUDIO", etc.
+  content       String?  @db.Text // Contenido del mensaje
+  mediaUrl      String?  // URL de media si aplica
+  status        String?  // "SENT", "DELIVERED", "READ", "FAILED"
+  errorCode     String?  // Código de error si falló
+  errorMessage  String?  // Mensaje de error
+  responseTime  Int?     // Tiempo de respuesta en ms (para outbound)
+  aiTokensUsed  Int?     // Tokens de IA usados para esta respuesta
+  metadata      Json?    // Info adicional
+  createdAt     DateTime @default(now())
+
+  @@index([waId])
+  @@index([telefono])
+  @@index([direction])
+  @@index([createdAt])
+  @@index([status])
+}
+
+
+// ==========================================
+// 📝 LOGS DE ACTIVIDAD (ADMIN)
+// ==========================================
+
+model ActivityLog {
+  id          String   @id @default(cuid())
+  userId      String?
+  campoId     String?
+  action      String   // "LOGIN", "CREATE_VENTA", "DELETE_GASTO", "IMPERSONATE", etc.
+  entity      String?  // "Venta", "Gasto", "Evento", etc.
+  entityId    String?  // ID del objeto afectado
+  details     Json?    // Detalles adicionales
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([campoId])
+  @@index([action])
+  @@index([createdAt])
 }

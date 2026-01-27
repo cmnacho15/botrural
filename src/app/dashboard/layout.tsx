@@ -256,6 +256,7 @@ const guardarNombreGrupo = async (grupoId: string) => {
   const userRole = session?.user?.role || "COLABORADOR";
   const accesoFinanzas = session?.user?.accesoFinanzas || false;
   const isContador = userRole === "CONTADOR";
+  const isMegaAdmin = userRole === "MEGA_ADMIN";
 
   const allMenuSections = [
     {
@@ -301,6 +302,9 @@ const guardarNombreGrupo = async (grupoId: string) => {
     .map(section => ({
       ...section,
       items: section.items.filter((item: any) => {
+        // MEGA_ADMIN tiene acceso total
+        if (isMegaAdmin) return true;
+
         if (item.requiresFinance) {
           if (userRole === "ADMIN_GENERAL" || userRole === "CONTADOR") {
             return true;
@@ -509,6 +513,18 @@ const guardarNombreGrupo = async (grupoId: string) => {
 
                 {/* Opciones del menú */}
                 <div className="py-2">
+                  {/* Panel Admin - Solo para MEGA_ADMIN */}
+                  {isMegaAdmin && (
+                    <Link
+                      href="/admin"
+                      className="flex items-center gap-3 px-6 py-3 hover:bg-purple-50 transition-colors bg-purple-50 border-b border-purple-100"
+                      onClick={() => setUserMenuOpen(false)}
+                    >
+                      <span className="text-xl">🛡️</span>
+                      <span className="text-purple-700 font-medium">Panel Admin</span>
+                    </Link>
+                  )}
+
                   {/* Cómo Empezar */}
                   <Link
                     href="/dashboard/como-empezar"

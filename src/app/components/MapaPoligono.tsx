@@ -1,3 +1,4 @@
+//src/app/components/mapapoligono.tsx
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
@@ -130,6 +131,13 @@ interface MapaPoligonoProps {
   mostrarConeat?: boolean
   opacidadCurvas?: number
   onOpacidadCurvasChange?: (opacity: number) => void
+  // 🌾 NUEVAS PROPS PARA VISTA CULTIVOS
+  mostrarResumenCultivos?: boolean
+  resumenCultivos?: Array<{
+    tipo: string
+    hectareas: number
+    color: string
+  }>
 }
 
 function calcularAreaPoligono(latlngs: any[]): number {
@@ -267,6 +275,9 @@ export default function MapaPoligono({
   mostrarConeat = false,  // 🔥 NUEVO
   opacidadCurvas = 95,
   onOpacidadCurvasChange,
+  // 🌾 NUEVOS PARÁMETROS
+  mostrarResumenCultivos = false,
+  resumenCultivos = [],
 }: MapaPoligonoProps) {
 
   const mapRef = useRef<any>(null)
@@ -1329,6 +1340,41 @@ if (esCierre) {
           )}
         </div>
       ))}
+    </div>
+  </div>
+)}
+
+{/* 🌾 RESUMEN DE CULTIVOS - Solo visible en PANTALLA COMPLETA cuando mostrarResumenCultivos está activo */}
+{isFullscreen && mostrarResumenCultivos && resumenCultivos.length > 0 && (
+  <div className="absolute top-[120px] right-3 z-[1000] bg-white/95 backdrop-blur-sm rounded-xl shadow-2xl border border-gray-200 p-4 max-w-[320px] max-h-[calc(100vh-140px)] overflow-y-auto">
+    <h3 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
+      <span>🌾</span> Cultivos por potrero
+    </h3>
+    
+    <div className="mb-6">
+      <h4 className="text-sm font-semibold text-gray-700 mb-3">🌾 Resumen de cultivos</h4>
+      <div className="space-y-2">
+        {resumenCultivos.map((cultivo, idx) => (
+          <div
+            key={idx}
+            className="flex items-center justify-between p-3 rounded-lg border border-gray-200"
+            style={{ backgroundColor: `${cultivo.color}20` }}
+          >
+            <div className="flex items-center gap-3">
+              <div
+                className="w-4 h-4 rounded"
+                style={{ backgroundColor: cultivo.color }}
+              />
+              <span className="font-medium text-gray-900 text-sm">
+                {cultivo.tipo}
+              </span>
+            </div>
+            <span className="text-xs text-gray-600 bg-white/80 px-2 py-1 rounded-full">
+              {cultivo.hectareas.toFixed(1)} ha
+            </span>
+          </div>
+        ))}
+      </div>
     </div>
   </div>
 )}

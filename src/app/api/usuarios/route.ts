@@ -20,7 +20,9 @@ export async function GET() {
     })
 
     
-if (!usuario?.campoId || usuario.role !== "ADMIN_GENERAL") {
+// MEGA_ADMIN y ADMIN_GENERAL pueden ver usuarios del campo
+const rolesPermitidos = ["ADMIN_GENERAL", "MEGA_ADMIN"]
+if (!usuario?.campoId || !rolesPermitidos.includes(usuario.role)) {
   return NextResponse.json({ error: "No autorizado" }, { status: 403 })
 }
 
@@ -67,6 +69,7 @@ if (!usuario?.campoId || usuario.role !== "ADMIN_GENERAL") {
 
 function getRoleName(roleCode: string): string {
   const roles: Record<string, string> = {
+    MEGA_ADMIN: "Super Admin",
     ADMIN_GENERAL: "Administrador",
     COLABORADOR: "Colaborador",
     EMPLEADO: "Empleado",
@@ -91,8 +94,9 @@ export async function PATCH(request: Request) {
       where: { id: session.user.id },
     })
 
-    // 🔒 Solo ADMIN_GENERAL puede modificar permisos
-    if (admin?.role !== "ADMIN_GENERAL") {
+    // 🔒 Solo ADMIN_GENERAL o MEGA_ADMIN pueden modificar permisos
+    const rolesPermitidos = ["ADMIN_GENERAL", "MEGA_ADMIN"]
+    if (!rolesPermitidos.includes(admin?.role || "")) {
       return NextResponse.json(
         { error: "Solo el administrador puede modificar permisos" },
         { status: 403 }
