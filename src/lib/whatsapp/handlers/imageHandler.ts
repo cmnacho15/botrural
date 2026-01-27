@@ -64,7 +64,7 @@ export async function handleImageMessage(message: any, phoneNumber: string) {
     // PASO 1: Detectar si es un estado de cuenta
     let esEstadoCuenta = false
     try {
-      esEstadoCuenta = await detectarEstadoDeCuenta(uploadResult.url)
+      esEstadoCuenta = await detectarEstadoDeCuenta(uploadResult.url, user.id)
       console.log("¿Es estado de cuenta?:", esEstadoCuenta)
     } catch (err: any) {
       console.error("Error detectando estado de cuenta:", err?.message)
@@ -80,7 +80,7 @@ export async function handleImageMessage(message: any, phoneNumber: string) {
     let tipoFactura: "VENTA" | "GASTO" | "ESTADO_CUENTA" | null = null
 
     try {
-      tipoFactura = await detectarTipoFactura(uploadResult.url, user.campoId)
+      tipoFactura = await detectarTipoFactura(uploadResult.url, user.campoId, user.id)
       console.log("Tipo detectado:", tipoFactura)
     } catch (err: any) {
       console.error("Error en detectarTipoFactura:", err?.message)
@@ -122,13 +122,13 @@ export async function handleImageMessage(message: any, phoneNumber: string) {
     // ✅ Delegar a handler específico (NO enviar más mensajes aquí)
     if (tipoFactura === "VENTA") {
       console.log("DELEGANDO a handleVentaImage")
-      await handleVentaImage(phoneNumber, uploadResult.url, uploadResult.fileName, user.campoId, caption)
+      await handleVentaImage(phoneNumber, uploadResult.url, uploadResult.fileName, user.campoId, caption, user.id)
       return
     }
 
     if (tipoFactura === "GASTO") {
       console.log("DELEGANDO a handleGastoImage")
-      await handleGastoImage(phoneNumber, uploadResult.url, uploadResult.fileName, user.campoId, caption)
+      await handleGastoImage(phoneNumber, uploadResult.url, uploadResult.fileName, user.campoId, caption, user.id)
       return
     }
 

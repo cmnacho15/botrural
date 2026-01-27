@@ -1,5 +1,6 @@
 // src/lib/parsers/venta-granos-parser.ts
 import OpenAI from "openai";
+import { trackOpenAIChat } from "@/lib/ai-usage-tracker";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -78,7 +79,7 @@ export interface ParsedVentaGranos {
 /**
  * Procesar liquidación de VENTA DE GRANOS con extracción automática de costos comerciales
  */
-export async function processVentaGranosImage(imageUrl: string, campoId?: string): Promise<ParsedVentaGranos | null> {
+export async function processVentaGranosImage(imageUrl: string, campoId?: string, userId?: string): Promise<ParsedVentaGranos | null> {
   try {
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
@@ -332,6 +333,11 @@ RESPONDE SOLO JSON (sin markdown ni explicaciones):
       max_tokens: 3000,
       temperature: 0.05
     });
+
+    // Trackear uso
+    if (userId) {
+      trackOpenAIChat(userId, 'VENTA_PARSER', response)
+    }
 
     const content = response.choices[0].message.content;
     if (!content) return null;

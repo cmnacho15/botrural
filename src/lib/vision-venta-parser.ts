@@ -30,39 +30,39 @@ export { detectarTipoFactura, detectarEstadoDeCuenta };
  * Procesar imagen de factura de VENTA
  * Detecta automáticamente si es GANADO o LANA o GRANOS y delega al parser correcto
  */
-export async function processVentaImage(imageUrl: string, campoId?: string): Promise<ParsedVenta | null> {
+export async function processVentaImage(imageUrl: string, campoId?: string, userId?: string): Promise<ParsedVenta | null> {
   try {
     console.log("🔍 Iniciando procesamiento de factura de venta...");
-    
+
     // 1. Verificar que es una venta (no un gasto)
-    const tipo = await detectarTipoFactura(imageUrl, campoId);
-    
+    const tipo = await detectarTipoFactura(imageUrl, campoId, userId);
+
     if (tipo !== "VENTA") {
       console.log("⚠️ No es una factura de venta");
       return null;
     }
-    
+
     // 2. Detectar tipo específico (GANADO vs LANA vs GRANOS)
-    const tipoEspecifico = await detectarTipoVentaEspecifico(imageUrl);
-    
+    const tipoEspecifico = await detectarTipoVentaEspecifico(imageUrl, userId);
+
     console.log(`📊 Tipo de venta detectado: ${tipoEspecifico}`);
-    
+
     // 3. Delegar al parser correcto
     switch (tipoEspecifico) {
       case "GRANOS":
         console.log("🌾 Procesando con parser de GRANOS...");
-        return await processVentaGranosImage(imageUrl, campoId);
-      
+        return await processVentaGranosImage(imageUrl, campoId, userId);
+
       case "LANA":
         console.log("🧶 Procesando con parser de LANA...");
-        return await processVentaLanaImage(imageUrl, campoId);
-      
+        return await processVentaLanaImage(imageUrl, campoId, userId);
+
       case "GANADO":
       default:
         console.log("🐄 Procesando con parser de GANADO...");
-        return await processVentaGanadoImage(imageUrl, campoId);
+        return await processVentaGanadoImage(imageUrl, campoId, userId);
     }
-    
+
   } catch (error) {
     console.error("❌ Error en processVentaImage:", error);
     return null;

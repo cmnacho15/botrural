@@ -1,5 +1,6 @@
 // src/lib/parsers/venta-ganado-parser.ts
 import OpenAI from "openai";
+import { trackOpenAIChat } from "@/lib/ai-usage-tracker";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -80,7 +81,7 @@ export interface ParsedVentaGanado {
 /**
  * Procesar factura de VENTA DE GANADO con extracción automática de costos comerciales
  */
-export async function processVentaGanadoImage(imageUrl: string, campoId?: string): Promise<ParsedVentaGanado | null> {
+export async function processVentaGanadoImage(imageUrl: string, campoId?: string, userId?: string): Promise<ParsedVentaGanado | null> {
   try {
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
@@ -226,6 +227,11 @@ RESPONDE SOLO JSON (sin markdown, sin explicaciones):
       max_tokens: 3000,
       temperature: 0.05
     });
+
+    // Trackear uso
+    if (userId) {
+      trackOpenAIChat(userId, 'VENTA_PARSER', response)
+    }
 
     const content = response.choices[0].message.content;
     if (!content) return null;

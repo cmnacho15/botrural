@@ -4,6 +4,7 @@
 import { prisma } from "@/lib/prisma"
 import { sendWhatsAppMessage, sendCustomButtons } from "../services/messageService"
 import OpenAI from "openai"
+import { trackOpenAIChat } from "@/lib/ai-usage-tracker"
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -19,7 +20,7 @@ interface DatosEstadoCuenta {
 /**
  * Extrae datos básicos de un estado de cuenta
  */
-async function extraerDatosEstadoCuenta(imageUrl: string): Promise<DatosEstadoCuenta | null> {
+async function extraerDatosEstadoCuenta(imageUrl: string, userId?: string): Promise<DatosEstadoCuenta | null> {
   try {
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
@@ -52,6 +53,11 @@ Si no puedes extraer los datos, responde: {"error": "No pude leer el estado de c
       max_tokens: 200,
       temperature: 0
     })
+
+    // Trackear uso
+    if (userId) {
+      trackOpenAIChat(userId, 'PAGO_PARSER', response)
+    }
 
     const content = response.choices[0].message.content || ""
     const jsonStr = content.replace(/```json/g, "").replace(/```/g, "").trim()

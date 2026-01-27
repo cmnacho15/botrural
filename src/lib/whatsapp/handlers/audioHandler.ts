@@ -11,7 +11,8 @@ import { sendWhatsAppMessage } from "../services/messageService"
  */
 export async function handleAudioMessage(
   message: any,
-  from: string
+  from: string,
+  userId?: string
 ): Promise<string | null> {
   try {
     const audioId = message.audio?.id
@@ -42,7 +43,7 @@ export async function handleAudioMessage(
     // Transcribir audio
     await sendWhatsAppMessage(from, "Procesando audio...")
 
-    const transcription = await transcribeAudio(audioUrl)
+    const transcription = await transcribeAudio(audioUrl, userId)
 
     if (!transcription) {
       await sendWhatsAppMessage(from, "No pude entender el audio. Intenta de nuevo.")

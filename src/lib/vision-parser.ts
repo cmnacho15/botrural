@@ -2,6 +2,7 @@
 // Usa Claude (Anthropic) para OCR de facturas - más permisivo con documentos comerciales
 
 import Anthropic from "@anthropic-ai/sdk";
+import { trackClaudeUsage } from "@/lib/ai-usage-tracker";
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -97,7 +98,8 @@ async function urlToBase64(imageUrl: string): Promise<{ base64: string; mediaTyp
 }
 
 export async function processInvoiceImage(
-  imageUrl: string
+  imageUrl: string,
+  userId?: string
 ): Promise<ParsedInvoice | null> {
   try {
     console.log('🔍 [VISION-GASTO] Iniciando procesamiento con Claude')
@@ -211,6 +213,11 @@ RESPONDE SOLO JSON (sin markdown):
       stop_reason: response.stop_reason,
       usage: response.usage
     })
+
+    // Trackear uso de Claude
+    if (userId) {
+      trackClaudeUsage(userId, 'FACTURA_PARSER', response, { imageType: imageData.mediaType })
+    }
 
     if (!content) {
       console.log('❌ [VISION-GASTO] Content vacío')

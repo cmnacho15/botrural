@@ -15,10 +15,21 @@ export async function handleVentaImage(
   imageUrl: string,
   imageName: string,
   campoId: string,
-  caption: string
+  caption: string,
+  userId?: string
 ) {
   try {
-    const ventaData = await processVentaImage(imageUrl, campoId)
+    // Si no viene userId, buscarlo por teléfono
+    let userIdToUse = userId
+    if (!userIdToUse) {
+      const user = await prisma.user.findUnique({
+        where: { telefono: phoneNumber },
+        select: { id: true }
+      })
+      userIdToUse = user?.id
+    }
+
+    const ventaData = await processVentaImage(imageUrl, campoId, userIdToUse)
     if (!ventaData || !ventaData.renglones?.length) {
       await sendWhatsAppMessage(phoneNumber, "No pude leer la factura de venta. ¿La imagen está clara?")
       return

@@ -2,17 +2,204 @@
 // src/lib/openai-parser.ts
 import OpenAI from "openai"
 import { prisma } from "@/lib/prisma"
+import { trackOpenAIChat, trackOpenAIWhisper, trackAIUsage } from "@/lib/ai-usage-tracker"
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 })
 
+// ============================================================
+// 🚀 NIVEL 1: DETECCIÓN CON REGEX (SIN IA - COSTO $0)
+// ============================================================
+// Detecta eventos simples que no necesitan inteligencia artificial
+// Ejemplos: "llovió 10mm", "mapa", "calendario", "reporte de carga"
+
+function detectSimpleEvent(messageText: string): object | null {
+  const text = messageText.toLowerCase().trim()
+
+  // 🌧️ LLUVIA: "llovió 10mm", "cayeron 25 milímetros", "lluvia 15mm"
+  const lluviaMatch = text.match(/(?:llovi[oó]|lluvia|cayeron?)\s*(\d+(?:[.,]\d+)?)\s*(?:mm|milimetros|milímetros)/i)
+  if (lluviaMatch) {
+    const milimetros = parseFloat(lluviaMatch[1].replace(',', '.'))
+    console.log(`⚡ [NIVEL 1 - REGEX] Detectado LLUVIA: ${milimetros}mm`)
+    return { tipo: "LLUVIA", milimetros }
+  }
+
+  // 🌧️ LLUVIA alternativo: "10mm de lluvia", "25 mm"
+  const lluviaAltMatch = text.match(/^(\d+(?:[.,]\d+)?)\s*(?:mm|milimetros|milímetros)(?:\s+de\s+lluvia)?$/i)
+  if (lluviaAltMatch) {
+    const milimetros = parseFloat(lluviaAltMatch[1].replace(',', '.'))
+    console.log(`⚡ [NIVEL 1 - REGEX] Detectado LLUVIA (alt): ${milimetros}mm`)
+    return { tipo: "LLUVIA", milimetros }
+  }
+
+  // ❄️ HELADA: "helada", "heló", "hubo helada"
+  const heladaMatch = text.match(/(?:hel[oó]|helada|hubo\s+helada)/i)
+  if (heladaMatch && !text.includes('vacun')) { // evitar "vacuna contra helada"
+    console.log(`⚡ [NIVEL 1 - REGEX] Detectado HELADA`)
+    return { tipo: "HELADA" }
+  }
+
+  // 🗺️ MAPA: "mapa", "ver mapa", "mapa del campo"
+  if (/^(?:mapa|ver\s+mapa|mapa\s+del\s+campo|mostrame\s+el\s+mapa|quiero\s+ver\s+el\s+mapa|mandame\s+el\s+mapa|imagen\s+del\s+campo)$/i.test(text)) {
+    console.log(`⚡ [NIVEL 1 - REGEX] Detectado MAPA`)
+    return { tipo: "MAPA" }
+  }
+
+  // 📅 CALENDARIO_CONSULTAR: "calendario", "qué tengo pendiente", "actividades"
+  if (/^(?:calendario|que\s+tengo\s+pendiente|qué\s+tengo\s+pendiente|actividades|pendientes|tareas)$/i.test(text)) {
+    console.log(`⚡ [NIVEL 1 - REGEX] Detectado CALENDARIO_CONSULTAR`)
+    return { tipo: "CALENDARIO_CONSULTAR" }
+  }
+
+  // 📊 REPORTE_CARGA: "pdf carga", "reporte de carga", "stock actual", etc.
+  if (/(?:pdf\s*(?:de\s*)?carga|reporte\s*(?:de\s*)?carga|carga\s+actual|stock\s+actual|cuantos\s+animales|cuántos\s+animales|resumen\s+(?:de\s+)?animales|planilla\s+(?:de\s+)?carga)/i.test(text)) {
+    console.log(`⚡ [NIVEL 1 - REGEX] Detectado REPORTE_CARGA`)
+    return { tipo: "REPORTE_CARGA" }
+  }
+
+  // 🐄 REPORTE_PASTOREO: "reporte pastoreo", "pdf pastoreo", etc.
+  if (/(?:reporte\s*(?:de\s*)?pastoreo|pdf\s*(?:de\s*)?pastoreo|pastoreo\s+rotativo|historial\s+(?:de\s+)?pastoreo|rotaci[oó]n\s+(?:de\s+)?potreros)/i.test(text)) {
+    console.log(`⚡ [NIVEL 1 - REGEX] Detectado REPORTE_PASTOREO`)
+    return { tipo: "REPORTE_PASTOREO" }
+  }
+
+  // 🔬 REPORTE_DAO: "reporte dao", "pdf dao", etc.
+  if (/(?:reporte\s*(?:de\s*)?dao|pdf\s*(?:de\s*)?dao|historial\s*(?:de\s*)?dao|daos\s+registrados|ver\s+daos)/i.test(text)) {
+    console.log(`⚡ [NIVEL 1 - REGEX] Detectado REPORTE_DAO`)
+    return { tipo: "REPORTE_DAO" }
+  }
+
+  // No se detectó evento simple
+  return null
+}
+
+// ============================================================
+// 🚀 NIVEL 2: PARSING CON GPT-4O-MINI (COSTO ~$0.0003)
+// ============================================================
+// Para eventos de complejidad media que necesitan algo de interpretación
+// pero no requieren el contexto completo de potreros/categorías
+
+async function parseWithMini(
+  messageText: string,
+  categorias: Array<{ nombreSingular: string; nombrePlural: string }>,
+  userId?: string
+): Promise<object | null> {
+  const nombresCategorias = categorias
+    .flatMap(c => [c.nombreSingular, c.nombrePlural])
+    .filter((v, i, a) => a.indexOf(v) === i)
+    .join(", ")
+
+  // Prompt CORTO (~300 tokens vs ~3800 del completo)
+  const shortPrompt = `Procesa este mensaje de un productor agropecuario uruguayo.
+
+CATEGORÍAS DE ANIMALES: ${nombresCategorias || "vacas, terneros, novillos, ovejas"}
+
+DETECTA UNO DE ESTOS EVENTOS:
+- NACIMIENTO: "nacieron X terneros" → {"tipo":"NACIMIENTO","categoria":"terneros","cantidad":X}
+- MORTANDAD: "murieron X vacas" → {"tipo":"MORTANDAD","categoria":"vacas","cantidad":X}
+- CONSUMO: "consumí X vacas" → {"tipo":"CONSUMO","categoria":"vacas","cantidad":X}
+- COMPRA: "compré X terneros a $Y" → {"tipo":"COMPRA","categoria":"terneros","cantidad":X,"precioUnitario":Y}
+- VENTA: "vendí X novillos a $Y" → {"tipo":"VENTA","categoria":"novillos","cantidad":X,"precioUnitario":Y}
+- LLUVIA: "llovió Xmm" → {"tipo":"LLUVIA","milimetros":X}
+- HELADA: "heló/helada" → {"tipo":"HELADA"}
+
+Si el mensaje NO encaja en estos tipos, responde: {"tipo":"COMPLEJO"}
+
+RESPONDE SOLO JSON:`
+
+  try {
+    console.log(`🔵 [NIVEL 2 - MINI] Procesando: "${messageText}"`)
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: shortPrompt },
+        { role: "user", content: messageText }
+      ],
+      max_tokens: 150,
+      temperature: 0.1,
+    })
+
+    // Trackear uso (muy bajo costo)
+    if (userId) {
+      trackOpenAIChat(userId, 'MESSAGE_PARSER', response, { level: 'mini', messageLength: messageText.length })
+    }
+
+    const content = response.choices[0].message.content
+    if (!content) return null
+
+    const jsonStr = content.replace(/```json/g, "").replace(/```/g, "").trim()
+    const data = JSON.parse(jsonStr)
+
+    // Si el modelo dice que es COMPLEJO, retornar null para ir al nivel 3
+    if (data.tipo === "COMPLEJO") {
+      console.log(`🔵 [NIVEL 2 - MINI] Evento complejo, escalando a nivel 3`)
+      return null
+    }
+
+    console.log(`✅ [NIVEL 2 - MINI] Parseado:`, data)
+    return data
+
+  } catch (error) {
+    console.error(`⚠️ [NIVEL 2 - MINI] Error, escalando a nivel 3:`, error)
+    return null
+  }
+}
+
+// ============================================================
+// 🚀 NIVEL 3: PARSING COMPLETO CON GPT-4O (COSTO ~$0.02)
+// ============================================================
+// Para eventos complejos que necesitan contexto completo:
+// - CAMBIO_POTRERO (necesita lista de potreros)
+// - TRATAMIENTO (estructura compleja)
+// - TACTO, DAO (estructura compleja)
+// - CALENDARIO_CREAR (cálculo de fechas)
+// - STOCK_EDICION (necesita lista de potreros)
+// - GASTO (clasificación de categorías)
+
 export async function parseMessageWithAI(
-  messageText: string, 
+  messageText: string,
   potreros: Array<{ id: string; nombre: string }>,
-  categorias: Array<{ nombreSingular: string; nombrePlural: string }>
+  categorias: Array<{ nombreSingular: string; nombrePlural: string }>,
+  userId?: string
 ) {
   try {
+    // ============================================================
+    // NIVEL 1: Intentar detectar con regex (sin costo)
+    // ============================================================
+    const simpleEvent = detectSimpleEvent(messageText)
+    if (simpleEvent) {
+      console.log(`✅ [OPTIMIZADO] Evento simple detectado sin IA`)
+      // Trackear como "sin costo" para estadísticas
+      if (userId) {
+        trackAIUsage({
+          userId,
+          provider: 'OPENAI',
+          model: 'regex-local',
+          feature: 'MESSAGE_PARSER',
+          inputTokens: 0,
+          outputTokens: 0,
+          metadata: { level: 'regex', messageLength: messageText.length }
+        })
+      }
+      return simpleEvent
+    }
+
+    // ============================================================
+    // NIVEL 2: Intentar con gpt-4o-mini (bajo costo)
+    // ============================================================
+    const miniResult = await parseWithMini(messageText, categorias, userId)
+    if (miniResult) {
+      console.log(`✅ [OPTIMIZADO] Evento parseado con gpt-4o-mini`)
+      return miniResult
+    }
+
+    // ============================================================
+    // NIVEL 3: Usar gpt-4o completo (alto costo, pero necesario)
+    // ============================================================
+    console.log(`🔴 [NIVEL 3 - GPT-4O] Procesando evento complejo: "${messageText}"`)
+
     // Formatear para el prompt
     const nombresPotreros = potreros.map(p => p.nombre).join(", ")
     const nombresCategorias = categorias
@@ -21,18 +208,18 @@ export async function parseMessageWithAI(
       .join(", ")
 
     console.log(`📋 Potreros del campo: ${nombresPotreros}`)
-    
-    // Obtener fecha actual para el cálculo de días
-// 🔥 Obtener fecha actual en zona horaria de Montevideo
-const ahora = new Date()
-const fechaMontevideoStr = ahora.toLocaleString('es-UY', { 
-  timeZone: 'America/Montevideo',
-  year: 'numeric',
-  month: '2-digit',
-  day: '2-digit'
-})
-const [dia, mes, año] = fechaMontevideoStr.split(/[\/\s,]+/)
-const fechaActual = `${año}-${mes}-${dia}`
+
+    // Obtener fecha actual en zona horaria de Montevideo
+    const ahora = new Date()
+    const fechaMontevideoStr = ahora.toLocaleString('es-UY', {
+      timeZone: 'America/Montevideo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    })
+    const [dia, mes, año] = fechaMontevideoStr.split(/[\/\s,]+/)
+    const fechaActual = `${año}-${mes}-${dia}`
+
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
@@ -463,6 +650,11 @@ RESPONDE ÚNICAMENTE CON EL JSON, SIN TEXTO ADICIONAL.
       temperature: 0.1,
     })
 
+    // Trackear uso de IA (nivel 3 - completo)
+    if (userId) {
+      trackOpenAIChat(userId, 'MESSAGE_PARSER', response, { level: 'gpt-4o-full', messageLength: messageText.length })
+    }
+
     const content = response.choices[0].message.content
     if (!content) return null
 
@@ -496,7 +688,7 @@ RESPONDE ÚNICAMENTE CON EL JSON, SIN TEXTO ADICIONAL.
 /**
  * 🎤 Transcribir audio con Whisper de OpenAI
  */
-export async function transcribeAudio(audioUrl: string): Promise<string | null> {
+export async function transcribeAudio(audioUrl: string, userId?: string): Promise<string | null> {
   try {
     console.log("🎤 Descargando audio desde WhatsApp...")
     
@@ -531,6 +723,12 @@ export async function transcribeAudio(audioUrl: string): Promise<string | null> 
     })
 
     console.log("✅ Transcripción exitosa:", transcriptionResponse)
+
+    // Trackear uso de Whisper
+    if (userId && transcriptionResponse) {
+      trackOpenAIWhisper(userId, transcriptionResponse.length, { audioBytes: audioBuffer.byteLength })
+    }
+
     return transcriptionResponse
   } catch (error) {
     console.error("❌ Error en transcribeAudio:", error)

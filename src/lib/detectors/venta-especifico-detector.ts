@@ -2,6 +2,7 @@
 // Detecta si una venta es de GANADO, LANA o GRANOS
 
 import OpenAI from "openai";
+import { trackOpenAIChat } from "@/lib/ai-usage-tracker";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -11,7 +12,7 @@ const openai = new OpenAI({
  * Detectar el tipo específico de venta
  * Retorna: "GANADO" | "LANA" | "GRANOS"
  */
-export async function detectarTipoVentaEspecifico(imageUrl: string): Promise<"GANADO" | "LANA" | "GRANOS"> {
+export async function detectarTipoVentaEspecifico(imageUrl: string, userId?: string): Promise<"GANADO" | "LANA" | "GRANOS"> {
   try {
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
@@ -94,8 +95,13 @@ Si no estás 100% seguro, responde "GANADO" por defecto.`
       temperature: 0
     });
 
+    // Trackear uso
+    if (userId) {
+      trackOpenAIChat(userId, 'VENTA_DETECTOR', response)
+    }
+
     const respuesta = response.choices[0].message.content?.toUpperCase().trim() || "";
-    
+
     console.log(`🔍 Tipo específico detectado: ${respuesta}`);
     
     if (respuesta.includes("GRANO")) {

@@ -143,8 +143,13 @@ console.log("📦 Mensaje completo:", JSON.stringify(message, null, 2))
         }
       }
     } else if (messageType === "audio") {
+      // Obtener userId para tracking
+      const audioUser = await prisma.user.findUnique({
+        where: { telefono: from },
+        select: { id: true }
+      })
       // Procesar audio y obtener transcripción
-      const transcription = await handleAudioMessage(message, from)
+      const transcription = await handleAudioMessage(message, from, audioUser?.id)
       if (transcription) {
         // Usar la transcripción como mensaje de texto
         messageText = transcription
@@ -364,17 +369,17 @@ console.log("📦 Mensaje completo:", JSON.stringify(message, null, 2))
         console.log("🤖 Intentando parsear con GPT como respaldo...")
         const usuario = await prisma.user.findUnique({
           where: { telefono: from },
-          select: { campoId: true }
+          select: { id: true, campoId: true }
         })
-        
+
         if (usuario?.campoId) {
           let categorias: Array<{ nombreSingular: string; nombrePlural: string }> = []
           categorias = await prisma.categoriaAnimal.findMany({
             where: { campoId: usuario.campoId, activo: true },
             select: { nombreSingular: true, nombrePlural: true }
           })
-          
-          const parsedData = await parseMessageWithAI(messageText, [], categorias)
+
+          const parsedData = await parseMessageWithAI(messageText, [], categorias, usuario.id)
           console.log("📦 GPT parseó como:", parsedData?.tipo)
           
           if (parsedData?.tipo === "STOCK_EDICION") {
@@ -466,7 +471,7 @@ if (consultaStockMatch && usuario?.campoId) {
 // 6. FASE 3: Procesar con GPT (texto/audio)
 // ==========================================
 
-const parsedData = await parseMessageWithAI(messageText, potreros, categorias)
+const parsedData = await parseMessageWithAI(messageText, potreros, categorias, usuario?.id)
 
     // ========================================
     // 🚫 GPT retornó un error

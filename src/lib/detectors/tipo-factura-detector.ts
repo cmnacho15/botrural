@@ -2,6 +2,7 @@
 // Detecta si una factura es de VENTA, GASTO o ESTADO_CUENTA
 
 import OpenAI from "openai";
+import { trackOpenAIChat } from "@/lib/ai-usage-tracker";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -12,7 +13,7 @@ export type TipoDocumento = "VENTA" | "GASTO" | "ESTADO_CUENTA" | null;
 /**
  * Detectar si una imagen es un estado de cuenta (no procesar como gasto)
  */
-export async function detectarEstadoDeCuenta(imageUrl: string): Promise<boolean> {
+export async function detectarEstadoDeCuenta(imageUrl: string, userId?: string): Promise<boolean> {
   try {
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
@@ -48,6 +49,11 @@ RESPONDE SOLO:
       temperature: 0
     });
 
+    // Trackear uso
+    if (userId) {
+      trackOpenAIChat(userId, 'FACTURA_DETECTOR', response)
+    }
+
     const respuesta = response.choices[0].message.content?.toUpperCase().trim() || "";
     console.log("📊 ¿Es estado de cuenta?:", respuesta);
 
@@ -61,7 +67,7 @@ RESPONDE SOLO:
 /**
  * Detectar si una imagen es una factura de VENTA (no de gasto)
  */
-export async function detectarTipoFactura(imageUrl: string, campoId?: string): Promise<TipoDocumento> {
+export async function detectarTipoFactura(imageUrl: string, campoId?: string, userId?: string): Promise<TipoDocumento> {
   console.log("🔍 Detectando tipo factura:", imageUrl);
 
   // ESTRATEGIA 1: Extraer RUT rápido y verificar si es de una firma conocida
@@ -114,6 +120,11 @@ Esta es una factura de VENTA de animales o lana. El VENDEDOR es el productor que
         max_tokens: 50,
         temperature: 0
       });
+
+      // Trackear uso
+      if (userId) {
+        trackOpenAIChat(userId, 'FACTURA_DETECTOR', quickOCR)
+      }
 
       const respuesta = quickOCR.choices[0].message.content?.trim();
       console.log("📋 Datos extraídos:", respuesta);
@@ -221,6 +232,11 @@ RESPONDE SOLO:
       temperature: 0
     });
 
+    // Trackear uso
+    if (userId) {
+      trackOpenAIChat(userId, 'FACTURA_DETECTOR', response1)
+    }
+
     const respuesta1 = response1.choices[0].message.content?.toUpperCase().trim() || "";
     console.log("📊 Respuesta GPT sobre VENTA:", respuesta1);
 
@@ -254,6 +270,11 @@ RESPONDE SOLO:
       max_tokens: 800,
       temperature: 0
     });
+
+    // Trackear uso
+    if (userId) {
+      trackOpenAIChat(userId, 'FACTURA_DETECTOR', response2)
+    }
 
     const texto = response2.choices[0].message.content?.toUpperCase() || "";
     console.log("📝 Texto extraído (primeros 200):", texto.substring(0, 200));

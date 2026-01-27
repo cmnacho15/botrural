@@ -65,10 +65,21 @@ export async function handleGastoImage(
   imageUrl: string,
   imageName: string,
   campoId: string,
-  caption: string
+  caption: string,
+  userId?: string
 ) {
   try {
-    const invoiceData = await processInvoiceImage(imageUrl)
+    // Si no viene userId, buscarlo por teléfono
+    let userIdToUse = userId
+    if (!userIdToUse) {
+      const user = await prisma.user.findUnique({
+        where: { telefono: phoneNumber },
+        select: { id: true }
+      })
+      userIdToUse = user?.id
+    }
+
+    const invoiceData = await processInvoiceImage(imageUrl, userIdToUse)
 
     if (!invoiceData || !invoiceData.items || invoiceData.items.length === 0) {
       await sendWhatsAppMessage(phoneNumber, "No pude leer la factura de gasto. ¿La imagen está clara?")

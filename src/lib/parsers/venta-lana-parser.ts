@@ -1,5 +1,6 @@
 // src/lib/parsers/venta-lana-parser.ts
 import OpenAI from "openai";
+import { trackOpenAIChat } from "@/lib/ai-usage-tracker";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -50,7 +51,7 @@ export interface ParsedVentaLana {
   fechaVencimiento?: string;
 }
 
-export async function processVentaLanaImage(imageUrl: string, campoId?: string): Promise<ParsedVentaLana | null> {
+export async function processVentaLanaImage(imageUrl: string, campoId?: string, userId?: string): Promise<ParsedVentaLana | null> {
   try {
     // Dividir el prompt en partes para evitar errores de template string largo
     const promptParte1 = `INSTRUCCIÓN CRÍTICA: Debes responder ÚNICAMENTE con un objeto JSON válido. NO incluyas texto explicativo, disculpas, ni markdown.
@@ -217,6 +218,11 @@ RESPONDE SOLO JSON sin markdown.`;
       max_tokens: 2500,
       temperature: 0.05
     });
+
+    // Trackear uso
+    if (userId) {
+      trackOpenAIChat(userId, 'VENTA_PARSER', response)
+    }
 
     const content = response.choices[0].message.content;
     if (!content) return null;
