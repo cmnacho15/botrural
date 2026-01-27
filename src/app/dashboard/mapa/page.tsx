@@ -1020,10 +1020,20 @@ export default function MapaPage() {
                               backgroundColor:
                                 vistaActual === 'cultivo'
                                   ? lote.cultivos && lote.cultivos.length > 0
-                                    ? COLORES_CULTIVOS[
-                                        lote.cultivos[0].tipoCultivo
-                                      ] || '#10b981'
-                                    : '#D3D3D3'
+                                    ? (() => {
+                                        const cultivoPrincipal = lote.cultivos[0].tipoCultivo
+                                        let colorCultivo = COLORES_CULTIVOS[cultivoPrincipal]
+                                        if (!colorCultivo) {
+                                          let hash = 0
+                                          for (let i = 0; i < cultivoPrincipal.length; i++) {
+                                            hash = cultivoPrincipal.charCodeAt(i) + ((hash << 5) - hash)
+                                          }
+                                          const hue = hash % 360
+                                          colorCultivo = `hsl(${hue}, 70%, 50%)`
+                                        }
+                                        return colorCultivo
+                                      })()
+                                    : COLORES_CULTIVOS['Natural']
                                   : vistaActual === 'ndvi' &&
                                     ndvi?.promedio !== null &&
                                     ndvi?.validPixels > 0
