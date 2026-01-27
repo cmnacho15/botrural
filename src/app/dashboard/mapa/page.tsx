@@ -942,22 +942,31 @@ export default function MapaPage() {
                             return hectareasNaturales > 0 ? [['Natural', hectareasNaturales] as [string, number]] : []
                           })())
                         ].map(
-                          ([cultivo, hectareas]) => (
+                          ([cultivo, hectareas]) => {
+                            // Generar el mismo color que en el mapa
+                            let colorCultivo = COLORES_CULTIVOS[cultivo]
+                            if (!colorCultivo) {
+                              let hash = 0
+                              for (let i = 0; i < cultivo.length; i++) {
+                                hash = cultivo.charCodeAt(i) + ((hash << 5) - hash)
+                              }
+                              const hue = hash % 360
+                              colorCultivo = `hsl(${hue}, 70%, 50%)`
+                            }
+                            
+                            return (
                             <div
                               key={cultivo}
                               className="flex items-center justify-between p-2.5 sm:p-3 rounded-lg border border-gray-200 hover:bg-gray-100 transition"
                               style={{
-                                backgroundColor: `${
-                                  COLORES_CULTIVOS[cultivo] || '#10b981'
-                                }20`,
+                                backgroundColor: `${colorCultivo}20`,
                               }}
                             >
                               <div className="flex items-center gap-2.5 sm:gap-3">
                                 <div
                                   className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded"
                                   style={{
-                                    backgroundColor:
-                                      COLORES_CULTIVOS[cultivo] || '#10b981',
+                                    backgroundColor: colorCultivo,
                                   }}
                                 />
                                 <span className="font-medium text-gray-900 text-xs sm:text-sm">
@@ -968,7 +977,8 @@ export default function MapaPage() {
                                 </span>
                               </div>
                             </div>
-                          ),
+                            )
+                          },
                         )}
                       </div>
                     </div>
