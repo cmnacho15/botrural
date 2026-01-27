@@ -85,6 +85,7 @@ export default function MapaPage() {
   const [ndviData, setNdviData] = useState<Record<string, any>>({})
   const [modulos, setModulos] = useState<Array<{id: string, nombre: string}>>([])
   const [opacidadCurvas, setOpacidadCurvas] = useState(95)
+  const [cultivoSeleccionado, setCultivoSeleccionado] = useState<string | null>(null)
   
   // Memorizar el key para que no cambie cuando solo cambia opacidad
   const mapaKey = useMemo(() => 
@@ -291,6 +292,7 @@ export default function MapaPage() {
     .filter((l) => l.poligono && l.poligono.length > 0)
     .map((lote) => {
       let color = '#1212dd' // Azul Vista General (default si no tiene módulo)
+      let isDimmed = false // 🔥 NUEVO: para atenuar potreros no seleccionados
 
       // 🔥 VISTA GENERAL: Color por módulo
       if (vistaActual === 'indice') {
@@ -322,9 +324,19 @@ export default function MapaPage() {
           } else {
             color = COLORES_CULTIVOS[nombreCombinacion]
           }
+          
+          // 🔥 FILTRO: Verificar si este potrero debe atenuarse
+          if (cultivoSeleccionado && nombreCombinacion !== cultivoSeleccionado) {
+            isDimmed = true
+          }
         } else {
           // Potreros sin cultivo = "Natural"
           color = COLORES_CULTIVOS['Natural']
+          
+          // 🔥 FILTRO: Atenuar "Natural" si hay otro cultivo seleccionado
+          if (cultivoSeleccionado && cultivoSeleccionado !== 'Natural') {
+            isDimmed = true
+          }
         }
       } else if (vistaActual === 'ndvi') {
         const ndviInfo = ndviData[lote.id]
@@ -344,6 +356,7 @@ export default function MapaPage() {
         nombre: lote.nombre,
         coordinates: lote.poligono,
         color,
+        isDimmed, // 🔥 NUEVO
         info: {
           hectareas: lote.hectareas,
           cultivos: lote.cultivos,
@@ -525,6 +538,8 @@ export default function MapaPage() {
   onOpacidadCurvasChange={setOpacidadCurvas}
   mostrarResumenCultivos={vistaActual === 'cultivo'}
   resumenCultivos={resumenCultivosParaMapa}
+  cultivoSeleccionado={cultivoSeleccionado}
+  onCultivoClick={setCultivoSeleccionado}
 />
               )}
             </div>
