@@ -372,18 +372,29 @@ export default function MapaPage() {
   }, {} as Record<string, number>)
 
   // 🌾 Preparar resumen de cultivos para el mapa (convertir a array con colores)
-  const resumenCultivosParaMapa = Object.entries(resumenCultivos).map(([tipo, hectareas]) => {
-    let color = COLORES_CULTIVOS[tipo]
-    if (!color) {
-      let hash = 0
-      for (let i = 0; i < tipo.length; i++) {
-        hash = tipo.charCodeAt(i) + ((hash << 5) - hash)
+  const resumenCultivosParaMapa = [
+    ...Object.entries(resumenCultivos).map(([tipo, hectareas]) => {
+      let color = COLORES_CULTIVOS[tipo]
+      if (!color) {
+        let hash = 0
+        for (let i = 0; i < tipo.length; i++) {
+          hash = tipo.charCodeAt(i) + ((hash << 5) - hash)
+        }
+        const hue = hash % 360
+        color = `hsl(${hue}, 70%, 50%)`
       }
-      const hue = hash % 360
-      color = `hsl(${hue}, 70%, 50%)`
-    }
-    return { tipo, hectareas, color }
-  })
+      return { tipo, hectareas, color }
+    }),
+    // Agregar "Natural" si hay potreros sin cultivos
+    (() => {
+      const lotesNaturales = lotes.filter(l => !l.cultivos || l.cultivos.length === 0)
+      const hectareasNaturales = lotesNaturales.reduce((sum, l) => sum + l.hectareas, 0)
+      if (hectareasNaturales > 0) {
+        return { tipo: 'Natural', hectareas: hectareasNaturales, color: COLORES_CULTIVOS['Natural'] }
+      }
+      return null
+    })()
+  ].filter(Boolean) as Array<{ tipo: string; hectareas: number; color: string }>
 
   if (loading) {
     return (
