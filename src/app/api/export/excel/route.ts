@@ -996,6 +996,7 @@ export async function POST(request: Request) {
       const columnas = [
         { header: 'Fecha', key: 'fecha', width: 12 },
         { header: 'Tipo', key: 'tipo', width: 12 },
+        { header: 'Origen', key: 'origen', width: 12 },
         { header: 'Descripción', key: 'descripcion', width: 35 },
         { header: 'Categoría', key: 'categoria', width: 18 },
         { header: 'Proveedor/Comprador', key: 'contraparte', width: 20 },
@@ -1008,41 +1009,112 @@ export async function POST(request: Request) {
         { header: 'Método Pago', key: 'metodoPago', width: 15 },
         { header: 'Pagado', key: 'pagado', width: 10 },
         { header: 'Potrero', key: 'potrero', width: 18 },
+        { header: 'Ver Factura', key: 'factura', width: 12 },
       ]
       sheet.columns = columnas
 
-      gastos.forEach((g) => {
-  const nombrePotrero = g.lote?.moduloPastoreo?.nombre
-    ? `${g.lote.nombre} (${g.lote.moduloPastoreo.nombre})`
-    : g.lote?.nombre || ''
+      // Agrupar gastos por factura (mismo imageUrl) para alternar colores
+      // Crear clave de grupo: imageUrl si existe, sino ID único (cada uno su propio grupo)
+      const getGrupoKey = (g: any) => {
+        if (g.imageUrl) return g.imageUrl
+        return g.id // Sin imagen = cada gasto es su propio grupo
+      }
 
-  // Calcular monto sin IVA
-  const ivaAmount = g.iva ? Number(g.iva) : 0
-  const montoTotal = g.montoOriginal ? Number(g.montoOriginal) : (g.monto ? Number(g.monto) : 0)
-  const montoSinIva = montoTotal - ivaAmount
+      // Ordenar: primero por grupo (imageUrl), luego por fecha dentro del grupo
+      // Esto asegura que todos los items de la misma factura queden juntos
+      const gastosOrdenados = [...gastos].sort((a, b) => {
+        const grupoA = getGrupoKey(a)
+        const grupoB = getGrupoKey(b)
 
-  sheet.addRow({
-    fecha: formatearFecha(g.fecha),
-    tipo: g.tipo === 'INGRESO' ? 'Ingreso' : 'Gasto',
-    descripcion: g.descripcion || '',
-    categoria: g.categoria || '',
-    contraparte: g.proveedor || g.comprador || '',
-    moneda: g.moneda || 'UYU',
-    montoSinIva: ivaAmount > 0 ? montoSinIva.toLocaleString('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '',
-    iva: ivaAmount > 0 ? ivaAmount.toLocaleString('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '',
-    montoTotal: montoTotal ? montoTotal.toLocaleString('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '',
-    montoUYU: g.montoEnUYU ? Number(g.montoEnUYU).toLocaleString('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '',
-    montoUSD: g.montoEnUSD ? Number(g.montoEnUSD).toLocaleString('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '',
-    metodoPago: g.metodoPago || '',
-    pagado: g.pagado ? 'Sí' : 'No',
-    potrero: nombrePotrero,
-  })
-})
+        // Si tienen el mismo grupo (misma factura), ordenar por fecha
+        if (grupoA === grupoB) {
+          return new Date(a.fecha).getTime() - new Date(b.fecha).getTime()
+        }
+
+        // Si son grupos diferentes, ordenar por la fecha del primer item de cada grupo
+        const fechaA = new Date(a.fecha).getTime()
+        const fechaB = new Date(b.fecha).getTime()
+        return fechaA - fechaB
+      })
+
+      let rowNum = 2
+      let grupoIndex = 0
+      let grupoAnterior = ''
+
+      gastosOrdenados.forEach((g) => {
+        const grupoActual = getGrupoKey(g)
+        const esPrimerDelGrupo = grupoActual !== grupoAnterior
+
+        // Si es un nuevo grupo, incrementar el índice para alternar color
+        if (esPrimerDelGrupo) {
+          grupoIndex++
+          grupoAnterior = grupoActual
+        }
+
+        // Color por tipo y alternado por grupo (factura)
+        const esGrupoPar = grupoIndex % 2 === 0
+        const esIngreso = g.tipo === 'INGRESO'
+
+        let colorFondo: string
+        if (esIngreso) {
+          // Ingresos: verde (alternando tonos entre facturas)
+          colorFondo = esGrupoPar ? 'FF86EFAC' : 'FFBBF7D0' // verde / verde claro
+        } else {
+          // Gastos: gris / blanco (alternando entre facturas)
+          colorFondo = esGrupoPar ? 'FFE5E7EB' : 'FFFFFFFF' // gris / blanco
+        }
+
+        const nombrePotrero = g.lote?.moduloPastoreo?.nombre
+          ? `${g.lote.nombre} (${g.lote.moduloPastoreo.nombre})`
+          : g.lote?.nombre || ''
+
+        // Calcular monto sin IVA
+        const ivaAmount = g.iva ? Number(g.iva) : 0
+        const montoTotal = g.montoOriginal ? Number(g.montoOriginal) : (g.monto ? Number(g.monto) : 0)
+        const montoSinIva = montoTotal - ivaAmount
+
+        // Determinar origen (si es venta)
+        const esVenta = g.categoria?.startsWith('Venta de') || g.descripcion?.startsWith('Venta de')
+        const origen = esVenta ? 'Venta' : (g.tipo === 'INGRESO' ? 'Otro' : 'Compra')
+
+        const row = sheet.addRow({
+          fecha: formatearFecha(g.fecha),
+          tipo: g.tipo === 'INGRESO' ? 'Ingreso' : 'Gasto',
+          origen: origen,
+          descripcion: g.descripcion || '',
+          categoria: g.categoria || '',
+          contraparte: g.proveedor || g.comprador || '',
+          moneda: g.moneda || 'UYU',
+          montoSinIva: ivaAmount > 0 ? montoSinIva.toLocaleString('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '',
+          iva: ivaAmount > 0 ? ivaAmount.toLocaleString('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '',
+          montoTotal: montoTotal ? montoTotal.toLocaleString('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '',
+          montoUYU: g.montoEnUYU ? Number(g.montoEnUYU).toLocaleString('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '',
+          montoUSD: g.montoEnUSD ? Number(g.montoEnUSD).toLocaleString('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '',
+          metodoPago: g.metodoPago || '',
+          pagado: g.pagado ? 'Sí' : 'No',
+          potrero: nombrePotrero,
+          factura: '',
+        })
+
+        // Aplicar color de fondo a toda la fila
+        row.eachCell((cell) => {
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: colorFondo } }
+        })
+
+        // Agregar link a la factura solo en el primer renglón del grupo
+        if (esPrimerDelGrupo && g.imageUrl) {
+          const cell = sheet.getCell(`P${rowNum}`)
+          cell.value = { text: '📎 Ver', hyperlink: g.imageUrl } as any
+          cell.font = { color: { argb: 'FF0066CC' }, underline: true }
+        }
+
+        rowNum++
+      })
 
       aplicarEstiloEncabezado(sheet.getRow(1))
-      aplicarEstiloDatos(sheet, 2)
+      // NO usar aplicarEstiloDatos porque sobrescribe los colores personalizados
       autoAjustarColumnas(sheet, columnas)
-      sheet.autoFilter = { from: 'A1', to: 'N1' }
+      sheet.autoFilter = { from: 'A1', to: 'P1' }
     }
 
     // ========================================
@@ -1088,7 +1160,9 @@ export async function POST(request: Request) {
           if (tipoProducto === 'LANA') {
             return v.tipoProducto === 'LANA'
           }
-          return v.tipoProducto === 'GANADO' && v.renglones.some(r => r.tipoAnimal === tipoAnimal)
+          // GANADO: incluye ventas con tipoProducto='GANADO' o null/undefined (ventas viejas)
+          const esGanado = v.tipoProducto === 'GANADO' || !v.tipoProducto
+          return esGanado && v.renglones.some(r => r.tipoAnimal === tipoAnimal)
         })
 
         if (ventasFiltradas.length === 0) {
@@ -1097,7 +1171,7 @@ export async function POST(request: Request) {
 
         // Título de sección
         const tituloRow = sheet.getRow(startRow)
-        sheet.mergeCells(startRow, 1, startRow, 16)
+        sheet.mergeCells(startRow, 1, startRow, 18)
         tituloRow.getCell(1).value = titulo
         tituloRow.getCell(1).style = estiloSeccion
         tituloRow.height = 25
@@ -1105,8 +1179,8 @@ export async function POST(request: Request) {
 
         // Encabezados de columna
         const headers = tipoProducto === 'LANA'
-          ? ['Fecha', 'Nº Factura', 'Comprador', 'Consignatario', 'Categoría', 'Peso kg', '$/kg', 'Subtotal USD', 'IMEBA', 'INIA', 'MEVIR', 'Comisión', 'IVA', 'Otros', 'Total Imp', 'Neto USD']
-          : ['Fecha', 'Nº Factura', 'Comprador', 'Consignatario', 'Categoría', 'Cant', 'Peso kg', '$/kg', 'Subtotal USD', 'IMEBA', 'INIA', 'MEVIR', 'Comisión', 'IVA', 'Otros', 'Neto USD']
+          ? ['Fecha', 'Nº Factura', 'Firma', 'Comprador', 'Consignatario', 'Categoría', 'Peso kg', '$/kg', 'Subtotal USD', 'IMEBA', 'INIA', 'MEVIR', 'Comisión', 'IVA', 'Otros', 'Total Imp', 'Neto USD', 'Ver Factura']
+          : ['Fecha', 'Nº Factura', 'Firma', 'Comprador', 'Consignatario', 'Categoría', 'Cant', 'Peso kg', '$/kg', 'Subtotal USD', 'IMEBA', 'INIA', 'MEVIR', 'Comisión', 'IVA', 'Otros', 'Neto USD', 'Ver Factura']
 
         const headerRow = sheet.getRow(startRow)
         headers.forEach((h, i) => {
@@ -1127,7 +1201,8 @@ export async function POST(request: Request) {
         let totalCantidad = 0
         let totalPeso = 0
 
-        // Datos
+        // Datos - alternar color por VENTA (no por fila)
+        let ventaIndex = 0
         ventasFiltradas.forEach(v => {
           const impuestos = (v.impuestos as any) || {}
 
@@ -1136,8 +1211,15 @@ export async function POST(request: Request) {
             ? v.renglones.filter(r => r.tipo === 'LANA' || r.esVentaLana)
             : v.renglones.filter(r => r.tipoAnimal === tipoAnimal)
 
-          renglonesDelTipo.forEach(r => {
+          if (renglonesDelTipo.length === 0) return
+
+          // Color alternado por venta: gris (par) / blanco (impar)
+          const esVentaGris = ventaIndex % 2 === 0
+          const colorFondo = esVentaGris ? 'FFE5E7EB' : 'FFFFFFFF' // gris claro / blanco
+
+          renglonesDelTipo.forEach((r, renglonIndex) => {
             const row = sheet.getRow(startRow)
+            const esPrimerRenglon = renglonIndex === 0
 
             if (tipoProducto === 'LANA') {
               // Calcular proporcionales de impuestos por renglón
@@ -1154,11 +1236,13 @@ export async function POST(request: Request) {
               const pesoLana = r.esVentaLana ? (r.kgVellon || 0) + (r.kgBarriga || 0) : r.pesoTotalKg
               const precioLana = r.esVentaLana ? (r.precioKgVellon || r.precioKgUSD) : r.precioKgUSD
 
+              // Solo mostrar datos de factura en el primer renglón
               row.values = [
-                formatearFecha(v.fecha),
-                v.nroFactura || '',
-                v.comprador,
-                v.consignatario || '',
+                esPrimerRenglon ? formatearFecha(v.fecha) : '',
+                esPrimerRenglon ? (v.nroFactura || '') : '',
+                esPrimerRenglon ? (v.firma?.razonSocial || '') : '',
+                esPrimerRenglon ? v.comprador : '',
+                esPrimerRenglon ? (v.consignatario || '') : '',
                 r.categoria,
                 formatNum(pesoLana),
                 formatNum(precioLana),
@@ -1171,7 +1255,15 @@ export async function POST(request: Request) {
                 otrosRenglon > 0 ? formatNeg(otrosRenglon) : '',
                 totalImpRenglon > 0 ? formatNeg(totalImpRenglon) : '',
                 formatNum(netoRenglon),
+                '', // Placeholder para factura
               ]
+
+              // Agregar link a la factura solo en el primer renglón
+              if (esPrimerRenglon && v.imageUrl) {
+                const cell = row.getCell(18)
+                cell.value = { text: '📎 Ver', hyperlink: v.imageUrl } as any
+                cell.font = { color: { argb: 'FF0066CC' }, underline: true }
+              }
 
               totalPeso += pesoLana
               totalSubtotal += r.importeBrutoUSD
@@ -1194,11 +1286,13 @@ export async function POST(request: Request) {
               const totalImpRenglon = imebaRenglon + iniaRenglon + mevirRenglon + comisionRenglon + ivaRenglon + otrosRenglon
               const netoRenglon = r.importeBrutoUSD - totalImpRenglon
 
+              // Solo mostrar datos de factura en el primer renglón
               row.values = [
-                formatearFecha(v.fecha),
-                v.nroFactura || '',
-                v.comprador,
-                v.consignatario || '',
+                esPrimerRenglon ? formatearFecha(v.fecha) : '',
+                esPrimerRenglon ? (v.nroFactura || '') : '',
+                esPrimerRenglon ? (v.firma?.razonSocial || '') : '',
+                esPrimerRenglon ? v.comprador : '',
+                esPrimerRenglon ? (v.consignatario || '') : '',
                 r.categoria,
                 r.cantidad,
                 formatNum(r.pesoTotalKg),
@@ -1211,7 +1305,15 @@ export async function POST(request: Request) {
                 ivaRenglon > 0 ? formatNeg(ivaRenglon) : '',
                 otrosRenglon > 0 ? formatNeg(otrosRenglon) : '',
                 formatNum(netoRenglon),
+                '', // Placeholder para factura
               ]
+
+              // Agregar link a la factura solo en el primer renglón
+              if (esPrimerRenglon && v.imageUrl) {
+                const cell = row.getCell(18)
+                cell.value = { text: '📎 Ver', hyperlink: v.imageUrl } as any
+                cell.font = { color: { argb: 'FF0066CC' }, underline: true }
+              }
 
               totalCantidad += r.cantidad
               totalPeso += r.pesoTotalKg
@@ -1225,14 +1327,14 @@ export async function POST(request: Request) {
               totalNeto += netoRenglon
             }
 
-            // Estilo alternado
-            if (startRow % 2 === 0) {
-              row.eachCell((cell) => {
-                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF9FAFB' } }
-              })
-            }
+            // Aplicar color de fondo a toda la fila (mismo color para toda la venta)
+            row.eachCell((cell) => {
+              cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: colorFondo } }
+            })
             startRow++
           })
+
+          ventaIndex++ // Incrementar para alternar color en la siguiente venta
         })
 
         // Fila de TOTALES
@@ -1241,7 +1343,7 @@ export async function POST(request: Request) {
 
         if (tipoProducto === 'LANA') {
           totalRow.values = [
-            '', '', '', 'TOTAL',
+            '', '', '', '', 'TOTAL',
             '',
             formatNum(totalPeso),
             '',
@@ -1254,10 +1356,11 @@ export async function POST(request: Request) {
             totalOtros > 0 ? formatNeg(totalOtros) : '',
             totalImpuestos > 0 ? formatNeg(totalImpuestos) : '',
             formatNum(totalNeto),
+            '', // Columna factura vacía en totales
           ]
         } else {
           totalRow.values = [
-            '', '', '', 'TOTAL',
+            '', '', '', '', 'TOTAL',
             '',
             totalCantidad,
             formatNum(totalPeso),
@@ -1270,6 +1373,7 @@ export async function POST(request: Request) {
             totalIva > 0 ? formatNeg(totalIva) : '',
             totalOtros > 0 ? formatNeg(totalOtros) : '',
             formatNum(totalNeto),
+            '', // Columna factura vacía en totales
           ]
         }
         totalRow.eachCell((cell) => {
@@ -1293,20 +1397,22 @@ export async function POST(request: Request) {
       // Ajustar anchos de columna
       sheet.getColumn(1).width = 12  // Fecha
       sheet.getColumn(2).width = 14  // Nº Factura
-      sheet.getColumn(3).width = 22  // Comprador
-      sheet.getColumn(4).width = 18  // Consignatario
-      sheet.getColumn(5).width = 18  // Categoría
-      sheet.getColumn(6).width = 10  // Cant/Peso
-      sheet.getColumn(7).width = 12  // Peso/$/kg
-      sheet.getColumn(8).width = 10  // $/kg/Subtotal
-      sheet.getColumn(9).width = 14  // Subtotal/IMEBA
-      sheet.getColumn(10).width = 12 // IMEBA/INIA
-      sheet.getColumn(11).width = 12 // INIA/MEVIR
-      sheet.getColumn(12).width = 12 // MEVIR/Comisión
-      sheet.getColumn(13).width = 12 // Comisión/IVA
-      sheet.getColumn(14).width = 12 // IVA/Otros
-      sheet.getColumn(15).width = 12 // Otros/Total Imp
-      sheet.getColumn(16).width = 14 // Neto USD
+      sheet.getColumn(3).width = 22  // Firma
+      sheet.getColumn(4).width = 22  // Comprador
+      sheet.getColumn(5).width = 18  // Consignatario
+      sheet.getColumn(6).width = 18  // Categoría
+      sheet.getColumn(7).width = 10  // Cant/Peso
+      sheet.getColumn(8).width = 12  // Peso/$/kg
+      sheet.getColumn(9).width = 10  // $/kg/Subtotal
+      sheet.getColumn(10).width = 14 // Subtotal/IMEBA
+      sheet.getColumn(11).width = 12 // IMEBA/INIA
+      sheet.getColumn(12).width = 12 // INIA/MEVIR
+      sheet.getColumn(13).width = 12 // MEVIR/Comisión
+      sheet.getColumn(14).width = 12 // Comisión/IVA
+      sheet.getColumn(15).width = 12 // IVA/Otros
+      sheet.getColumn(16).width = 12 // Otros/Total Imp
+      sheet.getColumn(17).width = 14 // Neto USD
+      sheet.getColumn(18).width = 12 // Ver Factura
     }
 
     // ========================================

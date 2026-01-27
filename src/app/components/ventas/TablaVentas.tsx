@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, Fragment, useEffect } from 'react'
+import ModalFactura from '@/app/components/modales/ModalFactura'
 
 interface Firma {
   id: string
@@ -51,7 +52,7 @@ interface TablaVentasProps {
 }
 
 export default function TablaVentas({ ventas, onRefresh }: TablaVentasProps) {
-  const [verImagen, setVerImagen] = useState<string | null>(null)
+  const [verImagen, setVerImagen] = useState<{url: string, venta: Venta} | null>(null)
   const [ventaAEliminar, setVentaAEliminar] = useState<string | null>(null)
   const [eliminando, setEliminando] = useState(false)
   const [editandoFirma, setEditandoFirma] = useState<string | null>(null)
@@ -305,7 +306,7 @@ export default function TablaVentas({ ventas, onRefresh }: TablaVentasProps) {
                           <td className="px-4 py-3 text-center" rowSpan={venta.renglones.length}>
                             {venta.imageUrl ? (
                               <button
-                                onClick={() => setVerImagen(venta.imageUrl)}
+                                onClick={() => setVerImagen({ url: venta.imageUrl!, venta })}
                                 className="text-blue-600 hover:text-blue-800 transition text-lg"
                                 title="Ver factura"
                               >
@@ -367,26 +368,16 @@ export default function TablaVentas({ ventas, onRefresh }: TablaVentasProps) {
       </div>
 
       {/* MODAL VER IMAGEN */}
-      {verImagen && (
-        <div 
-          className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
-          onClick={() => setVerImagen(null)}
-        >
-          <div className="relative max-w-4xl w-full">
-            <button
-              onClick={() => setVerImagen(null)}
-              className="absolute -top-12 right-0 text-white text-2xl hover:text-gray-300"
-            >
-              ✕ Cerrar
-            </button>
-            <img 
-              src={verImagen} 
-              alt="Boleta de venta" 
-              className="w-full h-auto rounded-lg shadow-2xl"
-            />
-          </div>
-        </div>
-      )}
+      <ModalFactura
+        isOpen={!!verImagen}
+        onClose={() => setVerImagen(null)}
+        imageUrl={verImagen?.url || ''}
+        ventaData={verImagen ? {
+          comprador: verImagen.venta.comprador,
+          fecha: verImagen.venta.fecha,
+          monto: verImagen.venta.totalNetoUSD,
+        } : undefined}
+      />
 
       {/* MODAL CONFIRMAR ELIMINACIÓN */}
       {ventaAEliminar && (() => {

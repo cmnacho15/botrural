@@ -1,3 +1,4 @@
+//src/app/dashboard/mapa/page.tsx
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
@@ -35,18 +36,19 @@ interface Lote {
   animalesLote: Animal[]
 }
 
-// 🎨 Colores por tipo de cultivo
+// 🎨 Colores por tipo de cultivo - Profesionales y bien diferenciados
 const COLORES_CULTIVOS: Record<string, string> = {
-  Soja: '#FFD700',
-  'Maíz': '#FF69B4',
-  Trigo: '#F4A460',
-  Girasol: '#FFD700',
-  Sorgo: '#DEB887',
-  Cebada: '#D2691E',
-  Avena: '#F5DEB3',
-  Arroz: '#90EE90',
-  Alfalfa: '#32CD32',
-  Pradera: '#228B22',
+  Soja: '#FFD700',      // Amarillo dorado
+  'Maíz': '#FF8C00',    // Naranja oscuro
+  Trigo: '#DAA520',     // Dorado
+  Girasol: '#FFA500',   // Naranja
+  Sorgo: '#CD853F',     // Marrón claro
+  Cebada: '#D2691E',    // Chocolate
+  Avena: '#F4A460',     // Sandy brown
+  Arroz: '#90EE90',     // Verde claro
+  Alfalfa: '#32CD32',   // Verde lima
+  Pradera: '#228B22',   // Verde bosque
+  Natural: '#9CA3AF',   // Gris - Para potreros sin cultivo
 }
 
 // 🎨 Colores por módulo de pastoreo
@@ -303,7 +305,8 @@ export default function MapaPage() {
           const cultivoPrincipal = lote.cultivos[0].tipoCultivo
           color = COLORES_CULTIVOS[cultivoPrincipal] || '#10b981'
         } else {
-          color = '#D3D3D3'
+          // Potreros sin cultivo = "Natural"
+          color = COLORES_CULTIVOS['Natural']
         }
       } else if (vistaActual === 'ndvi') {
         const ndviInfo = ndviData[lote.id]
@@ -918,7 +921,15 @@ export default function MapaPage() {
                         🌾 Resumen de cultivos
                       </h3>
                       <div className="space-y-2">
-                        {Object.entries(resumenCultivos).map(
+                        {[
+                          ...Object.entries(resumenCultivos),
+                          // Agregar potreros "Natural" si existen
+                          ...((() => {
+                            const lotesNaturales = lotes.filter(l => !l.cultivos || l.cultivos.length === 0)
+                            const hectareasNaturales = lotesNaturales.reduce((sum, l) => sum + l.hectareas, 0)
+                            return hectareasNaturales > 0 ? [['Natural', hectareasNaturales] as [string, number]] : []
+                          })())
+                        ].map(
                           ([cultivo, hectareas]) => (
                             <div
                               key={cultivo}
@@ -1044,8 +1055,8 @@ export default function MapaPage() {
                                 🌾 {lote.cultivos.map((c) => c.tipoCultivo).join(', ')}
                               </div>
                             ) : (
-                              <div className="text-[11px] sm:text-xs text-gray-400 italic">
-                                Sin cultivos
+                              <div className="text-[11px] sm:text-xs text-gray-600 font-medium">
+                                🌿 Natural
                               </div>
                             )}
                           </div>

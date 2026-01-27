@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react'
 import useSWR from 'swr'
 import Link from 'next/link'
+import ModalFactura from '@/app/components/modales/ModalFactura'
 
 const fetcher = async (url: string) => {
   const res = await fetch(url)
@@ -39,7 +40,7 @@ type Firma = {
 }
 
 export default function VentasPorFirmasPage() {
-  const [verImagen, setVerImagen] = useState<string | null>(null)
+  const [verImagen, setVerImagen] = useState<{url: string, venta: VentaDetalle} | null>(null)
   const [editandoVenta, setEditandoVenta] = useState<string | null>(null)
   const [guardando, setGuardando] = useState(false)
   // Calcular fechas iniciales (ejercicio fiscal: 1/7 a 30/6)
@@ -330,7 +331,7 @@ export default function VentasPorFirmasPage() {
                           {/* Botón ver imagen */}
                           {venta.imageUrl ? (
                             <button
-                              onClick={() => setVerImagen(venta.imageUrl)}
+                              onClick={() => setVerImagen({ url: venta.imageUrl!, venta })}
                               className={`px-1.5 py-1 text-xs rounded-r-md border transition hover:opacity-80 ${
                                 venta.pagado
                                   ? 'bg-green-100 border-green-200 text-green-700 hover:bg-green-200'
@@ -387,26 +388,16 @@ export default function VentasPorFirmasPage() {
       </div>
 
       {/* MODAL VER IMAGEN */}
-      {verImagen && (
-        <div
-          className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
-          onClick={() => setVerImagen(null)}
-        >
-          <div className="relative max-w-4xl max-h-[90vh]">
-            <button
-              onClick={() => setVerImagen(null)}
-              className="absolute -top-10 right-0 text-white text-3xl hover:text-gray-300"
-            >
-              ✕
-            </button>
-            <img
-              src={verImagen}
-              alt="Factura de venta"
-              className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl"
-            />
-          </div>
-        </div>
-      )}
+      <ModalFactura
+        isOpen={!!verImagen}
+        onClose={() => setVerImagen(null)}
+        imageUrl={verImagen?.url || ''}
+        ventaData={verImagen ? {
+          comprador: verImagen.venta.comprador,
+          fecha: verImagen.venta.fecha,
+          monto: verImagen.venta.totalNetoUSD,
+        } : undefined}
+      />
     </div>
   )
 }
