@@ -72,7 +72,7 @@ export async function handleImageMessage(message: any, phoneNumber: string) {
 
     if (esEstadoCuenta) {
       console.log("DELEGANDO a handleEstadoDeCuenta")
-      await handleEstadoDeCuenta(phoneNumber, uploadResult.url, uploadResult.fileName, user.campoId)
+      await handleEstadoDeCuenta(phoneNumber, uploadResult.url, uploadResult.fileName, user.campoId, user.id)
       return
     }
 

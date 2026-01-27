@@ -125,11 +125,22 @@ export async function handleEstadoDeCuenta(
   phoneNumber: string,
   imageUrl: string,
   imageName: string,
-  campoId: string
+  campoId: string,
+  userId?: string
 ) {
   try {
+    // Si no viene userId, buscarlo por teléfono
+    let userIdToUse = userId
+    if (!userIdToUse) {
+      const user = await prisma.user.findUnique({
+        where: { telefono: phoneNumber },
+        select: { id: true }
+      })
+      userIdToUse = user?.id
+    }
+
     // Extraer datos del estado de cuenta
-    const datos = await extraerDatosEstadoCuenta(imageUrl)
+    const datos = await extraerDatosEstadoCuenta(imageUrl, userIdToUse)
 
     if (!datos) {
       await sendWhatsAppMessage(
