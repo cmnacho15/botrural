@@ -303,7 +303,19 @@ export default function MapaPage() {
       else if (vistaActual === 'cultivo') {
         if (lote.cultivos && lote.cultivos.length > 0) {
           const cultivoPrincipal = lote.cultivos[0].tipoCultivo
-          color = COLORES_CULTIVOS[cultivoPrincipal] || '#10b981'
+          
+          // Si no tiene color definido, generar uno único basado en el nombre
+          if (!COLORES_CULTIVOS[cultivoPrincipal]) {
+            // Generar hash del nombre para color consistente
+            let hash = 0
+            for (let i = 0; i < cultivoPrincipal.length; i++) {
+              hash = cultivoPrincipal.charCodeAt(i) + ((hash << 5) - hash)
+            }
+            const hue = hash % 360
+            color = `hsl(${hue}, 70%, 50%)`
+          } else {
+            color = COLORES_CULTIVOS[cultivoPrincipal]
+          }
         } else {
           // Potreros sin cultivo = "Natural"
           color = COLORES_CULTIVOS['Natural']
