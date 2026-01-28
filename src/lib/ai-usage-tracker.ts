@@ -13,6 +13,7 @@ type AIFeature =
   | 'FACTURA_DETECTOR'    // Detector tipo de factura
   | 'VENTA_DETECTOR'      // Detector tipo de venta
   | 'PAGO_PARSER'         // Parser de pagos
+  | 'DOCUMENTO_DETECTOR'  // Detector documento vs foto
 
 // Precios por 1M tokens (actualizar según pricing actual)
 const PRICING: Record<string, { input: number; output: number }> = {

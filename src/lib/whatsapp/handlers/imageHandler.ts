@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma"
 import { detectarTipoFactura, detectarEstadoDeCuenta } from "@/lib/vision-venta-parser"
+import { esDocumento } from "@/lib/detectors/es-documento-detector"
 import {
   downloadWhatsAppImage,
   uploadInvoiceToSupabase,
@@ -60,9 +61,31 @@ export async function handleImageMessage(message: any, phoneNumber: string) {
       return
     }
 
-    console.log("Detectando tipo de documento...", uploadResult.url)
+    console.log("Detectando tipo de imagen...", uploadResult.url)
 
-    // PASO 1: Detectar si es un estado de cuenta
+    // =====================================================
+    // PASO 0: Detectar si es DOCUMENTO o FOTO normal
+    // =====================================================
+    const tipoImagen = await esDocumento(uploadResult.url, user.id)
+    console.log("Tipo de imagen detectado:", tipoImagen)
+
+    // Si es claramente una FOTO (no documento), guardar como observación
+    if (tipoImagen === "FOTO") {
+      console.log("📸 Es una FOTO de campo, guardando como observación...")
+      await saveObservacionFromUrl(
+        phoneNumber,
+        uploadResult.url,
+        uploadResult.fileName,
+        user.campoId,
+        user.id,
+        caption
+      )
+      return
+    }
+
+    // =====================================================
+    // PASO 1: Si es DOCUMENTO, detectar si es estado de cuenta
+    // =====================================================
     let esEstadoCuenta = false
     try {
       esEstadoCuenta = await detectarEstadoDeCuenta(uploadResult.url, user.id)
@@ -77,7 +100,9 @@ export async function handleImageMessage(message: any, phoneNumber: string) {
       return
     }
 
+    // =====================================================
     // PASO 2: Detectar si es VENTA o GASTO
+    // =====================================================
     let tipoFactura: "VENTA" | "GASTO" | "ESTADO_CUENTA" | null = null
 
     try {
@@ -90,14 +115,19 @@ export async function handleImageMessage(message: any, phoneNumber: string) {
 
     // Si no se detectó el tipo, preguntar al usuario
     if (!tipoFactura) {
-      await sendWhatsAppMessage(
-        phoneNumber,
-        "No pude identificar el tipo de imagen. ¿Qué es?\n\n" +
-        "1️⃣ *venta* - Factura de venta de animales\n" +
-        "2️⃣ *gasto* - Factura de compra/gasto\n" +
-        "3️⃣ *foto* - Foto de campo (observación)\n\n" +
-        "Respondé: *venta*, *gasto* o *foto*"
-      )
+      // Si el detector inicial dijo INCIERTO, incluir opción de foto
+      const mensaje = tipoImagen === "INCIERTO"
+        ? "No pude identificar el tipo de imagen. ¿Qué es?\n\n" +
+          "1️⃣ *venta* - Factura de venta de animales\n" +
+          "2️⃣ *gasto* - Factura de compra/gasto\n" +
+          "3️⃣ *foto* - Foto de campo (observación)\n\n" +
+          "Respondé: *venta*, *gasto* o *foto*"
+        : "No pude leer bien esta factura. ¿Qué tipo es?\n\n" +
+          "1️⃣ *venta* - Factura de venta de animales\n" +
+          "2️⃣ *gasto* - Factura de compra/gasto\n\n" +
+          "Respondé: *venta* o *gasto*"
+
+      await sendWhatsAppMessage(phoneNumber, mensaje)
 
       await prisma.pendingConfirmation.upsert({
         where: { telefono: phoneNumber },
@@ -110,6 +140,7 @@ export async function handleImageMessage(message: any, phoneNumber: string) {
             campoId: user.campoId,
             userId: user.id,
             caption,
+            esDocumento: tipoImagen === "DOCUMENTO",
           }),
         },
         update: {
@@ -120,6 +151,7 @@ export async function handleImageMessage(message: any, phoneNumber: string) {
             campoId: user.campoId,
             userId: user.id,
             caption,
+            esDocumento: tipoImagen === "DOCUMENTO",
           }),
         }
       })
