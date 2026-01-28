@@ -10,6 +10,7 @@ import { sendWhatsAppMessage } from "../services/messageService"
 import { handleGastoImage } from "./gastoHandler"
 import { handleVentaImage } from "./ventaHandler"
 import { handleEstadoDeCuenta } from "./pagoHandler"
+import { saveObservacionFromUrl } from "./observacionHandler"
 
 /**
  * Punto de entrada principal para procesar imágenes (facturas)
@@ -91,9 +92,13 @@ export async function handleImageMessage(message: any, phoneNumber: string) {
     if (!tipoFactura) {
       await sendWhatsAppMessage(
         phoneNumber,
-        "No pude identificar el tipo de factura. ¿Es una:\n\n1️⃣ VENTA de animales\n2️⃣ GASTO (compra)\n\nRespondé: *venta* o *gasto*"
+        "No pude identificar el tipo de imagen. ¿Qué es?\n\n" +
+        "1️⃣ *venta* - Factura de venta de animales\n" +
+        "2️⃣ *gasto* - Factura de compra/gasto\n" +
+        "3️⃣ *foto* - Foto de campo (observación)\n\n" +
+        "Respondé: *venta*, *gasto* o *foto*"
       )
-      
+
       await prisma.pendingConfirmation.upsert({
         where: { telefono: phoneNumber },
         create: {
@@ -103,6 +108,7 @@ export async function handleImageMessage(message: any, phoneNumber: string) {
             imageUrl: uploadResult.url,
             imageName: uploadResult.fileName,
             campoId: user.campoId,
+            userId: user.id,
             caption,
           }),
         },
@@ -112,6 +118,7 @@ export async function handleImageMessage(message: any, phoneNumber: string) {
             imageUrl: uploadResult.url,
             imageName: uploadResult.fileName,
             campoId: user.campoId,
+            userId: user.id,
             caption,
           }),
         }
@@ -197,10 +204,31 @@ export async function handleAwaitingInvoiceType(
     return true
   }
 
-  // 🔥 MEJORADO: Mensaje más claro con opción de cancelar
+  if (respuesta.includes("foto") || respuesta.includes("observ") || respuesta === "3") {
+    await sendWhatsAppMessage(phoneNumber, "Guardando como observación de campo... 📸")
+    await saveObservacionFromUrl(
+      phoneNumber,
+      savedData.imageUrl,
+      savedData.imageName,
+      savedData.campoId,
+      savedData.userId,
+      savedData.caption
+    )
+    // Limpiar pending confirmation
+    await prisma.pendingConfirmation.delete({
+      where: { telefono: phoneNumber },
+    }).catch(() => {})
+    return true
+  }
+
+  // Mensaje más claro con todas las opciones
   await sendWhatsAppMessage(
-    phoneNumber, 
-    "No entendí. Respondé:\n\n• *venta* - factura de venta de animales\n• *gasto* - factura de compra/gasto\n• *cancelar* - para salir"
+    phoneNumber,
+    "No entendí. Respondé:\n\n" +
+    "• *venta* - factura de venta de animales\n" +
+    "• *gasto* - factura de compra/gasto\n" +
+    "• *foto* - foto de campo (observación)\n" +
+    "• *cancelar* - para salir"
   )
   return true
 }

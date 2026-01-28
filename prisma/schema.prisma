@@ -298,7 +298,8 @@ model Evento {
   intensidad      String?
 
   metadata        Json?       // ← AGREGAR ESTA LÍNEA
-  
+  imageUrl        String?     // URL de foto adjunta (observaciones de campo)
+
   rodeoId         String?
   
   animalLote      AnimalLote? @relation(fields: [animalLoteId], references: [id])
@@ -487,7 +488,8 @@ enum TipoEvento {
   AJUSTE
   CAMBIO_POTRERO
   DAO           // <-- AGREGAR ESTA LÍNEA
-  
+  OBSERVACION   // Fotos de campo con comentarios
+
   SNIG_STOCK_INICIAL           // ✅ AGREGAR ESTOS
   SNIG_NACIMIENTO_CARAVANEO    // ✅
   SNIG_COMPRA                  // ✅

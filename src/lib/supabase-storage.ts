@@ -99,6 +99,45 @@ export async function uploadInvoiceToSupabase(
 }
 
 /**
+ * Sube imagen de observación de campo a Supabase Storage
+ */
+export async function uploadObservacionToSupabase(
+  imageBuffer: Buffer,
+  mimeType: string,
+  campoId: string
+): Promise<{ url: string; fileName: string } | null> {
+  try {
+    const fileExtension = mimeType.split('/')[1] || 'jpg';
+    const fileName = `${campoId}/observaciones/${Date.now()}_${uuidv4()}.${fileExtension}`;
+
+    const { data, error } = await supabase.storage
+      .from('facturas') // Usamos el mismo bucket pero carpeta diferente
+      .upload(fileName, imageBuffer, {
+        contentType: mimeType,
+        upsert: false,
+        cacheControl: '3600',
+      });
+
+    if (error) {
+      console.error('Error subiendo observación a Supabase:', error);
+      return null;
+    }
+
+    const { data: publicUrlData } = supabase.storage
+      .from('facturas')
+      .getPublicUrl(data.path);
+
+    return {
+      url: publicUrlData.publicUrl,
+      fileName: data.path,
+    };
+  } catch (error) {
+    console.error('Error en uploadObservacionToSupabase:', error);
+    return null;
+  }
+}
+
+/**
  * Convierte Buffer a Data URL para Vision API
  */
 export function bufferToDataUrl(buffer: Buffer, mimeType: string): string {

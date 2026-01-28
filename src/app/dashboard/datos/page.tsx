@@ -37,6 +37,7 @@ function obtenerIcono(tipo: string): string {
     COSECHA: '🌾',
     OTROS_LABORES: '🔧',
     DAO: '🔬',
+    OBSERVACION: '📸',
   }
   return iconos[tipo] || '📊'
 }
@@ -63,6 +64,7 @@ function obtenerColor(tipo: string): string {
     TRATAMIENTO: 'pink',
     MOVIMIENTO: 'blue',
     DAO: 'purple',
+    OBSERVACION: 'teal',
   }
   return colores[tipo] || 'gray'
 }
@@ -160,6 +162,12 @@ useEffect(() => {
       items: [
         { value: 'GASTO', label: 'Gasto', icon: '💸' },
         { value: 'INGRESO', label: 'Ingreso', icon: '💰' },
+      ],
+    },
+    {
+      category: 'Otros',
+      items: [
+        { value: 'OBSERVACION', label: 'Observación de Campo', icon: '📸' },
       ],
     },
   ]
@@ -1011,6 +1019,7 @@ useEffect(() => {
 function TarjetaDato({ dato }: { dato: any }) {
   const [showConfirm, setShowConfirm] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [showImage, setShowImage] = useState(false)
   const { refetch } = useDatos()
   
   const formatFecha = (fecha: Date) => {
@@ -1042,6 +1051,7 @@ function TarjetaDato({ dato }: { dato: any }) {
     amber: 'bg-amber-500',
     lime: 'bg-lime-500',
     brown: 'bg-orange-800',
+    teal: 'bg-teal-500',
   }
 
   const handleEliminar = async () => {
@@ -1197,6 +1207,19 @@ function TarjetaDato({ dato }: { dato: any }) {
       )
     }
 
+    // Botón para ver foto adjunta (observaciones)
+    if (dato.imageUrl) {
+      detalles.push(
+        <button
+          key="verFoto"
+          onClick={() => setShowImage(true)}
+          className="bg-teal-50 text-teal-700 px-3 py-1.5 rounded-md border border-teal-200 text-sm font-medium hover:bg-teal-100 transition flex items-center gap-1"
+        >
+          📷 Ver Foto
+        </button>
+      )
+    }
+
     return detalles
   }
 
@@ -1228,6 +1251,7 @@ function TarjetaDato({ dato }: { dato: any }) {
       OTROS_LABORES: 'Otras Labores',
       LLUVIA: 'Lluvia',
       HELADA: 'Helada',
+      OBSERVACION: 'Observación de Campo',
     }
     return nombres[tipo] || tipo.replace(/_/g, ' ')
   }
@@ -1329,6 +1353,34 @@ function TarjetaDato({ dato }: { dato: any }) {
                 {deleting ? 'Eliminando...' : 'Eliminar'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para ver imagen */}
+      {showImage && dato.imageUrl && (
+        <div
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          onClick={() => setShowImage(false)}
+        >
+          <div className="relative max-w-4xl max-h-[90vh] w-full">
+            <button
+              onClick={() => setShowImage(false)}
+              className="absolute -top-12 right-0 text-white hover:text-gray-300 text-xl font-bold bg-black/50 rounded-full w-10 h-10 flex items-center justify-center"
+            >
+              ✕
+            </button>
+            <img
+              src={dato.imageUrl}
+              alt={dato.descripcion || 'Foto de campo'}
+              className="w-full h-auto max-h-[85vh] object-contain rounded-lg shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            />
+            {dato.descripcion && (
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4 rounded-b-lg">
+                <p className="text-white text-center">{dato.descripcion}</p>
+              </div>
+            )}
           </div>
         </div>
       )}
