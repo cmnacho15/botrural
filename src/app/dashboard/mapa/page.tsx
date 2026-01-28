@@ -1000,13 +1000,13 @@ export default function MapaPage() {
                             // Generar el mismo color que en el mapa
                             let colorCultivo = COLORES_CULTIVOS[nombreCombinacion]
                             if (!colorCultivo) {
-                              let hash = 0
-                              for (let i = 0; i < nombreCombinacion.length; i++) {
-                                hash = nombreCombinacion.charCodeAt(i) + ((hash << 5) - hash)
-                              }
-                              const hue = hash % 360
-                              colorCultivo = `hsl(${hue}, 70%, 50%)`
-                            }
+  let hash = 0
+  for (let i = 0; i < nombreCombinacion.length; i++) {
+    hash = nombreCombinacion.charCodeAt(i) + ((hash << 5) - hash)
+  }
+  const hue = hash % 360
+  colorCultivo = `hsl(${hue}, 75%, 45%)`  // Más saturado y oscuro
+}
                             
                             // 🔥 Obtener potreros con este cultivo
 const potrerosConEsteCultivo = lotes.filter(lote => {
@@ -1090,13 +1090,13 @@ return (
                                           .join(' + ')
                                         let colorCultivo = COLORES_CULTIVOS[nombreCombinacion]
                                         if (!colorCultivo) {
-                                          let hash = 0
-                                          for (let i = 0; i < nombreCombinacion.length; i++) {
-                                            hash = nombreCombinacion.charCodeAt(i) + ((hash << 5) - hash)
-                                          }
-                                          const hue = hash % 360
-                                          colorCultivo = `hsl(${hue}, 70%, 50%)`
-                                        }
+  let hash = 0
+  for (let i = 0; i < nombreCombinacion.length; i++) {
+    hash = nombreCombinacion.charCodeAt(i) + ((hash << 5) - hash)
+  }
+  const hue = hash % 360
+  colorCultivo = `hsl(${hue}, 75%, 45%)`  // Más saturado y oscuro
+}
                                         return colorCultivo
                                       })()
                                     : COLORES_CULTIVOS['Natural']
