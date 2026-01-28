@@ -320,7 +320,7 @@ export default function MapaPage() {
               hash = nombreCombinacion.charCodeAt(i) + ((hash << 5) - hash)
             }
             const hue = hash % 360
-            color = `hsl(${hue}, 70%, 50%)`
+            color = `hsl(${hue}, 75%, 45%)`
           } else {
             color = COLORES_CULTIVOS[nombreCombinacion]
           }
@@ -394,7 +394,7 @@ export default function MapaPage() {
           hash = tipo.charCodeAt(i) + ((hash << 5) - hash)
         }
         const hue = hash % 360
-        color = `hsl(${hue}, 70%, 50%)`
+        color = `hsl(${hue}, 75%, 45%)`
       }
       return { tipo, hectareas, color }
     }),
