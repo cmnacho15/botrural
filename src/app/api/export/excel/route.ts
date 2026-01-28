@@ -1002,6 +1002,7 @@ export async function POST(request: Request) {
       const sheet = workbook.addWorksheet('Gastos e Ingresos')
       const columnas = [
         { header: 'Fecha', key: 'fecha', width: 12 },
+        { header: 'Cotiz. USD Día Ant', key: 'cotizacion', width: 18 },
         { header: 'Tipo', key: 'tipo', width: 12 },
         { header: 'Origen', key: 'origen', width: 12 },
         { header: 'Descripción', key: 'descripcion', width: 35 },
@@ -1044,11 +1045,26 @@ export async function POST(request: Request) {
         return fechaA - fechaB
       })
 
+      // Pre-cargar cotizaciones para todas las fechas únicas de gastos
+      const fechasUnicasGastos = new Set<string>()
+      gastosOrdenados.forEach(g => {
+        const diaAnterior = getDiaAnterior(new Date(g.fecha))
+        fechasUnicasGastos.add(diaAnterior.toISOString().split('T')[0])
+      })
+
+      const cotizacionesCacheGastos: Map<string, number | null> = new Map()
+      for (const fechaStr of fechasUnicasGastos) {
+        const fecha = new Date(fechaStr + 'T12:00:00')
+        const result = await getCotizacionDiaAnterior(new Date(fecha.getTime() + 86400000))
+        cotizacionesCacheGastos.set(fechaStr, result.valor)
+        await new Promise(resolve => setTimeout(resolve, 150))
+      }
+
       let rowNum = 2
       let grupoIndex = 0
       let grupoAnterior = ''
 
-      gastosOrdenados.forEach((g) => {
+      for (const g of gastosOrdenados) {
         const grupoActual = getGrupoKey(g)
         const esPrimerDelGrupo = grupoActual !== grupoAnterior
 
@@ -1084,8 +1100,17 @@ export async function POST(request: Request) {
         const esVenta = g.categoria?.startsWith('Venta de') || g.descripcion?.startsWith('Venta de')
         const origen = esVenta ? 'Venta' : (g.tipo === 'INGRESO' ? 'Otro' : 'Compra')
 
+        // Obtener cotización del día anterior
+        const diaAnteriorGasto = getDiaAnterior(new Date(g.fecha))
+        const fechaCotizKeyGasto = diaAnteriorGasto.toISOString().split('T')[0]
+        const cotizacionGasto = cotizacionesCacheGastos.get(fechaCotizKeyGasto)
+        const cotizacionStrGasto = cotizacionGasto !== null && cotizacionGasto !== undefined
+          ? cotizacionGasto.toLocaleString('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+          : 'N/D'
+
         const row = sheet.addRow({
           fecha: formatearFecha(g.fecha),
+          cotizacion: esPrimerDelGrupo ? cotizacionStrGasto : '',
           tipo: g.tipo === 'INGRESO' ? 'Ingreso' : 'Gasto',
           origen: origen,
           descripcion: g.descripcion || '',
@@ -1108,20 +1133,20 @@ export async function POST(request: Request) {
           cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: colorFondo } }
         })
 
-        // Agregar link a la factura solo en el primer renglón del grupo
+        // Agregar link a la factura solo en el primer renglón del grupo (columna Q ahora)
         if (esPrimerDelGrupo && g.imageUrl) {
-          const cell = sheet.getCell(`P${rowNum}`)
+          const cell = sheet.getCell(`Q${rowNum}`)
           cell.value = { text: '📎 Ver', hyperlink: g.imageUrl } as any
           cell.font = { color: { argb: 'FF0066CC' }, underline: true }
         }
 
         rowNum++
-      })
+      }
 
       aplicarEstiloEncabezado(sheet.getRow(1))
       // NO usar aplicarEstiloDatos porque sobrescribe los colores personalizados
       autoAjustarColumnas(sheet, columnas)
-      sheet.autoFilter = { from: 'A1', to: 'P1' }
+      sheet.autoFilter = { from: 'A1', to: 'Q1' }
     }
 
     // ========================================
