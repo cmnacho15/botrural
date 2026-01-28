@@ -35,6 +35,7 @@ const categoriaPorTipo: Record<string, string> = {
   HELADA: 'clima',
   GASTO: 'finanzas',
   INGRESO: 'finanzas',
+  OBSERVACION: 'otros',
 }
 
 const iconoPorTipo: Record<string, string> = {
@@ -65,6 +66,7 @@ const iconoPorTipo: Record<string, string> = {
   HELADA: '❄️',
   GASTO: '💸',
   INGRESO: '💰',
+  OBSERVACION: '📸',
 }
 
 // ==============================================
@@ -201,6 +203,7 @@ eventos
       monto: evento.monto,
       caravana: evento.caravana || null,
       notas: evento.notas && typeof evento.notas === 'string' && evento.notas.trim() !== '' ? evento.notas : null,
+      imageUrl: evento.imageUrl || null,
     })
   })
 
