@@ -3,7 +3,7 @@
 // Se ejecuta via Vercel Cron o manualmente
 
 import { NextResponse } from "next/server"
-import { processQueue, getQueueStats, isQueueEnabled, QueuedMessage } from "@/lib/redis-queue"
+import { processQueue, getQueueStats, isQueueEnabled, clearQueue, QueuedMessage } from "@/lib/redis-queue"
 
 // Importar la función de procesamiento del webhook
 import { processWhatsAppMessage } from "@/lib/whatsapp/processor"
@@ -78,6 +78,35 @@ export async function POST(request: Request) {
     console.error("❌ [WORKER] Error procesando cola:", error)
     return NextResponse.json(
       { error: "Error procesando cola" },
+      { status: 500 }
+    )
+  }
+}
+
+/**
+ * DELETE - Limpiar todos los mensajes de la cola
+ * Útil para eliminar mensajes obsoletos/stale
+ */
+export async function DELETE() {
+  if (!isQueueEnabled()) {
+    return NextResponse.json({
+      cleared: 0,
+      message: "Queue no habilitado"
+    })
+  }
+
+  try {
+    const result = await clearQueue()
+    const stats = await getQueueStats()
+
+    return NextResponse.json({
+      ...result,
+      stats
+    })
+  } catch (error) {
+    console.error("❌ [WORKER] Error limpiando cola:", error)
+    return NextResponse.json(
+      { error: "Error limpiando cola" },
       { status: 500 }
     )
   }

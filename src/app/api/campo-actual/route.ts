@@ -1,3 +1,4 @@
+//src/app/api/campo-actual/route.ts
 import { NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth-helpers'
 import { prisma } from '@/lib/prisma'

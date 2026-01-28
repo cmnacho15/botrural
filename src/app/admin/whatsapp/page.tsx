@@ -47,6 +47,7 @@ export default function WhatsAppPage() {
   const [waStats, setWaStats] = useState<WhatsAppStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [processing, setProcessing] = useState(false)
+  const [clearing, setClearing] = useState(false)
 
   useEffect(() => {
     fetchAllStats()
@@ -99,6 +100,26 @@ export default function WhatsAppPage() {
     }
   }
 
+  async function clearQueueManually() {
+    if (!confirm('¿Estás seguro de limpiar la cola? Se eliminarán todos los mensajes pendientes.')) {
+      return
+    }
+    setClearing(true)
+    try {
+      const res = await fetch('/api/bot-worker', { method: 'DELETE' })
+      if (res.ok) {
+        const data = await res.json()
+        alert(`Limpiados: ${data.cleared} mensajes`)
+        await fetchQueueStats()
+      }
+    } catch (error) {
+      console.error('Error clearing queue:', error)
+      alert('Error limpiando cola')
+    } finally {
+      setClearing(false)
+    }
+  }
+
   function formatTimeAgo(timestamp: number): string {
     const seconds = Math.floor((Date.now() - timestamp) / 1000)
     if (seconds < 60) return 'hace segundos'
@@ -137,19 +158,34 @@ export default function WhatsAppPage() {
           <h2 className="text-lg font-semibold text-white flex items-center gap-2">
             📬 Cola de Mensajes (Upstash Redis)
           </h2>
-          <button
-            onClick={processQueueManually}
-            disabled={processing || !queueStats?.enabled}
-            className="px-4 py-2 bg-green-600 hover:bg-green-500 disabled:bg-gray-600 text-white rounded-lg transition flex items-center gap-2"
-          >
-            {processing ? (
-              <>
-                <span className="animate-spin">⏳</span> Procesando...
-              </>
-            ) : (
-              <>⚡ Procesar Cola</>
-            )}
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={clearQueueManually}
+              disabled={clearing || !queueStats?.enabled || (queueStats?.stats?.pending ?? 0) === 0}
+              className="px-4 py-2 bg-red-600 hover:bg-red-500 disabled:bg-gray-600 text-white rounded-lg transition flex items-center gap-2"
+            >
+              {clearing ? (
+                <>
+                  <span className="animate-spin">⏳</span> Limpiando...
+                </>
+              ) : (
+                <>🗑️ Limpiar Cola</>
+              )}
+            </button>
+            <button
+              onClick={processQueueManually}
+              disabled={processing || !queueStats?.enabled}
+              className="px-4 py-2 bg-green-600 hover:bg-green-500 disabled:bg-gray-600 text-white rounded-lg transition flex items-center gap-2"
+            >
+              {processing ? (
+                <>
+                  <span className="animate-spin">⏳</span> Procesando...
+                </>
+              ) : (
+                <>⚡ Procesar Cola</>
+              )}
+            </button>
+          </div>
         </div>
 
         {queueStats ? (

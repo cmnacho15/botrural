@@ -1,3 +1,4 @@
+//src/app/api/ventas/route
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { requireAuth, canAccessFinanzas, canWriteFinanzas } from "@/lib/auth-helpers"

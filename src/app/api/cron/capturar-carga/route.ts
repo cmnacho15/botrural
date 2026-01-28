@@ -1,3 +1,4 @@
+//src/app/api/cron/capturar-carga/route.ts
 import { NextResponse } from 'next/server'
 import { capturarCargaDiaria } from '@/lib/historico/capturarCargaDiaria'
 
