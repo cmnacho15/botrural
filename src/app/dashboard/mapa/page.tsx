@@ -1021,28 +1021,25 @@ const potrerosConEsteCultivo = lotes.filter(lote => {
 })
 
 return (
-<div key={nombreCombinacion} className="space-y-2">
-  <button
-    onClick={() => setCultivoSeleccionado(cultivoSeleccionado === nombreCombinacion ? null : nombreCombinacion)}
-    className={`w-full flex items-center justify-between p-2.5 sm:p-3 rounded-lg border-2 transition ${
-      cultivoSeleccionado === nombreCombinacion ? 'border-blue-500' : 'border-gray-200'
-    }`}
-    style={{ backgroundColor: `${colorCultivo}20` }}
-  >
-    <div className="flex items-center gap-2.5 sm:gap-3">
-      <div className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded" style={{ backgroundColor: colorCultivo }} />
-      <span className="font-medium text-gray-900 text-xs sm:text-sm">{nombreCombinacion}</span>
-      <span className="text-[11px] sm:text-xs text-gray-500">({hectareas.toFixed(1)} ha)</span>
-    </div>
-  </button>
-  
-  {potrerosConEsteCultivo.map(lote => (
-    <div key={lote.id} className="ml-7 flex justify-between text-[11px] sm:text-xs text-gray-600 px-2 py-1 bg-white/50 rounded">
-      <span>{lote.nombre}</span>
-      <span className="text-gray-500">({lote.hectareas.toFixed(0)} ha)</span>
-    </div>
-  ))}
-</div>
+<button
+  key={nombreCombinacion}
+  onClick={() => setCultivoSeleccionado(cultivoSeleccionado === nombreCombinacion ? null : nombreCombinacion)}
+  className={`w-full p-3 sm:p-4 rounded-lg border-2 transition text-left ${
+    cultivoSeleccionado === nombreCombinacion ? 'border-blue-500' : 'border-gray-200'
+  }`}
+  style={{ backgroundColor: `${colorCultivo}20` }}
+>
+  <div className="font-semibold text-gray-900 text-sm sm:text-base mb-2">
+    {nombreCombinacion} ({hectareas.toFixed(1)} ha)
+  </div>
+  <div className="text-[11px] sm:text-xs text-gray-600 leading-relaxed">
+    {potrerosConEsteCultivo.map((lote, idx) => (
+      <span key={lote.id}>
+        {lote.nombre} ({lote.hectareas.toFixed(0)} ha){idx < potrerosConEsteCultivo.length - 1 ? ', ' : ''}
+      </span>
+    ))}
+  </div>
+</button>
 )
                           },
                         )}
