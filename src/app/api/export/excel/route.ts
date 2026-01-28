@@ -1184,10 +1184,10 @@ export async function POST(request: Request) {
         tituloRow.height = 25
         startRow++
 
-        // Encabezados de columna (incluye Cotiz. USD después de Fecha)
+        // Encabezados de columna (incluye Cotiz. USD Día Ant después de Fecha)
         const headers = tipoProducto === 'LANA'
-          ? ['Fecha', 'Cotiz. USD', 'Nº Factura', 'Firma', 'Comprador', 'Consignatario', 'Categoría', 'Peso kg', '$/kg', 'Subtotal USD', 'IMEBA', 'INIA', 'MEVIR', 'Comisión', 'IVA', 'Otros', 'Total Imp', 'Neto USD', 'Ver Factura']
-          : ['Fecha', 'Cotiz. USD', 'Nº Factura', 'Firma', 'Comprador', 'Consignatario', 'Categoría', 'Cant', 'Peso kg', '$/kg', 'Subtotal USD', 'IMEBA', 'INIA', 'MEVIR', 'Comisión', 'IVA', 'Otros', 'Neto USD', 'Ver Factura']
+          ? ['Fecha', 'Cotiz. USD Día Ant', 'Nº Factura', 'Firma', 'Comprador', 'Consignatario', 'Categoría', 'Peso kg', '$/kg', 'Subtotal USD', 'IMEBA', 'INIA', 'MEVIR', 'Comisión', 'IVA', 'Otros', 'Total Imp', 'Neto USD', 'Ver Factura']
+          : ['Fecha', 'Cotiz. USD Día Ant', 'Nº Factura', 'Firma', 'Comprador', 'Consignatario', 'Categoría', 'Cant', 'Peso kg', '$/kg', 'Subtotal USD', 'IMEBA', 'INIA', 'MEVIR', 'Comisión', 'IVA', 'Otros', 'Neto USD', 'Ver Factura']
 
         const headerRow = sheet.getRow(startRow)
         headers.forEach((h, i) => {
@@ -1430,7 +1430,7 @@ export async function POST(request: Request) {
 
       // Ajustar anchos de columna
       sheet.getColumn(1).width = 12  // Fecha
-      sheet.getColumn(2).width = 12  // Cotiz. USD
+      sheet.getColumn(2).width = 18  // Cotiz. USD Día Ant
       sheet.getColumn(3).width = 14  // Nº Factura
       sheet.getColumn(4).width = 22  // Firma
       sheet.getColumn(5).width = 22  // Comprador
