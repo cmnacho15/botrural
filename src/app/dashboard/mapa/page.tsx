@@ -320,7 +320,7 @@ export default function MapaPage() {
               hash = nombreCombinacion.charCodeAt(i) + ((hash << 5) - hash)
             }
             const hue = hash % 360
-            color = `hsl(${hue}, 75%, 45%)`
+            color = `hsl(${hue}, 70%, 50%)`
           } else {
             color = COLORES_CULTIVOS[nombreCombinacion]
           }
@@ -394,7 +394,7 @@ export default function MapaPage() {
           hash = tipo.charCodeAt(i) + ((hash << 5) - hash)
         }
         const hue = hash % 360
-        color = `hsl(${hue}, 75%, 45%)`
+        color = `hsl(${hue}, 70%, 50%)`
       }
       return { tipo, hectareas, color }
     }),
@@ -986,7 +986,7 @@ export default function MapaPage() {
                       <h3 className="text-xs sm:text-sm font-semibold text-gray-700 mb-2 sm:mb-3">
                         🌾 Resumen de cultivos
                       </h3>
-                      <div className="space-y-3">
+                      <div className="space-y-2">
                         {[
                           ...Object.entries(resumenCultivos),
                           // Agregar potreros "Natural" si existen
@@ -1000,47 +1000,38 @@ export default function MapaPage() {
                             // Generar el mismo color que en el mapa
                             let colorCultivo = COLORES_CULTIVOS[nombreCombinacion]
                             if (!colorCultivo) {
-  let hash = 0
-  for (let i = 0; i < nombreCombinacion.length; i++) {
-    hash = nombreCombinacion.charCodeAt(i) + ((hash << 5) - hash)
-  }
-  const hue = hash % 360
-  colorCultivo = `hsl(${hue}, 75%, 45%)`  // Más saturado y oscuro
-}
+                              let hash = 0
+                              for (let i = 0; i < nombreCombinacion.length; i++) {
+                                hash = nombreCombinacion.charCodeAt(i) + ((hash << 5) - hash)
+                              }
+                              const hue = hash % 360
+                              colorCultivo = `hsl(${hue}, 70%, 50%)`
+                            }
                             
-                            // 🔥 Obtener potreros con este cultivo
-const potrerosConEsteCultivo = lotes.filter(lote => {
-  if (nombreCombinacion === 'Natural') {
-    return !lote.cultivos || lote.cultivos.length === 0
-  }
-  if (lote.cultivos && lote.cultivos.length > 0) {
-    const combinacion = lote.cultivos.map(c => c.tipoCultivo).sort().join(' + ')
-    return combinacion === nombreCombinacion
-  }
-  return false
-})
-
-return (
-<button
-  key={nombreCombinacion}
-  onClick={() => setCultivoSeleccionado(cultivoSeleccionado === nombreCombinacion ? null : nombreCombinacion)}
-  className={`w-full p-3 sm:p-4 rounded-lg border-2 transition text-left ${
-    cultivoSeleccionado === nombreCombinacion ? 'border-blue-500' : 'border-gray-200'
-  }`}
-  style={{ backgroundColor: `${colorCultivo}20` }}
->
-  <div className="font-semibold text-gray-900 text-sm sm:text-base mb-2">
-    {nombreCombinacion} ({hectareas.toFixed(1)} ha)
-  </div>
-  <div className="text-[11px] sm:text-xs text-gray-600 leading-relaxed">
-    {potrerosConEsteCultivo.map((lote, idx) => (
-      <span key={lote.id}>
-        {lote.nombre} ({lote.hectareas.toFixed(0)} ha){idx < potrerosConEsteCultivo.length - 1 ? ', ' : ''}
-      </span>
-    ))}
-  </div>
-</button>
-)
+                            return (
+                            <div
+                              key={nombreCombinacion}
+                              className="flex items-center justify-between p-2.5 sm:p-3 rounded-lg border border-gray-200 hover:bg-gray-100 transition"
+                              style={{
+                                backgroundColor: `${colorCultivo}20`,
+                              }}
+                            >
+                              <div className="flex items-center gap-2.5 sm:gap-3">
+                                <div
+                                  className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded"
+                                  style={{
+                                    backgroundColor: colorCultivo,
+                                  }}
+                                />
+                                <span className="font-medium text-gray-900 text-xs sm:text-sm">
+                                  {nombreCombinacion}
+                                </span>
+                                <span className="text-[11px] sm:text-xs text-gray-500">
+                                  ({hectareas.toFixed(1)} ha)
+                                </span>
+                              </div>
+                            </div>
+                            )
                           },
                         )}
                       </div>
@@ -1090,13 +1081,13 @@ return (
                                           .join(' + ')
                                         let colorCultivo = COLORES_CULTIVOS[nombreCombinacion]
                                         if (!colorCultivo) {
-  let hash = 0
-  for (let i = 0; i < nombreCombinacion.length; i++) {
-    hash = nombreCombinacion.charCodeAt(i) + ((hash << 5) - hash)
-  }
-  const hue = hash % 360
-  colorCultivo = `hsl(${hue}, 75%, 45%)`  // Más saturado y oscuro
-}
+                                          let hash = 0
+                                          for (let i = 0; i < nombreCombinacion.length; i++) {
+                                            hash = nombreCombinacion.charCodeAt(i) + ((hash << 5) - hash)
+                                          }
+                                          const hue = hash % 360
+                                          colorCultivo = `hsl(${hue}, 70%, 50%)`
+                                        }
                                         return colorCultivo
                                       })()
                                     : COLORES_CULTIVOS['Natural']
