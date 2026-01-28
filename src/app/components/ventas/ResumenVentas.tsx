@@ -1,3 +1,4 @@
+//src/app/components/ventas/resumenventas.tsx
 'use client'
 
 import { useState } from 'react'

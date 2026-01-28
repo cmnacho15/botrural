@@ -47,6 +47,7 @@ export async function requireAuth() {
 
 /**
  * 📘 Puede acceder a finanzas:
+ * MEGA_ADMIN (Super Admin - acceso total)
  * ADMIN_GENERAL
  * COLABORADOR (si accesoFinanzas = true)
  * CONTADOR
@@ -54,6 +55,7 @@ export async function requireAuth() {
 export function canAccessFinanzas(user: any) {
   if (!user) return false
 
+  if (user.role === Role.MEGA_ADMIN) return true
   if (user.role === Role.ADMIN_GENERAL) return true
   if (user.role === Role.CONTADOR) return true
   if (user.role === Role.COLABORADOR && user.accesoFinanzas === true) return true
@@ -63,12 +65,14 @@ export function canAccessFinanzas(user: any) {
 
 /**
  * ✏️ Puede escribir finanzas:
+ * MEGA_ADMIN (Super Admin - acceso total)
  * ADMIN_GENERAL
  * COLABORADOR con accesoFinanzas=true
  */
 export function canWriteFinanzas(user: any) {
   if (!user) return false
 
+  if (user.role === Role.MEGA_ADMIN) return true
   if (user.role === Role.ADMIN_GENERAL) return true
   if (user.role === Role.COLABORADOR && user.accesoFinanzas === true) return true
 

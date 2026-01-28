@@ -1,3 +1,4 @@
+//src/app/components/ventas/tablaventasgranos.tsx
 'use client'
 
 import { useState, useEffect } from 'react'

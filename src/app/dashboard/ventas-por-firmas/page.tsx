@@ -293,40 +293,64 @@ export default function VentasPorFirmasPage() {
                           </span>
 
                           {/* Botón asignar firma (solo para ventas sin asignar) */}
-                          {!firma.firmaId && (
-                            <div className="relative">
-                              <button
-                                onClick={() => setEditandoVenta(editandoVenta === venta.id ? null : venta.id)}
-                                className="px-1.5 py-1 text-xs border-y bg-blue-50 border-blue-200 text-blue-600 hover:bg-blue-100 transition"
-                                title="Asignar firma"
-                              >
-                                ✏️
-                              </button>
+{!firma.firmaId && (
+  <>
+    <button
+      onClick={(e) => {
+        e.stopPropagation()
+        setEditandoVenta(editandoVenta === venta.id ? null : venta.id)
+      }}
+      className="px-1.5 py-1 text-xs border-y bg-blue-50 border-blue-200 text-blue-600 hover:bg-blue-100 transition relative z-10"
+      title="Asignar firma"
+    >
+      ✏️
+    </button>
 
-                              {/* Dropdown de firmas */}
-                              {editandoVenta === venta.id && (
-                                <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-gray-300 rounded-lg shadow-lg min-w-[200px] max-h-48 overflow-y-auto">
-                                  {firmas.length === 0 ? (
-                                    <div className="px-3 py-2 text-sm text-gray-500">
-                                      No hay firmas configuradas
-                                    </div>
-                                  ) : (
-                                    firmas.map((f) => (
-                                      <button
-                                        key={f.id}
-                                        onClick={() => asignarFirma(venta.id, f.id)}
-                                        disabled={guardando}
-                                        className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 transition disabled:opacity-50"
-                                      >
-                                        <div className="font-medium text-gray-900">{f.razonSocial}</div>
-                                        <div className="text-xs text-gray-500">{f.rut}</div>
-                                      </button>
-                                    ))
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          )}
+    {/* Dropdown de firmas - Fixed overlay */}
+    {editandoVenta === venta.id && (
+      <>
+        {/* Backdrop para cerrar */}
+        <div 
+          className="fixed inset-0 z-[60]"
+          onClick={() => setEditandoVenta(null)}
+        />
+        
+        {/* Dropdown */}
+        <div className="fixed z-[70] bg-white border-2 border-blue-300 rounded-lg shadow-2xl w-72 max-h-80 overflow-y-auto"
+          style={{
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+          }}
+        >
+          <div className="sticky top-0 bg-blue-50 px-3 py-2 border-b border-blue-200">
+            <p className="text-xs font-semibold text-blue-900">Seleccionar Firma</p>
+          </div>
+          
+          {firmas.length === 0 ? (
+            <div className="px-4 py-6 text-center text-sm text-gray-500">
+              No hay firmas configuradas
+            </div>
+          ) : (
+            <div className="py-1">
+              {firmas.map((f) => (
+                <button
+                  key={f.id}
+                  onClick={() => asignarFirma(venta.id, f.id)}
+                  disabled={guardando}
+                  className="w-full text-left px-4 py-3 text-sm hover:bg-blue-50 transition disabled:opacity-50 border-b border-gray-100 last:border-b-0"
+                >
+                  <div className="font-semibold text-gray-900 mb-0.5">{f.razonSocial}</div>
+                  <div className="text-xs text-gray-500 font-mono">{f.rut}</div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </>
+    )}
+  </>
+)}
 
                           {/* Botón ver imagen */}
                           {venta.imageUrl ? (

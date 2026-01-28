@@ -3,6 +3,19 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 
+interface QueueStats {
+  enabled: boolean
+  stats?: {
+    pending: number
+    processing: number
+    processedToday: number
+    errorsLast24h: number
+    avgProcessingTime: number
+    lastMessageAt: number | null
+  }
+  message?: string
+}
+
 interface Stats {
   overview: {
     totalUsers: number
@@ -35,10 +48,12 @@ interface Stats {
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState<Stats | null>(null)
+  const [queueStats, setQueueStats] = useState<QueueStats | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     fetchStats()
+    fetchQueueStats()
   }, [])
 
   async function fetchStats() {
@@ -52,6 +67,31 @@ export default function AdminDashboard() {
       console.error('Error:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function fetchQueueStats() {
+    try {
+      const res = await fetch('/api/bot-worker')
+      if (res.ok) {
+        const data = await res.json()
+        setQueueStats(data)
+      }
+    } catch (error) {
+      console.error('Error fetching queue stats:', error)
+    }
+  }
+
+  async function processQueueManually() {
+    try {
+      const res = await fetch('/api/bot-worker', { method: 'POST' })
+      if (res.ok) {
+        const data = await res.json()
+        alert(`Procesados: ${data.processed} mensajes`)
+        fetchQueueStats()
+      }
+    } catch (error) {
+      console.error('Error processing queue:', error)
     }
   }
 
@@ -72,6 +112,15 @@ export default function AdminDashboard() {
     TACTO: 'Tactos',
     LLUVIA: 'Lluvias',
     GASTO: 'Gastos'
+  }
+
+  function formatTimeAgo(timestamp: number): string {
+    const seconds = Math.floor((Date.now() - timestamp) / 1000)
+
+    if (seconds < 60) return 'hace segundos'
+    if (seconds < 3600) return `hace ${Math.floor(seconds / 60)} min`
+    if (seconds < 86400) return `hace ${Math.floor(seconds / 3600)}h`
+    return `hace ${Math.floor(seconds / 86400)}d`
   }
 
   if (loading) {
@@ -160,6 +209,111 @@ export default function AdminDashboard() {
           icon="💸"
           color="rose"
         />
+      </div>
+
+      {/* Queue Stats - WhatsApp */}
+      <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+            📬 Cola de Mensajes WhatsApp (Redis)
+          </h2>
+          <div className="flex gap-2">
+            <button
+              onClick={fetchQueueStats}
+              className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-white text-sm rounded-lg transition"
+            >
+              🔄 Actualizar
+            </button>
+            <button
+              onClick={processQueueManually}
+              className="px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white text-sm rounded-lg transition"
+            >
+              ⚡ Procesar Cola
+            </button>
+          </div>
+        </div>
+
+        {queueStats ? (
+          <>
+            {/* Primera fila: Estado actual */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+              <div className={`p-4 rounded-lg ${queueStats.enabled ? 'bg-green-500/20 border border-green-500/30' : 'bg-red-500/20 border border-red-500/30'}`}>
+                <p className="text-gray-400 text-sm">Estado</p>
+                <p className={`text-xl font-bold ${queueStats.enabled ? 'text-green-400' : 'text-red-400'}`}>
+                  {queueStats.enabled ? '✅ Activo' : '❌ Desactivado'}
+                </p>
+              </div>
+
+              <div className="p-4 rounded-lg bg-blue-500/20 border border-blue-500/30">
+                <p className="text-gray-400 text-sm">Pendientes</p>
+                <p className="text-xl font-bold text-blue-400">
+                  {queueStats.stats?.pending ?? 0}
+                </p>
+              </div>
+
+              <div className="p-4 rounded-lg bg-amber-500/20 border border-amber-500/30">
+                <p className="text-gray-400 text-sm">Procesando</p>
+                <p className="text-xl font-bold text-amber-400">
+                  {queueStats.stats?.processing ?? 0}
+                </p>
+              </div>
+
+              <div className="p-4 rounded-lg bg-gray-700/50 border border-gray-600">
+                <p className="text-gray-400 text-sm">Proveedor</p>
+                <p className="text-xl font-bold text-white">
+                  Upstash Redis
+                </p>
+              </div>
+            </div>
+
+            {/* Segunda fila: Métricas de rendimiento */}
+            {queueStats.enabled && (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="p-4 rounded-lg bg-purple-500/20 border border-purple-500/30">
+                  <p className="text-gray-400 text-sm">Procesados hoy</p>
+                  <p className="text-xl font-bold text-purple-400">
+                    {queueStats.stats?.processedToday ?? 0}
+                  </p>
+                </div>
+
+                <div className={`p-4 rounded-lg ${(queueStats.stats?.errorsLast24h ?? 0) > 0 ? 'bg-red-500/20 border border-red-500/30' : 'bg-emerald-500/20 border border-emerald-500/30'}`}>
+                  <p className="text-gray-400 text-sm">Errores (24h)</p>
+                  <p className={`text-xl font-bold ${(queueStats.stats?.errorsLast24h ?? 0) > 0 ? 'text-red-400' : 'text-emerald-400'}`}>
+                    {queueStats.stats?.errorsLast24h ?? 0}
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-lg bg-cyan-500/20 border border-cyan-500/30">
+                  <p className="text-gray-400 text-sm">Tiempo promedio</p>
+                  <p className="text-xl font-bold text-cyan-400">
+                    {queueStats.stats?.avgProcessingTime
+                      ? `${(queueStats.stats.avgProcessingTime / 1000).toFixed(1)}s`
+                      : '—'}
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-lg bg-indigo-500/20 border border-indigo-500/30">
+                  <p className="text-gray-400 text-sm">Último mensaje</p>
+                  <p className="text-xl font-bold text-indigo-400">
+                    {queueStats.stats?.lastMessageAt
+                      ? formatTimeAgo(queueStats.stats.lastMessageAt)
+                      : '—'}
+                  </p>
+                </div>
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="text-gray-400 text-center py-4">
+            Cargando estadísticas de la cola...
+          </div>
+        )}
+
+        {queueStats && !queueStats.enabled && (
+          <p className="text-gray-500 text-sm mt-3">
+            {queueStats.message || 'La cola no está configurada. Los mensajes se procesan sincrónicamente.'}
+          </p>
+        )}
       </div>
 
       {/* Contenido en columnas */}

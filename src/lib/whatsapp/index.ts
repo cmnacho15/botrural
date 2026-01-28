@@ -56,3 +56,6 @@ export {
   handlePagoButtonResponse,
   handlePagoTextResponse,
 } from './handlers/pagoHandler'
+
+// Processor (para el worker)
+export { processWhatsAppMessage } from './processor'

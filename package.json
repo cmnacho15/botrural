@@ -16,6 +16,7 @@
     "@supabase/supabase-js": "^2.84.0",
     "@turf/area": "^7.3.1",
     "@turf/turf": "^7.3.1",
+    "@upstash/redis": "^1.36.1",
     "@vercel/og": "^0.8.6",
     "bcryptjs": "^3.0.3",
     "date-fns": "^4.1.0",
