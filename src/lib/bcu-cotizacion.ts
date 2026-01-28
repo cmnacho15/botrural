@@ -30,21 +30,22 @@ export function getDiaAnterior(fecha: Date): Date {
  * Construye el XML SOAP para la consulta al BCU
  */
 function buildSoapRequest(fechaDesde: string, fechaHasta: string): string {
-  return `<?xml version="1.0" encoding="utf-8"?>
-<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
-  <soap:Body>
-    <wsawsbcucotizaciones.Execute xmlns="WSCOTIZACIONES">
-      <Entrada>
-        <Moneda>
-          <item>${CODIGO_DOLAR}</item>
-        </Moneda>
-        <FechaDesde>${fechaDesde}</FechaDesde>
-        <FechaHasta>${fechaHasta}</FechaHasta>
-        <Grupo>0</Grupo>
-      </Entrada>
-    </wsawsbcucotizaciones.Execute>
-  </soap:Body>
-</soap:Envelope>`
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cot="Cotiza">
+<soapenv:Header />
+<soapenv:Body>
+<cot:wsbcucotizaciones.Execute>
+<cot:Entrada>
+<cot:Moneda>
+<cot:item>${CODIGO_DOLAR}</cot:item>
+</cot:Moneda>
+<cot:FechaDesde>${fechaDesde}</cot:FechaDesde>
+<cot:FechaHasta>${fechaHasta}</cot:FechaHasta>
+<cot:Grupo>2</cot:Grupo>
+</cot:Entrada>
+</cot:wsbcucotizaciones.Execute>
+</soapenv:Body>
+</soapenv:Envelope>`
 }
 
 /**
@@ -78,6 +79,7 @@ export async function getCotizacionDolar(fecha: Date): Promise<number | null> {
       method: 'POST',
       headers: {
         'Content-Type': 'text/xml; charset=utf-8',
+        'SOAPAction': '',
       },
       body: soapRequest,
       signal: AbortSignal.timeout(15000), // 15 segundos timeout
