@@ -45,6 +45,10 @@ export async function solicitarConfirmacion(phone: string, data: any) {
       // TRATAMIENTO ahora se maneja con su propio handler
       // No hacer nada aquí, el bot-webhook ya llamó a handleTratamiento
       return
+    case "MANEJO":
+      // Mostrar la descripción tal como la escribió el usuario
+      mensaje += `🔧 *Manejo:* ${data.descripcion}`
+      break
     case "CONSUMO":
       mensaje += `*Consumo*\n• Cantidad: ${data.cantidad} ${data.categoria}`
       if (data.potrero) mensaje += `\n• Potrero: ${data.potrero}`
@@ -523,7 +527,7 @@ async function handleDataEntry(data: any) {
   } else if (data.tipo === "LLUVIA") {
     // 🔥 FIX: usar milimetros (no cantidad)
     const milimetros = data.milimetros || data.cantidad || 0
-    
+
     await prisma.evento.create({
       data: {
         tipo: "LLUVIA",
@@ -532,6 +536,8 @@ async function handleDataEntry(data: any) {
         cantidad: milimetros,  // Guardamos en cantidad para compatibilidad
         usuarioId: user.id,
         campoId: user.campoId,
+        imageUrl: data.imageUrl || null,
+        metadata: data.conFoto ? { imageName: data.imageName, conFoto: true } : undefined,
       },
     })
   } else if (data.tipo === "NACIMIENTO") {
@@ -565,6 +571,8 @@ async function handleDataEntry(data: any) {
         loteId,
         usuarioId: user.id,
         campoId: user.campoId,
+        imageUrl: data.imageUrl || null,
+        metadata: data.conFoto ? { imageName: data.imageName, conFoto: true } : undefined,
       },
     })
 
@@ -617,6 +625,8 @@ async function handleDataEntry(data: any) {
         loteId,
         usuarioId: user.id,
         campoId: user.campoId,
+        imageUrl: data.imageUrl || null,
+        metadata: data.conFoto ? { imageName: data.imageName, conFoto: true } : undefined,
       },
     })
 
@@ -681,10 +691,43 @@ async function handleDataEntry(data: any) {
         loteId,
         usuarioId: user.id,
         campoId: user.campoId,
+        imageUrl: data.imageUrl || null,
+        metadata: data.conFoto ? { imageName: data.imageName, conFoto: true } : undefined,
       },
     })
 
     console.log("✅ Tratamiento guardado:", descripcionTratamiento)
+  } else if (data.tipo === "MANEJO") {
+    const cantidadManejados = parseInt(data.cantidad) || 0
+
+    console.log("🔧 MANEJO DEBUG:", {
+      loteId,
+      potreroNombre,
+      descripcion: data.descripcion,
+      categoria: data.categoria,
+      cantidad: cantidadManejados,
+      campoId: user.campoId
+    })
+
+    // Crear el evento con la descripción original del usuario
+    await prisma.evento.create({
+      data: {
+        tipo: "MANEJO",
+        descripcion: data.descripcion,
+        fecha: new Date(),
+        cantidad: cantidadManejados > 0 ? cantidadManejados : null,
+        categoria: data.categoria || null,
+        loteId,
+        usuarioId: user.id,
+        campoId: user.campoId,
+        imageUrl: data.imageUrl || null,
+        metadata: data.conFoto
+          ? { imageName: data.imageName, conFoto: true }
+          : undefined,
+      },
+    })
+
+    console.log("✅ Manejo guardado:", data.descripcion)
   } else if (data.tipo === "CONSUMO") {
     const cantidadConsumidos = parseInt(data.cantidad) || 0
     
@@ -824,6 +867,8 @@ async function handleDataEntry(data: any) {
         loteId,
         usuarioId: user.id,
         campoId: user.campoId,
+        imageUrl: data.imageUrl || null,
+        metadata: data.conFoto ? { imageName: data.imageName, conFoto: true } : undefined,
       },
     })
   }

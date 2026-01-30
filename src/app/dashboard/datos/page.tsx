@@ -37,6 +37,7 @@ function obtenerIcono(tipo: string): string {
     COSECHA: '🌾',
     OTROS_LABORES: '🔧',
     DAO: '🔬',
+    MANEJO: '⛏️',
     OBSERVACION: '📸',
   }
   return iconos[tipo] || '📊'
@@ -64,6 +65,7 @@ function obtenerColor(tipo: string): string {
     TRATAMIENTO: 'pink',
     MOVIMIENTO: 'blue',
     DAO: 'purple',
+    MANEJO: 'amber',
     OBSERVACION: 'teal',
   }
   return colores[tipo] || 'gray'
@@ -129,6 +131,7 @@ useEffect(() => {
         { value: 'TACTO', label: 'Tacto', icon: '✋' },
         { value: 'RECATEGORIZACION', label: 'Recategorización', icon: '🏷️' },
         { value: 'DAO', label: 'DAO', icon: '🔬' },
+        { value: 'MANEJO', label: 'Manejo', icon: '⛏️' },
       ],
     },
     {
@@ -596,6 +599,7 @@ function FiltrosActivos() {
       INGRESO_INSUMO: 'Ingreso de Insumos',
       GASTO: 'Gasto',
       INGRESO: 'Ingreso',
+      MANEJO: 'Manejo',
     }
     return nombres[tipo] || tipo
   }
@@ -1020,7 +1024,20 @@ function TarjetaDato({ dato }: { dato: any }) {
   const [showConfirm, setShowConfirm] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [showImage, setShowImage] = useState(false)
+  const [imageLoading, setImageLoading] = useState(true)
+  const [zoomLevel, setZoomLevel] = useState(1)
   const { refetch } = useDatos()
+
+  // Reset loading y zoom cuando se abre el modal
+  const openImageModal = () => {
+    setImageLoading(true)
+    setZoomLevel(1)
+    setShowImage(true)
+  }
+
+  const zoomIn = () => setZoomLevel(prev => Math.min(prev + 0.5, 4))
+  const zoomOut = () => setZoomLevel(prev => Math.max(prev - 0.5, 0.5))
+  const resetZoom = () => setZoomLevel(1)
   
   const formatFecha = (fecha: Date) => {
     const date = new Date(fecha)
@@ -1212,7 +1229,7 @@ function TarjetaDato({ dato }: { dato: any }) {
       detalles.push(
         <button
           key="verFoto"
-          onClick={() => setShowImage(true)}
+          onClick={openImageModal}
           className="bg-teal-50 text-teal-700 px-3 py-1.5 rounded-md border border-teal-200 text-sm font-medium hover:bg-teal-100 transition flex items-center gap-1"
         >
           📷 Ver Foto
@@ -1251,6 +1268,7 @@ function TarjetaDato({ dato }: { dato: any }) {
       OTROS_LABORES: 'Otras Labores',
       LLUVIA: 'Lluvia',
       HELADA: 'Helada',
+      MANEJO: 'Manejo',
       OBSERVACION: 'Observación de Campo',
     }
     return nombres[tipo] || tipo.replace(/_/g, ' ')
@@ -1360,28 +1378,78 @@ function TarjetaDato({ dato }: { dato: any }) {
       {/* Modal para ver imagen */}
       {showImage && dato.imageUrl && (
         <div
-          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center"
           onClick={() => setShowImage(false)}
         >
-          <div className="relative max-w-4xl max-h-[90vh] w-full">
+          {/* Botón cerrar */}
+          <button
+            onClick={() => setShowImage(false)}
+            className="absolute top-4 right-4 z-10 text-white hover:text-gray-300 text-xl font-bold bg-black/50 hover:bg-black/70 rounded-full w-12 h-12 flex items-center justify-center transition"
+          >
+            ✕
+          </button>
+
+          {/* Controles de zoom */}
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 bg-black/50 rounded-full px-3 py-2">
             <button
-              onClick={() => setShowImage(false)}
-              className="absolute -top-12 right-0 text-white hover:text-gray-300 text-xl font-bold bg-black/50 rounded-full w-10 h-10 flex items-center justify-center"
+              onClick={(e) => { e.stopPropagation(); zoomOut() }}
+              className="text-white hover:text-gray-300 w-8 h-8 flex items-center justify-center text-xl font-bold hover:bg-white/20 rounded-full transition"
+              title="Alejar"
             >
-              ✕
+              −
             </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); resetZoom() }}
+              className="text-white hover:text-gray-300 px-2 py-1 text-sm font-medium hover:bg-white/20 rounded transition min-w-[60px]"
+              title="Restablecer zoom"
+            >
+              {Math.round(zoomLevel * 100)}%
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); zoomIn() }}
+              className="text-white hover:text-gray-300 w-8 h-8 flex items-center justify-center text-xl font-bold hover:bg-white/20 rounded-full transition"
+              title="Acercar"
+            >
+              +
+            </button>
+          </div>
+
+          {/* Contenedor de imagen con scroll cuando hay zoom */}
+          <div
+            className="relative w-full h-full flex items-center justify-center overflow-auto p-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Loading spinner */}
+            {imageLoading && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="flex flex-col items-center gap-3">
+                  <div className="animate-spin rounded-full h-12 w-12 border-4 border-white/30 border-t-white"></div>
+                  <p className="text-white/70 text-sm">Cargando imagen...</p>
+                </div>
+              </div>
+            )}
+
             <img
               src={dato.imageUrl}
               alt={dato.descripcion || 'Foto de campo'}
-              className="w-full h-auto max-h-[85vh] object-contain rounded-lg shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
+              className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl transition-all duration-200"
+              style={{
+                transform: `scale(${zoomLevel})`,
+                opacity: imageLoading ? 0 : 1,
+                cursor: zoomLevel > 1 ? 'grab' : 'default'
+              }}
+              onLoad={() => setImageLoading(false)}
+              onError={() => setImageLoading(false)}
+              draggable={false}
             />
-            {dato.descripcion && (
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4 rounded-b-lg">
-                <p className="text-white text-center">{dato.descripcion}</p>
-              </div>
-            )}
           </div>
+
+          {/* Descripción en la parte inferior */}
+          {dato.descripcion && !imageLoading && (
+            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-6 pointer-events-none">
+              <p className="text-white text-center text-lg">{dato.descripcion}</p>
+            </div>
+          )}
         </div>
       )}
     </>

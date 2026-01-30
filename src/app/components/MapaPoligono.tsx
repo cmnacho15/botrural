@@ -138,6 +138,7 @@ interface MapaPoligonoProps {
     tipo: string
     hectareas: number
     color: string
+    potreros?: Array<{ nombre: string; hectareas: number }>
   }>
   cultivoSeleccionado?: string | null
   onCultivoClick?: (tipo: string | null) => void
@@ -1351,7 +1352,7 @@ if (esCierre) {
 
 {/* 🌾 RESUMEN DE CULTIVOS - Solo visible en PANTALLA COMPLETA cuando mostrarResumenCultivos está activo */}
 {isFullscreen && mostrarResumenCultivos && resumenCultivos.length > 0 && (
-  <div className="absolute top-[120px] right-3 z-[1000] bg-white/95 backdrop-blur-sm rounded-xl shadow-2xl border border-gray-200 p-4 max-w-[320px] max-h-[calc(100vh-140px)] overflow-y-auto">
+  <div className="absolute top-[120px] right-3 z-[1000] bg-white/95 backdrop-blur-sm rounded-xl shadow-2xl border border-gray-200 p-4 max-w-[360px] max-h-[calc(100vh-140px)] overflow-y-auto">
     <div className="flex items-center justify-between mb-3">
       <h3 className="text-sm font-bold text-gray-800 flex items-center gap-2">
         <span>🌾</span> Cultivos por potrero
@@ -1365,38 +1366,49 @@ if (esCierre) {
         </button>
       )}
     </div>
-    
-    <div className="mb-6">
-      <h4 className="text-sm font-semibold text-gray-700 mb-3">🌾 Resumen de cultivos</h4>
-      <div className="space-y-2">
-        {resumenCultivos.map((cultivo, idx) => (
-          <button
-            key={idx}
-            onClick={() => onCultivoClick?.(cultivoSeleccionado === cultivo.tipo ? null : cultivo.tipo)}
-            className={`w-full flex items-center justify-between p-3 rounded-lg border-2 transition-all cursor-pointer hover:scale-105 ${
-              cultivoSeleccionado === cultivo.tipo
-                ? 'border-blue-500 shadow-lg'
-                : cultivoSeleccionado === null
-                ? 'border-gray-200 hover:border-gray-300'
-                : 'border-gray-200 opacity-50'
-            }`}
-            style={{ backgroundColor: `${cultivo.color}20` }}
-          >
-            <div className="flex items-center gap-3">
+
+    <div className="space-y-2">
+      {resumenCultivos.map((cultivo, idx) => (
+        <button
+          key={idx}
+          onClick={() => onCultivoClick?.(cultivoSeleccionado === cultivo.tipo ? null : cultivo.tipo)}
+          className={`w-full text-left p-3 rounded-lg border-2 transition-all cursor-pointer hover:scale-[1.02] hover:shadow-md ${
+            cultivoSeleccionado === cultivo.tipo
+              ? 'border-blue-500 shadow-lg ring-2 ring-blue-200'
+              : cultivoSeleccionado === null
+              ? 'border-transparent hover:border-gray-300'
+              : 'border-transparent opacity-40'
+          }`}
+          style={{ backgroundColor: `${cultivo.color}25` }}
+        >
+          {/* Header del cultivo */}
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2.5">
               <div
-                className="w-4 h-4 rounded"
+                className="w-4 h-4 rounded flex-shrink-0"
                 style={{ backgroundColor: cultivo.color }}
               />
-              <span className="font-medium text-gray-900 text-sm">
+              <span className="font-semibold text-gray-900 text-sm">
                 {cultivo.tipo}
               </span>
             </div>
-            <span className="text-xs text-gray-600 bg-white/80 px-2 py-1 rounded-full">
+            <span className="text-xs font-medium text-gray-700 bg-white/80 px-2 py-1 rounded-full">
               {cultivo.hectareas.toFixed(1)} ha
             </span>
-          </button>
-        ))}
-      </div>
+          </div>
+
+          {/* Lista de potreros */}
+          {cultivo.potreros && cultivo.potreros.length > 0 && (
+            <div className="text-xs text-gray-600 leading-relaxed pl-6">
+              {cultivo.potreros.map((p, i) => (
+                <span key={i}>
+                  {p.nombre} ({p.hectareas.toFixed(1)} ha){i < cultivo.potreros!.length - 1 ? ', ' : ''}
+                </span>
+              ))}
+            </div>
+          )}
+        </button>
+      ))}
     </div>
   </div>
 )}

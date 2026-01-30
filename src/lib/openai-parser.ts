@@ -46,6 +46,13 @@ function detectSimpleEvent(messageText: string): object | null {
     return { tipo: "MAPA" }
   }
 
+  // 📊 CONSULTA_DATOS: detectar consultas de datos registrados
+  const consultaMatch = text.match(/^(?:(?:pasame|dame|mostrame|ver|consultar?|buscar?|quiero)\s+)?(?:los?\s+)?(?:datos?\s+de\s+)?(?:las?\s+|los?\s+)?(lluvias?|tratamientos?|manejos?|nacimientos?|mortandad(?:es)?|ventas?|compras?|tactos?|destetes?|consumos?|observacion(?:es)?|eventos?)(?:\s+(?:de|del|en|desde|últimos?|ultimo))?/i)
+  if (consultaMatch) {
+    console.log(`⚡ [NIVEL 1 - REGEX] Detectado CONSULTA_DATOS`)
+    return { tipo: "CONSULTA_DATOS_COMPLEJO" } // Escalar a GPT para parsear filtros
+  }
+
   // 📅 CALENDARIO_CONSULTAR: "calendario", "qué tengo pendiente", "actividades"
   if (/^(?:calendario|que\s+tengo\s+pendiente|qué\s+tengo\s+pendiente|actividades|pendientes|tareas)$/i.test(text)) {
     console.log(`⚡ [NIVEL 1 - REGEX] Detectado CALENDARIO_CONSULTAR`)
@@ -103,6 +110,8 @@ DETECTA UNO DE ESTOS EVENTOS:
 - VENTA: "vendí X novillos a $Y" → {"tipo":"VENTA","categoria":"novillos","cantidad":X,"precioUnitario":Y}
 - LLUVIA: "llovió Xmm" → {"tipo":"LLUVIA","milimetros":X}
 - HELADA: "heló/helada" → {"tipo":"HELADA"}
+- TRATAMIENTO (SOLO productos veterinarios: vacunas, antiparasitarios, antibióticos): "vacuné X vacas" → {"tipo":"TRATAMIENTO","producto":"vacuna","categoria":"vacas","cantidad":X}
+- MANEJO (acciones físicas NO sanitarias): "quité tablilla a X terneros" → {"tipo":"MANEJO","descripcion":"quité tablilla a X terneros","categoria":"terneros","cantidad":X}
 
 Si el mensaje NO encaja en estos tipos, responde: {"tipo":"COMPLEJO"}
 
@@ -317,19 +326,27 @@ TIPOS DE EVENTOS QUE DEBES DETECTAR:
      "potrero": "Sur" (nombre EXACTO si se menciona)
    }
 
-4. TRATAMIENTO:
+4. TRATAMIENTO (SOLO PRODUCTOS VETERINARIOS/SANITARIOS):
+   ⚠️ IMPORTANTE: Solo usar TRATAMIENTO para aplicación de PRODUCTOS VETERINARIOS:
+   - Vacunas (aftosa, brucelosis, clostridiosis, mancha, gangrena)
+   - Antiparasitarios (ivermectina, dectomax, baño, pour-on)
+   - Antibióticos
+   - Vitaminas
+   - Curabicheras
+
+   ❌ NO es TRATAMIENTO: quitar tablilla, poner caravana, señalar, marcar, encerrar, apartar, etc.
+   (Esas acciones van en tipo MANEJO)
+
+   Ejemplos válidos de TRATAMIENTO:
    - "apliqué ivermectina a 50 vacas"
-   - "baño aplicado a vacas toros y terneros"
-   - "di antibiótico a 10 vacas en el norte y 15 terneros en el sur"
-   - "desparasité todo el campo con ivermectina"
-   - "baño a vacas y terneros, mancha y gangrena a terneros"
-   - "tratamiento antiparasitario"
-   
-   IMPORTANTE - REGLAS DE AGRUPACIÓN: 
+   - "vacuné contra aftosa"
+   - "di antibiótico a 10 vacas"
+   - "baño a vacas y terneros"
+
+   REGLAS DE AGRUPACIÓN:
    - "producto" es el medicamento/tratamiento (ivermectina, aftosa, antibiótico, baño, etc.)
    - Si el MISMO producto se aplica a MÚLTIPLES CATEGORÍAS → usa array "categorias"
    - Si son PRODUCTOS DIFERENTES → usa array "tratamientos"
-   - "todoElCampo": true si dice "todo el campo", "todos los potreros", "en todo el establecimiento"
    - Si no especifica cantidad/potrero, son opcionales (null)
    
    FORMATO ÚNICO - UNA CATEGORÍA:
@@ -396,6 +413,36 @@ TIPOS DE EVENTOS QUE DEBES DETECTAR:
      "potrero": "Norte"
    }
 
+4b. MANEJO (ACCIONES FÍSICAS NO SANITARIAS):
+   ⚠️ Usar para acciones sobre animales que NO son aplicación de productos veterinarios:
+   - Quitar/poner tablilla
+   - Poner/sacar caravana
+   - Señalar
+   - Marcar
+   - Encerrar
+   - Apartar
+   - Revisar
+   - Pesar
+   - Cargar/descargar
+   - Pintar
+
+   Ejemplos:
+   - "quité tablilla a 18 terneros"
+   - "señalé 50 corderos en el norte"
+   - "puse caravana a 30 vacas"
+   - "aparté 10 novillos"
+   - "apliqué pintura azul a terneros"
+
+   IMPORTANTE: En "descripcion" copia EXACTAMENTE lo que escribió el usuario, respetando la conjugación del verbo.
+
+   Retorna:
+   {
+     "tipo": "MANEJO",
+     "descripcion": "quité tablilla a 18 terneros" (COPIAR EXACTO lo que dijo),
+     "categoria": "terneros",
+     "cantidad": 18,
+     "potrero": "Norte" (si se menciona)
+   }
 
    5. TACTO:
    - "tacto en potrero norte 83 tactadas 59 preñadas"
@@ -635,7 +682,49 @@ TIPOS DE EVENTOS QUE DEBES DETECTAR:
      "potrero": "Casco" (nombre EXACTO de la lista)
    }
    // 🔥 FIN DE LO QUE SE AGREGA
-     
+
+   17. CONSULTA_DATOS:
+   El usuario quiere consultar datos/eventos registrados previamente.
+
+   Ejemplos:
+   - "pasame las lluvias del mes"
+   - "tratamientos de enero"
+   - "manejos en potrero norte"
+   - "nacimientos últimos 60 días"
+   - "ver mortandades del año"
+   - "consultar ventas de noviembre"
+   - "datos de tactos"
+   - "pasame tactos y lluvias" (MÚLTIPLES TIPOS)
+   - "ver tratamientos y manejos del mes"
+   - "pasame datos de los últimos 30 días" (TODOS LOS TIPOS)
+   - "registros del mes" (TODOS LOS TIPOS)
+   - "qué se registró esta semana" (TODOS LOS TIPOS)
+
+   IMPORTANTE - Parsear filtros:
+   - tiposEvento: Array de tipos. Puede ser uno o varios: ["LLUVIA"], ["TACTO", "LLUVIA"], etc.
+     Si NO especifica tipo (ej: "pasame datos", "registros del mes", "qué se registró") → tiposEvento: ["TODOS"]
+     Tipos válidos: TODOS, LLUVIA, TRATAMIENTO, MANEJO, NACIMIENTO, MORTANDAD, VENTA, COMPRA, TACTO, DESTETE, CONSUMO, DAO, OBSERVACION, HELADA, CAMBIO_POTRERO
+   - "de hoy" / "hoy" → diasAtras: 0
+   - "de ayer" → diasAtras: 1
+   - "últimos X días" → diasAtras: X
+   - "de esta semana" / "esta semana" → diasAtras: 7
+   - "del mes" / "este mes" → mes: (mes actual), año: (año actual)
+   - Si dice mes específico (enero, febrero...) → mes: 1-12, año: actual o anterior según contexto
+   - "del año" → diasAtras: 365
+   - Si menciona potrero → potrero: nombre del potrero
+   - Si menciona categoría animal → categoria: nombre
+
+   Retorna:
+   {
+     "tipo": "CONSULTA_DATOS",
+     "tiposEvento": ["TRATAMIENTO"] o ["TACTO", "LLUVIA"] (array de tipos),
+     "diasAtras": 0 (opcional, 0 = hoy),
+     "mes": 1 (opcional, 1-12),
+     "año": 2025 (opcional),
+     "potrero": "Norte" (opcional),
+     "categoria": "terneros" (opcional)
+   }
+
 ⚠️ CRÍTICO: Para CAMBIO_POTRERO usa SIEMPRE "loteOrigen" y "loteDestino", NUNCA "potreroOrigen" ni "potreroDestino"
 
 RESPONDE ÚNICAMENTE CON EL JSON, SIN TEXTO ADICIONAL.

@@ -472,6 +472,13 @@ export async function processWhatsAppMessage(
       return { status: "reporte dao sent" }
     }
 
+    // CONSULTA DE DATOS
+    if (parsedData.tipo === "CONSULTA_DATOS") {
+      const { handleConsultaDatos } = await import("@/lib/whatsapp/handlers/consultaDatosHandler")
+      await handleConsultaDatos(from, parsedData)
+      return { status: "consulta datos processed" }
+    }
+
     // MAPA DEL CAMPO
     if (parsedData.tipo === "MAPA") {
       await handleMapa(from)
@@ -495,6 +502,12 @@ export async function processWhatsAppMessage(
       const { handleTratamiento } = await import("@/lib/whatsapp/handlers/tratamientoHandler")
       await handleTratamiento(from, parsedData)
       return { status: "tratamiento processed" }
+    }
+
+    // MANEJO (acciones físicas no sanitarias)
+    if (parsedData.tipo === "MANEJO") {
+      await solicitarConfirmacion(from, parsedData)
+      return { status: "awaiting confirmation" }
     }
 
     // STOCK EDICIÓN

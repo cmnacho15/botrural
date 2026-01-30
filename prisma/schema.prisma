@@ -488,6 +488,7 @@ enum TipoEvento {
   AJUSTE
   CAMBIO_POTRERO
   DAO           // <-- AGREGAR ESTA LÍNEA
+  MANEJO        // Acciones físicas no sanitarias (quitar tablilla, señalar, etc.)
   OBSERVACION   // Fotos de campo con comentarios
 
   SNIG_STOCK_INICIAL           // ✅ AGREGAR ESTOS

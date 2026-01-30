@@ -1,84 +1,12 @@
 // src/lib/whatsapp/handlers/mapaHandler.ts
 
 import { prisma } from "@/lib/prisma"
-import { sendWhatsAppMessage, sendWhatsAppImage } from "../sendMessage"
-import { createClient } from "@supabase/supabase-js"
-
-function getSupabaseClient() {
-  return createClient(
-    process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
-}
+import { sendWhatsAppMessage } from "../sendMessage"
 
 /**
- * Genera la imagen del mapa usando la API interna
- */
-async function generarImagenMapa(campoId: string): Promise<Buffer | null> {
-  try {
-    const baseUrl = process.env.NEXTAUTH_URL || `https://${process.env.VERCEL_URL}` || 'http://localhost:3000'
-    const url = `${baseUrl}/api/mapa-imagen?campoId=${campoId}`
-    
-    console.log('🗺️ Generando imagen desde:', url)
-    
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'x-api-key': process.env.INTERNAL_API_KEY || 'bot-internal-key'
-      }
-    })
-
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error('❌ Error generando imagen:', response.status, errorText)
-      return null
-    }
-
-    const arrayBuffer = await response.arrayBuffer()
-    return Buffer.from(arrayBuffer)
-
-  } catch (error) {
-    console.error('❌ Error en generarImagenMapa:', error)
-    return null
-  }
-}
-
-/**
- * Sube la imagen a Supabase Storage
- */
-async function subirImagenASupabase(imageBuffer: Buffer, nombreCampo: string): Promise<string | null> {
-  try {
-    const fecha = new Date().toISOString().split('T')[0]
-    const nombreArchivo = `mapas/mapa_${nombreCampo.replace(/\s+/g, '_')}_${fecha}_${Date.now()}.png`
-
-    const supabase = getSupabaseClient()
-    const { error } = await supabase.storage
-      .from('invoices')
-      .upload(nombreArchivo, imageBuffer, {
-        contentType: 'image/png',
-        cacheControl: '3600'
-      })
-
-    if (error) {
-      console.error('❌ Error subiendo imagen a Supabase:', error)
-      return null
-    }
-
-    const { data: urlData } = supabase.storage
-      .from('invoices')
-      .getPublicUrl(nombreArchivo)
-
-    console.log('✅ Imagen subida a Supabase:', urlData.publicUrl)
-    return urlData.publicUrl
-
-  } catch (error) {
-    console.error('❌ Error en subirImagenASupabase:', error)
-    return null
-  }
-}
-
-/**
- * Handler principal: genera y envía el mapa del campo
+ * Handler principal: envía link al mapa interactivo en la web
+ * Nota: Generar imágenes de mapas server-side requiere APIs externas costosas.
+ * Es mejor que el usuario vea el mapa interactivo completo en la web.
  */
 export async function handleMapa(telefono: string) {
   try {
@@ -109,53 +37,39 @@ export async function handleMapa(telefono: string) {
       return
     }
 
-    await sendWhatsAppMessage(
-      telefono,
-      "⏳ Generando mapa del campo... Un momento."
-    )
-
-    // 2. Generar la imagen
-    const imageBuffer = await generarImagenMapa(usuario.campoId)
-
-    if (!imageBuffer) {
-      await sendWhatsAppMessage(
-        telefono,
-        "❌ Error generando el mapa. Intentá de nuevo más tarde."
-      )
-      return
-    }
-
-    // 3. Subir a Supabase
-    const imageUrl = await subirImagenASupabase(imageBuffer, usuario.campo.nombre)
-
-    if (!imageUrl) {
-      await sendWhatsAppMessage(
-        telefono,
-        "❌ Error subiendo la imagen. Intentá de nuevo más tarde."
-      )
-      return
-    }
-
-    // 4. Enviar la imagen por WhatsApp
-    const fecha = new Date().toLocaleDateString('es-UY', { 
-      day: '2-digit', 
-      month: '2-digit', 
-      year: 'numeric' 
+    // Obtener resumen de potreros
+    const potreros = await prisma.lote.findMany({
+      where: { campoId: usuario.campoId },
+      select: { nombre: true, hectareas: true }
     })
 
-    await sendWhatsAppImage(
-      telefono,
-      imageUrl,
-      `🗺️ Mapa de ${usuario.campo.nombre}\n📅 ${fecha}`
-    )
+    const totalHa = potreros.reduce((sum, p) => sum + (p.hectareas || 0), 0)
 
-    console.log(`✅ Mapa enviado a ${telefono}`)
+    // Armar mensaje con info del campo y link a la web
+    let mensaje = `🗺️ *Mapa de ${usuario.campo.nombre}*\n\n`
+    mensaje += `📍 *${cantidadPotreros} potreros* | ${totalHa.toFixed(0)} ha totales\n\n`
+
+    // Listar potreros
+    mensaje += `*Potreros:*\n`
+    for (const p of potreros.slice(0, 10)) {
+      mensaje += `• ${p.nombre}${p.hectareas ? ` (${p.hectareas} ha)` : ''}\n`
+    }
+    if (potreros.length > 10) {
+      mensaje += `_...y ${potreros.length - 10} más_\n`
+    }
+
+    mensaje += `\n🌐 *Ver mapa interactivo:*\n`
+    mensaje += `botrural.vercel.app/dashboard/mapa`
+
+    await sendWhatsAppMessage(telefono, mensaje)
+
+    console.log(`✅ Info de mapa enviada a ${telefono}`)
 
   } catch (error) {
     console.error("❌ Error en handleMapa:", error)
     await sendWhatsAppMessage(
       telefono,
-      "❌ Hubo un error generando el mapa. Intentá de nuevo más tarde."
+      "❌ Hubo un error. Intentá de nuevo más tarde."
     )
   }
 }

@@ -64,14 +64,15 @@ export async function handleImageMessage(message: any, phoneNumber: string) {
     console.log("Detectando tipo de imagen...", uploadResult.url)
 
     // =====================================================
-    // PASO 0: Detectar si es DOCUMENTO o FOTO normal
+    // LÓGICA SIMPLIFICADA:
+    // - Foto CON mensaje → Procesar mensaje como evento, adjuntar foto
+    // - Foto SIN mensaje → Analizar si es factura
     // =====================================================
-    const tipoImagen = await esDocumento(uploadResult.url, user.id)
-    console.log("Tipo de imagen detectado:", tipoImagen)
 
-    // Si es claramente una FOTO (no documento), guardar como observación
-    if (tipoImagen === "FOTO") {
-      console.log("📸 Es una FOTO de campo, guardando como observación...")
+    if (caption && caption.trim().length > 0) {
+      // HAY CAPTION: Procesar como mensaje de texto con foto adjunta
+      // No analizar la imagen, ir directo a procesar el mensaje
+      console.log("📝 Foto con mensaje, procesando mensaje y adjuntando foto...")
       await saveObservacionFromUrl(
         phoneNumber,
         uploadResult.url,
@@ -83,8 +84,31 @@ export async function handleImageMessage(message: any, phoneNumber: string) {
       return
     }
 
+    // NO HAY CAPTION: Analizar si es factura/documento
+    console.log("📷 Foto sin mensaje, analizando si es factura...")
+
     // =====================================================
-    // PASO 1: Si es DOCUMENTO, detectar si es estado de cuenta
+    // PASO 1: Detectar si es DOCUMENTO o FOTO normal (usa IA)
+    // =====================================================
+    const tipoImagen = await esDocumento(uploadResult.url, user.id)
+    console.log("Tipo de imagen detectado:", tipoImagen)
+
+    // Si es claramente una FOTO (no documento), guardar como observación
+    if (tipoImagen === "FOTO") {
+      console.log("📸 Es una FOTO de campo sin descripción, guardando como observación...")
+      await saveObservacionFromUrl(
+        phoneNumber,
+        uploadResult.url,
+        uploadResult.fileName,
+        user.campoId,
+        user.id,
+        ""
+      )
+      return
+    }
+
+    // =====================================================
+    // PASO 2: Si es DOCUMENTO, detectar si es estado de cuenta
     // =====================================================
     let esEstadoCuenta = false
     try {
@@ -101,7 +125,7 @@ export async function handleImageMessage(message: any, phoneNumber: string) {
     }
 
     // =====================================================
-    // PASO 2: Detectar si es VENTA o GASTO
+    // PASO 3: Detectar si es VENTA o GASTO
     // =====================================================
     let tipoFactura: "VENTA" | "GASTO" | "ESTADO_CUENTA" | null = null
 
