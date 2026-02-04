@@ -655,7 +655,7 @@ const handleEditarGasto = (gasto: Gasto) => {
   <button
     key={m}
     onClick={() => setMoneda(m as 'UYU' | 'USD')}
-    className={`px-4 py-2 text-sm font-medium ${
+    className={`px-2 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium ${
       moneda === m ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:text-gray-900'
     }`}
   >
@@ -670,7 +670,7 @@ const handleEditarGasto = (gasto: Gasto) => {
                 <button
                   key={v}
                   onClick={() => setIva(v as 'con' | 'sin')}
-                  className={`px-4 py-2 text-sm font-medium ${
+                  className={`px-2 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium ${
                     iva === v ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:text-gray-900'
                   }`}
                 >
@@ -682,7 +682,7 @@ const handleEditarGasto = (gasto: Gasto) => {
             {/* Filtro fecha */}
             <button
               onClick={() => setModalFechaOpen(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-700 hover:bg-gray-50 text-sm font-medium"
+              className="inline-flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-1.5 sm:py-2 border border-gray-300 rounded-lg bg-white text-gray-700 hover:bg-gray-50 text-xs sm:text-sm font-medium"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
@@ -705,31 +705,31 @@ const handleEditarGasto = (gasto: Gasto) => {
         {mostrarTodasCategorias ? (
           <>
             {/* Vista expandida de categorías + gráficos */}
-            <div className="bg-white rounded-xl shadow-sm p-5 sm:p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-semibold text-gray-900">Categorías de Gastos</h2>
+            <div className="bg-white rounded-xl shadow-sm p-3 sm:p-5 md:p-6">
+              <div className="flex justify-between items-center mb-3 sm:mb-4">
+                <h2 className="text-sm sm:text-lg font-semibold text-gray-900">Categorías de Gastos</h2>
                 <button
                   onClick={() => setModalCategoriaOpen(true)}
-                  className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-blue-50 text-blue-600 font-bold"
+                  className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-lg hover:bg-blue-50 text-blue-600 font-bold text-sm sm:text-base"
                 >
                   +
                 </button>
               </div>
 
-              <div className="grid gap-2 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-1 sm:gap-2 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                 <button
                   onClick={() => setCategoriaSeleccionada(null)}
-                  className={`flex justify-between items-center px-3 py-3 rounded-lg transition ${
+                  className={`flex justify-between items-center px-2 sm:px-3 py-2 sm:py-3 rounded-lg transition ${
                     categoriaSeleccionada === null ? 'bg-blue-50' : 'hover:bg-gray-50'
                   }`}
                 >
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-gray-900">Todos los gastos</span>
-                    <span className="px-2 py-0.5 bg-gray-200 text-gray-700 rounded-full text-xs font-medium">
+                  <div className="flex items-center gap-1 sm:gap-2 min-w-0">
+                    <span className="text-xs sm:text-sm font-medium text-gray-900 truncate">Todos los gastos</span>
+                    <span className="px-1.5 sm:px-2 py-0.5 bg-gray-200 text-gray-700 rounded-full text-[10px] sm:text-xs font-medium flex-shrink-0">
                       {gastosData.length}
                     </span>
                   </div>
-                  <span className="text-sm font-semibold text-gray-900">
+                  <span className="text-xs sm:text-sm font-semibold text-gray-900 flex-shrink-0 ml-1">
   {totalGastosGrafico.toFixed(0)} {moneda}
 </span>
                 </button>
@@ -738,41 +738,41 @@ const handleEditarGasto = (gasto: Gasto) => {
                   <button
                     key={idx}
                     onClick={() => setCategoriaSeleccionada(cat.nombre)}
-                    className={`flex justify-between items-center px-3 py-3 rounded-lg cursor-pointer transition ${
+                    className={`flex justify-between items-center px-2 sm:px-3 py-2 sm:py-3 rounded-lg cursor-pointer transition ${
                       categoriaSeleccionada === cat.nombre ? 'bg-blue-50' : 'hover:bg-gray-50'
                     }`}
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: cat.color }} />
-                      <span className="text-sm text-gray-700">{cat.nombre}</span>
+                    <div className="flex items-center gap-1.5 sm:gap-3 min-w-0 flex-1">
+                      <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full flex-shrink-0" style={{ backgroundColor: cat.color }} />
+                      <span className="text-xs sm:text-sm text-gray-700 truncate">{cat.nombre}</span>
                       {cat.cantidad > 0 && (
-                        <span className="px-2 py-0.5 bg-gray-200 text-gray-700 rounded-full text-xs font-medium">
+                        <span className="px-1 sm:px-2 py-0.5 bg-gray-200 text-gray-700 rounded-full text-[10px] sm:text-xs font-medium flex-shrink-0">
                           {cat.cantidad}
                         </span>
                       )}
                     </div>
-                    <span className="text-sm text-gray-900">{cat.total.toFixed(0)}</span>
+                    <span className="text-xs sm:text-sm text-gray-900 flex-shrink-0 ml-1">{cat.total.toFixed(0)}</span>
                   </button>
                 ))}
               </div>
 
               <button
                 onClick={() => setMostrarTodasCategorias(false)}
-                className="w-full text-center text-sm text-blue-600 hover:text-blue-700 font-medium pt-3"
+                className="w-full text-center text-xs sm:text-sm text-blue-600 hover:text-blue-700 font-medium pt-2 sm:pt-3"
               >
                 Colapsar
               </button>
             </div>
 
-            <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
+            <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2">
               {/* PieChart */}
-              <div className="bg-white rounded-xl shadow-sm p-6">
-                <h2 className="text-lg font-semibold text-gray-900 mb-6">
+              <div className="bg-white rounded-xl shadow-sm p-3 sm:p-6 overflow-hidden">
+                <h2 className="text-sm sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-6">
                   {categoriaSeleccionada
                     ? `Distribución: ${categoriaSeleccionada}`
                     : 'Distribución de Gastos'}
                 </h2>
-                <div style={{ height: '450px' }}>
+                <div className="h-[280px] sm:h-[450px]">
                   {datosPieChart.length > 0 ? (
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
@@ -781,9 +781,9 @@ const handleEditarGasto = (gasto: Gasto) => {
                           dataKey="total"
                           nameKey="nombre"
                           cx="50%"
-                          cy="50%"
-                          outerRadius={120}
-                          innerRadius={80}
+                          cy="45%"
+                          outerRadius="70%"
+                          innerRadius="45%"
                           paddingAngle={2}
                           animationBegin={0}
                           animationDuration={800}
@@ -824,7 +824,12 @@ const handleEditarGasto = (gasto: Gasto) => {
                           })}
                         </Pie>
                         <Tooltip content={<CustomTooltip />} />
-                        <Legend verticalAlign="bottom" height={36} iconType="circle" />
+                        <Legend
+                          verticalAlign="bottom"
+                          height={36}
+                          iconType="circle"
+                          wrapperStyle={{ fontSize: '10px', overflow: 'hidden' }}
+                        />
                       </PieChart>
                     </ResponsiveContainer>
                   ) : (
@@ -836,18 +841,18 @@ const handleEditarGasto = (gasto: Gasto) => {
               </div>
 
               {/* BarChart */}
-              <div className="bg-white rounded-xl shadow-sm p-6">
-                <h2 className="text-lg font-semibold text-gray-900 mb-6">
+              <div className="bg-white rounded-xl shadow-sm p-3 sm:p-6 overflow-hidden">
+                <h2 className="text-sm sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-6">
                   {categoriaSeleccionada
                     ? `Tendencias: ${categoriaSeleccionada}`
                     : 'Tendencias Mensuales'}
                 </h2>
-                <div style={{ height: '450px' }}>
+                <div className="h-[280px] sm:h-[450px]">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={datosBarChart}>
+                    <BarChart data={datosBarChart} margin={{ left: -15, right: 5 }}>
                       <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="nombre" />
-                      <YAxis />
+                      <XAxis dataKey="nombre" tick={{ fontSize: 10 }} />
+                      <YAxis tick={{ fontSize: 10 }} width={40} />
                       <Tooltip formatter={(value: any) => `${Number(value).toFixed(0)} ${moneda}`} />
                       <Bar
                         dataKey="total"
@@ -867,33 +872,33 @@ const handleEditarGasto = (gasto: Gasto) => {
           </>
         ) : (
           // Vista compacta (categorías a la izquierda)
-          <div className="grid gap-6 grid-cols-1 lg:grid-cols-4">
+          <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-4">
             <div className="lg:col-span-1">
-              <div className="bg-white rounded-xl shadow-sm p-5 sm:p-6 h-full">
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-lg font-semibold text-gray-900">Categorías</h2>
+              <div className="bg-white rounded-xl shadow-sm p-3 sm:p-5 md:p-6 h-full">
+                <div className="flex justify-between items-center mb-3 sm:mb-4">
+                  <h2 className="text-sm sm:text-lg font-semibold text-gray-900">Categorías</h2>
                   <button
                     onClick={() => setModalCategoriaOpen(true)}
-                    className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-blue-50 text-blue-600 font-bold"
+                    className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-lg hover:bg-blue-50 text-blue-600 font-bold text-sm sm:text-base"
                   >
                     +
                   </button>
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-1 sm:space-y-2">
                   <button
                     onClick={() => setCategoriaSeleccionada(null)}
-                    className={`w-full flex justify-between items-center px-3 py-3 rounded-lg transition ${
+                    className={`w-full flex justify-between items-center px-2 sm:px-3 py-2 sm:py-3 rounded-lg transition ${
                       categoriaSeleccionada === null ? 'bg-blue-50' : 'hover:bg-gray-50'
                     }`}
                   >
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-gray-900">Todos los gastos</span>
-                      <span className="px-2 py-0.5 bg-gray-200 text-gray-700 rounded-full text-xs font-medium">
+                    <div className="flex items-center gap-1 sm:gap-2 min-w-0">
+                      <span className="text-xs sm:text-sm font-medium text-gray-900 truncate">Todos los gastos</span>
+                      <span className="px-1.5 sm:px-2 py-0.5 bg-gray-200 text-gray-700 rounded-full text-[10px] sm:text-xs font-medium flex-shrink-0">
                         {gastosData.length}
                       </span>
                     </div>
-                    <span className="text-xs font-semibold text-gray-900">
+                    <span className="text-[10px] sm:text-xs font-semibold text-gray-900 flex-shrink-0">
   {totalGastosGrafico.toFixed(0)}
 </span>
                   </button>
@@ -902,42 +907,42 @@ const handleEditarGasto = (gasto: Gasto) => {
                     <button
                       key={idx}
                       onClick={() => setCategoriaSeleccionada(cat.nombre)}
-                      className={`w-full flex justify-between items-center px-3 py-2 rounded-lg cursor-pointer transition ${
+                      className={`w-full flex justify-between items-center px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg cursor-pointer transition ${
                         categoriaSeleccionada === cat.nombre ? 'bg-blue-50' : 'hover:bg-gray-50'
                       }`}
                     >
-                      <div className="flex items-center gap-2">
-                        <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: cat.color }} />
-                        <span className="text-xs text-gray-700 truncate">{cat.nombre}</span>
+                      <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1">
+                        <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: cat.color }} />
+                        <span className="text-[10px] sm:text-xs text-gray-700 truncate">{cat.nombre}</span>
                         {cat.cantidad > 0 && (
-                          <span className="px-1.5 py-0.5 bg-gray-200 text-gray-700 rounded-full text-xs font-medium">
+                          <span className="px-1 sm:px-1.5 py-0.5 bg-gray-200 text-gray-700 rounded-full text-[10px] sm:text-xs font-medium flex-shrink-0">
                             {cat.cantidad}
                           </span>
                         )}
                       </div>
-                      <span className="text-xs text-gray-900">{cat.total.toFixed(0)}</span>
+                      <span className="text-[10px] sm:text-xs text-gray-900 flex-shrink-0">{cat.total.toFixed(0)}</span>
                     </button>
                   ))}
                 </div>
 
                 <button
                   onClick={() => setMostrarTodasCategorias(true)}
-                  className="w-full text-center text-sm text-blue-600 hover:text-blue-700 font-medium pt-3 mt-2 border-t border-gray-100"
+                  className="w-full text-center text-xs sm:text-sm text-blue-600 hover:text-blue-700 font-medium pt-2 sm:pt-3 mt-2 border-t border-gray-100"
                 >
                   Ver más
                 </button>
               </div>
             </div>
 
-            <div className="lg:col-span-3 grid gap-6 grid-cols-1 md:grid-cols-2">
+            <div className="lg:col-span-3 grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2">
               {/* PieChart compacto */}
-              <div className="bg-white rounded-xl shadow-sm p-6">
-                <h2 className="text-lg font-semibold text-gray-900 mb-6">
+              <div className="bg-white rounded-xl shadow-sm p-3 sm:p-6 overflow-hidden">
+                <h2 className="text-sm sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-6">
                   {categoriaSeleccionada
                     ? `Distribución: ${categoriaSeleccionada}`
                     : 'Distribución de Gastos'}
                 </h2>
-                <div style={{ height: '320px' }}>
+                <div className="h-[250px] sm:h-[320px]">
                   {datosPieChart.length > 0 ? (
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
@@ -946,9 +951,9 @@ const handleEditarGasto = (gasto: Gasto) => {
                           dataKey="total"
                           nameKey="nombre"
                           cx="50%"
-                          cy="50%"
-                          outerRadius={100}
-                          innerRadius={65}
+                          cy="45%"
+                          outerRadius="70%"
+                          innerRadius="45%"
                           paddingAngle={2}
                           animationBegin={0}
                           animationDuration={800}
@@ -989,7 +994,12 @@ const handleEditarGasto = (gasto: Gasto) => {
                           })}
                         </Pie>
                         <Tooltip content={<CustomTooltip />} />
-                        <Legend verticalAlign="bottom" height={36} iconType="circle" />
+                        <Legend
+                          verticalAlign="bottom"
+                          height={36}
+                          iconType="circle"
+                          wrapperStyle={{ fontSize: '10px', overflow: 'hidden' }}
+                        />
                       </PieChart>
                     </ResponsiveContainer>
                   ) : (
@@ -1001,18 +1011,18 @@ const handleEditarGasto = (gasto: Gasto) => {
               </div>
 
               {/* BarChart compacto */}
-              <div className="bg-white rounded-xl shadow-sm p-6">
-                <h2 className="text-lg font-semibold text-gray-900 mb-6">
+              <div className="bg-white rounded-xl shadow-sm p-3 sm:p-6 overflow-hidden">
+                <h2 className="text-sm sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-6">
                   {categoriaSeleccionada
                     ? `Tendencias: ${categoriaSeleccionada}`
                     : 'Tendencias Mensuales'}
                 </h2>
-                <div style={{ height: '320px' }}>
+                <div className="h-[250px] sm:h-[320px]">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={datosBarChart}>
+                    <BarChart data={datosBarChart} margin={{ left: -15, right: 5 }}>
                       <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="nombre" />
-                      <YAxis />
+                      <XAxis dataKey="nombre" tick={{ fontSize: 10 }} />
+                      <YAxis tick={{ fontSize: 10 }} width={40} />
                       <Tooltip formatter={(value: any) => `${Number(value).toFixed(0)} ${moneda}`} />
                       <Bar
                         dataKey="total"
@@ -1033,20 +1043,20 @@ const handleEditarGasto = (gasto: Gasto) => {
         )}
 
         {/* TABLA */}
-        <div className="bg-white rounded-xl shadow-sm p-5 sm:p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">
+        <div className="bg-white rounded-xl shadow-sm p-3 sm:p-5 md:p-6">
+          <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">
             {categoriaSeleccionada
               ? `Gastos en ${categoriaSeleccionada}`
               : 'Gastos e Ingresos Registrados'}
           </h2>
 
           {/* FILTROS MOVIDOS AQUÍ */}
-          <div className="bg-gray-50 rounded-xl border border-gray-200 p-4 mb-6">
-            <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+          <div className="bg-gray-50 rounded-xl border border-gray-200 p-3 sm:p-4 mb-4 sm:mb-6">
+            <div className="flex flex-col gap-3">
               {/* Filtro de proveedor */}
-              <div className="flex items-center gap-3 flex-1">
-                <div className="flex items-center gap-2">
-                  <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="flex items-center gap-2 sm:gap-3 flex-1">
+                <div className="flex items-center gap-1 sm:gap-2">
+                  <svg className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -1054,14 +1064,14 @@ const handleEditarGasto = (gasto: Gasto) => {
                       d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
                     />
                   </svg>
-                  <span className="text-sm font-semibold text-gray-700">Filtrar:</span>
+                  <span className="text-xs sm:text-sm font-semibold text-gray-700">Filtrar:</span>
                 </div>
 
                 {/* Dropdown de proveedores */}
-                <div className="relative flex-1 min-w-[200px] max-w-xs">
+                <div className="relative flex-1 min-w-[150px] sm:min-w-[200px] max-w-xs">
                   <button
                     onClick={() => setMostrarMenuProveedor(!mostrarMenuProveedor)}
-                    className="w-full flex items-center justify-between px-4 py-2.5 bg-white border-2 border-gray-300 rounded-xl hover:border-blue-400 hover:bg-blue-50 transition-all group"
+                    className="w-full flex items-center justify-between px-2 sm:px-4 py-2 sm:py-2.5 bg-white border-2 border-gray-300 rounded-xl hover:border-blue-400 hover:bg-blue-50 transition-all group"
                   >
                     <div className="flex items-center gap-2">
                       {proveedorFiltro ? (
@@ -1174,12 +1184,12 @@ const handleEditarGasto = (gasto: Gasto) => {
               </div>
 
               {/* NUEVO FILTRO: Estado de pago */}
-              <div className="flex items-center gap-3 flex-1">
+              <div className="flex items-center gap-2 sm:gap-3 flex-1">
                 {/* Dropdown de estado */}
-                <div className="relative flex-1 min-w-[200px] max-w-xs">
+                <div className="relative flex-1 min-w-[150px] sm:min-w-[200px] max-w-xs">
                   <button
                     onClick={() => setMostrarMenuEstado(!mostrarMenuEstado)}
-                    className="w-full flex items-center justify-between px-4 py-2.5 bg-white border-2 border-gray-300 rounded-xl hover:border-blue-400 hover:bg-blue-50 transition-all group"
+                    className="w-full flex items-center justify-between px-2 sm:px-4 py-2 sm:py-2.5 bg-white border-2 border-gray-300 rounded-xl hover:border-blue-400 hover:bg-blue-50 transition-all group"
                   >
                     <div className="flex items-center gap-2">
                       {estadoPagoFiltro === 'todos' && (
@@ -1363,16 +1373,16 @@ const handleEditarGasto = (gasto: Gasto) => {
             </div>
           </div>
 
-          <div className="overflow-x-auto">
-            <div className="inline-block min-w-full align-middle">
-              <table className="min-w-full text-sm">
+          <div className="overflow-x-auto -mx-3 sm:mx-0">
+            <div className="inline-block min-w-full align-middle px-3 sm:px-0">
+              <table className="min-w-[900px] sm:min-w-full text-xs sm:text-sm">
               <thead>
                 <tr className="border-b border-gray-200">
                   {['Fecha', 'Precio', 'Ítem', 'Categoría', 'Proveedor/Comprador', 'Usuario', 'Estado', 'Vencimiento', ''].map(
   (th, i) => (
     <th
       key={i}
-      className={`px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap ${
+      className={`px-2 sm:px-3 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase whitespace-nowrap ${
         th === 'Usuario' ? 'hidden lg:table-cell' : ''
       }`}
     >
@@ -1401,10 +1411,10 @@ const handleEditarGasto = (gasto: Gasto) => {
                       }`}
                     >
                       {/* FECHA */}
-                      <td className="px-3 py-3">{t.fecha}</td>
+                      <td className="px-2 sm:px-3 py-2 sm:py-3 whitespace-nowrap">{t.fecha}</td>
 
                       {/* MONTO */}
-<td className="px-3 py-3">
+<td className="px-2 sm:px-3 py-2 sm:py-3">
   {(() => {
     const g = t.gastoCompleto;
     let montoMostrar = 0;
@@ -1451,7 +1461,7 @@ const handleEditarGasto = (gasto: Gasto) => {
 </td>
 
                        {/* ÍTEM */}
-                      <td className="px-3 py-3">
+                      <td className="px-2 sm:px-3 py-2 sm:py-3">
                         <div className="flex flex-col gap-1">
                           <span>{t.item}</span>
                           {t.gastoCompleto?.esGastoGrupo && (
@@ -1468,7 +1478,7 @@ const handleEditarGasto = (gasto: Gasto) => {
                       </td>
 
                       {/* CATEGORÍA - Popover */}
-                      <td className="px-3 py-3 relative">
+                      <td className="px-2 sm:px-3 py-2 sm:py-3 relative">
                         {t.esIngreso ? (
                           <span className="text-sm text-gray-500">—</span>
                         ) : (
@@ -1604,8 +1614,8 @@ const handleEditarGasto = (gasto: Gasto) => {
                       </td>
 
                       {/* PROVEEDOR/COMPRADOR */}
-<td className="px-3 py-3">
-  <span className="text-sm text-gray-700">
+<td className="px-2 sm:px-3 py-2 sm:py-3">
+  <span className="text-xs sm:text-sm text-gray-700">
     {t.esIngreso 
       ? (t.gastoCompleto?.comprador || '-')
       : (t.gastoCompleto?.proveedor || '-')
@@ -1614,10 +1624,10 @@ const handleEditarGasto = (gasto: Gasto) => {
 </td>
 
                       {/* USUARIO */}
-                      <td className="hidden lg:table-cell px-3 py-3">{t.usuario}</td>
+                      <td className="hidden lg:table-cell px-2 sm:px-3 py-2 sm:py-3">{t.usuario}</td>
 
                       {/* ESTADO DE PAGO - Popover */}
-                      <td className="px-4 sm:px-6 py-3 text-sm relative">
+                      <td className="px-2 sm:px-3 py-2 sm:py-3 text-xs sm:text-sm relative">
                         {metodoPago === 'Plazo' ? (
                           <>
                             <button
@@ -1763,7 +1773,7 @@ const handleEditarGasto = (gasto: Gasto) => {
                       </td>
 
                       {/* 🆕 VENCIMIENTO */}
-                      <td className="px-3 py-3 text-sm">
+                      <td className="px-2 sm:px-3 py-2 sm:py-3 text-xs sm:text-sm">
                         {(() => {
                           const vencimiento = calcularVencimiento(t.gastoCompleto)
                           
@@ -1801,8 +1811,8 @@ const handleEditarGasto = (gasto: Gasto) => {
                       </td>
 
                       {/* ACCIONES */}
-                      <td className="px-4 sm:px-6 py-3 text-right">
-                        <div className="flex items-center justify-end gap-3">
+                      <td className="px-2 sm:px-3 py-2 sm:py-3 text-right">
+                        <div className="flex items-center justify-end gap-1 sm:gap-3">
                           {t.gastoCompleto?.imageUrl && (
                             <button
                               onClick={() => {
@@ -1824,7 +1834,7 @@ const handleEditarGasto = (gasto: Gasto) => {
 
                           <button
                             onClick={() => handleEditarGasto(t.gastoCompleto)}
-                            className="text-blue-600 hover:text-blue-800 transition text-sm font-medium"
+                            className="text-blue-600 hover:text-blue-800 transition text-[10px] sm:text-sm font-medium"
                             title="Editar"
                           >
                             Editar
@@ -1835,7 +1845,7 @@ const handleEditarGasto = (gasto: Gasto) => {
                               setGastoAEliminar(t.gastoCompleto)
                               setModalDeleteOpen(true)
                             }}
-                            className="text-red-600 hover:text-red-800 transition text-sm font-medium"
+                            className="text-red-600 hover:text-red-800 transition text-[10px] sm:text-sm font-medium"
                             title="Eliminar"
                           >
                             Eliminar
@@ -1851,11 +1861,11 @@ const handleEditarGasto = (gasto: Gasto) => {
           </div>
 
           {/* Totales */}
-<div className="mt-6 pt-6 border-t border-gray-200 grid grid-cols-2 gap-4">
+<div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-gray-200 grid grid-cols-2 gap-2 sm:gap-4">
   {/* TOTAL GASTOS */}
-  <div className="bg-red-50 rounded-lg p-4">
-    <div className="text-sm text-red-700 font-medium mb-1">Total Gastos</div>
-    <div className="text-2xl font-bold text-red-600">
+  <div className="bg-red-50 rounded-lg p-3 sm:p-4">
+    <div className="text-xs sm:text-sm text-red-700 font-medium mb-1">Total Gastos</div>
+    <div className="text-lg sm:text-2xl font-bold text-red-600">
       -{(() => {
         const total = gastosFiltrados
           .filter((g) => g.tipo === 'GASTO')
@@ -1882,9 +1892,9 @@ const handleEditarGasto = (gasto: Gasto) => {
   </div>
 
   {/* TOTAL INGRESOS */}
-  <div className="bg-green-50 rounded-lg p-4">
-    <div className="text-sm text-green-700 font-medium mb-1">Total Ingresos</div>
-    <div className="text-2xl font-bold text-green-600">
+  <div className="bg-green-50 rounded-lg p-3 sm:p-4">
+    <div className="text-xs sm:text-sm text-green-700 font-medium mb-1">Total Ingresos</div>
+    <div className="text-lg sm:text-2xl font-bold text-green-600">
       +{(() => {
         const total = gastosFiltrados
           .filter((g) => g.tipo === 'INGRESO')
@@ -2105,27 +2115,27 @@ const handleEditarGasto = (gasto: Gasto) => {
 
       {/* MODAL FILTRAR POR FECHA */}
       {modalFechaOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full p-8">
-            <div className="flex justify-between items-center mb-8">
-              <h2 className="text-2xl font-bold text-gray-900">Filtrar por Fecha</h2>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full p-4 sm:p-6 md:p-8 max-h-[90vh] overflow-y-auto" style={{ colorScheme: 'light' }}>
+            <div className="flex justify-between items-center mb-4 sm:mb-8">
+              <h2 className="text-lg sm:text-2xl font-bold text-gray-900">Filtrar por Fecha</h2>
               <button
                 onClick={() => setModalFechaOpen(false)}
                 className="text-gray-400 hover:text-gray-600 transition"
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
 
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Rango de Fechas</h3>
+                <h3 className="text-sm sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Rango de Fechas</h3>
 
-                <div className="grid grid-cols-2 gap-4 mb-6">
+                <div className="grid grid-cols-2 gap-2 sm:gap-4 mb-4 sm:mb-6">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
                       Comienzo
                     </label>
                     <input
@@ -2135,11 +2145,12 @@ const handleEditarGasto = (gasto: Gasto) => {
                         setFechaInicio(e.target.value)
                         setRangoSeleccionado('Personalizado')
                       }}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                      className="w-full px-2 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900"
+                      style={{ colorScheme: 'light' }}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Fin</label>
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">Fin</label>
                     <input
                       type="date"
                       value={fechaFin}
@@ -2147,12 +2158,13 @@ const handleEditarGasto = (gasto: Gasto) => {
                         setFechaFin(e.target.value)
                         setRangoSeleccionado('Personalizado')
                       }}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                      className="w-full px-2 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900"
+                      style={{ colorScheme: 'light' }}
                     />
                   </div>
                 </div>
 
-                <div className="flex flex-wrap gap-2 mb-6">
+                <div className="flex flex-wrap gap-1.5 sm:gap-2 mb-4 sm:mb-6">
                   {[
                     'Hoy',
                     'Últimos 7 Días',
@@ -2164,7 +2176,7 @@ const handleEditarGasto = (gasto: Gasto) => {
                     <button
                       key={rango}
                       onClick={() => aplicarRangoFecha(rango)}
-                      className={`px-4 py-2 rounded-full text-sm font-medium transition ${
+                      className={`px-2 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition ${
                         rangoSeleccionado === rango
                           ? 'bg-blue-600 text-white shadow-md'
                           : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -2176,8 +2188,8 @@ const handleEditarGasto = (gasto: Gasto) => {
                 </div>
 
                 {fechaInicio && fechaFin && (
-                  <div className="bg-gray-50 rounded-xl p-4">
-                    <p className="text-sm text-gray-600">
+                  <div className="bg-gray-50 rounded-xl p-3 sm:p-4">
+                    <p className="text-xs sm:text-sm text-gray-600">
                       <span className="font-semibold">Rango Seleccionado:</span>{' '}
                       {new Date(fechaInicio).toLocaleDateString('es-UY')} -{' '}
                       {new Date(fechaFin).toLocaleDateString('es-UY')}
@@ -2187,12 +2199,12 @@ const handleEditarGasto = (gasto: Gasto) => {
               </div>
             </div>
 
-            <div className="mt-8 flex gap-3">
+            <div className="mt-4 sm:mt-8 flex gap-2 sm:gap-3">
               <button
                 onClick={() => {
                   limpiarFiltroFecha()
                 }}
-                className="flex-1 px-6 py-3 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 font-medium transition"
+                className="flex-1 px-3 sm:px-6 py-2 sm:py-3 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 text-sm sm:text-base font-medium transition bg-white"
               >
                 Limpiar
               </button>
@@ -2200,7 +2212,7 @@ const handleEditarGasto = (gasto: Gasto) => {
                 onClick={() => {
                   setModalFechaOpen(false)
                 }}
-                className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-medium transition shadow-sm"
+                className="flex-1 px-3 sm:px-6 py-2 sm:py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 text-sm sm:text-base font-medium transition shadow-sm"
               >
                 Aplicar Filtro
               </button>

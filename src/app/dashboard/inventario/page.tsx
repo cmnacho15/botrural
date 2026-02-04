@@ -109,91 +109,97 @@ const FilaInventario = memo(function FilaInventario({
 
   return (
     <tr className="hover:bg-gray-50">
-      <td className="px-3 py-2 font-medium text-gray-900 sticky left-0 bg-white z-10">
+      <td className="px-2 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-sm font-medium text-gray-900 sticky left-0 bg-white z-10">
         {item.categoria}
       </td>
 
-      <td className="px-2 py-2 bg-yellow-50">
+      <td className="px-1 sm:px-2 py-1.5 sm:py-2 bg-yellow-50">
         <input
           type="text"
           inputMode="numeric"
           value={valores.cantidadInicial}
           onChange={(e) => handleChange('cantidadInicial', e.target.value)}
-          className="w-full px-2 py-1 border rounded text-center text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          className="w-full px-1 sm:px-2 py-0.5 sm:py-1 border rounded text-center text-[10px] sm:text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900"
+          style={{ colorScheme: 'light' }}
         />
       </td>
 
-      <td className="px-2 py-2 bg-yellow-50">
+      <td className="px-1 sm:px-2 py-1.5 sm:py-2 bg-yellow-50">
         <input
           type="text"
           inputMode="numeric"
           value={valores.cantidadFinal}
           onChange={(e) => handleChange('cantidadFinal', e.target.value)}
-          className="w-full px-2 py-1 border rounded text-center text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          className="w-full px-1 sm:px-2 py-0.5 sm:py-1 border rounded text-center text-[10px] sm:text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900"
+          style={{ colorScheme: 'light' }}
         />
       </td>
 
-      <td className="px-2 py-2 bg-yellow-50">
+      <td className="px-1 sm:px-2 py-1.5 sm:py-2 bg-yellow-50">
         <input
           type="text"
           inputMode="decimal"
           value={valores.pesoInicio}
           onChange={(e) => handleChange('pesoInicio', e.target.value)}
           placeholder="0"
-          className="w-full px-2 py-1 border rounded text-center text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          className="w-full px-1 sm:px-2 py-0.5 sm:py-1 border rounded text-center text-[10px] sm:text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900"
+          style={{ colorScheme: 'light' }}
         />
       </td>
 
-      <td className="px-2 py-2 bg-yellow-50">
+      <td className="px-1 sm:px-2 py-1.5 sm:py-2 bg-yellow-50">
         <input
           type="text"
           inputMode="decimal"
           value={valores.pesoFinal}
           onChange={(e) => handleChange('pesoFinal', e.target.value)}
           placeholder="0"
-          className="w-full px-2 py-1 border rounded text-center text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          className="w-full px-1 sm:px-2 py-0.5 sm:py-1 border rounded text-center text-[10px] sm:text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900"
+          style={{ colorScheme: 'light' }}
         />
       </td>
 
-      <td className="px-2 py-2 bg-yellow-50">
+      <td className="px-1 sm:px-2 py-1.5 sm:py-2 bg-yellow-50">
         <input
           type="text"
           inputMode="decimal"
           value={valores.precioKg}
           onChange={(e) => handleChange('precioKg', e.target.value)}
           placeholder="0"
-          className="w-full px-2 py-1 border rounded text-center text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          className="w-full px-1 sm:px-2 py-0.5 sm:py-1 border rounded text-center text-[10px] sm:text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900"
+          style={{ colorScheme: 'light' }}
         />
       </td>
 
-      <td className="px-2 py-2 bg-yellow-50">
+      <td className="px-1 sm:px-2 py-1.5 sm:py-2 bg-yellow-50">
         <input
           type="text"
           inputMode="decimal"
           value={valores.precioKgFin}
           onChange={(e) => handleChange('precioKgFin', e.target.value)}
           placeholder="0"
-          className="w-full px-2 py-1 border rounded text-center text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          className="w-full px-1 sm:px-2 py-0.5 sm:py-1 border rounded text-center text-[10px] sm:text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900"
+          style={{ colorScheme: 'light' }}
         />
       </td>
 
-      <td className="px-2 py-2 text-center text-gray-700">{formatearNumero(calc.difAnimales)}</td>
-      <td className="px-2 py-2 text-center text-gray-700">{formatearNumero(calc.kgStockInicio)}</td>
-      <td className="px-2 py-2 text-center text-gray-700">{formatearNumero(calc.kgStockFinal)}</td>
-      <td className={`px-2 py-2 text-center font-medium ${calc.difKg < 0 ? 'text-red-600' : 'text-green-600'}`}>
+      <td className="px-1 sm:px-2 py-1.5 sm:py-2 text-center text-[10px] sm:text-sm text-gray-700">{formatearNumero(calc.difAnimales)}</td>
+      <td className="px-1 sm:px-2 py-1.5 sm:py-2 text-center text-[10px] sm:text-sm text-gray-700">{formatearNumero(calc.kgStockInicio)}</td>
+      <td className="px-1 sm:px-2 py-1.5 sm:py-2 text-center text-[10px] sm:text-sm text-gray-700">{formatearNumero(calc.kgStockFinal)}</td>
+      <td className={`px-1 sm:px-2 py-1.5 sm:py-2 text-center text-[10px] sm:text-sm font-medium ${calc.difKg < 0 ? 'text-red-600' : 'text-green-600'}`}>
         {formatearNumero(calc.difKg)}
       </td>
-      <td className="px-2 py-2 text-center text-gray-700">{formatearNumero(calc.usdInicio)}</td>
-      <td className="px-2 py-2 text-center text-gray-700">{formatearNumero(calc.usdFinal)}</td>
-      <td className={`px-2 py-2 text-center font-bold ${calc.usdTotales < 0 ? 'text-red-600' : 'text-green-600'}`}>
+      <td className="px-1 sm:px-2 py-1.5 sm:py-2 text-center text-[10px] sm:text-sm text-gray-700">{formatearNumero(calc.usdInicio)}</td>
+      <td className="px-1 sm:px-2 py-1.5 sm:py-2 text-center text-[10px] sm:text-sm text-gray-700">{formatearNumero(calc.usdFinal)}</td>
+      <td className={`px-1 sm:px-2 py-1.5 sm:py-2 text-center text-[10px] sm:text-sm font-bold ${calc.usdTotales < 0 ? 'text-red-600' : 'text-green-600'}`}>
         {formatearNumero(calc.usdTotales)}
       </td>
-      <td className="px-2 py-2 text-center text-gray-700">{formatearNumero(calc.precioAnimal)}</td>
+      <td className="px-1 sm:px-2 py-1.5 sm:py-2 text-center text-[10px] sm:text-sm text-gray-700">{formatearNumero(calc.precioAnimal)}</td>
 
-      <td className="px-2 py-2 text-center">
+      <td className="px-1 sm:px-2 py-1.5 sm:py-2 text-center">
         <button
           onClick={() => onDelete(item.categoria)}
-          className="text-red-600 hover:text-red-800 text-lg"
+          className="text-red-600 hover:text-red-800 text-sm sm:text-lg"
           title="Eliminar"
         >
           🗑️
@@ -481,61 +487,61 @@ export default function InventarioPage() {
     titulo: string,
     colorBg: string
   }) => (
-    <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden mb-6">
-      <div className={`px-4 py-3 ${colorBg} border-b-2 border-gray-300`}>
-        <h2 className="text-lg font-bold text-gray-900">{titulo}</h2>
+    <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden mb-4 sm:mb-6">
+      <div className={`px-3 sm:px-4 py-2 sm:py-3 ${colorBg} border-b-2 border-gray-300`}>
+        <h2 className="text-sm sm:text-lg font-bold text-gray-900">{titulo}</h2>
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full text-xs sm:text-sm border-collapse">
+        <table className="w-full text-[10px] sm:text-xs md:text-sm border-collapse min-w-[900px]">
           <thead className="bg-gray-100 border-b-2 border-gray-300">
             <tr>
-              <th className="px-3 py-2 text-left font-bold text-gray-700 sticky left-0 bg-gray-100 z-20 min-w-[120px]">
-                Categoría
+              <th className="px-2 sm:px-3 py-1.5 sm:py-2 text-left font-bold text-gray-700 sticky left-0 bg-gray-100 z-20 min-w-[80px] sm:min-w-[120px]">
+                Categ.
               </th>
-              <th className="px-2 py-2 text-center font-bold text-gray-700 bg-yellow-50 min-w-[80px]">
-                Nº Anim<br />1/7/{añoInicio.toString().slice(-2)}
+              <th className="px-1 sm:px-2 py-1.5 sm:py-2 text-center font-bold text-gray-700 bg-yellow-50 min-w-[60px] sm:min-w-[80px]">
+                Nº<br />1/7/{añoInicio.toString().slice(-2)}
               </th>
-              <th className="px-2 py-2 text-center font-bold text-gray-700 bg-yellow-50 min-w-[80px]">
-                Nº Anim<br />30/6/{añoFin.toString().slice(-2)}
+              <th className="px-1 sm:px-2 py-1.5 sm:py-2 text-center font-bold text-gray-700 bg-yellow-50 min-w-[60px] sm:min-w-[80px]">
+                Nº<br />30/6/{añoFin.toString().slice(-2)}
               </th>
-              <th className="px-2 py-2 text-center font-bold text-gray-700 bg-yellow-50 min-w-[70px]">
-                Peso<br />Inicio
+              <th className="px-1 sm:px-2 py-1.5 sm:py-2 text-center font-bold text-gray-700 bg-yellow-50 min-w-[50px] sm:min-w-[70px]">
+                Peso<br />Ini
               </th>
-              <th className="px-2 py-2 text-center font-bold text-gray-700 bg-yellow-50 min-w-[70px]">
-                Peso<br />Final
+              <th className="px-1 sm:px-2 py-1.5 sm:py-2 text-center font-bold text-gray-700 bg-yellow-50 min-w-[50px] sm:min-w-[70px]">
+                Peso<br />Fin
               </th>
-              <th className="px-2 py-2 text-center font-bold text-gray-700 bg-yellow-50 min-w-[70px]">
-                U$/kg<br />Inicio
+              <th className="px-1 sm:px-2 py-1.5 sm:py-2 text-center font-bold text-gray-700 bg-yellow-50 min-w-[50px] sm:min-w-[70px]">
+                $/kg<br />Ini
               </th>
-              <th className="px-2 py-2 text-center font-bold text-gray-700 bg-yellow-50 min-w-[70px]">
-                U$/kg<br />Fin
+              <th className="px-1 sm:px-2 py-1.5 sm:py-2 text-center font-bold text-gray-700 bg-yellow-50 min-w-[50px] sm:min-w-[70px]">
+                $/kg<br />Fin
               </th>
-              <th className="px-2 py-2 text-center font-bold text-gray-700 min-w-[70px]">
-                Dif en<br />animales
+              <th className="px-1 sm:px-2 py-1.5 sm:py-2 text-center font-bold text-gray-700 min-w-[50px] sm:min-w-[70px]">
+                Dif<br />Anim
               </th>
-              <th className="px-2 py-2 text-center font-bold text-gray-700 min-w-[80px]">
-                kg stock<br />Inicio
+              <th className="px-1 sm:px-2 py-1.5 sm:py-2 text-center font-bold text-gray-700 min-w-[60px] sm:min-w-[80px]">
+                kg<br />Ini
               </th>
-              <th className="px-2 py-2 text-center font-bold text-gray-700 min-w-[80px]">
-                kg stock<br />Final
+              <th className="px-1 sm:px-2 py-1.5 sm:py-2 text-center font-bold text-gray-700 min-w-[60px] sm:min-w-[80px]">
+                kg<br />Fin
               </th>
-              <th className="px-2 py-2 text-center font-bold text-gray-700 min-w-[70px]">
-                Dif en kg
+              <th className="px-1 sm:px-2 py-1.5 sm:py-2 text-center font-bold text-gray-700 min-w-[50px] sm:min-w-[70px]">
+                Dif kg
               </th>
-              <th className="px-2 py-2 text-center font-bold text-gray-700 min-w-[80px]">
-                U$S<br />Inicio
+              <th className="px-1 sm:px-2 py-1.5 sm:py-2 text-center font-bold text-gray-700 min-w-[60px] sm:min-w-[80px]">
+                U$S<br />Ini
               </th>
-              <th className="px-2 py-2 text-center font-bold text-gray-700 min-w-[80px]">
-                U$S<br />Final
+              <th className="px-1 sm:px-2 py-1.5 sm:py-2 text-center font-bold text-gray-700 min-w-[60px] sm:min-w-[80px]">
+                U$S<br />Fin
               </th>
-              <th className="px-2 py-2 text-center font-bold text-gray-700 min-w-[80px]">
-                U$S<br />Totales
+              <th className="px-1 sm:px-2 py-1.5 sm:py-2 text-center font-bold text-gray-700 min-w-[60px] sm:min-w-[80px]">
+                U$S<br />Tot
               </th>
-              <th className="px-2 py-2 text-center font-bold text-gray-700 min-w-[80px]">
-                Precio /<br />animal
+              <th className="px-1 sm:px-2 py-1.5 sm:py-2 text-center font-bold text-gray-700 min-w-[60px] sm:min-w-[80px]">
+                $/an
               </th>
-              <th className="px-2 py-2 text-center font-bold text-gray-700 min-w-[50px]"></th>
+              <th className="px-1 sm:px-2 py-1.5 sm:py-2 text-center font-bold text-gray-700 min-w-[40px] sm:min-w-[50px]"></th>
             </tr>
           </thead>
 
@@ -551,26 +557,26 @@ export default function InventarioPage() {
             ))}
 
             <tr className="bg-green-100 font-bold text-gray-900">
-              <td className="px-3 py-3 sticky left-0 bg-green-100 z-10">TOTALES</td>
-              <td className="px-2 py-3 text-center">{formatearNumero(totales.cantidadInicial)}</td>
-              <td className="px-2 py-3 text-center">{formatearNumero(totales.cantidadFinal)}</td>
-              <td className="px-2 py-3"></td>
-              <td className="px-2 py-3"></td>
-              <td className="px-2 py-3"></td>
-              <td className="px-2 py-3"></td>
-              <td className="px-2 py-3 text-center">{formatearNumero(totales.difAnimales)}</td>
-              <td className="px-2 py-3 text-center">{formatearNumero(totales.kgStockInicio)}</td>
-              <td className="px-2 py-3 text-center">{formatearNumero(totales.kgStockFinal)}</td>
-              <td className={`px-2 py-3 text-center ${totales.difKg < 0 ? 'text-red-600' : 'text-green-600'}`}>
+              <td className="px-2 sm:px-3 py-2 sm:py-3 text-[10px] sm:text-sm sticky left-0 bg-green-100 z-10">TOTAL</td>
+              <td className="px-1 sm:px-2 py-2 sm:py-3 text-center text-[10px] sm:text-sm">{formatearNumero(totales.cantidadInicial)}</td>
+              <td className="px-1 sm:px-2 py-2 sm:py-3 text-center text-[10px] sm:text-sm">{formatearNumero(totales.cantidadFinal)}</td>
+              <td className="px-1 sm:px-2 py-2 sm:py-3"></td>
+              <td className="px-1 sm:px-2 py-2 sm:py-3"></td>
+              <td className="px-1 sm:px-2 py-2 sm:py-3"></td>
+              <td className="px-1 sm:px-2 py-2 sm:py-3"></td>
+              <td className="px-1 sm:px-2 py-2 sm:py-3 text-center text-[10px] sm:text-sm">{formatearNumero(totales.difAnimales)}</td>
+              <td className="px-1 sm:px-2 py-2 sm:py-3 text-center text-[10px] sm:text-sm">{formatearNumero(totales.kgStockInicio)}</td>
+              <td className="px-1 sm:px-2 py-2 sm:py-3 text-center text-[10px] sm:text-sm">{formatearNumero(totales.kgStockFinal)}</td>
+              <td className={`px-1 sm:px-2 py-2 sm:py-3 text-center text-[10px] sm:text-sm ${totales.difKg < 0 ? 'text-red-600' : 'text-green-600'}`}>
                 {formatearNumero(totales.difKg)}
               </td>
-              <td className="px-2 py-3 text-center">{formatearNumero(totales.usdInicio)}</td>
-              <td className="px-2 py-3 text-center">{formatearNumero(totales.usdFinal)}</td>
-              <td className={`px-2 py-3 text-center ${totales.usdTotales < 0 ? 'text-red-600' : 'text-green-600'}`}>
+              <td className="px-1 sm:px-2 py-2 sm:py-3 text-center text-[10px] sm:text-sm">{formatearNumero(totales.usdInicio)}</td>
+              <td className="px-1 sm:px-2 py-2 sm:py-3 text-center text-[10px] sm:text-sm">{formatearNumero(totales.usdFinal)}</td>
+              <td className={`px-1 sm:px-2 py-2 sm:py-3 text-center text-[10px] sm:text-sm ${totales.usdTotales < 0 ? 'text-red-600' : 'text-green-600'}`}>
                 {formatearNumero(totales.usdTotales)}
               </td>
-              <td className="px-2 py-3"></td>
-              <td className="px-2 py-3"></td>
+              <td className="px-1 sm:px-2 py-2 sm:py-3"></td>
+              <td className="px-1 sm:px-2 py-2 sm:py-3"></td>
             </tr>
           </tbody>
         </table>
@@ -579,40 +585,40 @@ export default function InventarioPage() {
   ), [añoInicio, añoFin, actualizarItem, eliminarFila, formatearNumero]);
 
   return (
-    <div className="bg-gray-50 min-h-screen p-4 sm:p-6 md:p-8">
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-6 gap-4">
+    <div className="bg-white min-h-screen p-3 sm:p-4 md:p-6 lg:p-8 text-gray-900" style={{ colorScheme: 'light' }}>
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-4 sm:mb-6 gap-3 sm:gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">📦 Diferencia de Inventario</h1>
-          <p className="text-gray-600 text-sm mt-1">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">📦 Diferencia de Inventario</h1>
+          <p className="text-gray-600 text-xs sm:text-sm mt-1">
             Ejercicio fiscal: 1/7/{añoInicio} → 30/6/{añoFin}
           </p>
-          <div className="mt-3 bg-indigo-50 border border-indigo-200 rounded-lg px-4 py-2 flex items-start gap-2">
-            <span className="text-indigo-600 text-lg">⚠️</span>
-            <p className="text-indigo-800 text-sm font-medium">
+          <div className="mt-2 sm:mt-3 bg-indigo-50 border border-indigo-200 rounded-lg px-3 sm:px-4 py-2 flex items-start gap-2">
+            <span className="text-indigo-600 text-base sm:text-lg">⚠️</span>
+            <p className="text-indigo-800 text-xs sm:text-sm font-medium">
               No olvides presionar <strong>Guardar</strong> si hacés algún cambio
             </p>
           </div>
         </div>
 
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-1.5 sm:gap-2 flex-wrap">
           <button
             onClick={() => setModalRegenerar(true)}
-            className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium"
+            className="px-2 sm:px-3 py-1.5 sm:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-[10px] sm:text-sm font-medium"
           >
-            🔄 Regenerar desde Potreros
+            🔄 <span className="hidden sm:inline">Regenerar</span>
           </button>
           <button
             onClick={() => setModalAgregar(true)}
-            className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm font-medium"
+            className="px-2 sm:px-3 py-1.5 sm:py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-[10px] sm:text-sm font-medium"
           >
-            ➕ Agregar Categoría
+            ➕ <span className="hidden sm:inline">Agregar</span>
           </button>
           <button
             onClick={guardarInventario}
             disabled={guardando}
-            className="px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm font-medium disabled:opacity-50"
+            className="px-2 sm:px-3 py-1.5 sm:py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-[10px] sm:text-sm font-medium disabled:opacity-50"
           >
-            {guardando ? '💾 Guardando...' : '💾 Guardar'}
+            {guardando ? '💾...' : '💾 Guardar'}
           </button>
         </div>
       </div>
@@ -632,34 +638,34 @@ export default function InventarioPage() {
       />
 
       {modalRegenerar && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-md w-full p-6">
-            <h2 className="text-xl font-bold mb-4">🔄 Regenerar desde Potreros</h2>
-            <p className="text-gray-700 mb-6">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4">
+          <div className="bg-white rounded-xl max-w-md w-full p-4 sm:p-6" style={{ colorScheme: 'light' }}>
+            <h2 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4">🔄 Regenerar desde Potreros</h2>
+            <p className="text-gray-700 mb-4 sm:mb-6 text-sm sm:text-base">
               ¿A qué fecha querés cargar el stock actual de tus potreros?
             </p>
 
-            <div className="space-y-3 mb-6">
+            <div className="space-y-2 sm:space-y-3 mb-4 sm:mb-6">
               <button
                 onClick={() => regenerarDesdePotreros('INICIO')}
-                className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium text-left"
+                className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium text-left text-sm sm:text-base"
               >
                 📅 Inicio de Ejercicio
-                <div className="text-sm opacity-90">1 de julio {añoInicio}</div>
+                <div className="text-xs sm:text-sm opacity-90">1 de julio {añoInicio}</div>
               </button>
 
               <button
                 onClick={() => regenerarDesdePotreros('FIN')}
-                className="w-full px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium text-left"
+                className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium text-left text-sm sm:text-base"
               >
                 📅 Fin de Ejercicio
-                <div className="text-sm opacity-90">30 de junio {añoFin}</div>
+                <div className="text-xs sm:text-sm opacity-90">30 de junio {añoFin}</div>
               </button>
             </div>
 
             <button
               onClick={() => setModalRegenerar(false)}
-              className="w-full px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300"
+              className="w-full px-3 sm:px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 text-sm sm:text-base"
             >
               Cancelar
             </button>
@@ -668,27 +674,28 @@ export default function InventarioPage() {
       )}
 
       {modalAgregar && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-md w-full p-6">
-            <h2 className="text-xl font-bold mb-4">➕ Agregar Categoría Manual</h2>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4">
+          <div className="bg-white rounded-xl max-w-md w-full p-4 sm:p-6" style={{ colorScheme: 'light' }}>
+            <h2 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4">➕ Agregar Categoría Manual</h2>
             <input
               type="text"
               value={nuevaCategoria}
               onChange={(e) => setNuevaCategoria(e.target.value)}
               placeholder="Ej: Terneros especiales"
-              className="w-full px-4 py-2 border rounded-lg mb-4"
+              className="w-full px-3 sm:px-4 py-2 border rounded-lg mb-3 sm:mb-4 text-sm sm:text-base bg-white text-gray-900"
+              style={{ colorScheme: 'light' }}
               onKeyDown={(e) => e.key === 'Enter' && agregarCategoriaManual()}
             />
-            <div className="flex gap-3">
+            <div className="flex gap-2 sm:gap-3">
               <button
                 onClick={() => setModalAgregar(false)}
-                className="flex-1 px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300"
+                className="flex-1 px-3 sm:px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 text-sm sm:text-base"
               >
                 Cancelar
               </button>
               <button
                 onClick={agregarCategoriaManual}
-                className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                className="flex-1 px-3 sm:px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm sm:text-base"
               >
                 Agregar
               </button>

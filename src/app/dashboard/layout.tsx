@@ -4,8 +4,6 @@ import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
-import Image from "next/image";
-
 import { DatosProvider } from "@/app/contexts/DatosContext";
 import { InsumosProvider } from "@/app/contexts/InsumosContext";
 import { GastosProvider } from "@/app/contexts/GastosContext";
@@ -323,44 +321,43 @@ const guardarNombreGrupo = async (grupoId: string) => {
     <div className="flex flex-col min-h-screen bg-gray-50">
 
       {/* HEADER */}
-      <header className="bg-white border-b px-3 sm:px-4 py-3 flex items-center justify-between sticky top-0 z-40">
-        <div className="flex items-center gap-2 sm:gap-3">
+      <header className="bg-white border-b px-2 sm:px-4 py-2 sm:py-3 flex items-center justify-between sticky top-0 z-40">
+        <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
           <button
             onClick={() => setSidebarOpen(true)}
-            className="p-2 rounded-lg text-gray-600 lg:hidden hover:bg-gray-100"
+            className="p-1.5 sm:p-2 rounded-lg text-gray-600 lg:hidden hover:bg-gray-100"
             aria-label="Abrir menú"
           >
             ☰
           </button>
 
-          <Image 
+          <img
             src="/BoTRURAL.svg"
             alt="BotRural"
-            width={140}
-            height={140}
-            priority
+            className="h-8 sm:h-10 w-auto"
           />
         </div>
 
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-3">
           {/* Botón Descargar Excel */}
           <button
-  onClick={() => setShowExportModal(true)}
-  className="p-2 sm:px-3 sm:py-2 bg-green-100 border border-green-300 rounded-lg hover:bg-green-200 text-green-600 transition"
-  title="Descargar a Excel"
->
-  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-  </svg>
-</button>
+            onClick={() => setShowExportModal(true)}
+            className="p-2 bg-green-100 border border-green-300 rounded-lg hover:bg-green-200 text-green-600 transition"
+            title="Descargar a Excel"
+          >
+            <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          </button>
 
           {/* Botón Nuevo Dato */}
           {!isContador && (
             <button
               onClick={() => setMenuOpen((prev) => !prev)}
-              className="px-3 py-2 sm:px-4 text-sm sm:text-base bg-blue-500 text-white rounded-lg hover:bg-blue-600 whitespace-nowrap"
+              className="px-2.5 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 whitespace-nowrap"
             >
-              ＋ Nuevo Dato
+              <span className="sm:hidden">＋ Nuevo</span>
+              <span className="hidden sm:inline">＋ Nuevo Dato</span>
             </button>
           )}
 
@@ -368,17 +365,17 @@ const guardarNombreGrupo = async (grupoId: string) => {
           <div className="relative" ref={userMenuRef}>
             <button
               onClick={() => setUserMenuOpen(!userMenuOpen)}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
+              className="flex items-center gap-1.5 sm:gap-2 px-2 py-1.5 sm:px-3 sm:py-2 rounded-lg hover:bg-gray-100 transition-colors"
             >
-              <span className="text-lg">⚙️</span>
-              <span className="hidden sm:inline text-sm font-medium text-gray-700">
+              <span className="text-base sm:text-lg">⚙️</span>
+              <span className="hidden sm:inline text-sm font-medium text-gray-700 max-w-[120px] truncate">
                 {campoNombre}
               </span>
             </button>
 
             {/* Menú desplegable */}
             {userMenuOpen && (
-              <div className="absolute right-0 mt-2 w-72 bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden z-50">
+              <div className="absolute right-0 mt-2 w-[calc(100vw-1rem)] sm:w-72 max-w-sm bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden z-50">
                 {/* Header del menú con nombre de usuario */}
                 <div className="bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-4">
                   <h3 className="text-white font-bold text-lg">{userName}</h3>
@@ -728,7 +725,7 @@ const guardarNombreGrupo = async (grupoId: string) => {
       {/* OVERLAY PARA CERRAR SIDEBAR EN MÓVIL */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/30 z-20 lg:hidden"
+          className="fixed inset-0 bg-black/30 z-40 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
@@ -736,10 +733,21 @@ const guardarNombreGrupo = async (grupoId: string) => {
       {/* SIDEBAR */}
       <div className="flex flex-1">
         <aside
-          className={`fixed lg:sticky lg:top-[65px] lg:h-[calc(100vh-65px)] inset-y-0 left-0 w-64 sm:w-72 lg:w-60 bg-white border-r transition-transform duration-300 z-30 ${
+          className={`fixed lg:sticky lg:top-[65px] lg:h-[calc(100vh-65px)] top-0 bottom-0 left-0 w-64 sm:w-72 lg:w-60 bg-white border-r transition-transform duration-300 z-50 lg:z-30 ${
             sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
           } overflow-y-auto`}
         >
+          {/* Header del sidebar en móvil con logo y botón cerrar */}
+          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 lg:hidden">
+            <img src="/BoTRURAL.svg" alt="BotRural" className="h-8 w-auto" />
+            <button
+              onClick={() => setSidebarOpen(false)}
+              className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100"
+              aria-label="Cerrar menú"
+            >
+              ✕
+            </button>
+          </div>
           <nav className="p-3 sm:p-4 space-y-2.5 pb-20 lg:pb-4">
             {/* Indicador compacto que se integra con el resto del menú */}
             <OnboardingIndicator variant="compact" />

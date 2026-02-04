@@ -125,55 +125,57 @@ export default function ComprasPage() {
 
   return (
     <>
-      <div className="bg-gray-50 min-h-screen p-4 sm:p-6 md:p-8 text-gray-900">
+      <div className="bg-white min-h-screen p-3 sm:p-4 md:p-6 lg:p-8 text-gray-900" style={{ colorScheme: 'light' }}>
         {/* HEADER */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8 gap-6">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 sm:mb-6 md:mb-8 gap-3 sm:gap-6">
           <div className="text-center md:text-left space-y-1">
-            <h1 className="text-3xl font-bold text-gray-900 leading-tight">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 leading-tight">
               Compras de Ganado
             </h1>
-            <p className="text-gray-600 text-sm">
+            <p className="text-gray-600 text-xs sm:text-sm">
               Gestión de compras de vacunos y ovinos
             </p>
           </div>
 
-          <div className="flex flex-wrap justify-center md:justify-end gap-3">
+          <div className="flex flex-wrap justify-center md:justify-end gap-2 sm:gap-3">
             <button
               onClick={() => setModalOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 shadow-sm transition text-sm font-medium"
+              className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 shadow-sm transition text-xs sm:text-sm font-medium"
             >
-              <span className="text-lg">+</span> Nueva Compra
+              <span className="text-base sm:text-lg">+</span> Nueva Compra
             </button>
           </div>
         </div>
 
         {/* FILTROS DE FECHA */}
-        <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6 mb-6">
-          <h3 className="font-semibold text-gray-900 mb-4">Filtros</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="bg-white rounded-xl shadow-md border border-gray-200 p-3 sm:p-4 md:p-6 mb-4 sm:mb-6">
+          <h3 className="font-semibold text-gray-900 mb-3 sm:mb-4 text-sm sm:text-base">Filtros</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
                 Fecha Inicio
               </label>
               <input
                 type="date"
                 value={fechaInicio}
                 onChange={(e) => setFechaInicio(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                className="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 bg-white text-gray-900"
+                style={{ colorScheme: 'light' }}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
                 Fecha Fin
               </label>
               <input
                 type="date"
                 value={fechaFin}
                 onChange={(e) => setFechaFin(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                className="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 bg-white text-gray-900"
+                style={{ colorScheme: 'light' }}
               />
             </div>
-            <div className="flex items-end">
+            <div className="flex items-end col-span-2 sm:col-span-1">
               <button
                 onClick={() => {
                   const hoy = new Date()
@@ -181,7 +183,7 @@ export default function ComprasPage() {
                   setFechaInicio(`${año}-07-01`)
                   setFechaFin(`${año + 1}-06-30`)
                 }}
-                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-sm font-medium"
+                className="px-3 sm:px-4 py-1.5 sm:py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-xs sm:text-sm font-medium w-full sm:w-auto"
               >
                 Ejercicio Actual
               </button>
@@ -193,9 +195,9 @@ export default function ComprasPage() {
         {resumen && <ResumenCompras resumen={resumen} />}
 
         {/* DETALLE DE COMPRAS */}
-        <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden mt-6">
-          <div className="p-6 border-b border-gray-200">
-            <h2 className="text-xl font-bold text-gray-900">Detalle de Compras</h2>
+        <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden mt-4 sm:mt-6">
+          <div className="p-3 sm:p-4 md:p-6 border-b border-gray-200">
+            <h2 className="text-base sm:text-lg md:text-xl font-bold text-gray-900">Detalle de Compras</h2>
           </div>
           <TablaCompras compras={compras} onRefresh={mutate} />
         </div>
@@ -203,8 +205,8 @@ export default function ComprasPage() {
 
       {/* MODAL NUEVA COMPRA */}
       {modalOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto" style={{ colorScheme: 'light' }}>
             <ModalCompra
               onClose={() => setModalOpen(false)}
               onSuccess={handleSuccess}

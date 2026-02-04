@@ -126,45 +126,47 @@ export default function VentasPorFirmasPage() {
   }
 
   return (
-    <div className="bg-gray-50 min-h-screen p-4 sm:p-6 md:p-8 text-gray-900">
+    <div className="bg-white min-h-screen p-3 sm:p-4 md:p-6 lg:p-8 text-gray-900" style={{ colorScheme: 'light' }}>
       {/* HEADER */}
-      <div className="mb-8">
-        <div className="flex items-center gap-3 mb-2">
-          <Link href="/dashboard/ventas" className="text-blue-600 hover:text-blue-800">
+      <div className="mb-4 sm:mb-6 md:mb-8">
+        <div className="flex items-center gap-2 sm:gap-3 mb-2">
+          <Link href="/dashboard/ventas" className="text-blue-600 hover:text-blue-800 text-xs sm:text-sm">
             ← Volver a Ventas
           </Link>
         </div>
-        <h1 className="text-3xl font-bold text-gray-900">Ventas por Firma</h1>
-        <p className="text-gray-600 text-sm">Análisis de ventas por razón social / RUT</p>
+        <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">Ventas por Firma</h1>
+        <p className="text-gray-600 text-xs sm:text-sm">Análisis de ventas por razón social / RUT</p>
       </div>
 
       {/* FILTROS DE FECHA */}
-      <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6 mb-6">
-        <h3 className="font-semibold text-gray-900 mb-4">Filtros</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="bg-white rounded-xl shadow-md border border-gray-200 p-3 sm:p-4 md:p-6 mb-4 sm:mb-6">
+        <h3 className="font-semibold text-gray-900 mb-3 sm:mb-4 text-sm sm:text-base">Filtros</h3>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
               Fecha Inicio
             </label>
             <input
               type="date"
               value={fechaInicio}
               onChange={(e) => setFechaInicio(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white text-gray-900"
+              style={{ colorScheme: 'light' }}
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
               Fecha Fin
             </label>
             <input
               type="date"
               value={fechaFin}
               onChange={(e) => setFechaFin(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white text-gray-900"
+              style={{ colorScheme: 'light' }}
             />
           </div>
-          <div className="flex items-end">
+          <div className="flex items-end col-span-2 sm:col-span-1">
             <button
               onClick={() => {
                 const hoy = new Date()
@@ -172,7 +174,7 @@ export default function VentasPorFirmasPage() {
                 setFechaInicio(`${año}-07-01`)
                 setFechaFin(`${año + 1}-06-30`)
               }}
-              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-sm font-medium"
+              className="px-3 sm:px-4 py-1.5 sm:py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-xs sm:text-sm font-medium w-full sm:w-auto"
             >
               Ejercicio Actual
             </button>
@@ -181,45 +183,45 @@ export default function VentasPorFirmasPage() {
       </div>
 
       {/* CARDS POR FIRMA */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6 mb-4 sm:mb-6">
         {resumen.map((firma: any) => (
-          <div 
-            key={firma.firmaId || 'sin-asignar'} 
-            className={`bg-white rounded-xl shadow-md border-2 p-6 ${
+          <div
+            key={firma.firmaId || 'sin-asignar'}
+            className={`bg-white rounded-xl shadow-md border-2 p-3 sm:p-4 md:p-6 ${
               firma.firmaId ? 'border-blue-200' : 'border-gray-300'
             }`}
           >
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex-1">
-                <h3 className="font-bold text-gray-900 text-lg mb-1">
+            <div className="flex items-start justify-between mb-2 sm:mb-4">
+              <div className="flex-1 min-w-0">
+                <h3 className="font-bold text-gray-900 text-sm sm:text-base md:text-lg mb-0.5 sm:mb-1 truncate">
                   {firma.razonSocial}
                 </h3>
-                <p className="text-sm text-gray-500 font-mono">{firma.rut}</p>
+                <p className="text-xs sm:text-sm text-gray-500 font-mono truncate">{firma.rut}</p>
               </div>
               {!firma.firmaId && (
-                <span className="text-2xl">❓</span>
+                <span className="text-lg sm:text-2xl ml-2">❓</span>
               )}
             </div>
-            
-            <div className="space-y-3">
+
+            <div className="space-y-2 sm:space-y-3">
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Ventas:</span>
-                <span className="text-lg font-semibold text-gray-900">
+                <span className="text-xs sm:text-sm text-gray-600">Ventas:</span>
+                <span className="text-base sm:text-lg font-semibold text-gray-900">
                   {firma.cantidadVentas}
                 </span>
               </div>
-              
-              <div className="pt-3 border-t border-gray-200">
+
+              <div className="pt-2 sm:pt-3 border-t border-gray-200">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Total:</span>
-                  <span className="text-2xl font-bold text-blue-600">
+                  <span className="text-xs sm:text-sm text-gray-600">Total:</span>
+                  <span className="text-lg sm:text-xl md:text-2xl font-bold text-blue-600">
                     U$S {formatNumber(firma.totalUSD)}
                   </span>
                 </div>
               </div>
-              
-              <div className="pt-2">
-                <div className="text-xs text-gray-500 text-right">
+
+              <div className="pt-1 sm:pt-2">
+                <div className="text-[10px] sm:text-xs text-gray-500 text-right">
                   {totalGeneral > 0 ? ((firma.totalUSD / totalGeneral) * 100).toFixed(1) : 0}% del total
                 </div>
               </div>
@@ -229,30 +231,30 @@ export default function VentasPorFirmasPage() {
       </div>
 
       {/* TABLA RESUMEN */}
-      <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden mb-6">
-        <div className="p-6 border-b border-gray-200">
-          <h2 className="text-xl font-bold text-gray-900">Resumen Detallado</h2>
+      <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden mb-4 sm:mb-6">
+        <div className="p-3 sm:p-4 md:p-6 border-b border-gray-200">
+          <h2 className="text-base sm:text-lg md:text-xl font-bold text-gray-900">Resumen Detallado</h2>
         </div>
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-2 sm:px-4 md:px-6 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Firma
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-2 sm:px-4 md:px-6 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
                   RUT
                 </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-2 sm:px-4 md:px-6 py-2 sm:py-3 text-right text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Cant.
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-2 sm:px-4 md:px-6 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Facturas
                 </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Total USD
+                <th className="px-2 sm:px-4 md:px-6 py-2 sm:py-3 text-right text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Total
                 </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-2 sm:px-4 md:px-6 py-2 sm:py-3 text-right text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
                   %
                 </th>
               </tr>
@@ -260,22 +262,22 @@ export default function VentasPorFirmasPage() {
             <tbody className="bg-white divide-y divide-gray-200">
               {resumen.map((firma: FirmaResumen) => (
                 <tr key={firma.firmaId || 'sin-asignar'} className="hover:bg-gray-50">
-                  <td className="px-6 py-4">
-                    <span className="text-sm font-medium text-gray-900">{firma.razonSocial}</span>
+                  <td className="px-2 sm:px-4 md:px-6 py-2 sm:py-4">
+                    <span className="text-xs sm:text-sm font-medium text-gray-900">{firma.razonSocial}</span>
                   </td>
-                  <td className="px-6 py-4">
-                    <span className="text-sm text-gray-500 font-mono">{firma.rut}</span>
+                  <td className="px-2 sm:px-4 md:px-6 py-2 sm:py-4 hidden sm:table-cell">
+                    <span className="text-xs sm:text-sm text-gray-500 font-mono">{firma.rut}</span>
                   </td>
-                  <td className="px-6 py-4 text-right">
-                    <span className="text-sm text-gray-900">{firma.cantidadVentas}</span>
+                  <td className="px-2 sm:px-4 md:px-6 py-2 sm:py-4 text-right">
+                    <span className="text-xs sm:text-sm text-gray-900">{firma.cantidadVentas}</span>
                   </td>
-                  <td className="px-6 py-4">
-                    <div className="flex flex-wrap gap-1.5">
+                  <td className="px-2 sm:px-4 md:px-6 py-2 sm:py-4">
+                    <div className="flex flex-wrap gap-1 sm:gap-1.5">
                       {firma.ventas.map((venta) => (
                         <div key={venta.id} className="inline-flex items-center gap-0.5 relative">
                           {/* Chip de factura */}
                           <span
-                            className={`inline-flex items-center gap-1 text-xs px-2 py-1 border-y border-l ${
+                            className={`inline-flex items-center gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 border-y border-l ${
                               !firma.firmaId ? 'rounded-l-md' : 'rounded-l-md'
                             } ${
                               venta.pagado
@@ -287,7 +289,7 @@ export default function VentasPorFirmasPage() {
                             <span className="font-medium">
                               {venta.nroFactura || 'S/N'}
                             </span>
-                            <span className="text-[10px] opacity-70">
+                            <span className="text-[8px] sm:text-[10px] opacity-70 hidden sm:inline">
                               {formatDate(venta.fecha).slice(0, 5)}
                             </span>
                           </span>
@@ -300,7 +302,7 @@ export default function VentasPorFirmasPage() {
         e.stopPropagation()
         setEditandoVenta(editandoVenta === venta.id ? null : venta.id)
       }}
-      className="px-1.5 py-1 text-xs border-y bg-blue-50 border-blue-200 text-blue-600 hover:bg-blue-100 transition relative z-10"
+      className="px-1 sm:px-1.5 py-0.5 sm:py-1 text-[10px] sm:text-xs border-y bg-blue-50 border-blue-200 text-blue-600 hover:bg-blue-100 transition relative z-10"
       title="Asignar firma"
     >
       ✏️
@@ -356,7 +358,7 @@ export default function VentasPorFirmasPage() {
                           {venta.imageUrl ? (
                             <button
                               onClick={() => setVerImagen({ url: venta.imageUrl!, venta })}
-                              className={`px-1.5 py-1 text-xs rounded-r-md border transition hover:opacity-80 ${
+                              className={`px-1 sm:px-1.5 py-0.5 sm:py-1 text-[10px] sm:text-xs rounded-r-md border transition hover:opacity-80 ${
                                 venta.pagado
                                   ? 'bg-green-100 border-green-200 text-green-700 hover:bg-green-200'
                                   : 'bg-amber-100 border-amber-200 text-amber-700 hover:bg-amber-200'
@@ -367,7 +369,7 @@ export default function VentasPorFirmasPage() {
                             </button>
                           ) : (
                             <span
-                              className={`px-1.5 py-1 text-xs rounded-r-md border opacity-30 ${
+                              className={`px-1 sm:px-1.5 py-0.5 sm:py-1 text-[10px] sm:text-xs rounded-r-md border opacity-30 ${
                                 venta.pagado
                                   ? 'bg-green-50 border-green-200 text-green-400'
                                   : 'bg-amber-50 border-amber-200 text-amber-400'
@@ -381,28 +383,31 @@ export default function VentasPorFirmasPage() {
                       ))}
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-right">
-                    <span className="text-sm font-semibold text-gray-900">
-                      U$S {formatNumber(firma.totalUSD)}
+                  <td className="px-2 sm:px-4 md:px-6 py-2 sm:py-4 text-right">
+                    <span className="text-xs sm:text-sm font-semibold text-gray-900">
+                      <span className="hidden sm:inline">U$S </span>{formatNumber(firma.totalUSD)}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-right">
-                    <span className="text-sm text-gray-600">
+                  <td className="px-2 sm:px-4 md:px-6 py-2 sm:py-4 text-right hidden sm:table-cell">
+                    <span className="text-xs sm:text-sm text-gray-600">
                       {totalGeneral > 0 ? ((firma.totalUSD / totalGeneral) * 100).toFixed(1) : 0}%
                     </span>
                   </td>
                 </tr>
               ))}
-              
+
               {/* TOTAL */}
               <tr className="bg-blue-50 font-bold border-t-2 border-blue-200">
-                <td colSpan={4} className="px-6 py-4 text-gray-900">
+                <td colSpan={2} className="px-2 sm:px-4 md:px-6 py-2 sm:py-4 text-xs sm:text-sm text-gray-900 sm:hidden">
+                  TOTAL
+                </td>
+                <td colSpan={4} className="px-2 sm:px-4 md:px-6 py-2 sm:py-4 text-xs sm:text-sm text-gray-900 hidden sm:table-cell">
                   TOTAL GENERAL
                 </td>
-                <td className="px-6 py-4 text-right text-blue-900">
-                  U$S {formatNumber(totalGeneral)}
+                <td className="px-2 sm:px-4 md:px-6 py-2 sm:py-4 text-right text-xs sm:text-sm text-blue-900">
+                  <span className="hidden sm:inline">U$S </span>{formatNumber(totalGeneral)}
                 </td>
-                <td className="px-6 py-4 text-right text-gray-900">
+                <td className="px-2 sm:px-4 md:px-6 py-2 sm:py-4 text-right text-xs sm:text-sm text-gray-900 hidden sm:table-cell">
                   100%
                 </td>
               </tr>

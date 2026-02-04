@@ -49,7 +49,7 @@ function Tooltip({ children, content }: TooltipProps) {
     if (!triggerRef.current) return
 
     const rect = triggerRef.current.getBoundingClientRect()
-    const tooltipWidth = 384 // w-96 = 384px
+    const tooltipWidth = window.innerWidth < 640 ? 288 : 384 // w-72 en móvil, w-96 en desktop
     const tooltipHeight = 320 // altura del tooltip + margen extra
 
 // Detectar si hay espacio abajo
@@ -96,7 +96,7 @@ const hayEspacioAbajo = espacioAbajo > tooltipHeight + 50
   left: `${tooltipPosition.left}px`,
   zIndex: 9999
 }}
-      className="w-96 p-4 bg-gray-900 text-white text-sm rounded-lg shadow-2xl pointer-events-none"
+      className="w-72 sm:w-96 p-3 sm:p-4 bg-gray-900 text-white text-sm rounded-lg shadow-2xl pointer-events-none"
     >
       {/* Flecha dinámica: arriba o abajo según posición */}
       <div 
@@ -453,9 +453,9 @@ const [acordeonesAbiertos, setAcordeonesAbiertos] = useState<{[key: string]: boo
   // 🎴 COMPONENTE PARA RENDERIZAR UN POTRERO (reutilizable)
   const PotreroCard = ({ lote }: { lote: Lote }) => (
     <tr key={lote.id} className="hover:bg-gray-50 transition">
-      <td className="px-6 py-4">
-        <div className="font-medium text-gray-900">{lote.nombre}</div>
-        <div className="text-sm text-gray-500">
+      <td className="px-3 sm:px-6 py-3 sm:py-4">
+        <div className="font-medium text-gray-900 text-sm sm:text-base">{lote.nombre}</div>
+        <div className="text-xs sm:text-sm text-gray-500">
           {Number(lote.hectareas).toLocaleString('es-UY', {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
@@ -464,7 +464,7 @@ const [acordeonesAbiertos, setAcordeonesAbiertos] = useState<{[key: string]: boo
         </div>
       </td>
 
-      <td className="px-6 py-4 text-sm text-gray-700">
+      <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-gray-700">
         {lote.cultivos?.length > 0 ? (
           <div className="space-y-1">
             {lote.cultivos.map((cultivo, idx) => (
@@ -485,7 +485,7 @@ const [acordeonesAbiertos, setAcordeonesAbiertos] = useState<{[key: string]: boo
         )}
       </td>
 
-      <td className="px-6 py-4 text-sm text-gray-700">
+      <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-gray-700">
         {lote.animalesLote.length > 0 ? (
           <div className="space-y-2">
             <div className="flex items-center gap-2 flex-wrap">
@@ -570,8 +570,8 @@ const [acordeonesAbiertos, setAcordeonesAbiertos] = useState<{[key: string]: boo
 )}
       </td>
 
-      <td className="px-6 py-4 text-right">
-        <div className="flex justify-end gap-3">
+      <td className="px-3 sm:px-6 py-3 sm:py-4 text-right">
+        <div className="flex justify-end gap-2 sm:gap-3">
           <button className="text-gray-400 hover:text-gray-600 transition" title="Ver detalles">
             🔗
           </button>
@@ -613,10 +613,10 @@ const [acordeonesAbiertos, setAcordeonesAbiertos] = useState<{[key: string]: boo
         {/* HEADER */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8 gap-6">
           <div className="text-center md:text-left">
-            <h1 className="text-3xl font-bold text-gray-900 leading-tight mb-2">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 leading-tight mb-2">
               Potreros en {nombreCampo || 'el campo'}
             </h1>
-            <p className="text-gray-600 text-sm mb-3">
+            <p className="text-gray-600 text-xs sm:text-sm mb-3">
               Gestión de potreros y lotes del campo
             </p>
             
@@ -716,34 +716,34 @@ const [acordeonesAbiertos, setAcordeonesAbiertos] = useState<{[key: string]: boo
           </div>
 
           {hayLotes && (
-  <div className="flex flex-col gap-3 items-end">
+  <div className="flex flex-col gap-2 sm:gap-3 items-center md:items-end w-full md:w-auto">
     {/* PRIMERA FILA: Nuevo potrero + Importar CSV */}
-    <div className="flex flex-wrap justify-center md:justify-end gap-3">
+    <div className="flex flex-wrap justify-center md:justify-end gap-2 sm:gap-3 w-full md:w-auto">
       <Link
         href="/dashboard/lotes/nuevo"
-        className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 bg-white hover:bg-gray-100 text-gray-800 shadow-sm transition text-sm"
+        className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg border border-gray-300 bg-white hover:bg-gray-100 text-gray-800 shadow-sm transition text-xs sm:text-sm"
       >
-        <span className="text-lg">+</span> Nuevo potrero
+        <span className="text-base sm:text-lg">+</span> <span className="hidden sm:inline">Nuevo</span> potrero
       </Link>
       <BotonDescargarCarga />
     </div>
 
     {/* SEGUNDA FILA: Evolución Carga Animal + (Reporte Pastoreo si hay módulos en uso) */}
-    <div className="flex flex-wrap justify-center md:justify-end gap-3">
+    <div className="flex flex-wrap justify-center md:justify-end gap-2 sm:gap-3 w-full md:w-auto">
       <Link
         href="/dashboard/ug-evolution"
-        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 shadow-sm transition text-sm font-medium"
+        className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 shadow-sm transition text-xs sm:text-sm font-medium"
       >
-        <span className="text-lg">📊</span> Evolución de Carga Animal
+        <span className="text-base sm:text-lg">📊</span> <span className="hidden sm:inline">Evolución</span> Carga<span className="hidden sm:inline"> Animal</span>
       </Link>
-      
+
       {/* 🔥 NUEVO: Mostrar SOLO si hay módulos CON potreros asignados */}
       {lotesAgrupados.modulos.some(m => m.lotes.length > 0) && (
         <Link
           href="/dashboard/reportes/pastoreo"
-          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-purple-600 text-white hover:bg-purple-700 shadow-sm transition text-sm font-medium"
+          className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg bg-purple-600 text-white hover:bg-purple-700 shadow-sm transition text-xs sm:text-sm font-medium"
         >
-          <span className="text-lg">📋</span> Reporte Pastoreo
+          <span className="text-base sm:text-lg">📋</span> <span className="hidden sm:inline">Reporte</span> Pastoreo
         </Link>
       )}
     </div>
@@ -811,27 +811,27 @@ const [acordeonesAbiertos, setAcordeonesAbiertos] = useState<{[key: string]: boo
                     {/* HEADER DEL MÓDULO */}
                     <button
   onClick={() => toggleAcordeon(modulo.id)}
-  className="w-full px-6 py-4 bg-purple-50 hover:bg-purple-100 transition flex items-center justify-between group"
+  className="w-full px-3 sm:px-6 py-3 sm:py-4 bg-purple-50 hover:bg-purple-100 transition flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 group"
 >
-  <div className="flex items-center gap-3">
+  <div className="flex items-center gap-2 sm:gap-3">
     {/* Icono con animación */}
-    <span className="text-2xl transition-transform duration-200" style={{ transform: estaAbierto ? 'rotate(90deg)' : 'rotate(0deg)' }}>
+    <span className="text-lg sm:text-2xl transition-transform duration-200" style={{ transform: estaAbierto ? 'rotate(90deg)' : 'rotate(0deg)' }}>
       ▶
     </span>
     <div className="text-left">
-      <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+      <h3 className="font-semibold text-gray-900 text-sm sm:text-base flex items-center gap-2">
         {modulo.nombre}
-        <span className="text-xs text-gray-500 font-normal group-hover:text-gray-700">
+        <span className="hidden sm:inline text-xs text-gray-500 font-normal group-hover:text-gray-700">
           (click para {estaAbierto ? 'contraer' : 'expandir'})
         </span>
       </h3>
       {modulo.descripcion && (
-        <p className="text-sm text-gray-600">{modulo.descripcion}</p>
+        <p className="text-xs sm:text-sm text-gray-600">{modulo.descripcion}</p>
       )}
     </div>
   </div>
-  
-  <div className="flex items-center gap-3 flex-wrap justify-end">
+
+  <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-start sm:justify-end ml-6 sm:ml-0">
     <span className="text-sm text-gray-600 bg-white px-3 py-1 rounded-full">
   {modulo.lotes.length} potrero{modulo.lotes.length !== 1 ? 's' : ''}
 </span>
@@ -886,19 +886,19 @@ const [acordeonesAbiertos, setAcordeonesAbiertos] = useState<{[key: string]: boo
                     {/* CONTENIDO DEL MÓDULO */}
                     {estaAbierto && modulo.lotes.length > 0 && (
                       <div className="overflow-x-auto">
-                        <table className="w-full">
+                        <table className="w-full min-w-[500px]">
                           <thead className="bg-gray-50 border-b border-gray-200">
                             <tr>
-                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                              <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-gray-600 uppercase tracking-wider">
                                 Potrero
                               </th>
-                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                              <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-gray-600 uppercase tracking-wider">
                                 Cultivos
                               </th>
-                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                              <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-gray-600 uppercase tracking-wider">
                                 Animales
                               </th>
-                              <th className="px-6 py-3 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">
+                              <th className="px-3 sm:px-6 py-2 sm:py-3 text-right text-[10px] sm:text-xs font-medium text-gray-600 uppercase tracking-wider">
                                 Acciones
                               </th>
                             </tr>
@@ -929,43 +929,43 @@ const [acordeonesAbiertos, setAcordeonesAbiertos] = useState<{[key: string]: boo
     <div className="border border-gray-200 rounded-lg overflow-hidden">
       <button
         onClick={() => toggleAcordeon('sin-modulo')}
-        className="w-full px-6 py-4 bg-gray-50 hover:bg-gray-100 transition flex items-center justify-between group"
+        className="w-full px-3 sm:px-6 py-3 sm:py-4 bg-gray-50 hover:bg-gray-100 transition flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 group"
       >
-        <div className="flex items-center gap-3">
-          <span className="text-2xl transition-transform duration-200" style={{ transform: (acordeonesAbiertos['sin-modulo'] ?? false) ? 'rotate(90deg)' : 'rotate(0deg)' }}>
+        <div className="flex items-center gap-2 sm:gap-3">
+          <span className="text-lg sm:text-2xl transition-transform duration-200" style={{ transform: (acordeonesAbiertos['sin-modulo'] ?? false) ? 'rotate(90deg)' : 'rotate(0deg)' }}>
             ▶
           </span>
           <div className="text-left">
-            <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+            <h3 className="font-semibold text-gray-900 text-sm sm:text-base flex items-center gap-2">
               Resto del campo
-              <span className="text-xs text-gray-500 font-normal group-hover:text-gray-700">
+              <span className="hidden sm:inline text-xs text-gray-500 font-normal group-hover:text-gray-700">
                 (click para {(acordeonesAbiertos['sin-modulo'] ?? false) ? 'contraer' : 'expandir'})
               </span>
             </h3>
-            <p className="text-sm text-gray-600">Potreros sin módulo de pastoreo asignado</p>
+            <p className="text-xs sm:text-sm text-gray-600">Potreros sin módulo de pastoreo asignado</p>
           </div>
         </div>
-        
-        <span className="text-sm text-gray-600 bg-white px-3 py-1 rounded-full">
+
+        <span className="text-xs sm:text-sm text-gray-600 bg-white px-2 sm:px-3 py-1 rounded-full ml-6 sm:ml-0">
           {lotesAgrupados.sinModulo.length} potrero{lotesAgrupados.sinModulo.length !== 1 ? 's' : ''}
         </span>
       </button>
       
       {(acordeonesAbiertos['sin-modulo'] ?? false) && (
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full min-w-[500px]">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-gray-600 uppercase tracking-wider">
                   Potrero
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-gray-600 uppercase tracking-wider">
                   Cultivos
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-gray-600 uppercase tracking-wider">
                   Animales
                 </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">
+                <th className="px-3 sm:px-6 py-2 sm:py-3 text-right text-[10px] sm:text-xs font-medium text-gray-600 uppercase tracking-wider">
                   Acciones
                 </th>
               </tr>
@@ -982,19 +982,19 @@ const [acordeonesAbiertos, setAcordeonesAbiertos] = useState<{[key: string]: boo
   ) : (
     // 🔥 NO HAY MÓDULOS -> Mostrar tabla directa
     <div className="overflow-x-auto">
-      <table className="w-full">
+      <table className="w-full min-w-[500px]">
         <thead className="bg-gray-50 border-b border-gray-200">
           <tr>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+            <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-gray-600 uppercase tracking-wider">
               Potrero
             </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+            <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-gray-600 uppercase tracking-wider">
               Cultivos
             </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+            <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-gray-600 uppercase tracking-wider">
               Animales
             </th>
-            <th className="px-6 py-3 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">
+            <th className="px-3 sm:px-6 py-2 sm:py-3 text-right text-[10px] sm:text-xs font-medium text-gray-600 uppercase tracking-wider">
               Acciones
             </th>
           </tr>

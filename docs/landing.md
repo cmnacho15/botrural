@@ -169,13 +169,13 @@ const DETAILED_SECTIONS = [
   },
   {
     badge: 'Agricultura',
-    title: 'Potreros y cultivos, de un vistazo',
-    subtitle: 'Visualiza la distribucion de cultivos por potrero, superficie sembrada y mejoramientos en un treemap interactivo.',
+    title: 'Gestiona tus potreros, cultivos y labores',
+    subtitle: 'Registra siembras, pulverizaciones y labores desde FieldData. Visualiza que hay sembrado en cada potrero, filtra por cultivo y controla gastos y ventas agricolas.',
     items: [
-      'Treemap interactivo con superficie por potrero',
-      'Cultivos asignados a cada potrero con detalle',
-      'Superficie total por tipo de cultivo',
-      'Registro de mejoramientos y estado actual',
+      'Treemap interactivo: clickea un cultivo y se iluminan los potreros donde esta sembrado',
+      'Registra siembras, pulverizaciones, cosechas y mas desde FieldData',
+      'Gastos y ventas vinculados a cada labor agricola',
+      'Superficie total por cultivo con detalle por potrero',
     ],
     visual: 'agricultura',
   },
@@ -243,6 +243,98 @@ function WhatsAppBubble({ text, isUser, delay = 0 }: { text: string; isUser: boo
         {text}
       </div>
     </motion.div>
+  );
+}
+
+// ============================================================
+// AGRICULTURA VISUAL (mockup interactivo)
+// ============================================================
+
+const AGRI_CULTIVOS = [
+  { id: 'tb-lotus', nombre: 'Trebol blanco + Lotus', ha: '145 ha', color: 'bg-emerald-500', colorLight: 'bg-emerald-100', border: 'border-emerald-300', text: 'text-emerald-800' },
+  { id: 'avena', nombre: 'Avena', ha: '95 ha', color: 'bg-amber-500', colorLight: 'bg-amber-100', border: 'border-amber-300', text: 'text-amber-800' },
+  { id: 'sorgo', nombre: 'Sorgo forrajero', ha: '60 ha', color: 'bg-pink-500', colorLight: 'bg-pink-100', border: 'border-pink-300', text: 'text-pink-800' },
+  { id: 'campo', nombre: 'Campo natural', ha: '120 ha', color: 'bg-violet-500', colorLight: 'bg-violet-100', border: 'border-violet-300', text: 'text-violet-800' },
+  { id: 'festuca', nombre: 'Festuca + T. rojo', ha: '80 ha', color: 'bg-cyan-500', colorLight: 'bg-cyan-100', border: 'border-cyan-300', text: 'text-cyan-800' },
+];
+
+const AGRI_POTREROS = [
+  { nombre: 'Norte', ha: '120', cultivo: 'tb-lotus', col: 'col-span-3', row: 'row-span-2' },
+  { nombre: 'Sur', ha: '95', cultivo: 'avena', col: 'col-span-2', row: 'row-span-2' },
+  { nombre: 'Rincon', ha: '45', cultivo: 'tb-lotus', col: 'col-span-1', row: 'row-span-1' },
+  { nombre: 'Este', ha: '60', cultivo: 'sorgo', col: 'col-span-2', row: 'row-span-1' },
+  { nombre: 'Costa', ha: '80', cultivo: 'campo', col: 'col-span-2', row: 'row-span-1' },
+  { nombre: 'Oeste', ha: '55', cultivo: 'campo', col: 'col-span-1', row: 'row-span-1' },
+  { nombre: 'Bajo', ha: '40', cultivo: 'festuca', col: 'col-span-2', row: 'row-span-1' },
+  { nombre: 'Cuchilla', ha: '35', cultivo: 'avena', col: 'col-span-1', row: 'row-span-1' },
+  { nombre: 'Laguna', ha: '40', cultivo: 'campo', col: 'col-span-1', row: 'row-span-1' },
+  { nombre: 'Cerro', ha: '30', cultivo: 'festuca', col: 'col-span-1', row: 'row-span-1' },
+];
+
+function AgriculturaVisual() {
+  const [activeCultivo, setActiveCultivo] = useState<string | null>(null);
+
+  const getCultivoData = (id: string) => AGRI_CULTIVOS.find(c => c.id === id)!;
+
+  return (
+    <div className="w-full flex gap-4">
+      {/* Treemap izquierda */}
+      <div className="flex-1 bg-white rounded-2xl p-5 shadow-sm">
+        <div className="text-sm font-bold text-gray-700 mb-3">Superficie por potrero</div>
+        <div className="grid grid-cols-5 grid-rows-5 gap-1.5" style={{ height: '340px' }}>
+          {AGRI_POTREROS.map((p, i) => {
+            const cultivo = getCultivoData(p.cultivo);
+            const isActive = !activeCultivo || activeCultivo === p.cultivo;
+            return (
+              <div
+                key={i}
+                className={`${p.col} ${p.row} ${cultivo.colorLight} ${cultivo.border} border-2 rounded-lg flex flex-col items-center justify-center transition-all duration-300 cursor-pointer ${
+                  isActive ? 'opacity-100 scale-100' : 'opacity-20 scale-[0.98]'
+                }`}
+                onClick={() => setActiveCultivo(activeCultivo === p.cultivo ? null : p.cultivo)}
+              >
+                <span className={`text-xs font-bold ${cultivo.text} leading-tight`}>{p.nombre}</span>
+                <span className={`text-[11px] ${cultivo.text} opacity-70`}>{p.ha} ha</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Cultivos derecha */}
+      <div className="w-[170px] shrink-0 bg-white rounded-2xl p-5 shadow-sm flex flex-col">
+        <div className="text-sm font-bold text-gray-700 mb-3">Cultivos</div>
+        <div className="space-y-2 flex-1">
+          {AGRI_CULTIVOS.map((c) => (
+            <button
+              key={c.id}
+              onClick={() => setActiveCultivo(activeCultivo === c.id ? null : c.id)}
+              className={`w-full text-left flex items-center gap-2 px-2.5 py-2 rounded-lg transition-all duration-200 ${
+                activeCultivo === c.id
+                  ? `${c.colorLight} ${c.border} border-2`
+                  : activeCultivo
+                    ? 'opacity-40 hover:opacity-70'
+                    : 'hover:bg-gray-50'
+              }`}
+            >
+              <div className={`w-3 h-3 rounded-sm ${c.color} shrink-0`} />
+              <div className="min-w-0">
+                <div className={`text-xs font-semibold leading-tight truncate ${activeCultivo === c.id ? c.text : 'text-gray-700'}`}>{c.nombre}</div>
+                <div className="text-[11px] text-gray-400">{c.ha}</div>
+              </div>
+            </button>
+          ))}
+        </div>
+        {activeCultivo && (
+          <button
+            onClick={() => setActiveCultivo(null)}
+            className="mt-3 text-xs text-gray-400 hover:text-gray-600 underline text-center"
+          >
+            Ver todos
+          </button>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -964,57 +1056,7 @@ export default function Home() {
                     </div>
                   )}
                   {section.visual === 'agricultura' && (
-                    <div className="w-full space-y-3">
-                      {/* Treemap de potreros */}
-                      <div className="bg-white rounded-xl p-4 shadow-sm">
-                        <div className="text-sm font-bold text-gray-700 mb-3">Superficie por potrero</div>
-                        <div className="grid grid-cols-4 grid-rows-3 gap-1.5" style={{ height: '180px' }}>
-                          {/* Norte - grande */}
-                          <div className="col-span-2 row-span-2 bg-amber-100 rounded-lg flex flex-col items-center justify-center border border-amber-200">
-                            <span className="text-sm font-bold text-amber-800">Norte</span>
-                            <span className="text-xs text-amber-600">120 ha</span>
-                          </div>
-                          {/* Sur */}
-                          <div className="col-span-2 row-span-1 bg-pink-100 rounded-lg flex flex-col items-center justify-center border border-pink-200">
-                            <span className="text-sm font-bold text-pink-800">Sur</span>
-                            <span className="text-xs text-pink-600">85 ha</span>
-                          </div>
-                          {/* Este */}
-                          <div className="col-span-1 row-span-1 bg-emerald-100 rounded-lg flex flex-col items-center justify-center border border-emerald-200">
-                            <span className="text-xs font-bold text-emerald-800">Este</span>
-                            <span className="text-[10px] text-emerald-600">60 ha</span>
-                          </div>
-                          {/* Oeste */}
-                          <div className="col-span-1 row-span-1 bg-violet-100 rounded-lg flex flex-col items-center justify-center border border-violet-200">
-                            <span className="text-xs font-bold text-violet-800">Oeste</span>
-                            <span className="text-[10px] text-violet-600">45 ha</span>
-                          </div>
-                          {/* Costa */}
-                          <div className="col-span-2 row-span-1 bg-amber-50 rounded-lg flex flex-col items-center justify-center border border-amber-100">
-                            <span className="text-xs font-bold text-amber-700">Costa</span>
-                            <span className="text-[10px] text-amber-500">35 ha</span>
-                          </div>
-                        </div>
-                      </div>
-                      {/* Mini-lista de cultivos */}
-                      <div className="bg-white rounded-xl p-4 shadow-sm">
-                        <div className="text-sm font-bold text-gray-700 mb-3">Cultivos — superficie total</div>
-                        <div className="space-y-2">
-                          {[
-                            { cultivo: 'Pradera', ha: '145 ha', color: 'bg-emerald-400' },
-                            { cultivo: 'Avena', ha: '85 ha', color: 'bg-amber-400' },
-                            { cultivo: 'Sorgo', ha: '60 ha', color: 'bg-pink-400' },
-                            { cultivo: 'Campo natural', ha: '55 ha', color: 'bg-violet-400' },
-                          ].map((c, i) => (
-                            <div key={i} className="flex items-center gap-2">
-                              <div className={`w-3 h-3 rounded-sm ${c.color} shrink-0`} />
-                              <span className="text-xs text-gray-700 flex-1">{c.cultivo}</span>
-                              <span className="text-xs font-semibold text-gray-600">{c.ha}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
+                    <AgriculturaVisual />
                   )}
                 </motion.div>
               </div>

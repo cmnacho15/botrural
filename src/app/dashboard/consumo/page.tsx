@@ -347,29 +347,27 @@ const [lanaAbierto, setLanaAbierto] = useState(false)
   // RENDER
   // ============================================
   return (
-    <div className="p-8">
+    <div className="bg-white min-h-screen p-3 sm:p-4 md:p-6 lg:p-8 text-gray-900" style={{ colorScheme: 'light' }}>
       {/* HEADER */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Consumo y Lana</h1>
-            <p className="text-sm text-gray-600">Gestión de consumos y stock de lana</p>
-          </div>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 gap-3 sm:gap-4">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Consumo y Lana</h1>
+          <p className="text-xs sm:text-sm text-gray-600">Gestión de consumos y stock de lana</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-2 sm:gap-3 flex-wrap">
           <button
             onClick={() => setModalConsumo(true)}
-            className="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 font-medium flex items-center gap-2"
+            className="px-3 sm:px-4 py-1.5 sm:py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 font-medium flex items-center gap-1 sm:gap-2 text-xs sm:text-sm"
           >
-            <span className="text-lg">+</span>
-            Nuevo Consumo
+            <span className="text-base sm:text-lg">+</span>
+            <span className="hidden sm:inline">Nuevo</span> Consumo
           </button>
           <button
             onClick={() => setModalEsquila(true)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium flex items-center gap-2"
+            className="px-3 sm:px-4 py-1.5 sm:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium flex items-center gap-1 sm:gap-2 text-xs sm:text-sm"
           >
-            <span className="text-lg">+</span>
-            Registrar Esquila
+            <span className="text-base sm:text-lg">+</span>
+            <span className="hidden sm:inline">Registrar</span> Esquila
           </button>
         </div>
       </div>
@@ -377,22 +375,22 @@ const [lanaAbierto, setLanaAbierto] = useState(false)
       {/* ============================================ */}
       {/* ACORDEÓN CONSUMOS */}
       {/* ============================================ */}
-      <div className="bg-white rounded-xl shadow-md border border-gray-200 mb-6 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-md border border-gray-200 mb-4 sm:mb-6 overflow-hidden">
         <button
           onClick={() => setConsumosAbierto(!consumosAbierto)}
-          className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition"
+          className="w-full px-3 sm:px-6 py-3 sm:py-4 flex items-center justify-between hover:bg-gray-50 transition"
         >
-          <div className="flex items-center gap-3">
-            <span className="text-2xl">🥩</span>
-            <h2 className="text-xl font-bold text-gray-900">CONSUMOS</h2>
+          <div className="flex items-center gap-2 sm:gap-3">
+            <span className="text-lg sm:text-2xl">🥩</span>
+            <h2 className="text-base sm:text-xl font-bold text-gray-900">CONSUMOS</h2>
           </div>
-          <span className="text-gray-400 text-xl">
+          <span className="text-gray-400 text-base sm:text-xl">
             {consumosAbierto ? '▼' : '▶'}
           </span>
         </button>
-        
+
         {consumosAbierto && (
-          <div className="border-t border-gray-200 p-6">
+          <div className="border-t border-gray-200 p-3 sm:p-6">
             {loadingConsumos ? (
               <div className="text-center py-8">
                 <div className="text-gray-600">Cargando consumos...</div>
@@ -402,112 +400,106 @@ const [lanaAbierto, setLanaAbierto] = useState(false)
                 <p className="text-gray-600">No hay consumos registrados aún</p>
               </div>
             ) : (
-              <div className="space-y-8">
+              <div className="space-y-4 sm:space-y-8">
                 {Object.keys(consumosAgrupados).sort((a, b) => {
                   const orden = { 'OVINO': 1, 'BOVINO': 2, 'OTRO': 3 }
                   return (orden[a as keyof typeof orden] || 99) - (orden[b as keyof typeof orden] || 99)
                 }).map(tipoAnimal => {
                   const nombreTipo = getNombreTipo(tipoAnimal)
                   const categorias = consumosAgrupados[tipoAnimal]
-                  
+
                   const totalesGenerales = categorias.reduce((acc, cat) => ({
                     animales: acc.animales + cat.totalAnimales,
                     kg: acc.kg + cat.totalKg,
                     usd: acc.usd + cat.totalUSD
                   }), { animales: 0, kg: 0, usd: 0 })
-                  
+
                   return (
                     <div key={tipoAnimal} className="bg-white rounded-lg shadow overflow-hidden">
-                      <div className="bg-amber-500 px-6 py-3">
-                        <h2 className="text-lg font-bold text-white">{nombreTipo}</h2>
+                      <div className="bg-amber-500 px-3 sm:px-6 py-2 sm:py-3">
+                        <h2 className="text-sm sm:text-lg font-bold text-white">{nombreTipo}</h2>
                       </div>
 
                       <div className="overflow-x-auto">
-                        <table className="w-full table-fixed">
-                          <colgroup>
-                            <col className="w-[25%]" />
-                            <col className="w-[12%]" />
-                            <col className="w-[15%]" />
-                            <col className="w-[15%]" />
-                            <col className="w-[16%]" />
-                            <col className="w-[17%]" />
-                          </colgroup>
+                        <table className="w-full min-w-[500px]">
                           <thead className="bg-yellow-100">
                             <tr>
-                              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Categoría</th>
-                              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Nº Animales</th>
-                              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 bg-yellow-200">kg totales</th>
-                              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 bg-yellow-200">U$S totales</th>
-                              <th className="px-4 py-3 text-center text-sm font-semibold text-gray-700" colSpan={2}>Acciones</th>
+                              <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-[10px] sm:text-sm font-semibold text-gray-700">Categoría</th>
+                              <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-[10px] sm:text-sm font-semibold text-gray-700">Nº Anim.</th>
+                              <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-[10px] sm:text-sm font-semibold text-gray-700 bg-yellow-200">kg tot.</th>
+                              <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-[10px] sm:text-sm font-semibold text-gray-700 bg-yellow-200">U$S tot.</th>
+                              <th className="px-2 sm:px-4 py-2 sm:py-3 text-center text-[10px] sm:text-sm font-semibold text-gray-700" colSpan={2}>Acciones</th>
                             </tr>
                           </thead>
                           <tbody>
                             {categorias.map((categoria) => {
                               const key = `${tipoAnimal}-${categoria.categoria}`
                               const estaExpandido = categoriasExpandidas.has(key)
-                              
+
                               return (
                                 <>
                                   <tr key={categoria.categoria} className="border-b border-gray-200 hover:bg-gray-50">
-                                    <td className="px-4 py-3 text-sm font-medium text-gray-900">{categoria.categoria}</td>
-                                    <td className="px-4 py-3 text-sm text-gray-900">{categoria.totalAnimales}</td>
-                                    <td className="px-4 py-3 text-sm text-gray-900 bg-yellow-50">{categoria.totalKg.toFixed(2)}</td>
-                                    <td className="px-4 py-3 text-sm text-gray-900 bg-yellow-50">{categoria.totalUSD.toFixed(2)}</td>
-                                    <td className="px-4 py-3 text-center">
+                                    <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium text-gray-900">{categoria.categoria}</td>
+                                    <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-900">{categoria.totalAnimales}</td>
+                                    <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-900 bg-yellow-50">{categoria.totalKg.toFixed(2)}</td>
+                                    <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-900 bg-yellow-50">{categoria.totalUSD.toFixed(2)}</td>
+                                    <td className="px-2 sm:px-4 py-2 sm:py-3 text-center">
                                       <button
                                         onClick={() => toggleDetalleCategoria(tipoAnimal, categoria.categoria)}
-                                        className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 font-medium"
+                                        className="px-2 sm:px-3 py-1 text-[10px] sm:text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 font-medium"
                                       >
-                                        {estaExpandido ? '▲ Ocultar' : '▼ Ver detalle'}
+                                        {estaExpandido ? '▲' : '▼'} <span className="hidden sm:inline">{estaExpandido ? 'Ocultar' : 'Ver'}</span>
                                       </button>
                                     </td>
-                                    <td className="px-4 py-3 text-center">
+                                    <td className="px-2 sm:px-4 py-2 sm:py-3 text-center">
                                       <button
                                         onClick={() => eliminarCategoria(tipoAnimal, categoria.categoria, categoria.renglones)}
-                                        className="px-3 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200 font-medium"
+                                        className="px-2 sm:px-3 py-1 text-[10px] sm:text-xs bg-red-100 text-red-700 rounded hover:bg-red-200 font-medium"
                                         title="Eliminar todos los consumos de esta categoría"
                                       >
-                                        🗑️ Eliminar todo
+                                        🗑️ <span className="hidden sm:inline">Eliminar</span>
                                       </button>
                                     </td>
                                   </tr>
 
                                   {estaExpandido && categoria.renglones.map((renglon) => (
                                     <tr key={renglon.id} className="bg-blue-50 border-b border-blue-100">
-                                      <td className="px-8 py-2 text-xs text-gray-600">
+                                      <td className="px-3 sm:px-8 py-2 text-[10px] sm:text-xs text-gray-600">
                                         📅 {formatearFecha(renglon.consumo.fecha)}
                                       </td>
-                                      <td className="px-4 py-2 text-xs text-gray-700">{renglon.cantidad}</td>
-                                      <td className="px-4 py-2 text-xs bg-blue-100" colSpan={2}>
-                                        <div className="flex gap-2 items-center">
+                                      <td className="px-2 sm:px-4 py-2 text-[10px] sm:text-xs text-gray-700">{renglon.cantidad}</td>
+                                      <td className="px-2 sm:px-4 py-2 text-[10px] sm:text-xs bg-blue-100" colSpan={2}>
+                                        <div className="flex gap-1 sm:gap-2 items-center flex-wrap">
                                           <input
                                             type="number"
                                             step="0.1"
                                             value={valoresLocales[renglon.id]?.peso !== undefined ? valoresLocales[renglon.id].peso : (renglon.pesoPromedio || '')}
                                             onChange={(e) => handlePesoChange(renglon.id, e.target.value)}
                                             placeholder="kg"
-                                            className="w-16 px-1 py-0.5 border border-gray-300 rounded text-xs"
+                                            className="w-12 sm:w-16 px-1 py-0.5 border border-gray-300 rounded text-[10px] sm:text-xs bg-white"
+                                            style={{ colorScheme: 'light' }}
                                           />
-                                          <span className="text-gray-600">kg</span>
-                                          <span className="mx-2">|</span>
+                                          <span className="text-gray-600 text-[10px] sm:text-xs">kg</span>
+                                          <span className="mx-1 sm:mx-2 text-[10px] sm:text-xs">|</span>
                                           <input
                                             type="number"
                                             step="0.01"
                                             value={valoresLocales[renglon.id]?.precio !== undefined ? valoresLocales[renglon.id].precio : (renglon.precioKgUSD || '')}
                                             onChange={(e) => handlePrecioKgChange(renglon.id, e.target.value)}
                                             placeholder="U$S"
-                                            className="w-16 px-1 py-0.5 border border-gray-300 rounded text-xs"
+                                            className="w-12 sm:w-16 px-1 py-0.5 border border-gray-300 rounded text-[10px] sm:text-xs bg-white"
+                                            style={{ colorScheme: 'light' }}
                                           />
-                                          <span className="text-gray-600">U$S/kg</span>
+                                          <span className="text-gray-600 text-[10px] sm:text-xs">U$S/kg</span>
                                         </div>
                                       </td>
-                                      <td className="px-4 py-2 text-xs text-gray-600">
-                                        {renglon.valorTotalUSD?.toFixed(2) || '0.00'} U$S | {renglon.pesoTotalKg?.toFixed(2) || '0.00'} kg
+                                      <td className="px-2 sm:px-4 py-2 text-[10px] sm:text-xs text-gray-600">
+                                        {renglon.valorTotalUSD?.toFixed(2) || '0.00'} U$S
                                       </td>
-                                      <td className="px-4 py-2 text-center">
+                                      <td className="px-2 sm:px-4 py-2 text-center">
                                         <button
                                           onClick={() => eliminarRenglon(renglon.id)}
-                                          className="px-2 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200"
+                                          className="px-1.5 sm:px-2 py-1 text-[10px] sm:text-xs bg-red-100 text-red-700 rounded hover:bg-red-200"
                                           title="Eliminar este consumo"
                                         >
                                           🗑️
@@ -520,11 +512,11 @@ const [lanaAbierto, setLanaAbierto] = useState(false)
                             })}
 
                             <tr className="bg-amber-100 font-bold">
-                              <td className="px-4 py-3 text-sm">TOTAL</td>
-                              <td className="px-4 py-3 text-sm">{totalesGenerales.animales}</td>
-                              <td className="px-4 py-3 text-sm">{totalesGenerales.kg.toFixed(2)}</td>
-                              <td className="px-4 py-3 text-sm">{totalesGenerales.usd.toFixed(2)}</td>
-                              <td className="px-4 py-3 text-sm" colSpan={2}></td>
+                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm">TOTAL</td>
+                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm">{totalesGenerales.animales}</td>
+                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm">{totalesGenerales.kg.toFixed(2)}</td>
+                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm">{totalesGenerales.usd.toFixed(2)}</td>
+                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm" colSpan={2}></td>
                             </tr>
                           </tbody>
                         </table>
@@ -544,47 +536,47 @@ const [lanaAbierto, setLanaAbierto] = useState(false)
       <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
         <button
           onClick={() => setLanaAbierto(!lanaAbierto)}
-          className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition"
+          className="w-full px-3 sm:px-6 py-3 sm:py-4 flex items-center justify-between hover:bg-gray-50 transition"
         >
-          <div className="flex items-center gap-3">
-            <span className="text-2xl">🐑</span>
-            <h2 className="text-xl font-bold text-gray-900">STOCK DE LANA</h2>
+          <div className="flex items-center gap-2 sm:gap-3">
+            <span className="text-lg sm:text-2xl">🐑</span>
+            <h2 className="text-base sm:text-xl font-bold text-gray-900">STOCK DE LANA</h2>
           </div>
-          <span className="text-gray-400 text-xl">
+          <span className="text-gray-400 text-base sm:text-xl">
             {lanaAbierto ? '▼' : '▶'}
           </span>
         </button>
-        
+
         {lanaAbierto && (
-          <div className="border-t border-gray-200 p-6">
+          <div className="border-t border-gray-200 p-3 sm:p-6">
             {loadingLana ? (
-              <div className="text-center py-8">
-                <div className="text-gray-600">Cargando stock de lana...</div>
+              <div className="text-center py-6 sm:py-8">
+                <div className="text-gray-600 text-sm sm:text-base">Cargando stock de lana...</div>
               </div>
             ) : (
-              <div className="space-y-6">
+              <div className="space-y-4 sm:space-y-6">
                 {/* RESUMEN ACTUAL */}
-                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-200 p-6">
-                  <h3 className="text-lg font-bold text-gray-900 mb-4">📊 Stock Actual</h3>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                    <div className="bg-white rounded-lg p-4 shadow-sm">
-                      <p className="text-sm text-gray-600 mb-1">Total en Stock</p>
-                      <p className="text-3xl font-bold text-blue-600">
+                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-200 p-3 sm:p-6">
+                  <h3 className="text-sm sm:text-lg font-bold text-gray-900 mb-3 sm:mb-4">📊 Stock Actual</h3>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-6 mb-4 sm:mb-6">
+                    <div className="bg-white rounded-lg p-3 sm:p-4 shadow-sm">
+                      <p className="text-xs sm:text-sm text-gray-600 mb-1">Total en Stock</p>
+                      <p className="text-xl sm:text-3xl font-bold text-blue-600">
                         {stockActual?.totalKg?.toLocaleString('es-UY', { maximumFractionDigits: 0 }) || 0} kg
                       </p>
                     </div>
-                    
-                    <div className="bg-white rounded-lg p-4 shadow-sm">
-                      <p className="text-sm text-gray-600 mb-1">Valor Estimado</p>
-                      <p className="text-3xl font-bold text-green-600">
+
+                    <div className="bg-white rounded-lg p-3 sm:p-4 shadow-sm">
+                      <p className="text-xs sm:text-sm text-gray-600 mb-1">Valor Estimado</p>
+                      <p className="text-xl sm:text-3xl font-bold text-green-600">
                         ${valorEstimado?.toLocaleString('es-UY', { maximumFractionDigits: 0 }) || 0}
                       </p>
                     </div>
-                    
-                    <div className="bg-white rounded-lg p-4 shadow-sm">
-                      <p className="text-sm text-gray-600 mb-1">Precio Ref. Promedio</p>
-                      <p className="text-3xl font-bold text-gray-700">
+
+                    <div className="bg-white rounded-lg p-3 sm:p-4 shadow-sm">
+                      <p className="text-xs sm:text-sm text-gray-600 mb-1">Precio Ref. Promedio</p>
+                      <p className="text-xl sm:text-3xl font-bold text-gray-700">
                         ${precioRefPromedio?.toLocaleString('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || 0}/kg
                       </p>
                     </div>
@@ -592,15 +584,15 @@ const [lanaAbierto, setLanaAbierto] = useState(false)
 
                   {/* DESGLOSE POR CATEGORÍA */}
                   {stockActual && Object.keys(stockActual.categorias).length > 0 && (
-                    <div className="bg-white rounded-lg p-4 shadow-sm">
-                      <p className="text-sm font-semibold text-gray-700 mb-3">Por Categoría:</p>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div className="bg-white rounded-lg p-3 sm:p-4 shadow-sm">
+                      <p className="text-xs sm:text-sm font-semibold text-gray-700 mb-2 sm:mb-3">Por Categoría:</p>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
                         {Object.entries(stockActual.categorias).map(([categoria, kg]: [string, any]) => (
-                          <div key={categoria} className="flex items-center gap-2">
-                            <span className="text-2xl">•</span>
+                          <div key={categoria} className="flex items-center gap-1 sm:gap-2">
+                            <span className="text-lg sm:text-2xl">•</span>
                             <div>
-                              <p className="text-sm font-medium text-gray-700">{categoria}</p>
-                              <p className="text-lg font-bold text-gray-900">
+                              <p className="text-xs sm:text-sm font-medium text-gray-700">{categoria}</p>
+                              <p className="text-sm sm:text-lg font-bold text-gray-900">
                                 {kg?.toLocaleString('es-UY', { maximumFractionDigits: 0 })} kg
                               </p>
                             </div>
@@ -611,8 +603,8 @@ const [lanaAbierto, setLanaAbierto] = useState(false)
                   )}
 
                   {(!stockActual || stockActual.totalKg === 0) && (
-                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-center">
-                      <p className="text-yellow-800">
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 sm:p-4 text-center">
+                      <p className="text-yellow-800 text-xs sm:text-sm">
                         No hay stock de lana registrado. Registrá tu primera esquila para comenzar.
                       </p>
                     </div>
@@ -621,35 +613,35 @@ const [lanaAbierto, setLanaAbierto] = useState(false)
 
                 {/* HISTORIAL DE ESQUILAS */}
                 <div>
-                  <h3 className="text-lg font-bold text-gray-900 mb-4">📋 Historial de Esquilas</h3>
-                  
+                  <h3 className="text-sm sm:text-lg font-bold text-gray-900 mb-3 sm:mb-4">📋 Historial de Esquilas</h3>
+
                   {!esquilas || esquilas.length === 0 ? (
-                    <div className="text-center py-8 bg-gray-50 rounded-lg">
-                      <p className="text-gray-500">No hay esquilas registradas</p>
+                    <div className="text-center py-6 sm:py-8 bg-gray-50 rounded-lg">
+                      <p className="text-gray-500 text-sm">No hay esquilas registradas</p>
                     </div>
                   ) : (
                     <div className="overflow-x-auto">
-  <table className="w-full bg-white rounded-lg shadow">
+  <table className="w-full bg-white rounded-lg shadow min-w-[700px]">
     <thead className="bg-gray-50 border-b border-gray-200">
       <tr>
-        <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase">Fecha</th>
-        <th className="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase">Animales</th>
-        <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase">Total kg</th>
-        <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase">Disponible</th>
-        <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase">% Stock</th>
-        <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase">Precio Ref.</th>
-        <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase">Valor Est.</th>
-        <th className="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase">Estado</th>
-        <th className="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase">Detalle</th>
-        <th className="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase">Acciones</th>
+        <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-gray-600 uppercase">Fecha</th>
+        <th className="px-2 sm:px-4 py-2 sm:py-3 text-center text-[10px] sm:text-xs font-medium text-gray-600 uppercase">Anim.</th>
+        <th className="px-2 sm:px-4 py-2 sm:py-3 text-right text-[10px] sm:text-xs font-medium text-gray-600 uppercase">Tot. kg</th>
+        <th className="px-2 sm:px-4 py-2 sm:py-3 text-right text-[10px] sm:text-xs font-medium text-gray-600 uppercase">Disp.</th>
+        <th className="px-2 sm:px-4 py-2 sm:py-3 text-right text-[10px] sm:text-xs font-medium text-gray-600 uppercase">%</th>
+        <th className="px-2 sm:px-4 py-2 sm:py-3 text-right text-[10px] sm:text-xs font-medium text-gray-600 uppercase">Precio</th>
+        <th className="px-2 sm:px-4 py-2 sm:py-3 text-right text-[10px] sm:text-xs font-medium text-gray-600 uppercase">Valor</th>
+        <th className="px-2 sm:px-4 py-2 sm:py-3 text-center text-[10px] sm:text-xs font-medium text-gray-600 uppercase">Estado</th>
+        <th className="px-2 sm:px-4 py-2 sm:py-3 text-center text-[10px] sm:text-xs font-medium text-gray-600 uppercase">Det.</th>
+        <th className="px-2 sm:px-4 py-2 sm:py-3 text-center text-[10px] sm:text-xs font-medium text-gray-600 uppercase">Acc.</th>
       </tr>
     </thead>
                         <tbody className="divide-y divide-gray-100">
   {esquilas.map((esquila: any) => {
     const porcentaje = esquila.porcentajeDisponible || 0
     let estadoColor = 'bg-green-100 text-green-800'
-    let estadoTexto = '🟢 En Stock'
-    
+    let estadoTexto = '🟢 Stock'
+
     if (porcentaje < 100 && porcentaje > 0) {
       estadoColor = 'bg-yellow-100 text-yellow-800'
       estadoTexto = '🟡 Parcial'
@@ -664,36 +656,36 @@ const [lanaAbierto, setLanaAbierto] = useState(false)
     return (
       <>
         <tr key={esquila.id} className="hover:bg-gray-50">
-          <td className="px-4 py-3 text-gray-700">
+          <td className="px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-700">
             {new Date(esquila.fecha).toLocaleDateString('es-UY')}
           </td>
-          <td className="px-4 py-3 text-center font-medium text-gray-900">
+          <td className="px-2 sm:px-4 py-2 sm:py-3 text-center text-xs sm:text-sm font-medium text-gray-900">
             {esquila.nroAnimales.toLocaleString('es-UY')}
-            <span className="block text-xs text-gray-500 mt-0.5">
-              {promedioKgPorAnimal.toFixed(2)} kg/animal
+            <span className="hidden sm:block text-[10px] sm:text-xs text-gray-500 mt-0.5">
+              {promedioKgPorAnimal.toFixed(2)} kg/an
             </span>
           </td>
-          <td className="px-4 py-3 text-right text-gray-700">
-            {esquila.totalKg?.toLocaleString('es-UY', { maximumFractionDigits: 0 })} kg
+          <td className="px-2 sm:px-4 py-2 sm:py-3 text-right text-xs sm:text-sm text-gray-700">
+            {esquila.totalKg?.toLocaleString('es-UY', { maximumFractionDigits: 0 })}
           </td>
-          <td className="px-4 py-3 text-right font-semibold text-gray-900">
-            {esquila.disponible?.toLocaleString('es-UY', { maximumFractionDigits: 0 })} kg
+          <td className="px-2 sm:px-4 py-2 sm:py-3 text-right text-xs sm:text-sm font-semibold text-gray-900">
+            {esquila.disponible?.toLocaleString('es-UY', { maximumFractionDigits: 0 })}
           </td>
-          <td className="px-4 py-3 text-right text-gray-600">
+          <td className="px-2 sm:px-4 py-2 sm:py-3 text-right text-xs sm:text-sm text-gray-600">
             {porcentaje.toFixed(0)}%
           </td>
-          <td className="px-4 py-3 text-right text-gray-700">
-            ${Number(esquila.precioRefUSD).toFixed(2)}/kg
+          <td className="px-2 sm:px-4 py-2 sm:py-3 text-right text-xs sm:text-sm text-gray-700">
+            ${Number(esquila.precioRefUSD).toFixed(2)}
           </td>
-          <td className="px-4 py-3 text-right font-semibold text-green-600">
+          <td className="px-2 sm:px-4 py-2 sm:py-3 text-right text-xs sm:text-sm font-semibold text-green-600">
             ${valorEstimado.toLocaleString('es-UY', { maximumFractionDigits: 0 })}
           </td>
-          <td className="px-4 py-3 text-center">
-            <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${estadoColor}`}>
+          <td className="px-2 sm:px-4 py-2 sm:py-3 text-center">
+            <span className={`inline-flex px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium ${estadoColor}`}>
               {estadoTexto}
             </span>
           </td>
-          <td className="px-4 py-3 text-center">
+          <td className="px-2 sm:px-4 py-2 sm:py-3 text-center">
             <button
               onClick={() => {
                 const detalleDiv = document.getElementById(`detalle-${esquila.id}`)
@@ -701,23 +693,23 @@ const [lanaAbierto, setLanaAbierto] = useState(false)
                   detalleDiv.style.display = detalleDiv.style.display === 'none' ? 'table-row' : 'none'
                 }
               }}
-              className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 font-medium"
+              className="px-2 sm:px-3 py-1 text-[10px] sm:text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 font-medium"
             >
-              👁️ Ver
+              👁️
             </button>
           </td>
-          <td className="px-4 py-3 text-center">
-            <div className="flex gap-2 justify-center">
+          <td className="px-2 sm:px-4 py-2 sm:py-3 text-center">
+            <div className="flex gap-1 sm:gap-2 justify-center flex-wrap">
               <button
                 onClick={() => handleEditarEsquila(esquila)}
-                className="px-3 py-1 text-xs bg-amber-100 text-amber-700 rounded hover:bg-amber-200 font-medium"
+                className="px-2 sm:px-3 py-1 text-[10px] sm:text-xs bg-amber-100 text-amber-700 rounded hover:bg-amber-200 font-medium"
                 title="Editar esquila"
               >
-                ✏️ Editar
+                ✏️
               </button>
               <button
                 onClick={() => handleEliminarEsquila(esquila.id, porcentaje)}
-                className={`px-3 py-1 text-xs rounded font-medium ${
+                className={`px-2 sm:px-3 py-1 text-[10px] sm:text-xs rounded font-medium ${
                   porcentaje < 100
                     ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                     : 'bg-red-100 text-red-700 hover:bg-red-200'
@@ -725,7 +717,7 @@ const [lanaAbierto, setLanaAbierto] = useState(false)
                 disabled={porcentaje < 100}
                 title={porcentaje < 100 ? 'No se puede eliminar una esquila con ventas' : 'Eliminar esquila'}
               >
-                🗑️ Eliminar
+                🗑️
               </button>
             </div>
           </td>
@@ -811,8 +803,8 @@ const [lanaAbierto, setLanaAbierto] = useState(false)
       {/* MODALES */}
       {/* ============================================ */}
       {modalConsumo && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
+          <div className="bg-white rounded-xl max-w-2xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto shadow-2xl" style={{ colorScheme: 'light' }}>
             <ModalConsumo
               onClose={() => setModalConsumo(false)}
               onSuccess={() => {

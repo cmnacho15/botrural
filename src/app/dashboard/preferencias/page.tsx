@@ -516,20 +516,20 @@ async function handleEliminarFirma(id: string) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-white p-3 sm:p-6 text-gray-900" style={{ colorScheme: 'light' }}>
       <div className="max-w-6xl mx-auto">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900 mb-1">⚙️ Preferencias</h1>
-          <p className="text-gray-600 text-sm">Configurá las opciones de tu campo</p>
+        <div className="mb-4 sm:mb-6">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-1">⚙️ Preferencias</h1>
+          <p className="text-gray-600 text-xs sm:text-sm">Configurá las opciones de tu campo</p>
         </div>
 
         {/* TABS */}
-        <div className="bg-white rounded-lg shadow-sm mb-6">
+        <div className="bg-white rounded-lg shadow-sm mb-4 sm:mb-6 border border-gray-200">
           <div className="border-b border-gray-200">
-            <nav className="flex gap-8 px-6">
+            <nav className="flex gap-2 sm:gap-4 md:gap-8 px-3 sm:px-6 overflow-x-auto scrollbar-hide">
               <button
                 onClick={() => setActiveTab('campo')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm transition ${
+                className={`py-3 sm:py-4 px-1 border-b-2 font-medium text-xs sm:text-sm transition whitespace-nowrap ${
                   activeTab === 'campo'
                     ? 'border-blue-500 text-blue-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -537,10 +537,10 @@ async function handleEliminarFirma(id: string) {
               >
                 🏡 Campo
               </button>
-              
+
               <button
                 onClick={() => setActiveTab('animales')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm transition ${
+                className={`py-3 sm:py-4 px-1 border-b-2 font-medium text-xs sm:text-sm transition whitespace-nowrap ${
                   activeTab === 'animales'
                     ? 'border-blue-500 text-blue-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -548,10 +548,10 @@ async function handleEliminarFirma(id: string) {
               >
                 🐄 Animales
               </button>
-              
+
               <button
                 onClick={() => setActiveTab('rodeos')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm transition ${
+                className={`py-3 sm:py-4 px-1 border-b-2 font-medium text-xs sm:text-sm transition whitespace-nowrap ${
                   activeTab === 'rodeos'
                     ? 'border-blue-500 text-blue-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -562,7 +562,7 @@ async function handleEliminarFirma(id: string) {
 
               <button
                 onClick={() => setActiveTab('cultivos')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm transition ${
+                className={`py-3 sm:py-4 px-1 border-b-2 font-medium text-xs sm:text-sm transition whitespace-nowrap ${
                   activeTab === 'cultivos'
                     ? 'border-blue-500 text-blue-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -570,10 +570,10 @@ async function handleEliminarFirma(id: string) {
               >
                 🌾 Cultivos
               </button>
-              
+
               <button
                 onClick={() => setActiveTab('gastos')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm transition ${
+                className={`py-3 sm:py-4 px-1 border-b-2 font-medium text-xs sm:text-sm transition whitespace-nowrap ${
                   activeTab === 'gastos'
                     ? 'border-blue-500 text-blue-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -584,65 +584,65 @@ async function handleEliminarFirma(id: string) {
 
               <button
                 onClick={() => setActiveTab('modulos')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm transition ${
+                className={`py-3 sm:py-4 px-1 border-b-2 font-medium text-xs sm:text-sm transition whitespace-nowrap ${
                   activeTab === 'modulos'
                     ? 'border-blue-500 text-blue-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
-                🔄 Módulos de Pastoreo
+                🔄 Módulos
               </button>
 
               <button
                 onClick={() => setActiveTab('firmas')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm transition ${
+                className={`py-3 sm:py-4 px-1 border-b-2 font-medium text-xs sm:text-sm transition whitespace-nowrap ${
                   activeTab === 'firmas'
                     ? 'border-blue-500 text-blue-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
-                📝 Firmas/RUTs
+                📝 Firmas
               </button>
 
               <button
                 onClick={() => setActiveTab('equivalencias')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm transition ${
+                className={`py-3 sm:py-4 px-1 border-b-2 font-medium text-xs sm:text-sm transition whitespace-nowrap ${
                   activeTab === 'equivalencias'
                     ? 'border-blue-500 text-blue-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
-                ⚖️ Equivalencias UG
+                ⚖️ UG
               </button>
 
               <button
                 onClick={() => setActiveTab('recategorizacion')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm transition ${
+                className={`py-3 sm:py-4 px-1 border-b-2 font-medium text-xs sm:text-sm transition whitespace-nowrap ${
                   activeTab === 'recategorizacion'
                     ? 'border-blue-500 text-blue-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
-                🔄 Recategorización
+                🔄 Recateg.
               </button>
             </nav>
           </div>
 
           {/* CONTENIDO TAB CAMPO */}
           {activeTab === 'campo' && (
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-6">
+            <div className="p-3 sm:p-6">
+              <div className="flex justify-between items-center mb-4 sm:mb-6">
                 <div>
-                  <h2 className="text-lg font-semibold text-gray-900">Configuración de Campo</h2>
-                  <p className="text-sm text-gray-500">Actualizá la información básica de tu campo</p>
+                  <h2 className="text-base sm:text-lg font-semibold text-gray-900">Configuración de Campo</h2>
+                  <p className="text-xs sm:text-sm text-gray-500">Actualizá la información básica de tu campo</p>
                 </div>
               </div>
 
               {/* NOMBRE DEL CAMPO */}
-              <div className="bg-white border border-gray-200 rounded-lg p-6 max-w-2xl mb-8">
-                <div className="space-y-4">
+              <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6 max-w-2xl mb-6 sm:mb-8">
+                <div className="space-y-3 sm:space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
                       Nombre del campo
                     </label>
                     <input
@@ -650,9 +650,10 @@ async function handleEliminarFirma(id: string) {
                       value={nombreCampo}
                       onChange={(e) => setNombreCampo(e.target.value)}
                       placeholder="Ej: Estancia San Pedro"
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                      className="w-full px-3 sm:px-4 py-2 sm:py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition bg-white text-gray-900 text-sm"
+                      style={{ colorScheme: 'light' }}
                     />
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-[10px] sm:text-xs text-gray-500 mt-1">
                       Este nombre aparecerá en tus reportes y documentos
                     </p>
                   </div>
@@ -684,7 +685,7 @@ async function handleEliminarFirma(id: string) {
                       }
                     }}
                     disabled={guardandoCampo}
-                    className="w-full sm:w-auto px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition shadow-sm"
+                    className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition shadow-sm text-sm"
                   >
                     {guardandoCampo ? 'Guardando...' : 'Guardar cambios'}
                   </button>
@@ -694,20 +695,20 @@ async function handleEliminarFirma(id: string) {
 
 
              {/* 🏭 TIPO DE CAMPO */}
-              <div className="max-w-4xl mb-8">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Tipo de Campo</h3>
-                <p className="text-sm text-gray-500 mb-6">Define qué tipo de producción realizás en tu campo</p>
+              <div className="max-w-4xl mb-6 sm:mb-8">
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Tipo de Campo</h3>
+                <p className="text-xs sm:text-sm text-gray-500 mb-4 sm:mb-6">Define qué tipo de producción realizás en tu campo</p>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                   {/* GANADERO */}
                   <button
                     onClick={async () => {
                       if (tipoCampo === 'GANADERO') return
-                      
+
                       if (!confirm('¿Cambiar a campo ganadero?\n\nSe ocultarán las funciones de agricultura (los datos no se eliminan).')) {
                         return
                       }
-                      
+
                       setGuardandoTipo(true)
                       try {
                         await actualizarTipo('GANADERO')
@@ -720,37 +721,37 @@ async function handleEliminarFirma(id: string) {
                       }
                     }}
                     disabled={guardandoTipo}
-                    className={`p-8 rounded-xl border-2 transition text-left ${
+                    className={`p-4 sm:p-8 rounded-xl border-2 transition text-left ${
                       tipoCampo === 'GANADERO'
                         ? 'border-blue-500 bg-blue-50'
                         : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                     } ${guardandoTipo ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
-                    <div className="text-5xl mb-4">🐄</div>
-                    <h3 className="text-xl font-bold text-gray-900 mb-2">Ganadero</h3>
-                    <p className="text-sm text-gray-600 mb-4">
+                    <div className="text-3xl sm:text-5xl mb-2 sm:mb-4">🐄</div>
+                    <h3 className="text-base sm:text-xl font-bold text-gray-900 mb-1 sm:mb-2">Ganadero</h3>
+                    <p className="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4">
                       Solo producción ganadera (vacunos, ovinos, equinos)
                     </p>
-                    <ul className="text-sm text-gray-700 space-y-2">
-                      <li className="flex items-start gap-2">
+                    <ul className="text-xs sm:text-sm text-gray-700 space-y-1.5 sm:space-y-2">
+                      <li className="flex items-start gap-1.5 sm:gap-2">
                         <span className="text-green-600 mt-0.5">✓</span>
                         <span>Gestión de hacienda y pasturas</span>
                       </li>
-                      <li className="flex items-start gap-2">
+                      <li className="flex items-start gap-1.5 sm:gap-2">
                         <span className="text-green-600 mt-0.5">✓</span>
                         <span>Costos por especie animal</span>
                       </li>
-                      <li className="flex items-start gap-2">
+                      <li className="flex items-start gap-1.5 sm:gap-2">
                         <span className="text-green-600 mt-0.5">✓</span>
                         <span>Ventas de hacienda</span>
                       </li>
-                      <li className="flex items-start gap-2">
+                      <li className="flex items-start gap-1.5 sm:gap-2">
                         <span className="text-red-600 mt-0.5">✗</span>
                         <span className="text-gray-500">Sin funciones de agricultura</span>
                       </li>
                     </ul>
                     {tipoCampo === 'GANADERO' && (
-                      <div className="mt-4 px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg text-center">
+                      <div className="mt-3 sm:mt-4 px-2 sm:px-3 py-1.5 sm:py-2 bg-blue-600 text-white text-xs sm:text-sm font-medium rounded-lg text-center">
                         ✓ Activo
                       </div>
                     )}
@@ -760,11 +761,11 @@ async function handleEliminarFirma(id: string) {
                   <button
                     onClick={async () => {
                       if (tipoCampo === 'MIXTO') return
-                      
+
                       if (!confirm('¿Cambiar a campo mixto?\n\nSe habilitarán las funciones de agricultura.')) {
                         return
                       }
-                      
+
                       setGuardandoTipo(true)
                       try {
                         await actualizarTipo('MIXTO')
@@ -777,37 +778,37 @@ async function handleEliminarFirma(id: string) {
                       }
                     }}
                     disabled={guardandoTipo}
-                    className={`p-8 rounded-xl border-2 transition text-left ${
+                    className={`p-4 sm:p-8 rounded-xl border-2 transition text-left ${
                       tipoCampo === 'MIXTO'
                         ? 'border-blue-500 bg-blue-50'
                         : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                     } ${guardandoTipo ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
-                    <div className="text-5xl mb-4">🌾🐄</div>
-                    <h3 className="text-xl font-bold text-gray-900 mb-2">Mixto (Ganadería + Agricultura)</h3>
-                    <p className="text-sm text-gray-600 mb-4">
+                    <div className="text-3xl sm:text-5xl mb-2 sm:mb-4">🌾🐄</div>
+                    <h3 className="text-base sm:text-xl font-bold text-gray-900 mb-1 sm:mb-2">Mixto (Ganadería + Agricultura)</h3>
+                    <p className="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4">
                       Producción ganadera y agrícola
                     </p>
-                    <ul className="text-sm text-gray-700 space-y-2">
-                      <li className="flex items-start gap-2">
+                    <ul className="text-xs sm:text-sm text-gray-700 space-y-1.5 sm:space-y-2">
+                      <li className="flex items-start gap-1.5 sm:gap-2">
                         <span className="text-green-600 mt-0.5">✓</span>
                         <span>Todo lo de ganadería</span>
                       </li>
-                      <li className="flex items-start gap-2">
+                      <li className="flex items-start gap-1.5 sm:gap-2">
                         <span className="text-green-600 mt-0.5">✓</span>
                         <span>Gestión de cultivos agrícolas</span>
                       </li>
-                      <li className="flex items-start gap-2">
+                      <li className="flex items-start gap-1.5 sm:gap-2">
                         <span className="text-green-600 mt-0.5">✓</span>
                         <span>Costos por cultivo y lote</span>
                       </li>
-                      <li className="flex items-start gap-2">
+                      <li className="flex items-start gap-1.5 sm:gap-2">
                         <span className="text-green-600 mt-0.5">✓</span>
                         <span>Ventas de hacienda y granos</span>
                       </li>
                     </ul>
                     {tipoCampo === 'MIXTO' && (
-                      <div className="mt-4 px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg text-center">
+                      <div className="mt-3 sm:mt-4 px-2 sm:px-3 py-1.5 sm:py-2 bg-blue-600 text-white text-xs sm:text-sm font-medium rounded-lg text-center">
                         ✓ Activo
                       </div>
                     )}
@@ -815,9 +816,9 @@ async function handleEliminarFirma(id: string) {
                 </div>
 
                 {/* INFO ADICIONAL */}
-                <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                  <p className="text-sm text-gray-700">
-                    <strong>💡 Nota:</strong> Cambiar el tipo de campo solo oculta o muestra funcionalidades. 
+                <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-xs sm:text-sm text-gray-700">
+                    <strong>💡 Nota:</strong> Cambiar el tipo de campo solo oculta o muestra funcionalidades.
                     Tus datos (lotes, gastos, cultivos) no se eliminan y seguirán disponibles si volvés a cambiar.
                   </p>
                 </div>
@@ -826,28 +827,29 @@ async function handleEliminarFirma(id: string) {
 
               {/* ZONA DE PELIGRO */}
               <div className="max-w-2xl">
-                <h3 className="text-lg font-semibold text-red-600 mb-4 flex items-center gap-2">
+                <h3 className="text-base sm:text-lg font-semibold text-red-600 mb-3 sm:mb-4 flex items-center gap-2">
                   ⚠️ Configuración crítica
                 </h3>
 
                 {/* VACIAR CAMPO */}
-                <div className="bg-red-50 border border-red-200 rounded-lg p-6 mb-4">
-                  <div className="flex items-start gap-4">
-                    <div className="text-3xl">🔄</div>
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4 sm:p-6 mb-4">
+                  <div className="flex items-start gap-3 sm:gap-4">
+                    <div className="text-2xl sm:text-3xl">🔄</div>
                     <div className="flex-1">
-                      <h4 className="font-semibold text-gray-900 mb-1">Vaciar campo</h4>
-                      <p className="text-sm text-gray-600 mb-4">
-                        Elimina todos los datos (eventos, gastos, animales, potreros) pero mantiene el campo y las categorías. 
+                      <h4 className="font-semibold text-gray-900 mb-1 text-sm sm:text-base">Vaciar campo</h4>
+                      <p className="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4">
+                        Elimina todos los datos (eventos, gastos, animales, potreros) pero mantiene el campo y las categorías.
                         El campo quedará como nuevo para empezar de cero.
                       </p>
-                      
-                      <div className="flex flex-col sm:flex-row gap-3">
+
+                      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                         <input
                           type="text"
                           value={confirmacionVaciar}
                           onChange={(e) => setConfirmacionVaciar(e.target.value.toUpperCase())}
                           placeholder='Escribí "VACIAR" para confirmar'
-                          className="flex-1 px-4 py-2 border border-red-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                          className="flex-1 px-3 sm:px-4 py-2 border border-red-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 bg-white text-gray-900 text-sm"
+                          style={{ colorScheme: 'light' }}
                         />
                         <button
                           onClick={async () => {
@@ -886,7 +888,7 @@ async function handleEliminarFirma(id: string) {
                             }
                           }}
                           disabled={vaciandoCampo || confirmacionVaciar !== 'VACIAR'}
-                          className="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition"
+                          className="px-4 sm:px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition text-sm"
                         >
                           {vaciandoCampo ? 'Vaciando...' : 'Vaciar Campo'}
                         </button>
@@ -896,27 +898,28 @@ async function handleEliminarFirma(id: string) {
                 </div>
 
                 {/* ELIMINAR CAMPO */}
-                <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-                  <div className="flex items-start gap-4">
-                    <div className="text-3xl">🗑️</div>
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4 sm:p-6">
+                  <div className="flex items-start gap-3 sm:gap-4">
+                    <div className="text-2xl sm:text-3xl">🗑️</div>
                     <div className="flex-1">
-                      <h4 className="font-semibold text-gray-900 mb-1">Eliminar campo</h4>
-                      <p className="text-sm text-gray-600 mb-4">
+                      <h4 className="font-semibold text-gray-900 mb-1 text-sm sm:text-base">Eliminar campo</h4>
+                      <p className="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4">
                         Elimina el campo y todos sus datos permanentemente. Esta acción es irreversible.
                       </p>
 
                       {cantidadCampos <= 1 ? (
-                        <div className="bg-gray-100 border border-gray-300 rounded-lg p-4 text-sm text-gray-600">
+                        <div className="bg-gray-100 border border-gray-300 rounded-lg p-3 sm:p-4 text-xs sm:text-sm text-gray-600">
                           🔒 No podés eliminar tu único campo. Primero creá otro campo desde el menú de usuario.
                         </div>
                       ) : (
-                        <div className="flex flex-col sm:flex-row gap-3">
+                        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                           <input
                             type="text"
                             value={confirmacionEliminar}
                             onChange={(e) => setConfirmacionEliminar(e.target.value.toUpperCase())}
                             placeholder='Escribí "ELIMINAR" para confirmar'
-                            className="flex-1 px-4 py-2 border border-red-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                            className="flex-1 px-3 sm:px-4 py-2 border border-red-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 bg-white text-gray-900 text-sm"
+                            style={{ colorScheme: 'light' }}
                           />
                           <button
                             onClick={async () => {
@@ -949,7 +952,7 @@ async function handleEliminarFirma(id: string) {
                               }
                             }}
                             disabled={eliminandoCampo || confirmacionEliminar !== 'ELIMINAR'}
-                            className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition"
+                            className="px-4 sm:px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition text-sm"
                           >
                             {eliminandoCampo ? 'Eliminando...' : 'Eliminar Campo'}
                           </button>
@@ -964,17 +967,17 @@ async function handleEliminarFirma(id: string) {
 
           {/* CONTENIDO TAB CULTIVOS */}
           {activeTab === 'cultivos' && (
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-6">
+            <div className="p-3 sm:p-6">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-0 mb-4 sm:mb-6">
                 <div>
-                  <h2 className="text-lg font-semibold text-gray-900">Tipos de cultivos</h2>
-                  <p className="text-sm text-gray-500">Gestiona los tipos de cultivos disponibles</p>
+                  <h2 className="text-base sm:text-lg font-semibold text-gray-900">Tipos de cultivos</h2>
+                  <p className="text-xs sm:text-sm text-gray-500">Gestiona los tipos de cultivos disponibles</p>
                 </div>
                 <button
                   onClick={() => setShowModalCultivo(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+                  className="flex items-center justify-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                   </svg>
                   Nuevo Cultivo
@@ -982,52 +985,52 @@ async function handleEliminarFirma(id: string) {
               </div>
 
               {loadingCultivos ? (
-                <div className="text-center py-12">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-                  <p className="text-gray-600">Cargando cultivos...</p>
+                <div className="text-center py-8 sm:py-12">
+                  <div className="animate-spin rounded-full h-10 w-10 sm:h-12 sm:w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                  <p className="text-gray-600 text-sm">Cargando cultivos...</p>
                 </div>
               ) : (
-                <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                <div className="bg-white border border-gray-200 rounded-lg overflow-x-auto">
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                       <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Cultivo
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Tipo
                         </th>
-                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Acciones
+                        <th className="px-3 sm:px-6 py-2 sm:py-3 text-right text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Acc.
                         </th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
                       {cultivos.map((cultivo) => (
                         <tr key={cultivo.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className="text-sm font-medium text-gray-900">{cultivo.nombre}</span>
+                          <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                            <span className="text-xs sm:text-sm font-medium text-gray-900">{cultivo.nombre}</span>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className="text-sm text-gray-500">
+                          <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                            <span className="text-xs sm:text-sm text-gray-500">
                               {cultivo.id.startsWith('pred-') ? (
-                                <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium">
+                                <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 bg-blue-100 text-blue-700 rounded text-[10px] sm:text-xs font-medium">
                                   Predeterminado
                                 </span>
                               ) : (
-                                <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-medium">
+                                <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 bg-green-100 text-green-700 rounded text-[10px] sm:text-xs font-medium">
                                   Personalizado
                                 </span>
                               )}
                             </span>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-right text-sm font-medium">
                             {!cultivo.id.startsWith('pred-') && (
                               <button
                                 onClick={() => handleEliminarCultivo(cultivo.id)}
                                 className="text-red-600 hover:text-red-900"
                               >🗑️
-                                
+
                               </button>
                             )}
                           </td>
@@ -1042,17 +1045,17 @@ async function handleEliminarFirma(id: string) {
 
           {/* CONTENIDO TAB ANIMALES */}
           {activeTab === 'animales' && (
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-6">
+            <div className="p-3 sm:p-6">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-0 mb-4 sm:mb-6">
                 <div>
-                  <h2 className="text-lg font-semibold text-gray-900">Tipo de animales</h2>
-                  <p className="text-sm text-gray-500">Selecciona las categorías que usas en tu campo</p>
+                  <h2 className="text-base sm:text-lg font-semibold text-gray-900">Tipo de animales</h2>
+                  <p className="text-xs sm:text-sm text-gray-500">Selecciona las categorías que usas en tu campo</p>
                 </div>
                 <button
                   onClick={() => setShowModalAnimal(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+                  className="flex items-center justify-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                   </svg>
                   Nueva Categoría
@@ -1060,30 +1063,31 @@ async function handleEliminarFirma(id: string) {
               </div>
 
               {loadingAnimales ? (
-                <div className="text-center py-12">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-                  <p className="text-gray-600">Cargando categorías...</p>
+                <div className="text-center py-8 sm:py-12">
+                  <div className="animate-spin rounded-full h-10 w-10 sm:h-12 sm:w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                  <p className="text-gray-600 text-sm">Cargando categorías...</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
                   {/* BOVINOS */}
                   <div>
-                    <h3 className="font-semibold text-gray-900 mb-4">Bovinos</h3>
-                    <div className="space-y-3">
+                    <h3 className="font-semibold text-gray-900 mb-3 sm:mb-4 text-sm sm:text-base">Bovinos</h3>
+                    <div className="space-y-2 sm:space-y-3">
                       {categoriasPorTipo.BOVINO.map((cat) => (
                         <div key={cat.id} className="flex items-center justify-between">
-                          <label className={`flex items-center gap-3 ${categoriasEnUso.has(cat.nombreSingular) && cat.activo ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
+                          <label className={`flex items-center gap-2 sm:gap-3 ${categoriasEnUso.has(cat.nombreSingular) && cat.activo ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
                             <input
                               type="checkbox"
                               checked={cat.activo}
                               onChange={(e) => handleToggleCategoria(cat.id, e.target.checked)}
                               disabled={cat.esPredeterminado && cat.id.startsWith('pred-')}
-                              className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                              className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                              style={{ colorScheme: 'light' }}
                             />
-                            <span className={`text-sm ${categoriasEnUso.has(cat.nombreSingular) && cat.activo ? 'text-gray-900 font-medium' : 'text-gray-700'}`}>
+                            <span className={`text-xs sm:text-sm ${categoriasEnUso.has(cat.nombreSingular) && cat.activo ? 'text-gray-900 font-medium' : 'text-gray-700'}`}>
                               {cat.nombreSingular}
                               {categoriasEnUso.has(cat.nombreSingular) && cat.activo && (
-                                <span className="ml-2 text-xs text-blue-600">En uso</span>
+                                <span className="ml-1 sm:ml-2 text-[10px] sm:text-xs text-blue-600">En uso</span>
                               )}
                             </span>
                           </label>
@@ -1092,7 +1096,7 @@ async function handleEliminarFirma(id: string) {
                               onClick={() => handleEliminarAnimal(cat.id)}
                               className="text-red-600 hover:text-red-900 text-xs"
                             >🗑️
-                              
+
                             </button>
                           )}
                         </div>
@@ -1102,22 +1106,23 @@ async function handleEliminarFirma(id: string) {
 
                   {/* OVINOS */}
                   <div>
-                    <h3 className="font-semibold text-gray-900 mb-4">Ovinos</h3>
-                    <div className="space-y-3">
+                    <h3 className="font-semibold text-gray-900 mb-3 sm:mb-4 text-sm sm:text-base">Ovinos</h3>
+                    <div className="space-y-2 sm:space-y-3">
                       {categoriasPorTipo.OVINO.map((cat) => (
                         <div key={cat.id} className="flex items-center justify-between">
-                          <label className={`flex items-center gap-3 ${categoriasEnUso.has(cat.nombreSingular) && cat.activo ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
+                          <label className={`flex items-center gap-2 sm:gap-3 ${categoriasEnUso.has(cat.nombreSingular) && cat.activo ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
                             <input
                               type="checkbox"
                               checked={cat.activo}
                               onChange={(e) => handleToggleCategoria(cat.id, e.target.checked)}
                               disabled={cat.esPredeterminado && cat.id.startsWith('pred-')}
-                              className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                              className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                              style={{ colorScheme: 'light' }}
                             />
-                            <span className={`text-sm ${categoriasEnUso.has(cat.nombreSingular) && cat.activo ? 'text-gray-900 font-medium' : 'text-gray-700'}`}>
+                            <span className={`text-xs sm:text-sm ${categoriasEnUso.has(cat.nombreSingular) && cat.activo ? 'text-gray-900 font-medium' : 'text-gray-700'}`}>
                               {cat.nombreSingular}
                               {categoriasEnUso.has(cat.nombreSingular) && cat.activo && (
-                                <span className="ml-2 text-xs text-blue-600">En uso</span>
+                                <span className="ml-1 sm:ml-2 text-[10px] sm:text-xs text-blue-600">En uso</span>
                               )}
                             </span>
                           </label>
@@ -1126,7 +1131,7 @@ async function handleEliminarFirma(id: string) {
                               onClick={() => handleEliminarAnimal(cat.id)}
                               className="text-red-600 hover:text-red-900 text-xs"
                             >
-                              
+
                             </button>
                           )}
                         </div>
@@ -1136,22 +1141,23 @@ async function handleEliminarFirma(id: string) {
 
                   {/* EQUINOS */}
                   <div>
-                    <h3 className="font-semibold text-gray-900 mb-4">Equinos</h3>
-                    <div className="space-y-3">
+                    <h3 className="font-semibold text-gray-900 mb-3 sm:mb-4 text-sm sm:text-base">Equinos</h3>
+                    <div className="space-y-2 sm:space-y-3">
                       {categoriasPorTipo.EQUINO.map((cat) => (
                         <div key={cat.id} className="flex items-center justify-between">
-                          <label className={`flex items-center gap-3 ${categoriasEnUso.has(cat.nombreSingular) && cat.activo ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
+                          <label className={`flex items-center gap-2 sm:gap-3 ${categoriasEnUso.has(cat.nombreSingular) && cat.activo ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
                             <input
                               type="checkbox"
                               checked={cat.activo}
                               onChange={(e) => handleToggleCategoria(cat.id, e.target.checked)}
                               disabled={cat.esPredeterminado && cat.id.startsWith('pred-')}
-                              className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                              className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                              style={{ colorScheme: 'light' }}
                             />
-                            <span className={`text-sm ${categoriasEnUso.has(cat.nombreSingular) && cat.activo ? 'text-gray-900 font-medium' : 'text-gray-700'}`}>
+                            <span className={`text-xs sm:text-sm ${categoriasEnUso.has(cat.nombreSingular) && cat.activo ? 'text-gray-900 font-medium' : 'text-gray-700'}`}>
                               {cat.nombreSingular}
                               {categoriasEnUso.has(cat.nombreSingular) && cat.activo && (
-                                <span className="ml-2 text-xs text-blue-600">En uso</span>
+                                <span className="ml-1 sm:ml-2 text-[10px] sm:text-xs text-blue-600">En uso</span>
                               )}
                             </span>
                           </label>
@@ -1160,7 +1166,7 @@ async function handleEliminarFirma(id: string) {
                               onClick={() => handleEliminarAnimal(cat.id)}
                               className="text-red-600 hover:text-red-900 text-xs"
                             >
-                              
+
                             </button>
                           )}
                         </div>
@@ -1171,21 +1177,22 @@ async function handleEliminarFirma(id: string) {
                   {/* OTROS */}
                   {categoriasPorTipo.OTRO.length > 0 && (
                     <div>
-                      <h3 className="font-semibold text-gray-900 mb-4">Otros</h3>
-                      <div className="space-y-3">
+                      <h3 className="font-semibold text-gray-900 mb-3 sm:mb-4 text-sm sm:text-base">Otros</h3>
+                      <div className="space-y-2 sm:space-y-3">
                         {categoriasPorTipo.OTRO.map((cat) => (
                           <div key={cat.id} className="flex items-center justify-between">
-                            <label className={`flex items-center gap-3 ${categoriasEnUso.has(cat.nombreSingular) && cat.activo ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
+                            <label className={`flex items-center gap-2 sm:gap-3 ${categoriasEnUso.has(cat.nombreSingular) && cat.activo ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
                               <input
                                 type="checkbox"
                                 checked={cat.activo}
                                 onChange={(e) => handleToggleCategoria(cat.id, e.target.checked)}
-                                className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                                className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                                style={{ colorScheme: 'light' }}
                               />
-                              <span className={`text-sm ${categoriasEnUso.has(cat.nombreSingular) && cat.activo ? 'text-gray-900 font-medium' : 'text-gray-700'}`}>
+                              <span className={`text-xs sm:text-sm ${categoriasEnUso.has(cat.nombreSingular) && cat.activo ? 'text-gray-900 font-medium' : 'text-gray-700'}`}>
                                 {cat.nombreSingular}
                                 {categoriasEnUso.has(cat.nombreSingular) && cat.activo && (
-                                  <span className="ml-2 text-xs text-blue-600">En uso</span>
+                                  <span className="ml-1 sm:ml-2 text-[10px] sm:text-xs text-blue-600">En uso</span>
                                 )}
                               </span>
                             </label>
@@ -1193,7 +1200,7 @@ async function handleEliminarFirma(id: string) {
                               onClick={() => handleEliminarAnimal(cat.id)}
                               className="text-red-600 hover:text-red-900 text-xs"
                             >
-                              
+
                             </button>
                           </div>
                         ))}
@@ -1207,14 +1214,14 @@ async function handleEliminarFirma(id: string) {
 
           {/* CONTENIDO TAB GASTOS */}
           {activeTab === 'gastos' && (
-            <div className="p-6">
+            <div className="p-3 sm:p-6">
               <GastosPreferencias />
             </div>
           )}
 
           {/* CONTENIDO TAB MÓDULOS */}
           {activeTab === 'modulos' && (
-            <div className="p-6">
+            <div className="p-3 sm:p-6">
               <ModulosPreferencias />
             </div>
           )}
@@ -1222,11 +1229,11 @@ async function handleEliminarFirma(id: string) {
 
           {/* CONTENIDO TAB FIRMAS */}
 {activeTab === 'firmas' && (
-  <div className="p-6">
-    <div className="flex justify-between items-center mb-6">
+  <div className="p-3 sm:p-6">
+    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-0 mb-4 sm:mb-6">
       <div>
-        <h2 className="text-lg font-semibold text-gray-900">Firmas / RUTs</h2>
-        <p className="text-sm text-gray-500">Gestiona las razones sociales y RUTs bajo los cuales operás</p>
+        <h2 className="text-base sm:text-lg font-semibold text-gray-900">Firmas / RUTs</h2>
+        <p className="text-xs sm:text-sm text-gray-500">Gestiona las razones sociales y RUTs bajo los cuales operás</p>
       </div>
       <button
         onClick={() => {
@@ -1234,9 +1241,9 @@ async function handleEliminarFirma(id: string) {
           setNuevaFirma({ rut: '', razonSocial: '', esPrincipal: false })
           setShowModalFirma(true)
         }}
-        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+        className="flex items-center justify-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm"
       >
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
         </svg>
         Nueva Firma
@@ -1244,62 +1251,62 @@ async function handleEliminarFirma(id: string) {
     </div>
 
     {loadingFirmas ? (
-      <div className="text-center py-12">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-        <p className="text-gray-600">Cargando firmas...</p>
+      <div className="text-center py-8 sm:py-12">
+        <div className="animate-spin rounded-full h-10 w-10 sm:h-12 sm:w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+        <p className="text-gray-600 text-sm">Cargando firmas...</p>
       </div>
     ) : firmas.length === 0 ? (
-      <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-        <p className="text-gray-500 mb-2">No hay firmas configuradas</p>
-        <p className="text-sm text-gray-400">Crea tu primera firma para comenzar a organizar tus ventas</p>
+      <div className="text-center py-8 sm:py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+        <p className="text-gray-500 mb-2 text-sm">No hay firmas configuradas</p>
+        <p className="text-xs sm:text-sm text-gray-400">Crea tu primera firma para comenzar a organizar tus ventas</p>
       </div>
     ) : (
-      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+      <div className="bg-white border border-gray-200 rounded-lg overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">
                 RUT
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Razón Social
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Estado
               </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Acciones
+              <th className="px-3 sm:px-6 py-2 sm:py-3 text-right text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Acc.
               </th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {firmas.map((firma) => (
               <tr key={firma.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className="text-sm font-mono text-gray-900">{firma.rut}</span>
+                <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                  <span className="text-xs sm:text-sm font-mono text-gray-900">{firma.rut}</span>
                 </td>
-                <td className="px-6 py-4">
-                  <span className="text-sm font-medium text-gray-900">{firma.razonSocial}</span>
+                <td className="px-3 sm:px-6 py-3 sm:py-4">
+                  <span className="text-xs sm:text-sm font-medium text-gray-900">{firma.razonSocial}</span>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
                   {firma.esPrincipal ? (
-                    <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium">
+                    <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 bg-blue-100 text-blue-700 rounded text-[10px] sm:text-xs font-medium">
                       ⭐ Principal
                     </span>
                   ) : (
-                    <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs font-medium">
+                    <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 bg-gray-100 text-gray-600 rounded text-[10px] sm:text-xs font-medium">
                       Secundaria
                     </span>
                   )}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-3">
+                <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-right text-sm font-medium space-x-2 sm:space-x-3">
                   <button
                     onClick={() => {
                       setEditandoFirma(firma)
-                      setNuevaFirma({ 
-                        rut: firma.rut, 
+                      setNuevaFirma({
+                        rut: firma.rut,
                         razonSocial: firma.razonSocial,
-                        esPrincipal: firma.esPrincipal 
+                        esPrincipal: firma.esPrincipal
                       })
                       setShowModalFirma(true)
                     }}
@@ -1325,68 +1332,68 @@ async function handleEliminarFirma(id: string) {
 
 {/* CONTENIDO TAB EQUIVALENCIAS UG */}
           {activeTab === 'equivalencias' && (
-            <div className="p-6">
+            <div className="p-3 sm:p-6">
               <EquivalenciasUGPreferencias />
             </div>
           )}
 
           {/* CONTENIDO TAB RECATEGORIZACIÓN */}
 {activeTab === 'recategorizacion' && (
-  <div className="p-6">
+  <div className="p-3 sm:p-6">
     <RecategorizacionWrapper />
   </div>
 )}
 
           {/* CONTENIDO TAB RODEOS */}
           {activeTab === 'rodeos' && (
-            <div className="p-6">
+            <div className="p-3 sm:p-6">
               {/* CONFIGURACIÓN */}
-              <div className="mb-8">
-                <div className="flex justify-between items-center mb-6">
+              <div className="mb-6 sm:mb-8">
+                <div className="flex justify-between items-center mb-4 sm:mb-6">
                   <div>
-                    <h2 className="text-lg font-semibold text-gray-900">Configuración de Lotes</h2>
-                    <p className="text-sm text-gray-500">Define cómo se manejan los lotes en tu campo</p>
+                    <h2 className="text-base sm:text-lg font-semibold text-gray-900">Configuración de Lotes</h2>
+                    <p className="text-xs sm:text-sm text-gray-500">Define cómo se manejan los lotes en tu campo</p>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6">
                   <button
                     onClick={() => setModoRodeo('NO_INCLUIR')}
-                    className={`p-6 rounded-lg border-2 transition ${
+                    className={`p-4 sm:p-6 rounded-lg border-2 transition ${
                       modoRodeo === 'NO_INCLUIR'
                         ? 'border-blue-500 bg-blue-50'
                         : 'border-gray-200 hover:border-gray-300'
                     }`}
                   >
-                    <div className="text-3xl mb-3">⊗</div>
-                    <h3 className="font-semibold text-gray-900 mb-2">No Incluir</h3>
-                    <p className="text-sm text-gray-600">No quiero incluir datos de lotes</p>
+                    <div className="text-2xl sm:text-3xl mb-2 sm:mb-3">⊗</div>
+                    <h3 className="font-semibold text-gray-900 mb-1 sm:mb-2 text-sm sm:text-base">No Incluir</h3>
+                    <p className="text-xs sm:text-sm text-gray-600">No quiero incluir datos de lotes</p>
                   </button>
 
                   <button
                     onClick={() => setModoRodeo('OPCIONAL')}
-                    className={`p-6 rounded-lg border-2 transition ${
+                    className={`p-4 sm:p-6 rounded-lg border-2 transition ${
                       modoRodeo === 'OPCIONAL'
                         ? 'border-blue-500 bg-blue-50'
                         : 'border-gray-200 hover:border-gray-300'
                     }`}
                   >
-                    <div className="text-3xl mb-3">?</div>
-                    <h3 className="font-semibold text-gray-900 mb-2">Opcional</h3>
-                    <p className="text-sm text-gray-600">Usuarios pueden ingresar el lote como dato opcional</p>
+                    <div className="text-2xl sm:text-3xl mb-2 sm:mb-3">?</div>
+                    <h3 className="font-semibold text-gray-900 mb-1 sm:mb-2 text-sm sm:text-base">Opcional</h3>
+                    <p className="text-xs sm:text-sm text-gray-600">Usuarios pueden ingresar el lote como dato opcional</p>
                   </button>
 
                   <button
                     onClick={() => setModoRodeo('OBLIGATORIO')}
-                    className={`p-6 rounded-lg border-2 transition ${
+                    className={`p-4 sm:p-6 rounded-lg border-2 transition ${
                       modoRodeo === 'OBLIGATORIO'
                         ? 'border-blue-500 bg-blue-50'
                         : 'border-gray-200 hover:border-gray-300'
                     }`}
                   >
-                    <div className="text-3xl mb-3">✓</div>
-                    <h3 className="font-semibold text-blue-600 mb-2">Obligatorio</h3>
-                    <p className="text-sm text-gray-600">Usuarios tienen que ingresar el lote</p>
+                    <div className="text-2xl sm:text-3xl mb-2 sm:mb-3">✓</div>
+                    <h3 className="font-semibold text-blue-600 mb-1 sm:mb-2 text-sm sm:text-base">Obligatorio</h3>
+                    <p className="text-xs sm:text-sm text-gray-600">Usuarios tienen que ingresar el lote</p>
                   </button>
                 </div>
 
@@ -1412,18 +1419,18 @@ async function handleEliminarFirma(id: string) {
                     }
                   }}
                   disabled={guardandoRodeo}
-                  className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium transition shadow-sm"
+                  className="px-4 sm:px-6 py-2 sm:py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium transition shadow-sm text-sm"
                 >
                   {guardandoRodeo ? 'Guardando...' : 'Guardar configuración'}
                 </button>
               </div>
 
               {/* LISTA DE RODEOS */}
-              <div className="border-t pt-8">
-                <div className="flex justify-between items-center mb-6">
+              <div className="border-t pt-6 sm:pt-8">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-0 mb-4 sm:mb-6">
                   <div>
-                    <h2 className="text-lg font-semibold text-gray-900">Mis Lotes</h2>
-                    <p className="text-sm text-gray-500">Gestiona los lotes de tu campo</p>
+                    <h2 className="text-base sm:text-lg font-semibold text-gray-900">Mis Lotes</h2>
+                    <p className="text-xs sm:text-sm text-gray-500">Gestiona los lotes de tu campo</p>
                   </div>
                   <button
                     onClick={() => {
@@ -1431,9 +1438,9 @@ async function handleEliminarFirma(id: string) {
                       setNuevoRodeo('')
                       setShowModalRodeo(true)
                     }}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+                    className="flex items-center justify-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm"
                   >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                     </svg>
                     Nuevo Lote
@@ -1441,35 +1448,35 @@ async function handleEliminarFirma(id: string) {
                 </div>
 
                 {loadingRodeos ? (
-                  <div className="text-center py-12">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-                    <p className="text-gray-600">Cargando rodeos...</p>
+                  <div className="text-center py-8 sm:py-12">
+                    <div className="animate-spin rounded-full h-10 w-10 sm:h-12 sm:w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                    <p className="text-gray-600 text-sm">Cargando rodeos...</p>
                   </div>
                 ) : rodeos.length === 0 ? (
-                  <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-                    <p className="text-gray-500 mb-2">No hay lotes creados</p>
-                    <p className="text-sm text-gray-400">Crea tu primer lote para comenzar</p>
+                  <div className="text-center py-8 sm:py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+                    <p className="text-gray-500 mb-2 text-sm">No hay lotes creados</p>
+                    <p className="text-xs sm:text-sm text-gray-400">Crea tu primer lote para comenzar</p>
                   </div>
                 ) : (
-                  <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                  <div className="bg-white border border-gray-200 rounded-lg overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200">
                       <thead className="bg-gray-50">
                         <tr>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">
                             Nombre del Lote
                           </th>
-                          <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Acciones
+                          <th className="px-3 sm:px-6 py-2 sm:py-3 text-right text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Acc.
                           </th>
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
                         {rodeos.map((rodeo) => (
                           <tr key={rodeo.id} className="hover:bg-gray-50">
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <span className="text-sm font-medium text-gray-900">{rodeo.nombre}</span>
+                            <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                              <span className="text-xs sm:text-sm font-medium text-gray-900">{rodeo.nombre}</span>
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-3">
+                            <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-right text-sm font-medium space-x-2 sm:space-x-3">
                               <button
                                 onClick={() => {
                                   setEditandoRodeo(rodeo)

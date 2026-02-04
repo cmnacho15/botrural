@@ -155,67 +155,70 @@ const todosLosIds = data.camposDelGrupo.map((c: Campo) => c.id)
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
+      <div
+        className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto"
+        style={{ colorScheme: 'light' }}
+      >
         {/* Header */}
-        <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-gray-900">
+        <div className="sticky top-0 bg-white border-b px-3 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
+          <h2 className="text-base sm:text-2xl font-bold text-gray-900">
             {step === "seleccionar" && "Invitar nuevo usuario"}
             {step === "campos" && "Seleccionar campos"}
             {step === "mostrar-link" && "Link de invitación generado"}
           </h2>
           <button
             onClick={handleCerrar}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            className="text-gray-400 hover:text-gray-600 transition-colors p-1"
           >
-            <X className="w-6 h-6" />
+            <X className="w-5 h-5 sm:w-6 sm:h-6" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-6">
+        <div className="p-3 sm:p-6">
           {/* PASO 1: Seleccionar tipo */}
           {step === "seleccionar" && (
             <>
-              <p className="text-gray-600 mb-6">
+              <p className="text-gray-600 mb-4 sm:mb-6 text-sm sm:text-base">
                 Selecciona el tipo de usuario que deseas invitar:
               </p>
 
-              <div className="grid md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                 {/* Tarjeta COLABORADOR */}
                 <button
                   onClick={() => handleSeleccionarTipo("COLABORADOR")}
                   disabled={loading || loadingCampos}
-                  className="group relative bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200 rounded-xl p-6 text-left hover:shadow-lg hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="group relative bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200 rounded-xl p-4 sm:p-6 text-left hover:shadow-lg sm:hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="p-3 bg-blue-500 rounded-lg">
-                      <Users className="w-6 h-6 text-white" />
+                  <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+                    <div className="p-2 sm:p-3 bg-blue-500 rounded-lg">
+                      <Users className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
                     </div>
-                    <h3 className="text-xl font-bold text-blue-900">Colaborador</h3>
+                    <h3 className="text-base sm:text-xl font-bold text-blue-900">Colaborador</h3>
                   </div>
 
-                  <ul className="space-y-2 text-sm text-blue-800">
-                    <li className="flex items-start gap-2">
+                  <ul className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm text-blue-800">
+                    <li className="flex items-start gap-1.5 sm:gap-2">
                       <span className="text-blue-500 font-bold">✓</span>
                       <span>Acceso a plataforma web</span>
                     </li>
-                    <li className="flex items-start gap-2">
+                    <li className="flex items-start gap-1.5 sm:gap-2">
                       <span className="text-blue-500 font-bold">✓</span>
                       <span>Acceso al bot de WhatsApp</span>
                     </li>
-                    <li className="flex items-start gap-2">
+                    <li className="flex items-start gap-1.5 sm:gap-2">
                       <span className="text-blue-500 font-bold">✓</span>
                       <span>Puede gestionar lotes y datos</span>
                     </li>
-                    <li className="flex items-start gap-2">
+                    <li className="flex items-start gap-1.5 sm:gap-2">
                       <span className="text-orange-500 font-bold">○</span>
                       <span className="text-gray-600">Sin finanzas (puedes habilitarlo después)</span>
                     </li>
                   </ul>
 
-                  <div className="mt-4 pt-4 border-t border-blue-300">
-                    <p className="text-xs text-blue-700 font-medium">
+                  <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-blue-300">
+                    <p className="text-[10px] sm:text-xs text-blue-700 font-medium">
                       📱 Se registra vía WhatsApp → Completa datos en web
                     </p>
                   </div>
@@ -225,36 +228,36 @@ const todosLosIds = data.camposDelGrupo.map((c: Campo) => c.id)
                 <button
                   onClick={() => handleSeleccionarTipo("EMPLEADO")}
                   disabled={loading || loadingCampos}
-                  className="group relative bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-200 rounded-xl p-6 text-left hover:shadow-lg hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="group relative bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-200 rounded-xl p-4 sm:p-6 text-left hover:shadow-lg sm:hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="p-3 bg-green-500 rounded-lg">
-                      <Bot className="w-6 h-6 text-white" />
+                  <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+                    <div className="p-2 sm:p-3 bg-green-500 rounded-lg">
+                      <Bot className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
                     </div>
-                    <h3 className="text-xl font-bold text-green-900">Empleado</h3>
+                    <h3 className="text-base sm:text-xl font-bold text-green-900">Empleado</h3>
                   </div>
 
-                  <ul className="space-y-2 text-sm text-green-800">
-                    <li className="flex items-start gap-2">
+                  <ul className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm text-green-800">
+                    <li className="flex items-start gap-1.5 sm:gap-2">
                       <span className="text-green-500 font-bold">✓</span>
                       <span>Solo bot de WhatsApp</span>
                     </li>
-                    <li className="flex items-start gap-2">
+                    <li className="flex items-start gap-1.5 sm:gap-2">
                       <span className="text-green-500 font-bold">✓</span>
                       <span>Registro rápido (sin email)</span>
                     </li>
-                    <li className="flex items-start gap-2">
+                    <li className="flex items-start gap-1.5 sm:gap-2">
                       <span className="text-green-500 font-bold">✓</span>
                       <span>Carga datos y recibe info</span>
                     </li>
-                    <li className="flex items-start gap-2">
+                    <li className="flex items-start gap-1.5 sm:gap-2">
                       <span className="text-red-500 font-bold">✗</span>
                       <span className="text-gray-600">Sin acceso a plataforma web</span>
                     </li>
                   </ul>
 
-                  <div className="mt-4 pt-4 border-t border-green-300">
-                    <p className="text-xs text-green-700 font-medium">
+                  <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-green-300">
+                    <p className="text-[10px] sm:text-xs text-green-700 font-medium">
                       📱 Registro 100% por WhatsApp
                     </p>
                   </div>
@@ -264,36 +267,36 @@ const todosLosIds = data.camposDelGrupo.map((c: Campo) => c.id)
                 <button
                   onClick={() => handleSeleccionarTipo("CONTADOR")}
                   disabled={loading || loadingCampos}
-                  className="group relative bg-gradient-to-br from-purple-50 to-purple-100 border-2 border-purple-200 rounded-xl p-6 text-left hover:shadow-lg hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="group relative bg-gradient-to-br from-purple-50 to-purple-100 border-2 border-purple-200 rounded-xl p-4 sm:p-6 text-left hover:shadow-lg sm:hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed sm:col-span-2 lg:col-span-1"
                 >
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="p-3 bg-purple-500 rounded-lg">
-                      <Calculator className="w-6 h-6 text-white" />
+                  <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+                    <div className="p-2 sm:p-3 bg-purple-500 rounded-lg">
+                      <Calculator className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
                     </div>
-                    <h3 className="text-xl font-bold text-purple-900">Contador</h3>
+                    <h3 className="text-base sm:text-xl font-bold text-purple-900">Contador</h3>
                   </div>
 
-                  <ul className="space-y-2 text-sm text-purple-800">
-                    <li className="flex items-start gap-2">
+                  <ul className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm text-purple-800">
+                    <li className="flex items-start gap-1.5 sm:gap-2">
                       <span className="text-purple-500 font-bold">✓</span>
                       <span>Acceso solo a plataforma web</span>
                     </li>
-                    <li className="flex items-start gap-2">
+                    <li className="flex items-start gap-1.5 sm:gap-2">
                       <span className="text-purple-500 font-bold">✓</span>
                       <span>Ve Gastos y Mano de Obra</span>
                     </li>
-                    <li className="flex items-start gap-2">
+                    <li className="flex items-start gap-1.5 sm:gap-2">
                       <span className="text-orange-500 font-bold">○</span>
                       <span className="text-gray-600">Solo lectura (por ahora)</span>
                     </li>
-                    <li className="flex items-start gap-2">
+                    <li className="flex items-start gap-1.5 sm:gap-2">
                       <span className="text-red-500 font-bold">✗</span>
                       <span className="text-gray-600">Sin acceso al bot</span>
                     </li>
                   </ul>
 
-                  <div className="mt-4 pt-4 border-t border-purple-300">
-                    <p className="text-xs text-purple-700 font-medium">
+                  <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-purple-300">
+                    <p className="text-[10px] sm:text-xs text-purple-700 font-medium">
                       🌐 Registro directo en plataforma web
                     </p>
                   </div>
@@ -301,9 +304,9 @@ const todosLosIds = data.camposDelGrupo.map((c: Campo) => c.id)
               </div>
 
               {loadingCampos && (
-                <div className="mt-6 text-center">
-                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-gray-300 border-t-blue-600"></div>
-                  <p className="mt-2 text-gray-600">Cargando campos...</p>
+                <div className="mt-4 sm:mt-6 text-center">
+                  <div className="inline-block animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-4 border-gray-300 border-t-blue-600"></div>
+                  <p className="mt-2 text-gray-600 text-sm">Cargando campos...</p>
                 </div>
               )}
             </>
@@ -311,32 +314,32 @@ const todosLosIds = data.camposDelGrupo.map((c: Campo) => c.id)
 
           {/* PASO 2: Seleccionar campos */}
           {step === "campos" && (
-            <div className="space-y-6">
-              <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
-                <p className="text-sm text-blue-800">
+            <div className="space-y-4 sm:space-y-6">
+              <div className="bg-blue-50 border-l-4 border-blue-500 p-3 sm:p-4 rounded">
+                <p className="text-xs sm:text-sm text-blue-800">
                   Selecciona en qué campos del grupo trabajará este usuario:
                 </p>
               </div>
 
               {/* Botón marcar/desmarcar todos */}
               <div className="flex justify-between items-center">
-                <h3 className="text-lg font-semibold text-gray-900">
+                <h3 className="text-sm sm:text-lg font-semibold text-gray-900">
                   Campos disponibles ({camposSeleccionados.length}/{camposGrupo.length} seleccionados)
                 </h3>
                 <button
                   onClick={toggleTodos}
-                  className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                  className="text-xs sm:text-sm text-blue-600 hover:text-blue-800 font-medium"
                 >
                   {camposSeleccionados.length === camposGrupo.length ? "Desmarcar todos" : "Marcar todos"}
                 </button>
               </div>
 
               {/* Lista de campos con checkboxes */}
-              <div className="space-y-3">
+              <div className="space-y-2 sm:space-y-3">
                 {camposGrupo.map((campo) => (
                   <label
                     key={campo.id}
-                    className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                    className={`flex items-center gap-2 sm:gap-3 p-3 sm:p-4 border-2 rounded-lg cursor-pointer transition-all ${
                       camposSeleccionados.includes(campo.id)
                         ? "border-blue-500 bg-blue-50"
                         : "border-gray-200 hover:border-gray-300"
@@ -346,38 +349,39 @@ const todosLosIds = data.camposDelGrupo.map((c: Campo) => c.id)
                       type="checkbox"
                       checked={camposSeleccionados.includes(campo.id)}
                       onChange={() => toggleCampo(campo.id)}
-                      className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                      className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                      style={{ colorScheme: 'light' }}
                     />
-                    <span className="flex-1 text-gray-900 font-medium">{campo.nombre}</span>
+                    <span className="flex-1 text-gray-900 font-medium text-sm sm:text-base">{campo.nombre}</span>
                   </label>
                 ))}
               </div>
 
               {/* Advertencia si no seleccionó ninguno */}
               {camposSeleccionados.length === 0 && (
-                <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded">
-                  <p className="text-sm text-yellow-800">
+                <div className="bg-yellow-50 border-l-4 border-yellow-500 p-3 sm:p-4 rounded">
+                  <p className="text-xs sm:text-sm text-yellow-800">
                     ⚠️ Debes seleccionar al menos un campo
                   </p>
                 </div>
               )}
 
               {/* Botones */}
-              <div className="flex gap-3 mt-6">
+              <div className="flex gap-2 sm:gap-3 mt-4 sm:mt-6">
                 <button
                   onClick={() => {
                     setStep("seleccionar")
                     setTipoSeleccionado(null)
                     setCamposSeleccionados([])
                   }}
-                  className="flex-1 px-4 py-3 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition-colors"
+                  className="flex-1 px-3 sm:px-4 py-2 sm:py-3 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition-colors text-sm"
                 >
                   ← Atrás
                 </button>
                 <button
                   onClick={handleContinuar}
                   disabled={loading || camposSeleccionados.length === 0}
-                  className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="flex-1 px-3 sm:px-4 py-2 sm:py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
                 >
                   {loading ? "Generando..." : "Generar invitación →"}
                 </button>
@@ -387,28 +391,28 @@ const todosLosIds = data.camposDelGrupo.map((c: Campo) => c.id)
 
           {/* PASO 3: Mostrar link */}
           {step === "mostrar-link" && (
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
               {/* Tipo de invitación */}
-              <div className="bg-gray-50 rounded-lg p-4">
-                <p className="text-sm text-gray-600 mb-1">Tipo de invitación:</p>
-                <p className="text-lg font-bold text-gray-900">
+              <div className="bg-gray-50 rounded-lg p-3 sm:p-4">
+                <p className="text-xs sm:text-sm text-gray-600 mb-1">Tipo de invitación:</p>
+                <p className="text-sm sm:text-lg font-bold text-gray-900">
                   {tipoSeleccionado === "COLABORADOR" && "👤 Colaborador"}
                   {tipoSeleccionado === "EMPLEADO" && "🤖 Empleado (solo bot)"}
                   {tipoSeleccionado === "CONTADOR" && "🧮 Contador"}
                 </p>
-                <p className="text-sm text-gray-600 mt-2">
+                <p className="text-xs sm:text-sm text-gray-600 mt-2">
                   Campos: {camposGrupo.filter(c => camposSeleccionados.includes(c.id)).map(c => c.nombre).join(", ")}
                 </p>
               </div>
 
               {/* Instrucciones según tipo */}
-              <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
-                <h4 className="font-semibold text-blue-900 mb-2">
+              <div className="bg-blue-50 border-l-4 border-blue-500 p-3 sm:p-4 rounded">
+                <h4 className="font-semibold text-blue-900 mb-2 text-sm sm:text-base">
                   📋 Instrucciones de uso:
                 </h4>
-                
+
                 {linkType === "whatsapp" && (
-                  <div className="text-sm text-blue-800 space-y-2">
+                  <div className="text-xs sm:text-sm text-blue-800 space-y-1.5 sm:space-y-2">
                     <p>1. Copia el link de WhatsApp</p>
                     <p>2. Envíaselo al usuario que deseas invitar</p>
                     <p>3. Al hacer clic, se abrirá WhatsApp con el bot</p>
@@ -422,7 +426,7 @@ const todosLosIds = data.camposDelGrupo.map((c: Campo) => c.id)
                 )}
 
                 {linkType === "web" && (
-                  <div className="text-sm text-blue-800 space-y-2">
+                  <div className="text-xs sm:text-sm text-blue-800 space-y-1.5 sm:space-y-2">
                     <p>1. Copia el link de registro</p>
                     <p>2. Envíaselo al contador por email o WhatsApp</p>
                     <p>3. Debe ingresar desde su navegador</p>
@@ -433,7 +437,7 @@ const todosLosIds = data.camposDelGrupo.map((c: Campo) => c.id)
 
               {/* Link generado */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
                   {linkType === "whatsapp" ? "🔗 Link de WhatsApp:" : "🔗 Link de registro web:"}
                 </label>
                 <div className="flex gap-2">
@@ -441,11 +445,12 @@ const todosLosIds = data.camposDelGrupo.map((c: Campo) => c.id)
                     type="text"
                     value={linkGenerado}
                     readOnly
-                    className="flex-1 px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg text-sm font-mono"
+                    className="flex-1 px-2 sm:px-4 py-2 sm:py-3 bg-gray-50 border border-gray-300 rounded-lg text-xs sm:text-sm font-mono text-gray-900"
+                    style={{ colorScheme: 'light' }}
                   />
                   <button
                     onClick={handleCopiar}
-                    className={`px-4 py-3 rounded-lg font-medium transition-all ${
+                    className={`px-3 sm:px-4 py-2 sm:py-3 rounded-lg font-medium transition-all ${
                       copiado
                         ? "bg-green-500 text-white"
                         : "bg-blue-600 text-white hover:bg-blue-700"
@@ -453,11 +458,11 @@ const todosLosIds = data.camposDelGrupo.map((c: Campo) => c.id)
                   >
                     {copiado ? (
                       <>
-                        <Check className="w-5 h-5" />
+                        <Check className="w-4 h-4 sm:w-5 sm:h-5" />
                       </>
                     ) : (
                       <>
-                        <Copy className="w-5 h-5" />
+                        <Copy className="w-4 h-4 sm:w-5 sm:h-5" />
                       </>
                     )}
                   </button>
@@ -465,15 +470,15 @@ const todosLosIds = data.camposDelGrupo.map((c: Campo) => c.id)
               </div>
 
               {/* Advertencia de expiración */}
-              <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded">
-                <p className="text-sm text-yellow-800">
+              <div className="bg-yellow-50 border-l-4 border-yellow-500 p-3 sm:p-4 rounded">
+                <p className="text-xs sm:text-sm text-yellow-800">
                   ⏰ <strong>Esta invitación expira en 7 días.</strong> Asegúrate de que el usuario
                   la use antes de ese plazo.
                 </p>
               </div>
 
               {/* Botones */}
-              <div className="flex gap-3">
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                 <button
                   onClick={() => {
                     setStep("seleccionar")
@@ -481,13 +486,13 @@ const todosLosIds = data.camposDelGrupo.map((c: Campo) => c.id)
                     setLinkGenerado("")
                     setCamposSeleccionados([])
                   }}
-                  className="flex-1 px-4 py-3 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition-colors"
+                  className="flex-1 px-3 sm:px-4 py-2 sm:py-3 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition-colors text-sm"
                 >
                   ← Crear otra invitación
                 </button>
                 <button
                   onClick={handleCerrar}
-                  className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                  className="flex-1 px-3 sm:px-4 py-2 sm:py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors text-sm"
                 >
                   Finalizar
                 </button>

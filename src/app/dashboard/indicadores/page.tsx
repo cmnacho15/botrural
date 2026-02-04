@@ -254,15 +254,15 @@ export default function IndicadoresPage() {
   const fmtPct = (val: number) => `${val.toFixed(1)}%`
 
   return (
-    <div className="space-y-6 p-4 sm:p-6">
+    <div className="space-y-4 sm:space-y-6 p-2 sm:p-4 md:p-6">
       {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 flex items-center gap-2">
-            <TrendingUp className="h-7 w-7 text-blue-600" />
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 flex items-center gap-2">
+            <TrendingUp className="h-5 w-5 sm:h-7 sm:w-7 text-blue-600 shrink-0" />
             Indicadores del Campo
           </h1>
-          <p className="text-gray-500 mt-1">Análisis productivo y económico del ejercicio</p>
+          <p className="text-gray-500 mt-1 text-sm sm:text-base">Análisis productivo y económico del ejercicio</p>
         </div>
       </div>
       
@@ -286,15 +286,15 @@ export default function IndicadoresPage() {
       {/* Selector de Ejercicio */}
       <Card>
         <CardContent className="pt-6">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
             <div className="flex items-center gap-2">
-              <Calendar className="h-5 w-5 text-gray-500" />
+              <Calendar className="h-5 w-5 text-gray-500 shrink-0" />
               <label className="text-sm font-medium text-gray-700">Ejercicio Fiscal</label>
             </div>
             <select
               value={ejercicioSeleccionado}
               onChange={(e) => setEjercicioSeleccionado(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white font-medium"
+              className="w-full sm:w-auto px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white font-medium text-sm sm:text-base"
             >
               {ejercicios.map((ej) => (
                 <option key={ej.label} value={`${ej.inicio}-${ej.fin}`}>
@@ -302,7 +302,7 @@ export default function IndicadoresPage() {
                 </option>
               ))}
             </select>
-            <div className="text-sm text-gray-500 sm:ml-auto">
+            <div className="text-xs sm:text-sm text-gray-500 sm:ml-auto">
               <span className="font-medium">Período:</span> 1 Jul {anioInicio} → 30 Jun {anioFin}
             </div>
             {esEjercicioActual && <Badge className="bg-green-100 text-green-800">En curso</Badge>}
@@ -311,27 +311,27 @@ export default function IndicadoresPage() {
       </Card>
 
       {/* Tabla de Indicadores */}
-      <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden -mx-2 sm:mx-0">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm border-collapse">
+          <table className="w-full text-xs sm:text-sm border-collapse">
             <thead>
               <tr className="bg-gray-100">
-                <th className="px-4 py-3 text-left font-bold text-gray-700 border-b-2 border-gray-300 sticky left-0 bg-gray-100 z-10 min-w-[200px]"></th>
+                <th className="px-2 sm:px-4 py-2 sm:py-3 text-left font-bold text-gray-700 border-b-2 border-gray-300 sticky left-0 bg-gray-100 z-10 min-w-[140px] sm:min-w-[200px]"></th>
                 <th colSpan={2} className="px-2 py-2 text-center font-bold text-white bg-gray-500 border border-gray-600">Global</th>
                 <th colSpan={2} className="px-2 py-2 text-center font-bold text-white bg-green-600 border border-green-700">Vacuno</th>
                 <th colSpan={2} className="px-2 py-2 text-center font-bold text-white bg-green-600 border border-green-700">Ovino</th>
                 <th colSpan={2} className="px-2 py-2 text-center font-bold text-white bg-green-600 border border-green-700">Equino</th>
               </tr>
               <tr className="bg-gray-50">
-                <th className="px-4 py-2 text-left font-semibold text-gray-600 border-b border-gray-200 sticky left-0 bg-gray-50 z-10"></th>
-                <th className="px-3 py-2 text-center font-semibold text-gray-600 border-b border-gray-200 bg-gray-100 min-w-[80px]">Total</th>
-                <th className="px-3 py-2 text-center font-semibold text-gray-600 border-b border-gray-200 bg-gray-100 min-w-[80px]">Por ha</th>
-                <th className="px-3 py-2 text-center font-semibold text-gray-600 border-b border-gray-200 bg-green-50 min-w-[80px]">Total</th>
-                <th className="px-3 py-2 text-center font-semibold text-gray-600 border-b border-gray-200 bg-green-50 min-w-[80px]">Por ha</th>
-                <th className="px-3 py-2 text-center font-semibold text-gray-600 border-b border-gray-200 bg-green-50 min-w-[80px]">Total</th>
-                <th className="px-3 py-2 text-center font-semibold text-gray-600 border-b border-gray-200 bg-green-50 min-w-[80px]">Por ha</th>
-                <th className="px-3 py-2 text-center font-semibold text-gray-600 border-b border-gray-200 bg-green-50 min-w-[80px]">Total</th>
-                <th className="px-3 py-2 text-center font-semibold text-gray-600 border-b border-gray-200 bg-green-50 min-w-[80px]">Por ha</th>
+                <th className="px-2 sm:px-4 py-2 text-left font-semibold text-gray-600 border-b border-gray-200 sticky left-0 bg-gray-50 z-10"></th>
+                <th className="px-2 sm:px-3 py-2 text-center font-semibold text-gray-600 border-b border-gray-200 bg-gray-100 min-w-[60px] sm:min-w-[80px]">Total</th>
+                <th className="px-2 sm:px-3 py-2 text-center font-semibold text-gray-600 border-b border-gray-200 bg-gray-100 min-w-[60px] sm:min-w-[80px]">Por ha</th>
+                <th className="px-2 sm:px-3 py-2 text-center font-semibold text-gray-600 border-b border-gray-200 bg-green-50 min-w-[60px] sm:min-w-[80px]">Total</th>
+                <th className="px-2 sm:px-3 py-2 text-center font-semibold text-gray-600 border-b border-gray-200 bg-green-50 min-w-[60px] sm:min-w-[80px]">Por ha</th>
+                <th className="px-2 sm:px-3 py-2 text-center font-semibold text-gray-600 border-b border-gray-200 bg-green-50 min-w-[60px] sm:min-w-[80px]">Total</th>
+                <th className="px-2 sm:px-3 py-2 text-center font-semibold text-gray-600 border-b border-gray-200 bg-green-50 min-w-[60px] sm:min-w-[80px]">Por ha</th>
+                <th className="px-2 sm:px-3 py-2 text-center font-semibold text-gray-600 border-b border-gray-200 bg-green-50 min-w-[60px] sm:min-w-[80px]">Total</th>
+                <th className="px-2 sm:px-3 py-2 text-center font-semibold text-gray-600 border-b border-gray-200 bg-green-50 min-w-[60px] sm:min-w-[80px]">Por ha</th>
               </tr>
             </thead>
             

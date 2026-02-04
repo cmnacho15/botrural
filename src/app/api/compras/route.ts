@@ -252,6 +252,41 @@ export async function POST(request: Request) {
         const precioAnimal = Number(pesoPromedio) * Number(precioKgUSD)
         const importeBruto = pesoTotal * Number(precioKgUSD)
 
+        let resolvedAnimalLoteId: string | null = null
+
+        // 3. Si quiere agregar al stock, buscar o crear el AnimalLote
+        if (agregarAlStock && animalLoteId) {
+          // animalLoteId viene del frontend como loteId (potrero)
+          const loteId = animalLoteId
+
+          // Buscar AnimalLote existente para este potrero + categoría
+          let animalLote = await tx.animalLote.findUnique({
+            where: { loteId_categoria: { loteId, categoria } },
+          })
+
+          if (animalLote) {
+            // Sumar cantidad al existente
+            animalLote = await tx.animalLote.update({
+              where: { id: animalLote.id },
+              data: { cantidad: animalLote.cantidad + Number(cantidad) },
+            })
+          } else {
+            // Crear nuevo AnimalLote
+            animalLote = await tx.animalLote.create({
+              data: {
+                loteId,
+                categoria,
+                cantidad: Number(cantidad),
+                peso: Number(pesoPromedio),
+              },
+            })
+          }
+
+          resolvedAnimalLoteId = animalLote.id
+        } else if (agregarAlStock) {
+          throw new Error("Debe seleccionar un potrero para agregar al stock")
+        }
+
         await tx.compraRenglon.create({
           data: {
             compraId: nuevaCompra.id,
@@ -265,31 +300,10 @@ export async function POST(request: Request) {
             pesoTotalKg: Number(pesoTotal.toFixed(2)),
             importeBrutoUSD: Number(importeBruto.toFixed(2)),
             agregarAlStock: agregarAlStock || false,
-            animalLoteId: (agregarAlStock && animalLoteId) ? animalLoteId : null,
+            animalLoteId: resolvedAnimalLoteId,
             fechaIngreso: agregarAlStock ? new Date() : null,
           },
         })
-
-        // 3. Agregar stock si corresponde
-        if (agregarAlStock && animalLoteId) {
-          const animalLote = await tx.animalLote.findUnique({
-            where: { id: animalLoteId },
-          })
-
-          if (!animalLote) {
-            throw new Error(`AnimalLote ${animalLoteId} no encontrado`)
-          }
-
-          // SUMAR cantidad (en vez de restar)
-          await tx.animalLote.update({
-            where: { id: animalLoteId },
-            data: { cantidad: animalLote.cantidad + Number(cantidad) },
-          })
-        } else if (agregarAlStock) {
-          // Si no hay animalLoteId pero quiere agregar, buscar o crear el lote
-          // Este caso lo manejamos en el frontend pidiendo siempre el loteId
-          throw new Error("Debe seleccionar un potrero para agregar al stock")
-        }
       }
 
       return nuevaCompra

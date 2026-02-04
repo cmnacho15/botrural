@@ -1300,7 +1300,7 @@ function TarjetaDato({ dato }: { dato: any }) {
                 </div>
               </div>
 
-              {dato.descripcion && <p className="text-gray-700 text-sm mb-3 leading-relaxed">{dato.descripcion}</p>}
+              {dato.descripcion && <p className="text-gray-700 text-sm mb-3 leading-relaxed whitespace-pre-line">{dato.descripcion}</p>}
 
               <div className="flex flex-wrap gap-2 mb-3">{renderDetalles()}</div>
 

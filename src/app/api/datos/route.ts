@@ -299,6 +299,71 @@ eventos
       })
     })
 
+    // 🛒 COMPRAS de la tabla Compra
+    console.log('🛒 Consultando compras...')
+    const compras = await prisma.compra.findMany({
+      where: { campoId: usuario.campoId },
+      include: {
+        renglones: {
+          include: {
+            animalLote: {
+              select: {
+                lote: { select: { nombre: true } },
+              },
+            },
+          },
+        },
+      },
+      orderBy: [{ fecha: 'desc' }, { createdAt: 'desc' }],
+    })
+    console.log('✅ Compras encontradas:', compras.length)
+
+    compras.forEach((compra) => {
+      const cantidadTotal = compra.renglones.reduce((sum, r) => sum + r.cantidad, 0)
+      const pesoTotal = compra.renglones.reduce((sum, r) => sum + r.pesoTotalKg, 0)
+      const categorias = [...new Set(compra.renglones.map(r => r.categoria))].join(', ')
+      const potreros = [...new Set(compra.renglones.map(r => r.animalLote?.lote?.nombre).filter(Boolean))]
+      const lote = potreros.length > 0 ? potreros.join(', ') : null
+
+      // Descripción completa en texto
+      const lineas: string[] = []
+      lineas.push(`Compra de ${cantidadTotal} ${categorias} a ${compra.proveedor}`)
+
+      // Desglose por renglón
+      compra.renglones.forEach(r => {
+        const potrero = r.animalLote?.lote?.nombre
+        let linea = `${r.cantidad} ${r.categoria} — ${r.pesoPromedio} kg/cab a ${r.precioKgUSD} USD/kg = ${r.importeBrutoUSD.toLocaleString('es-UY')} USD`
+        if (potrero) linea += ` (${potrero})`
+        lineas.push(linea)
+      })
+
+      if (compra.consignatario) lineas.push(`Consignatario: ${compra.consignatario}`)
+      if (compra.nroTropa) lineas.push(`Tropa: ${compra.nroTropa}`)
+      if (compra.nroFactura) lineas.push(`Factura: ${compra.nroFactura}`)
+
+      datosUnificados.push({
+        id: compra.id,
+        fecha: compra.fecha,
+        createdAt: compra.createdAt,
+        tipo: 'COMPRA',
+        categoria: 'animales',
+        categoriaAnimal: categorias,
+        descripcion: lineas.join('\n'),
+        icono: '🛒',
+        usuario: null,
+        lote,
+        cantidad: cantidadTotal,
+        monto: compra.totalNetoUSD,
+        moneda: compra.moneda || 'USD',
+        proveedor: compra.proveedor,
+        metodoPago: compra.metodoPago || null,
+        diasPlazo: compra.diasPlazo || null,
+        pagado: compra.pagado,
+        notas: compra.notas,
+        imageUrl: compra.imageUrl || null,
+      })
+    })
+
     // ORDENAR
 datosUnificados.sort((a, b) => {
   const fechaA = new Date(a.fecha).getTime()
