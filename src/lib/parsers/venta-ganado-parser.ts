@@ -16,7 +16,8 @@ export interface VentaGanadoRenglonParsed {
   rendimiento: number | null;
   precioKgUSD: number;
   importeBrutoUSD: number;
-  
+  esBonificacion?: boolean; // true si es bonificación/descuento
+
   // Campos temporales para frigorífico
   pesoTotal2da4ta?: number;
   pesoTotalPie?: number;
@@ -141,17 +142,30 @@ EJEMPLOS DE "OTROS":
 ====== EXTRACCIÓN SEGÚN TIPO ======
 
 TIPO A (FRIGORÍFICO):
-- Ignorar renglones de "BONIFICACIÓN"
-- Solo extraer categorías principales: NOVILLOS, VACAS, OVEJAS, etc.
-- Extraer de cada renglón:
+⚠️ CRÍTICO: EXTRAER TODOS LOS RENGLONES incluyendo BONIFICACIONES/DESCUENTOS
+- Extraer categorías principales: NOVILLOS, VACAS, OVEJAS, etc.
+- Extraer BONIFICACIONES como renglones separados (ver instrucciones abajo)
+- De cada renglón PRINCIPAL extraer:
   * categoria: nombre del animal
   * tipoAnimal: "OVINO" | "BOVINO" | "EQUINO"
   * cantidad: número de animales
-  * pesoTotalPie: peso total en Primera Balanza
-  * pesoTotal2da4ta: peso total en Segunda/Cuarta Balanza
-  * rendimiento: porcentaje
-  * precio2da4ta: precio por kg en balanza post-faena
+  * pesoTotalPie: peso total EN PIE (columna "Kgs. en pie" o "Primera Balanza") - OBLIGATORIO
+  * pesoTotal2da4ta: peso total en Segunda/Cuarta Balanza - OBLIGATORIO
+  * rendimiento: porcentaje - OBLIGATORIO
+  * precio2da4ta: precio por kg en balanza post-faena (columna "Precio") - OBLIGATORIO
   * importeBrutoUSD: importe total del renglón
+
+⚠️ BONIFICACIONES/DESCUENTOS:
+- Si hay renglones como "BONIFICACIÓN", "DESCUENTO", "BONIF.", etc.
+- Extraerlos como renglones separados con:
+  * categoria: texto completo (ej: "BONIFICACIÓN VACA ECO")
+  * tipoAnimal: mismo que el renglón principal
+  * cantidad: 0 (o copiar del renglón principal si aplica)
+  * pesoTotalPie: 0 (o copiar del renglón principal si usa el mismo peso)
+  * pesoTotal2da4ta: peso si está en la factura, sino 0
+  * rendimiento: null
+  * precio2da4ta: precio de la bonificación (puede ser positivo o negativo)
+  * importeBrutoUSD: importe de la bonificación (positivo suma, negativo resta)
 
 TIPO B (CAMPO A CAMPO):
 - Si tiene "% Destare":
@@ -184,13 +198,28 @@ RESPONDE SOLO JSON (sin markdown, sin explicaciones):
   "nroTropa": "...",
   "renglones": [
     {
-      "categoria": "NOVILLO GORDO",
+      "categoria": "VACA GORDA",
       "tipoAnimal": "BOVINO",
-      "cantidad": 9,
-      "pesoTotalKg": 4520,
-      "pesoPromedio": 502,
-      "precioKgUSD": 5.25,
-      "importeBrutoUSD": 12650.95
+      "raza": "HEREFORD",
+      "cantidad": 40,
+      "pesoTotalPie": 19130,
+      "pesoTotal2da4ta": 9363.80,
+      "rendimiento": 48.95,
+      "precio2da4ta": 5.10,
+      "importeBrutoUSD": 47755.38,
+      "esBonificacion": false
+    },
+    {
+      "categoria": "BONIFICACIÓN VACA ECO",
+      "tipoAnimal": "BOVINO",
+      "raza": null,
+      "cantidad": 0,
+      "pesoTotalPie": 0,
+      "pesoTotal2da4ta": 9363.80,
+      "rendimiento": null,
+      "precio2da4ta": 0.03,
+      "importeBrutoUSD": 280.91,
+      "esBonificacion": true
     }
   ],
   "cantidadTotal": 9,
@@ -244,27 +273,56 @@ RESPONDE SOLO JSON (sin markdown, sin explicaciones):
 
     // ====== CONVERSIÓN DE DATOS DE FRIGORÍFICO A EN PIE ======
     console.log("🔄 Procesando renglones para conversión a datos EN PIE...")
-    
+
     for (let i = 0; i < data.renglones.length; i++) {
       const r = data.renglones[i];
-      
+
       // Si tiene datos de balanza post-faena, convertir a EN PIE
       if (r.pesoTotal2da4ta && r.pesoTotalPie && r.precio2da4ta) {
         console.log(`  🔄 Convirtiendo renglón ${i + 1}: ${r.categoria}`);
-        
+        console.log(`    📊 Peso en pie: ${r.pesoTotalPie} kg`);
+        console.log(`    📊 Peso 4ta: ${r.pesoTotal2da4ta} kg`);
+        console.log(`    📊 Precio 4ta: $${r.precio2da4ta}/kg`);
+        console.log(`    📊 Importe: $${r.importeBrutoUSD}`);
+
         // El importe bruto ya está correcto (precio post-faena × peso post-faena)
         // Ahora calculamos precio EN PIE equivalente
         r.pesoTotalKg = r.pesoTotalPie;
-        r.pesoPromedio = r.pesoTotalPie / r.cantidad;
-        r.precioKgUSD = r.importeBrutoUSD / r.pesoTotalPie;
-        
+        r.pesoPromedio = r.cantidad > 0 ? r.pesoTotalPie / r.cantidad : 0;
+        r.precioKgUSD = r.pesoTotalPie > 0 ? r.importeBrutoUSD / r.pesoTotalPie : 0;
+
         console.log(`    ✅ Peso EN PIE: ${r.pesoTotalKg.toFixed(2)} kg`);
         console.log(`    ✅ Precio EN PIE equivalente: $${r.precioKgUSD.toFixed(4)}/kg`);
-        
+
+        // Guardar rendimiento antes de limpiar
+        r.rendimiento = r.rendimiento || null;
+
         // Limpiar campos temporales
         delete (r as any).pesoTotal2da4ta;
         delete (r as any).pesoTotalPie;
         delete (r as any).precio2da4ta;
+      } else if (r.cantidad > 0) {
+        // Si NO tiene datos de frigorífico, es venta campo a campo
+        console.log(`  ℹ️  Renglón ${i + 1} (${r.categoria}): Venta campo a campo - datos ya en PIE`);
+
+        // Asegurar que tiene los campos básicos
+        if (!r.pesoTotalKg && r.pesoPromedio && r.cantidad) {
+          r.pesoTotalKg = r.pesoPromedio * r.cantidad;
+        }
+        if (!r.pesoPromedio && r.pesoTotalKg && r.cantidad) {
+          r.pesoPromedio = r.pesoTotalKg / r.cantidad;
+        }
+        if (!r.precioKgUSD && r.importeBrutoUSD && r.pesoTotalKg) {
+          r.precioKgUSD = r.importeBrutoUSD / r.pesoTotalKg;
+        }
+      } else {
+        // Es una bonificación u otro item sin cantidad de animales
+        console.log(`  ℹ️  Renglón ${i + 1} (${r.categoria}): Bonificación/Descuento - $${r.importeBrutoUSD}`);
+
+        // Asegurar valores por defecto
+        r.pesoTotalKg = r.pesoTotalKg || 0;
+        r.pesoPromedio = 0;
+        r.precioKgUSD = 0;
       }
     }
 

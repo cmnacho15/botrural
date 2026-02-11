@@ -99,11 +99,17 @@ async function sendVentaConfirmation(phoneNumber: string, data: any) {
   } else {
     // GANADO
     renglonesText = data.renglones
-      .map((r: any, i: number) => 
-        `${i + 1}. ${r.cantidad} ${r.categoria} - ${r.pesoPromedio?.toFixed(1) || 0}kg @ $${r.precioKgUSD?.toFixed(2) || 0}/kg = $${r.importeBrutoUSD?.toFixed(2) || 0}`
-      )
+      .map((r: any, i: number) => {
+        if (r.esBonificacion) {
+          // Bonificación/Descuento
+          return `${i + 1}. 🎁 ${r.categoria} = +$${r.importeBrutoUSD?.toFixed(2) || 0}`
+        } else {
+          // Animal normal
+          return `${i + 1}. ${r.cantidad} ${r.categoria}${r.raza ? ` ${r.raza}` : ''} - ${r.pesoPromedio?.toFixed(1) || 0}kg @ $${r.precioKgUSD?.toFixed(2) || 0}/kg = $${r.importeBrutoUSD?.toFixed(2) || 0}`
+        }
+      })
       .join("\n")
-    
+
     headerText = `*VENTA DE HACIENDA*\n\n`
     totalesText = `${data.cantidadTotal} animales, ${data.pesoTotalKg?.toFixed(1) || 0} kg\n`
   }

@@ -1334,7 +1334,10 @@ export async function POST(request: Request) {
               totalNeto += netoRenglon
             } else {
               // GANADO (VACUNO/OVINO)
-              const proporcion = v.subtotalUSD > 0 ? r.importeBrutoUSD / v.subtotalUSD : 0
+              const esBonif = (r as any).esBonificacion === true
+
+              // Si es bonificación, NO distribuir impuestos (ya viene como monto neto)
+              const proporcion = esBonif ? 0 : (v.subtotalUSD > 0 ? r.importeBrutoUSD / v.subtotalUSD : 0)
               const imebaRenglon = (impuestos.imeba || 0) * proporcion
               const iniaRenglon = (impuestos.inia || 0) * proporcion
               const mevirRenglon = (impuestos.mevir || 0) * proporcion
@@ -1352,10 +1355,10 @@ export async function POST(request: Request) {
                 esPrimerRenglon ? (v.firma?.razonSocial || '') : '',
                 esPrimerRenglon ? v.comprador : '',
                 esPrimerRenglon ? (v.consignatario || '') : '',
-                r.categoria,
-                r.cantidad,
-                formatNum(r.pesoTotalKg),
-                formatNum(r.precioKgUSD),
+                esBonif ? `🎁 ${r.categoria}` : r.categoria,
+                esBonif ? '' : r.cantidad,
+                esBonif ? '' : formatNum(r.pesoTotalKg),
+                esBonif ? '' : formatNum(r.precioKgUSD),
                 formatNum(r.importeBrutoUSD),
                 imebaRenglon > 0 ? formatNeg(imebaRenglon) : '',
                 iniaRenglon > 0 ? formatNeg(iniaRenglon) : '',
@@ -1374,8 +1377,11 @@ export async function POST(request: Request) {
                 cell.font = { color: { argb: 'FF0066CC' }, underline: true }
               }
 
-              totalCantidad += r.cantidad
-              totalPeso += r.pesoTotalKg
+              // Solo sumar a totales si NO es bonificación (las bonif ya están en subtotal)
+              if (!esBonif) {
+                totalCantidad += r.cantidad
+                totalPeso += r.pesoTotalKg
+              }
               totalSubtotal += r.importeBrutoUSD
               totalImeba += imebaRenglon
               totalInia += iniaRenglon

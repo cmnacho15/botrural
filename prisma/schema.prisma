@@ -656,6 +656,10 @@ model VentaRenglon {
 
   cantidad Int // nº de animales
 
+  // 🎁 BONIFICACIONES Y DESCUENTOS
+  esBonificacion Boolean @default(false) // true si es bonificación/descuento
+  rendimiento    Float? // % rendimiento frigorífico (ej: 48.95)
+
   // 💰 PRECIOS Y MONTOS (simplificado para el Excel)
   pesoPromedio    Float // kg/animal (peso/animal del Excel)
   precioKgUSD     Float // precio/kg (US$/kg del Excel)
