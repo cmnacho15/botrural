@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import ModalDividirBovinos from '@/app/components/modales/ModalDividirBovinos'
 import ModalDividirOvinosSexado from '@/app/components/modales/ModalDividirOvinosSexado'
 import ModalDividirOvinosCastracion from '@/app/components/modales/ModalDividirOvinosCastracion'
+import { toast } from '@/app/components/Toast'
 
 type PendientesPotrero = {
   loteId: string
@@ -97,12 +98,12 @@ export default function RecategorizacionPreferencias() {
       })
 
       if (response.ok) {
-        alert('✅ Configuración guardada')
+        toast.success('✅ Configuración guardada')
       } else {
-        alert('Error al guardar')
+        toast.error('Error al guardar')
       }
     } catch (error) {
-      alert('Error al guardar')
+      toast.error('Error al guardar')
     } finally {
       setSaving(false)
     }
@@ -122,20 +123,20 @@ export default function RecategorizacionPreferencias() {
     <div className="space-y-8">
 
         {/* CONFIGURACIÓN BOVINOS */}
-        <div className="bg-white border border-gray-200 rounded-lg p-6">
-          <div className="flex items-start gap-4">
-            <div className="text-4xl">🐄</div>
-            <div className="flex-1">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">BOVINOS</h3>
-                <label className="flex items-center gap-3 cursor-pointer">
+        <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6">
+          <div className="flex items-start gap-3 sm:gap-4">
+            <div className="text-3xl sm:text-4xl">🐄</div>
+            <div className="flex-1 min-w-0">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 mb-4">
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900">BOVINOS</h3>
+                <label className="flex items-center gap-2 sm:gap-3 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={config.bovinosActivo}
                     onChange={(e) => setConfig({ ...config, bovinosActivo: e.target.checked })}
                     className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
                   />
-                  <span className="text-sm font-medium text-gray-700">
+                  <span className="text-xs sm:text-sm font-medium text-gray-700">
                     Activar recategorización automática
                   </span>
                 </label>
@@ -227,20 +228,20 @@ export default function RecategorizacionPreferencias() {
         </div>
 
         {/* CONFIGURACIÓN OVINOS */}
-        <div className="bg-white border border-gray-200 rounded-lg p-6">
-          <div className="flex items-start gap-4">
-            <div className="text-4xl">🐑</div>
-            <div className="flex-1">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">OVINOS</h3>
-                <label className="flex items-center gap-3 cursor-pointer">
+        <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6">
+          <div className="flex items-start gap-3 sm:gap-4">
+            <div className="text-3xl sm:text-4xl">🐑</div>
+            <div className="flex-1 min-w-0">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 mb-4">
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900">OVINOS</h3>
+                <label className="flex items-center gap-2 sm:gap-3 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={config.ovinosActivo}
                     onChange={(e) => setConfig({ ...config, ovinosActivo: e.target.checked })}
                     className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
                   />
-                  <span className="text-sm font-medium text-gray-700">
+                  <span className="text-xs sm:text-sm font-medium text-gray-700">
                     Activar recategorización automática
                   </span>
                 </label>
@@ -329,11 +330,11 @@ export default function RecategorizacionPreferencias() {
         </div>
 
         {/* EQUINOS */}
-        <div className="bg-white border border-gray-200 rounded-lg p-6">
-          <div className="flex items-start gap-4">
-            <div className="text-4xl">🐴</div>
-            <div className="flex-1">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">EQUINOS</h3>
+        <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6">
+          <div className="flex items-start gap-3 sm:gap-4">
+            <div className="text-3xl sm:text-4xl">🐴</div>
+            <div className="flex-1 min-w-0">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">EQUINOS</h3>
               <p className="text-sm text-gray-600">
                 ℹ️ Solo recategorización manual
               </p>
@@ -360,7 +361,7 @@ export default function RecategorizacionPreferencias() {
         potreros={pendientes.ternerosNacidos.potreros}
         onSuccess={() => {
           cargarPendientes()
-          alert('✅ División completada')
+          toast.success('✅ División completada')
         }}
       />
 
@@ -370,7 +371,7 @@ export default function RecategorizacionPreferencias() {
         potreros={pendientes.corderosMamones.potreros}
         onSuccess={() => {
           cargarPendientes()
-          alert('✅ División completada')
+          toast.success('✅ División completada')
         }}
       />
 
@@ -380,7 +381,7 @@ export default function RecategorizacionPreferencias() {
         potreros={pendientes.corderosDL.potreros}
         onSuccess={() => {
           cargarPendientes()
-          alert('✅ División completada')
+          toast.success('✅ División completada')
         }}
       />
     </>

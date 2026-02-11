@@ -3,6 +3,7 @@
 'use client'
 
 import { useState } from 'react'
+import { toast } from '@/app/components/Toast'
 
 interface Categoria {
   nombre: string
@@ -631,7 +632,7 @@ const filaTotalesOvinos = [
 
     } catch (error: any) {
       console.error('Error generando PDF:', error)
-      alert(`Error al generar el PDF: ${error.message || 'Error desconocido'}`)
+      toast.error(`Error al generar el PDF: ${error.message || 'Error desconocido'}`)
     } finally {
       setDescargando(false)
     }

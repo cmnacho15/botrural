@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { obtenerFechaLocal } from '@/lib/fechas'
+import { toast } from '@/app/components/Toast'
 
 type ModalCosechaProps = {
   onClose: () => void
@@ -18,6 +19,7 @@ type Lote = {
   nombre: string
   moduloPastoreoId: string | null
   moduloPastoreo?: Modulo | null
+  cultivos?: any[]
 }
 
 type Cultivo = {
@@ -55,7 +57,7 @@ useEffect(() => {
       const hayModulos = data.some((l: Lote) => l.moduloPastoreoId !== null)
       setTieneModulos(hayModulos)
     })
-    .catch(() => alert('Error al cargar potreros'))
+    .catch(() => toast.error('Error al cargar potreros'))
 }, [])
 
   // Cargar cultivos cuando se selecciona potrero
@@ -75,7 +77,7 @@ useEffect(() => {
         setLoadingCultivos(false)
       })
       .catch(() => {
-        alert('Error al cargar cultivos')
+        toast.error('Error al cargar cultivos')
         setLoadingCultivos(false)
       })
   }, [potreroSeleccionado])
@@ -118,7 +120,7 @@ useEffect(() => {
     const hectareasNum = parseFloat(hectareas)
     if (hectareasNum > cultivoSeleccionado.hectareas) {
       setErrorHectareas(true)
-      alert(`No puedes cosechar más de ${cultivoSeleccionado.hectareas} ha disponibles`)
+      toast.error(`No puedes cosechar más de ${cultivoSeleccionado.hectareas} ha disponibles`)
       return
     }
 
@@ -174,20 +176,20 @@ useEffect(() => {
       onSuccess()
       onClose()
     } catch (error) {
-      alert(error instanceof Error ? error.message : 'Error al registrar cosecha')
+      toast.error(error instanceof Error ? error.message : 'Error al registrar cosecha')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <form onSubmit={handleSubmit} className="p-6">
+    <form onSubmit={handleSubmit} className="p-4 sm:p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center text-2xl">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-green-100 flex items-center justify-center text-2xl">
             🌾
           </div>
-          <h2 className="text-2xl font-bold text-gray-900">Cosecha</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Cosecha</h2>
         </div>
         <button
           onClick={onClose}
@@ -242,19 +244,35 @@ useEffect(() => {
       }, {} as Record<string, Lote[]>)
     ).map(([moduloNombre, lotes]) => (
       <optgroup key={moduloNombre} label={moduloNombre}>
-        {lotes.map((lote) => (
-          <option key={lote.id} value={lote.id}>
-            {lote.nombre}
-          </option>
-        ))}
+        {lotes.map((lote) => {
+          const resumen = lote.cultivos && lote.cultivos.length > 0
+            ? lote.cultivos
+                .map((c: any) => `${c.tipoCultivo} ${c.hectareas}ha`)
+                .join(', ')
+            : 'Sin cultivos'
+
+          return (
+            <option key={lote.id} value={lote.id}>
+              {lote.nombre} ({resumen})
+            </option>
+          )
+        })}
       </optgroup>
     ))
   ) : (
-    potreros.map((lote) => (
-      <option key={lote.id} value={lote.id}>
-        {lote.nombre}
-      </option>
-    ))
+    potreros.map((lote) => {
+      const resumen = lote.cultivos && lote.cultivos.length > 0
+        ? lote.cultivos
+            .map((c: any) => `${c.tipoCultivo} ${c.hectareas}ha`)
+            .join(', ')
+        : 'Sin cultivos'
+
+      return (
+        <option key={lote.id} value={lote.id}>
+          {lote.nombre} ({resumen})
+        </option>
+      )
+    })
   )}
 </select>
             {errorPotrero && (

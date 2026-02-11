@@ -77,12 +77,20 @@ export async function POST(req: Request) {
         });
       }
 
-      // Actualizar User.campoId y role
+      // Actualizar User.campoId y role (preservando MEGA_ADMIN)
+      const usuarioActual = await tx.user.findUnique({
+        where: { id: session.user.id },
+        select: { role: true }
+      });
+
+      // MEGA_ADMIN es global, no se debe sobrescribir al cambiar de campo
+      const nuevoRol = usuarioActual?.role === 'MEGA_ADMIN' ? 'MEGA_ADMIN' : usuarioCampo.rol;
+
       await tx.user.update({
         where: { id: session.user.id },
         data: {
           campoId: campoId,
-          role: usuarioCampo.rol,
+          role: nuevoRol,
         },
       });
     });

@@ -554,12 +554,24 @@ async function generarPDFPastoreo(data: any, nombreCampo: string): Promise<Buffe
 }
 
 /**
+ * Sanitiza un string para nombre de archivo (sin acentos ni caracteres especiales)
+ */
+function sanitizarNombreArchivo(nombre: string): string {
+  return nombre
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9_-]/g, '_')
+    .replace(/_+/g, '_')
+}
+
+/**
  * Sube el PDF a Supabase Storage
  */
 async function subirPDFaSupabase(pdfBuffer: Buffer, nombreModulo: string): Promise<string | null> {
   try {
     const fecha = new Date().toISOString().split('T')[0]
-    const nombreArchivo = `reportes/pastoreo_${nombreModulo.replace(/\s+/g, '_')}_${fecha}_${Date.now()}.pdf`
+    const nombreSanitizado = sanitizarNombreArchivo(nombreModulo)
+    const nombreArchivo = `reportes/pastoreo_${nombreSanitizado}_${fecha}_${Date.now()}.pdf`
 
     const supabase = getSupabaseClient()
     const { error } = await supabase.storage

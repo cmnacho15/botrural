@@ -3,6 +3,7 @@
 
 import { useState, Fragment, useEffect } from 'react'
 import ModalFactura from '@/app/components/modales/ModalFactura'
+import { toast } from '@/app/components/Toast'
 
 interface Firma {
   id: string
@@ -81,7 +82,7 @@ export default function TablaVentas({ ventas, onRefresh }: TablaVentasProps) {
       onRefresh()
       setEditandoFirma(null)
     } catch (err) {
-      alert('Error al asignar firma')
+      toast.error('Error al asignar firma')
     } finally {
       setGuardandoFirma(false)
     }
@@ -117,10 +118,10 @@ export default function TablaVentas({ ventas, onRefresh }: TablaVentasProps) {
       // Refrescar la lista
       onRefresh()
       setVentaAEliminar(null)
-      alert('✅ Venta eliminada correctamente')
+      toast.success('✅ Venta eliminada correctamente')
     } catch (error: any) {
       console.error('Error:', error)
-      alert(`❌ ${error.message}`)
+      toast.error(`❌ ${error.message}`)
     } finally {
       setEliminando(false)
     }

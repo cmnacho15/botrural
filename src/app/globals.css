@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* 🔒 Forzar que dark mode solo se active con clase .dark (nunca por sistema) */
+@variant dark (&:is(.dark *));
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -43,4 +46,19 @@ body {
 
 .animate-slide-up {
   animation: slide-up 0.3s ease-out;
+}
+
+/* 📱 Inputs de fecha responsive en móvil */
+input[type="date"] {
+  font-size: 16px;
+  min-height: 44px;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+@media (min-width: 640px) {
+  input[type="date"] {
+    font-size: 14px;
+    min-height: auto;
+  }
 }

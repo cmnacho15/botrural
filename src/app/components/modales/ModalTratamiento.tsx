@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { obtenerFechaLocal } from '@/lib/fechas'
+import { toast } from '@/app/components/Toast'
 
 type ModalTratamientoProps = {
   onClose: () => void
@@ -68,7 +69,7 @@ const [animalesTratados, setAnimalesTratados] = useState<AnimalTratado[]>([
       const hayModulos = data.some((l: Lote) => l.moduloPastoreoId !== null)
       setTieneModulos(hayModulos)
     })
-    .catch(() => alert('Error al cargar potreros'))
+    .catch(() => toast.error('Error al cargar potreros'))
 }, [])
 
   // Cargar rodeos y configuración
@@ -101,7 +102,7 @@ const [animalesTratados, setAnimalesTratados] = useState<AnimalTratado[]>([
         setLoadingAnimales(false)
       })
       .catch(() => {
-        alert('Error al cargar animales')
+        toast.error('Error al cargar animales')
         setLoadingAnimales(false)
       })
   }, [potreroSeleccionado])
@@ -134,13 +135,13 @@ const [animalesTratados, setAnimalesTratados] = useState<AnimalTratado[]>([
     }
 
     if (!tratamiento.trim()) {
-      alert('Debe ingresar el tratamiento')
+      toast.error('Debe ingresar el tratamiento')
       return
     }
 
     // VALIDAR RODEO OBLIGATORIO
     if (modoRodeo === 'OBLIGATORIO' && !rodeoId) {
-      alert('Seleccioná un rodeo')
+      toast.error('Seleccioná un rodeo')
       return
     }
 
@@ -150,7 +151,7 @@ const [animalesTratados, setAnimalesTratados] = useState<AnimalTratado[]>([
     )
 
     if (animalesValidos.length === 0) {
-      alert('Debe agregar al menos un animal con cantidad y tipo')
+      toast.error('Debe agregar al menos un animal con cantidad y tipo')
       return
     }
 
@@ -158,11 +159,11 @@ const [animalesTratados, setAnimalesTratados] = useState<AnimalTratado[]>([
     for (const animal of animalesValidos) {
       const disponible = animalesDisponibles.find(d => d.categoria === animal.tipo)
       if (!disponible) {
-        alert(`No hay animales de tipo ${animal.tipo} en este potrero`)
+        toast.error(`No hay animales de tipo ${animal.tipo} en este potrero`)
         return
       }
       if (parseInt(animal.cantidad) > disponible.cantidad) {
-        alert(`Solo hay ${disponible.cantidad} ${animal.tipo} disponibles`)
+        toast.info(`Solo hay ${disponible.cantidad} ${animal.tipo} disponibles`)
         return
       }
     }
@@ -203,20 +204,20 @@ const descripcionFinal = `Tratamiento${rodeoId && rodeos.find(r => r.id === rode
       onSuccess()
       onClose()
     } catch (error) {
-      alert(error instanceof Error ? error.message : 'Error al registrar tratamiento')
+      toast.error(error instanceof Error ? error.message : 'Error al registrar tratamiento')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <form onSubmit={handleSubmit} className="p-6">
+    <form onSubmit={handleSubmit} className="p-4 sm:p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full bg-teal-100 flex items-center justify-center text-2xl">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-teal-100 flex items-center justify-center text-2xl">
             💉
           </div>
-          <h2 className="text-2xl font-bold text-gray-900">Tratamiento</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Tratamiento</h2>
         </div>
         <button
           onClick={onClose}

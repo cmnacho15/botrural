@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
+import { toast } from '@/app/components/Toast'
 
 type Modulo = {
   id: string
@@ -49,7 +50,7 @@ export default function ReportePastoreoPage() {
 
   async function generarReporte() {
     if (!moduloSeleccionado) {
-      alert('Selecciona un módulo')
+      toast.info('Selecciona un módulo')
       return
     }
 
@@ -71,11 +72,11 @@ export default function ReportePastoreoPage() {
         setNombreModulo(data.modulo)
         setMostrandoReporte(true)
       } else {
-        alert('Error al generar reporte')
+        toast.error('Error al generar reporte')
       }
     } catch (error) {
       console.error('Error:', error)
-      alert('Error al generar reporte')
+      toast.error('Error al generar reporte')
     } finally {
       setCargando(false)
     }

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import ModalDividirBovinos from '@/app/components/modales/ModalDividirBovinos'
 import ModalDividirOvinosSexado from '@/app/components/modales/ModalDividirOvinosSexado'
 import ModalDividirOvinosCastracion from '@/app/components/modales/ModalDividirOvinosCastracion'
+import { toast } from '@/app/components/Toast'
 
 type Filtros = {
   fechaIngreso?: string
@@ -152,7 +153,7 @@ export default function RecategorizacionMasiva() {
 
   const handleVistaPrevia = async () => {
     if (recategorizaciones.length === 0) {
-      alert('Seleccioná al menos una recategorización')
+      toast.error('Seleccioná al menos una recategorización')
       return
     }
 
@@ -166,7 +167,7 @@ export default function RecategorizacionMasiva() {
 
       if (!res.ok) {
         const error = await res.json()
-        alert(error.error || 'Error al generar vista previa')
+        toast.error(error.error || 'Error al generar vista previa')
         return
       }
 
@@ -175,7 +176,7 @@ export default function RecategorizacionMasiva() {
       setShowPreview(true)
     } catch (error) {
       console.error('Error:', error)
-      alert('Error al generar vista previa')
+      toast.error('Error al generar vista previa')
     } finally {
       setLoading(false)
     }
@@ -198,13 +199,13 @@ export default function RecategorizacionMasiva() {
 
       if (!res.ok) {
         const error = await res.json()
-        alert(error.error || 'Error al aplicar recategorización')
+        toast.error(error.error || 'Error al aplicar recategorización')
         return
       }
 
       const data = await res.json()
       
-      alert(`✅ Recategorización completada\n\nTotal: ${data.totalProcesado} animales recategorizados\nSe generaron ${data.resultados.length} eventos`)
+      toast.success(`✅ Recategorización completada\n\nTotal: ${data.totalProcesado} animales recategorizados\nSe generaron ${data.resultados.length} eventos`)
       
       setRecategorizaciones([])
       setShowPreview(false)
@@ -212,7 +213,7 @@ export default function RecategorizacionMasiva() {
       recargarPendientes()
     } catch (error) {
       console.error('Error:', error)
-      alert('Error al aplicar recategorización')
+      toast.error('Error al aplicar recategorización')
     } finally {
       setAplicando(false)
     }
@@ -233,13 +234,13 @@ export default function RecategorizacionMasiva() {
         {(pendientes.ternerosNacidos.total > 0 || 
           pendientes.corderosMamones.total > 0 || 
           pendientes.corderosDL.total > 0) && (
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-6">
-            <h3 className="font-semibold text-amber-900 mb-4 flex items-center gap-2">
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 sm:p-6">
+            <h3 className="font-semibold text-amber-900 mb-3 sm:mb-4 flex items-center gap-2 text-sm sm:text-base">
               ⚠️ Categorías pendientes de dividir
             </h3>
             <div className="space-y-3">
               {pendientes.ternerosNacidos.total > 0 && (
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                   <div>
                     <p className="text-sm font-medium text-gray-900">
                       🐄 Terneros nacidos: {pendientes.ternerosNacidos.total} animales
@@ -250,7 +251,7 @@ export default function RecategorizacionMasiva() {
                   </div>
                   <button
                     onClick={() => setShowModalBovinos(true)}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-xs sm:text-sm font-medium flex-shrink-0"
                   >
                     Dividir por sexo
                   </button>
@@ -258,7 +259,7 @@ export default function RecategorizacionMasiva() {
               )}
 
               {pendientes.corderosMamones.total > 0 && (
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                   <div>
                     <p className="text-sm font-medium text-gray-900">
                       🐑 Corderos Mamones: {pendientes.corderosMamones.total} animales
@@ -269,7 +270,7 @@ export default function RecategorizacionMasiva() {
                   </div>
                   <button
                     onClick={() => setShowModalOvinosSexado(true)}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-xs sm:text-sm font-medium flex-shrink-0"
                   >
                     Dividir por sexo
                   </button>
@@ -277,7 +278,7 @@ export default function RecategorizacionMasiva() {
               )}
 
               {pendientes.corderosDL.total > 0 && (
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                   <div>
                     <p className="text-sm font-medium text-gray-900">
                       🐑 Corderos DL: {pendientes.corderosDL.total} animales
@@ -288,7 +289,7 @@ export default function RecategorizacionMasiva() {
                   </div>
                   <button
                     onClick={() => setShowModalOvinosCastracion(true)}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-xs sm:text-sm font-medium flex-shrink-0"
                   >
                     Registrar castración
                   </button>
@@ -299,8 +300,8 @@ export default function RecategorizacionMasiva() {
         )}
 
         {/* BOVINOS */}
-        <div className="bg-white border border-gray-200 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">🐄 BOVINOS</h3>
+        <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6">
+          <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">🐄 BOVINOS</h3>
           <div className="space-y-4">
             {RECATEGORIZACIONES_BOVINOS.map(({ de, a }) => {
               const seleccionada = estaSeleccionada(de, a)
@@ -324,7 +325,7 @@ export default function RecategorizacionMasiva() {
                     <div className="px-4 pb-4 space-y-3 border-t border-gray-100">
                       <p className="text-xs text-gray-600 mt-3 mb-2">Filtros opcionales:</p>
 
-                      <label className="flex items-center gap-2">
+                      <label className="flex flex-wrap items-center gap-2">
                         <input
                           type="checkbox"
                           checked={!!filtros.fechaIngreso}
@@ -344,12 +345,12 @@ export default function RecategorizacionMasiva() {
                             type="date"
                             value={filtros.fechaIngreso}
                             onChange={(e) => actualizarFiltro(de, a, 'fechaIngreso', e.target.value)}
-                            className="px-2 py-1 border border-gray-300 rounded text-xs"
+                            className="w-full sm:w-auto px-2 py-1 border border-gray-300 rounded text-xs"
                           />
                         )}
                       </label>
 
-                      <label className="flex items-center gap-2">
+                      <label className="flex flex-wrap items-center gap-2">
                         <input
                           type="checkbox"
                           checked={!!filtros.potreroId}
@@ -367,7 +368,7 @@ export default function RecategorizacionMasiva() {
                           <select
                             value={filtros.potreroId || ''}
                             onChange={(e) => actualizarFiltro(de, a, 'potreroId', e.target.value)}
-                            className="px-2 py-1 border border-gray-300 rounded text-xs"
+                            className="w-full sm:w-auto px-2 py-1 border border-gray-300 rounded text-xs"
                           >
                             <option value="">Seleccionar potrero</option>
                             {potreros.map(p => (
@@ -385,8 +386,8 @@ export default function RecategorizacionMasiva() {
         </div>
 
         {/* OVINOS */}
-        <div className="bg-white border border-gray-200 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">🐑 OVINOS</h3>
+        <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6">
+          <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">🐑 OVINOS</h3>
           <div className="space-y-4">
             {RECATEGORIZACIONES_OVINOS.map(({ de, a }) => {
               const seleccionada = estaSeleccionada(de, a)
@@ -410,7 +411,7 @@ export default function RecategorizacionMasiva() {
                     <div className="px-4 pb-4 space-y-3 border-t border-gray-100">
                       <p className="text-xs text-gray-600 mt-3 mb-2">Filtros opcionales:</p>
 
-                      <label className="flex items-center gap-2">
+                      <label className="flex flex-wrap items-center gap-2">
                         <input
                           type="checkbox"
                           checked={!!filtros.fechaIngreso}
@@ -430,12 +431,12 @@ export default function RecategorizacionMasiva() {
                             type="date"
                             value={filtros.fechaIngreso}
                             onChange={(e) => actualizarFiltro(de, a, 'fechaIngreso', e.target.value)}
-                            className="px-2 py-1 border border-gray-300 rounded text-xs"
+                            className="w-full sm:w-auto px-2 py-1 border border-gray-300 rounded text-xs"
                           />
                         )}
                       </label>
 
-                      <label className="flex items-center gap-2">
+                      <label className="flex flex-wrap items-center gap-2">
                         <input
                           type="checkbox"
                           checked={!!filtros.potreroId}
@@ -453,7 +454,7 @@ export default function RecategorizacionMasiva() {
                           <select
                             value={filtros.potreroId || ''}
                             onChange={(e) => actualizarFiltro(de, a, 'potreroId', e.target.value)}
-                            className="px-2 py-1 border border-gray-300 rounded text-xs"
+                            className="w-full sm:w-auto px-2 py-1 border border-gray-300 rounded text-xs"
                           >
                             <option value="">Seleccionar potrero</option>
                             {potreros.map(p => (
@@ -484,13 +485,14 @@ export default function RecategorizacionMasiva() {
 
       {/* MODAL VISTA PREVIA */}
       {showPreview && previewData && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[80vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-200">
-              <h2 className="text-xl font-bold text-gray-900">📊 Animales que serán recategorizados</h2>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center sm:p-4" style={{ colorScheme: 'light' }}>
+          <div className="bg-white rounded-t-2xl sm:rounded-xl shadow-2xl w-full sm:max-w-2xl max-h-[90vh] sm:max-h-[80vh] overflow-y-auto text-gray-900" style={{ colorScheme: 'light' }}>
+            <div className="p-4 sm:p-6 border-b border-gray-200">
+              <div className="w-10 h-1 bg-gray-300 rounded-full mx-auto mb-3 sm:hidden" />
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900">📊 Animales que serán recategorizados</h2>
             </div>
 
-            <div className="p-6 space-y-4">
+            <div className="p-4 sm:p-6 space-y-4">
               {previewData.previews.map((preview, index) => (
                 <div key={index} className="border border-gray-200 rounded-lg p-4">
                   <h3 className="font-semibold text-gray-900 mb-2">
@@ -527,7 +529,7 @@ export default function RecategorizacionMasiva() {
               </div>
             </div>
 
-            <div className="p-6 border-t border-gray-200 flex gap-3">
+            <div className="p-4 sm:p-6 border-t border-gray-200 flex gap-3">
               <button
                 onClick={() => setShowPreview(false)}
                 disabled={aplicando}
@@ -554,7 +556,7 @@ export default function RecategorizacionMasiva() {
         potreros={pendientes.ternerosNacidos.potreros}
         onSuccess={() => {
           recargarPendientes()
-          alert('✅ División completada')
+          toast.success('✅ División completada')
         }}
       />
 
@@ -564,7 +566,7 @@ export default function RecategorizacionMasiva() {
         potreros={pendientes.corderosMamones.potreros}
         onSuccess={() => {
           recargarPendientes()
-          alert('✅ División completada')
+          toast.success('✅ División completada')
         }}
       />
 
@@ -574,7 +576,7 @@ export default function RecategorizacionMasiva() {
         potreros={pendientes.corderosDL.potreros}
         onSuccess={() => {
           recargarPendientes()
-          alert('✅ División completada')
+          toast.success('✅ División completada')
         }}
       />
     </>

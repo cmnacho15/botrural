@@ -683,6 +683,191 @@ TIPOS DE EVENTOS QUE DEBES DETECTAR:
    }
    // 🔥 FIN DE LO QUE SE AGREGA
 
+   // ============================================================
+   // 🌱 EVENTOS DE AGRICULTURA
+   // ============================================================
+
+   18. SIEMBRA:
+   - "sembré 50 ha de maíz en potrero norte"
+   - "siembra de soja en el sur"
+   - "plantamos trigo en el este"
+
+   IMPORTANTE:
+   - Siempre necesita potrero y cultivo
+   - Hectáreas son opcionales (si no se mencionan, usar las del potrero)
+
+   Retorna:
+   {
+     "tipo": "SIEMBRA",
+     "potrero": "Norte" (nombre EXACTO),
+     "cultivo": "maíz",
+     "hectareas": 50 (opcional)
+   }
+
+   19. COSECHA:
+   - "cosechamos 30 ha de maíz en el norte"
+   - "levantamos la soja del sur"
+   - "cosecha de trigo en el este, 200 kg"
+
+   IMPORTANTE:
+   - Necesita potrero y cultivo
+   - Puede incluir rendimiento y humedad
+
+   Retorna:
+   {
+     "tipo": "COSECHA",
+     "potrero": "Norte",
+     "cultivo": "maíz",
+     "hectareas": 30 (opcional),
+     "rendimiento": 200 (opcional),
+     "unidadRendimiento": "kg" (opcional: kg, ton, qq, lb),
+     "humedad": 14 (opcional, %)
+   }
+
+   20. PULVERIZACION:
+   - "pulvericé el maíz del norte con glifosato 2L/ha"
+   - "apliqué herbicida a la soja del sur"
+   - "fumigué el trigo en el este con atrazina"
+
+   IMPORTANTE:
+   - Necesita potrero y cultivo
+   - Productos: nombre + dosis + unidad (L/ha, kg/ha, g/ha, cc/ha)
+
+   Retorna:
+   {
+     "tipo": "PULVERIZACION",
+     "potrero": "Norte",
+     "cultivo": "maíz",
+     "hectareas": 50 (opcional),
+     "productos": [
+       {"nombre": "glifosato", "dosis": 2, "unidad": "L/ha"}
+     ]
+   }
+
+   21. REFERTILIZACION:
+   - "fertilicé el maíz del norte con urea 100 kg/ha"
+   - "apliqué fertilizante a la soja"
+   - "eché 50 kg de MAP al trigo"
+
+   IMPORTANTE:
+   - Necesita potrero y cultivo
+   - Fertilizantes: fuente + dosis + unidad (L/ha, kg/ha)
+
+   Retorna:
+   {
+     "tipo": "REFERTILIZACION",
+     "potrero": "Norte",
+     "cultivo": "maíz",
+     "hectareas": 50 (opcional),
+     "fertilizantes": [
+       {"fuente": "urea", "dosis": 100, "unidad": "kg/ha"}
+     ]
+   }
+
+   22. RIEGO:
+   - "regué el maíz del norte 20 mm"
+   - "riego de 15 mm en la soja del sur"
+   - "aplicamos 25 mm de riego al trigo"
+
+   IMPORTANTE:
+   - Necesita potrero, cultivo y lámina de riego (mm)
+   - Método y duración son opcionales
+
+   Retorna:
+   {
+     "tipo": "RIEGO",
+     "potrero": "Norte",
+     "cultivo": "maíz",
+     "hectareas": 50 (opcional),
+     "lamina": 20 (mm),
+     "metodo": "aspersión" (opcional),
+     "duracion": 4 (opcional, horas)
+   }
+
+   23. MONITOREO:
+   - "monitoreé el maíz del norte, está bueno"
+   - "revisé la soja del sur, tiene pulgones"
+   - "el trigo del este está en estado crítico"
+
+   IMPORTANTE:
+   - Necesita potrero y cultivo
+   - Estado, plagas y observaciones son opcionales
+
+   Retorna:
+   {
+     "tipo": "MONITOREO",
+     "potrero": "Norte",
+     "cultivo": "maíz",
+     "estado": "Bueno" (opcional: Excelente, Bueno, Regular, Malo, Crítico),
+     "plagas": "pulgones" (opcional),
+     "observaciones": "necesita agua" (opcional),
+     "requiereAccion": false (opcional)
+   }
+
+   // ============================================================
+   // 📦 EVENTOS DE INSUMOS
+   // ============================================================
+
+   24. INGRESO_INSUMO:
+   - "compré 50 litros de glifosato"
+   - "ingresé 100 kg de urea"
+   - "llegaron 20 bolsas de semilla"
+   - "recibí 10 litros de ivermectina"
+
+   IMPORTANTE:
+   - Es para registrar ingreso/compra de insumos al stock
+   - Puede ser uno o varios insumos
+   - Potrero es opcional
+
+   Retorna:
+   {
+     "tipo": "INGRESO_INSUMO",
+     "insumos": [
+       {"nombre": "glifosato", "cantidad": 50, "unidad": "litros"}
+     ],
+     "potrero": "Norte" (opcional)
+   }
+
+   25. USO_INSUMO:
+   - "usé 5 litros de glifosato en el norte"
+   - "apliqué 20 kg de urea"
+   - "gasté 10 dosis de ivermectina"
+   - "consumí 3 bolsas de semilla en el sur"
+
+   IMPORTANTE:
+   - Es para registrar uso/consumo de insumos del stock
+   - Puede ser uno o varios insumos
+   - Potrero es opcional
+
+   Retorna:
+   {
+     "tipo": "USO_INSUMO",
+     "insumos": [
+       {"nombre": "glifosato", "cantidad": 5, "unidad": "litros"}
+     ],
+     "potrero": "Norte" (opcional)
+   }
+
+   26. OTROS_LABORES:
+   - "hice rastrillada en el maíz del norte"
+   - "pasé la rastra en el sur, cultivo soja"
+   - "desmalezamos 20 ha del trigo en el este"
+   - "labores de preparación de suelo en potrero norte"
+
+   IMPORTANTE:
+   - Es para labores agrícolas que no encajan en las otras categorías
+   - Necesita: labor realizado (descripción), potrero y cultivo
+   - Hectáreas son opcionales
+
+   Retorna:
+   {
+     "tipo": "OTROS_LABORES",
+     "labor": "rastrillada" (descripción de la labor),
+     "potrero": "Norte",
+     "cultivo": "maíz",
+     "hectareas": 20 (opcional)
+   }
+
    17. CONSULTA_DATOS:
    El usuario quiere consultar datos/eventos registrados previamente.
 
@@ -699,11 +884,20 @@ TIPOS DE EVENTOS QUE DEBES DETECTAR:
    - "pasame datos de los últimos 30 días" (TODOS LOS TIPOS)
    - "registros del mes" (TODOS LOS TIPOS)
    - "qué se registró esta semana" (TODOS LOS TIPOS)
+   - "pasame los gastos" → tiposEvento: ["GASTO"]
+   - "gastos del mes pasado" → tiposEvento: ["GASTO"], mes anterior
+   - "cuánto gasté este mes" → tiposEvento: ["GASTO"], mes actual
+   - "pasame los ingresos" → tiposEvento: ["INGRESO"]
+   - "gastos e ingresos del año" → tiposEvento: ["FINANZAS"]
+   - "movimientos de plata" → tiposEvento: ["FINANZAS"]
 
    IMPORTANTE - Parsear filtros:
    - tiposEvento: Array de tipos. Puede ser uno o varios: ["LLUVIA"], ["TACTO", "LLUVIA"], etc.
      Si NO especifica tipo (ej: "pasame datos", "registros del mes", "qué se registró") → tiposEvento: ["TODOS"]
-     Tipos válidos: TODOS, LLUVIA, TRATAMIENTO, MANEJO, NACIMIENTO, MORTANDAD, VENTA, COMPRA, TACTO, DESTETE, CONSUMO, DAO, OBSERVACION, HELADA, CAMBIO_POTRERO
+     Tipos válidos: TODOS, LLUVIA, TRATAMIENTO, MANEJO, NACIMIENTO, MORTANDAD, VENTA, COMPRA, TACTO, DESTETE, CONSUMO, DAO, OBSERVACION, HELADA, CAMBIO_POTRERO, GASTO, INGRESO, FINANZAS
+   - "pasame los gastos" / "gastos del mes" / "cuánto gasté" → tiposEvento: ["GASTO"]
+   - "pasame los ingresos" / "ingresos del mes" → tiposEvento: ["INGRESO"]
+   - "gastos e ingresos" / "finanzas" / "movimientos de plata" → tiposEvento: ["FINANZAS"]
    - "de hoy" / "hoy" → diasAtras: 0
    - "de ayer" → diasAtras: 1
    - "últimos X días" → diasAtras: X

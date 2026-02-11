@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { obtenerFechaLocal } from '@/lib/fechas'
+import { toast } from '@/app/components/Toast'
 
 type ModalOtrosLaboresProps = {
   onClose: () => void
@@ -21,6 +22,7 @@ type Lote = {
   cultivos?: Array<{
     id: string
     tipoCultivo: string
+    hectareas: number
   }>
 }
 
@@ -52,7 +54,7 @@ useEffect(() => {
       const hayModulos = data.some((l: Lote) => l.moduloPastoreoId !== null)
       setTieneModulos(hayModulos)
     })
-    .catch(() => alert('Error al cargar potreros'))
+    .catch(() => toast.error('Error al cargar potreros'))
 }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -121,20 +123,20 @@ useEffect(() => {
       onSuccess()
       onClose()
     } catch (error) {
-      alert(error instanceof Error ? error.message : 'Error al registrar labor')
+      toast.error(error instanceof Error ? error.message : 'Error al registrar labor')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <form onSubmit={handleSubmit} className="p-6">
+    <form onSubmit={handleSubmit} className="p-4 sm:p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center text-2xl">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-red-100 flex items-center justify-center text-2xl">
             🔧
           </div>
-          <h2 className="text-2xl font-bold text-gray-900">Otros Labores</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Otros Labores</h2>
         </div>
         <button
           onClick={onClose}
@@ -211,19 +213,35 @@ useEffect(() => {
       }, {} as Record<string, Lote[]>)
     ).map(([moduloNombre, lotes]) => (
       <optgroup key={moduloNombre} label={moduloNombre}>
-        {lotes.map((lote) => (
-          <option key={lote.id} value={lote.id}>
-            {lote.nombre}
-          </option>
-        ))}
+        {lotes.map((lote) => {
+          const resumen = lote.cultivos && lote.cultivos.length > 0
+            ? lote.cultivos
+                .map((c: any) => `${c.tipoCultivo} ${c.hectareas}ha`)
+                .join(', ')
+            : 'Sin cultivos'
+
+          return (
+            <option key={lote.id} value={lote.id}>
+              {lote.nombre} ({resumen})
+            </option>
+          )
+        })}
       </optgroup>
     ))
   ) : (
-    potreros.map((lote) => (
-      <option key={lote.id} value={lote.id}>
-        {lote.nombre}
-      </option>
-    ))
+    potreros.map((lote) => {
+      const resumen = lote.cultivos && lote.cultivos.length > 0
+        ? lote.cultivos
+            .map((c: any) => `${c.tipoCultivo} ${c.hectareas}ha`)
+            .join(', ')
+        : 'Sin cultivos'
+
+      return (
+        <option key={lote.id} value={lote.id}>
+          {lote.nombre} ({resumen})
+        </option>
+      )
+    })
   )}
 </select>
               {errorPotrero && (

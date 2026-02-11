@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { toast } from '@/app/components/Toast'
 
 type ModuloPastoreo = {
   id: string
@@ -94,10 +95,10 @@ export default function ModulosPreferencias() {
         cargarPotrerosDisponibles()
         cargarModulos()
       } else {
-        alert('Error al desvincular')
+        toast.error('Error al desvincular')
       }
     } catch (error) {
-      alert('Error al desvincular')
+      toast.error('Error al desvincular')
     }
   }
 
@@ -116,16 +117,16 @@ export default function ModulosPreferencias() {
         cargarPotrerosDisponibles()
         cargarModulos()
       } else {
-        alert('Error al agregar potrero')
+        toast.error('Error al agregar potrero')
       }
     } catch (error) {
-      alert('Error al agregar potrero')
+      toast.error('Error al agregar potrero')
     }
   }
 
   async function handleGuardarModulo() {
     if (!nuevoModulo.nombre.trim()) {
-      alert('Ingrese el nombre del módulo')
+      toast.info('Ingrese el nombre del módulo')
       return
     }
 
@@ -151,13 +152,13 @@ export default function ModulosPreferencias() {
         setPotreros([])
         setPotrerosDisponibles([])
         cargarModulos()
-        alert(editandoModulo ? '¡Módulo actualizado!' : '¡Módulo creado!')
+        toast.success(editandoModulo ? '¡Módulo actualizado!' : '¡Módulo creado!')
       } else {
         const error = await response.json()
-        alert(error.error || 'Error al guardar módulo')
+        toast.error(error.error || 'Error al guardar módulo')
       }
     } catch (error) {
-      alert('Error al guardar módulo')
+      toast.error('Error al guardar módulo')
     } finally {
       setSaving(false)
     }
@@ -182,13 +183,13 @@ export default function ModulosPreferencias() {
         cargarModulos()
         setShowModalEliminar(false)
         setModuloAEliminar(null)
-        alert('Módulo eliminado. Los potreros fueron movidos a "Resto del campo".')
+        toast.success('Módulo eliminado. Los potreros fueron movidos a "Resto del campo".')
       } else {
         const error = await response.json()
-        alert(error.error || 'Error al eliminar módulo')
+        toast.error(error.error || 'Error al eliminar módulo')
       }
     } catch (error) {
-      alert('Error al eliminar módulo')
+      toast.error('Error al eliminar módulo')
     } finally {
       setEliminando(false)
     }
@@ -226,11 +227,11 @@ export default function ModulosPreferencias() {
 
   return (
     <>
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
+      <div className="space-y-4 sm:space-y-6">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-0">
           <div>
-            <h2 className="text-lg font-semibold text-gray-900">Módulos de Pastoreo</h2>
-            <p className="text-sm text-gray-500">Agrupa tus potreros en módulos para mejor organización</p>
+            <h2 className="text-base sm:text-lg font-semibold text-gray-900">Módulos de Pastoreo</h2>
+            <p className="text-xs sm:text-sm text-gray-500">Agrupa tus potreros en módulos para mejor organización</p>
           </div>
           <button
             onClick={() => {
@@ -240,7 +241,7 @@ export default function ModulosPreferencias() {
               setPotrerosDisponibles([])
               setShowModal(true)
             }}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+            className="flex items-center justify-center gap-2 px-4 py-2.5 sm:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm w-full sm:w-auto"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -255,7 +256,9 @@ export default function ModulosPreferencias() {
             <p className="text-sm text-gray-400">Crea tu primer módulo para organizar tus potreros</p>
           </div>
         ) : (
-          <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+          <>
+          {/* TABLA DESKTOP */}
+          <div className="hidden sm:block bg-white border border-gray-200 rounded-lg overflow-hidden">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
@@ -286,8 +289,8 @@ export default function ModulosPreferencias() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center">
                       <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                        modulo._count.lotes > 0 
-                          ? 'bg-blue-100 text-blue-700' 
+                        modulo._count.lotes > 0
+                          ? 'bg-blue-100 text-blue-700'
                           : 'bg-gray-100 text-gray-500'
                       }`}>
                         {modulo._count.lotes}
@@ -314,15 +317,54 @@ export default function ModulosPreferencias() {
               </tbody>
             </table>
           </div>
+
+          {/* CARDS MOBILE */}
+          <div className="sm:hidden space-y-3">
+            {modulos.map((modulo) => (
+              <div key={modulo.id} className="bg-white border border-gray-200 rounded-lg p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-sm font-semibold text-gray-900">{modulo.nombre}</h4>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {modulo.descripcion || <span className="italic text-gray-400">Sin descripción</span>}
+                    </p>
+                  </div>
+                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium shrink-0 ${
+                    modulo._count.lotes > 0
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'bg-gray-100 text-gray-500'
+                  }`}>
+                    {modulo._count.lotes} potrero{modulo._count.lotes !== 1 ? 's' : ''}
+                  </span>
+                </div>
+                <div className="flex gap-2 mt-3 pt-3 border-t border-gray-100">
+                  <button
+                    onClick={() => abrirModalEditar(modulo)}
+                    className="flex-1 px-3 py-2 text-xs font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition"
+                  >
+                    ✏️ Editar
+                  </button>
+                  <button
+                    onClick={() => abrirModalEliminar(modulo)}
+                    className="flex-1 px-3 py-2 text-xs font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition"
+                  >
+                    🗑️ Eliminar
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+          </>
         )}
       </div>
 
       {/* MODAL CREAR/EDITAR MÓDULO */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-200 flex justify-between items-center sticky top-0 bg-white z-10">
-              <h2 className="text-lg font-semibold text-gray-900">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center sm:p-4" style={{ colorScheme: 'light' }}>
+          <div className="bg-white w-full h-[92vh] rounded-t-2xl sm:rounded-xl sm:max-w-2xl sm:h-auto sm:max-h-[90vh] overflow-y-auto flex flex-col text-gray-900" style={{ colorScheme: 'light' }}>
+            <div className="p-4 sm:p-6 border-b border-gray-200 flex justify-between items-center sticky top-0 bg-white z-10">
+              <div className="w-10 h-1 bg-gray-300 rounded-full mx-auto absolute left-1/2 -translate-x-1/2 top-2 sm:hidden" />
+              <h2 className="text-base sm:text-lg font-semibold text-gray-900">
                 {editandoModulo ? 'Editar Módulo' : 'Nuevo Módulo de Pastoreo'}
               </h2>
               <button onClick={cerrarModal} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">
@@ -330,7 +372,7 @@ export default function ModulosPreferencias() {
               </button>
             </div>
 
-            <div className="p-6 space-y-6">
+            <div className="p-4 sm:p-6 space-y-5 sm:space-y-6 flex-1 overflow-y-auto">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Nombre del módulo <span className="text-red-500">*</span>
@@ -435,17 +477,17 @@ export default function ModulosPreferencias() {
               )}
             </div>
 
-            <div className="p-6 border-t border-gray-200 flex gap-3 sticky bottom-0 bg-white">
+            <div className="p-4 sm:p-6 border-t border-gray-200 flex gap-3 sticky bottom-0 bg-white">
               <button
                 onClick={cerrarModal}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700 font-medium"
+                className="flex-1 px-4 py-2.5 sm:py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700 font-medium text-sm"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleGuardarModulo}
                 disabled={saving || !nuevoModulo.nombre.trim()}
-                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                className="flex-1 px-4 py-2.5 sm:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium text-sm"
               >
                 {saving ? 'Guardando...' : editandoModulo ? 'Actualizar' : 'Crear'}
               </button>
@@ -456,55 +498,56 @@ export default function ModulosPreferencias() {
 
       {/* MODAL CONFIRMAR ELIMINACIÓN */}
       {showModalEliminar && moduloAEliminar && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
-            <div className="p-6 border-b border-gray-200">
-              <h2 className="text-xl font-bold text-gray-900">Confirmar Eliminación</h2>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center sm:p-4" style={{ colorScheme: 'light' }}>
+          <div className="bg-white w-full rounded-t-2xl sm:rounded-xl shadow-2xl sm:max-w-md text-gray-900" style={{ colorScheme: 'light' }}>
+            <div className="p-4 sm:p-6 border-b border-gray-200">
+              <div className="w-10 h-1 bg-gray-300 rounded-full mx-auto mb-3 sm:hidden" />
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900">Confirmar Eliminación</h2>
             </div>
 
-            <div className="p-6 space-y-4">
-              <p className="text-gray-700">
+            <div className="p-4 sm:p-6 space-y-4">
+              <p className="text-sm sm:text-base text-gray-700">
                 ¿Estás seguro de eliminar el módulo <strong>"{moduloAEliminar.nombre}"</strong>?
               </p>
 
               {moduloAEliminar._count.lotes > 0 ? (
-                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                  <h3 className="font-semibold text-amber-800 mb-2 flex items-center gap-2">
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 sm:p-4">
+                  <h3 className="font-semibold text-amber-800 mb-2 flex items-center gap-2 text-sm sm:text-base">
                     ⚠️ Atención
                   </h3>
-                  <p className="text-sm text-amber-700">
+                  <p className="text-xs sm:text-sm text-amber-700">
                     Este módulo tiene <strong>{moduloAEliminar._count.lotes} potrero{moduloAEliminar._count.lotes !== 1 ? 's' : ''}</strong> asignado{moduloAEliminar._count.lotes !== 1 ? 's' : ''}.
                   </p>
-                  <p className="text-sm text-amber-700 mt-2">
-                    {moduloAEliminar._count.lotes === 1 
-                      ? 'Este potrero pasará a "Resto del campo".' 
+                  <p className="text-xs sm:text-sm text-amber-700 mt-2">
+                    {moduloAEliminar._count.lotes === 1
+                      ? 'Este potrero pasará a "Resto del campo".'
                       : 'Estos potreros pasarán a "Resto del campo".'}
                   </p>
                 </div>
               ) : (
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                  <p className="text-green-700 text-sm">
+                <div className="bg-green-50 border border-green-200 rounded-lg p-3 sm:p-4">
+                  <p className="text-green-700 text-xs sm:text-sm">
                     ✅ Este módulo no tiene potreros asignados y puede ser eliminado sin afectar la organización.
                   </p>
                 </div>
               )}
             </div>
 
-            <div className="p-6 border-t border-gray-200 flex gap-3">
+            <div className="p-4 sm:p-6 border-t border-gray-200 flex gap-3">
               <button
                 onClick={() => {
                   setShowModalEliminar(false)
                   setModuloAEliminar(null)
                 }}
                 disabled={eliminando}
-                className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition disabled:opacity-50 font-medium"
+                className="flex-1 px-4 py-2.5 sm:py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition disabled:opacity-50 font-medium text-sm"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleEliminarModulo}
                 disabled={eliminando}
-                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                className="flex-1 px-4 py-2.5 sm:py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed font-medium text-sm"
               >
                 {eliminando ? 'Eliminando...' : 'Confirmar'}
               </button>

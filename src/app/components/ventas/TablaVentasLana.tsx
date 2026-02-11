@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from 'react'
 import ModalFactura from '@/app/components/modales/ModalFactura'
+import { toast } from '@/app/components/Toast'
 
 type Firma = {
   id: string
@@ -43,7 +44,7 @@ export default function TablaVentasLana({ ventas, onRefresh }: TablaVentasLanaPr
       onRefresh()
       setEditandoFirma(null)
     } catch (err) {
-      alert('Error al asignar firma')
+      toast.error('Error al asignar firma')
     } finally {
       setGuardandoFirma(false)
     }
@@ -63,11 +64,11 @@ export default function TablaVentasLana({ ventas, onRefresh }: TablaVentasLanaPr
 
       if (!res.ok) throw new Error('Error al eliminar')
 
-      alert('Venta eliminada correctamente')
+      toast.success('Venta eliminada correctamente')
       onRefresh()
     } catch (error) {
       console.error('Error:', error)
-      alert('Error al eliminar la venta')
+      toast.error('Error al eliminar la venta')
     }
   }
 

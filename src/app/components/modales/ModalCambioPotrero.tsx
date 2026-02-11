@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { obtenerFechaLocal } from '@/lib/fechas'
+import { toast } from '@/app/components/Toast'
 
 type ModalCambioPotreroProps = {
   onClose: () => void
@@ -18,6 +19,7 @@ type Lote = {
   nombre: string
   moduloPastoreoId: string | null
   moduloPastoreo?: Modulo | null
+  animalesLote?: any[]
 }
 
 type AnimalLote = {
@@ -68,7 +70,7 @@ export default function ModalCambioPotrero({ onClose, onSuccess }: ModalCambioPo
   setTieneModulos(hayModulos)
 })
 
-      .catch(() => alert('Error al cargar datos'))
+      .catch(() => toast.error('Error al cargar datos'))
   }, [])
 
   // Cargar animales cuando se selecciona potrero origen
@@ -88,7 +90,7 @@ export default function ModalCambioPotrero({ onClose, onSuccess }: ModalCambioPo
         setLoadingAnimales(false)
       })
       .catch(() => {
-        alert('Error al cargar animales')
+        toast.error('Error al cargar animales')
         setLoadingAnimales(false)
       })
   }, [potreroOrigen])
@@ -150,7 +152,7 @@ export default function ModalCambioPotrero({ onClose, onSuccess }: ModalCambioPo
     e.preventDefault()
 
     if (potreroOrigen === potreroDestino) {
-      alert('El potrero destino debe ser diferente al origen')
+      toast.error('El potrero destino debe ser diferente al origen')
       return
     }
 
@@ -160,7 +162,7 @@ export default function ModalCambioPotrero({ onClose, onSuccess }: ModalCambioPo
     )
 
     if (animalesValidos.length === 0) {
-      alert('Debe seleccionar al menos una categoría con cantidad')
+      toast.error('Debe seleccionar al menos una categoría con cantidad')
       return
     }
 
@@ -168,7 +170,7 @@ export default function ModalCambioPotrero({ onClose, onSuccess }: ModalCambioPo
     for (const animal of animalesValidos) {
       const cantidad = parseInt(animal.cantidad)
       if (cantidad <= 0 || cantidad > animal.cantidadMaxima) {
-        alert(`La cantidad de ${animal.categoria} debe estar entre 1 y ${animal.cantidadMaxima}`)
+        toast.error(`La cantidad de ${animal.categoria} debe estar entre 1 y ${animal.cantidadMaxima}`)
         return
       }
     }
@@ -219,7 +221,7 @@ export default function ModalCambioPotrero({ onClose, onSuccess }: ModalCambioPo
       onSuccess()
       onClose()
     } catch (error) {
-      alert(error instanceof Error ? error.message : 'Error al cambiar de potrero')
+      toast.error(error instanceof Error ? error.message : 'Error al cambiar de potrero')
     } finally {
       setLoading(false)
     }
@@ -229,13 +231,13 @@ export default function ModalCambioPotrero({ onClose, onSuccess }: ModalCambioPo
   const hayAnimalesValidos = animalesAMover.some(a => a.categoria && a.cantidad && parseInt(a.cantidad) > 0)
 
   return (
-    <form onSubmit={handleSubmit} className="p-6">
+    <form onSubmit={handleSubmit} className="p-4 sm:p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center text-2xl">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-amber-100 flex items-center justify-center text-2xl">
             ⊞
           </div>
-          <h2 className="text-2xl font-bold text-gray-900">Cambio De Potrero</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Cambio De Potrero</h2>
         </div>
         <button
           onClick={onClose}
@@ -285,20 +287,38 @@ export default function ModalCambioPotrero({ onClose, onSuccess }: ModalCambioPo
       }, {} as Record<string, Lote[]>)
   ).map(([moduloNombre, lotes]) => (
             <optgroup key={moduloNombre} label={moduloNombre}>
-              {lotes.map((lote) => (
-                <option key={lote.id} value={lote.id}>
-                  {lote.nombre}
-                </option>
-              ))}
+              {lotes.map((lote) => {
+                const resumen = lote.animalesLote && lote.animalesLote.length > 0
+                  ? lote.animalesLote
+                      .filter((a: any) => a.cantidad > 0)
+                      .map((a: any) => `${a.categoria} ${a.cantidad}`)
+                      .join(', ')
+                  : 'Sin animales'
+
+                return (
+                  <option key={lote.id} value={lote.id}>
+                    {lote.nombre} ({resumen})
+                  </option>
+                )
+              })}
             </optgroup>
           ))
         ) : (
           // Sin módulos
-          potreros.map((lote) => (
-            <option key={lote.id} value={lote.id}>
-              {lote.nombre}
-            </option>
-          ))
+          potreros.map((lote) => {
+            const resumen = lote.animalesLote && lote.animalesLote.length > 0
+              ? lote.animalesLote
+                  .filter((a: any) => a.cantidad > 0)
+                  .map((a: any) => `${a.categoria} ${a.cantidad}`)
+                  .join(', ')
+              : 'Sin animales'
+
+            return (
+              <option key={lote.id} value={lote.id}>
+                {lote.nombre} ({resumen})
+              </option>
+            )
+          })
         )}
       </select>
     </div>
@@ -326,21 +346,39 @@ export default function ModalCambioPotrero({ onClose, onSuccess }: ModalCambioPo
       }, {} as Record<string, Lote[]>)
   ).map(([moduloNombre, lotes]) => (
             <optgroup key={moduloNombre} label={moduloNombre}>
-              {lotes.map((lote) => (
-                <option key={lote.id} value={lote.id}>
-                  {lote.nombre}
-                </option>
-              ))}
+              {lotes.map((lote) => {
+                const resumen = lote.animalesLote && lote.animalesLote.length > 0
+                  ? lote.animalesLote
+                      .filter((a: any) => a.cantidad > 0)
+                      .map((a: any) => `${a.categoria} ${a.cantidad}`)
+                      .join(', ')
+                  : 'Sin animales'
+
+                return (
+                  <option key={lote.id} value={lote.id}>
+                    {lote.nombre} ({resumen})
+                  </option>
+                )
+              })}
             </optgroup>
           ))
         ) : (
           potreros
             .filter((p) => p.id !== potreroOrigen)
-            .map((lote) => (
-              <option key={lote.id} value={lote.id}>
-                {lote.nombre}
-              </option>
-            ))
+            .map((lote) => {
+              const resumen = lote.animalesLote && lote.animalesLote.length > 0
+                ? lote.animalesLote
+                    .filter((a: any) => a.cantidad > 0)
+                    .map((a: any) => `${a.categoria} ${a.cantidad}`)
+                    .join(', ')
+                : 'Sin animales'
+
+              return (
+                <option key={lote.id} value={lote.id}>
+                  {lote.nombre} ({resumen})
+                </option>
+              )
+            })
         )}
       </select>
     </div>

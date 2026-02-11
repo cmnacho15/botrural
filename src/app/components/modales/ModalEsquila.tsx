@@ -174,7 +174,7 @@ export default function ModalEsquila({ isOpen, onClose, onSuccess, esquilaId, es
         {/* HEADER */}
         <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
               🐑 {modoEdicion ? 'Editar Esquila' : 'Registrar Esquila'}
             </h2>
             <p className="text-sm text-gray-600 mt-1">

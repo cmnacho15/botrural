@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from "react"
 import { X, Users, Bot, Calculator, Copy, Check } from "lucide-react"
+import { toast } from '@/app/components/Toast'
 
 interface ModalInvitarUsuarioProps {
   isOpen: boolean
@@ -62,7 +63,7 @@ const todosLosIds = data.camposDelGrupo.map((c: Campo) => c.id)
         setStep("campos")
       }
     } catch (error: any) {
-      alert(error.message || "Error al cargar campos")
+      toast.error(error.message || "Error al cargar campos")
       setTipoSeleccionado(null)
     } finally {
       setLoadingCampos(false)
@@ -91,7 +92,7 @@ const todosLosIds = data.camposDelGrupo.map((c: Campo) => c.id)
 
   const generarInvitacion = async (tipo: TipoInvitacion, campoIds: string[]) => {
     if (campoIds.length === 0) {
-      alert("Debes seleccionar al menos un campo")
+      toast.error("Debes seleccionar al menos un campo")
       return
     }
 
@@ -121,7 +122,7 @@ const todosLosIds = data.camposDelGrupo.map((c: Campo) => c.id)
       setLinkType(data.linkType)
       setStep("mostrar-link")
     } catch (error: any) {
-      alert(error.message || "Error al crear invitación")
+      toast.error(error.message || "Error al crear invitación")
       setTipoSeleccionado(null)
     } finally {
       setLoading(false)
@@ -139,7 +140,7 @@ const todosLosIds = data.camposDelGrupo.map((c: Campo) => c.id)
       setCopiado(true)
       setTimeout(() => setCopiado(false), 2000)
     } catch (error) {
-      alert("Error al copiar el link")
+      toast.error("Error al copiar el link")
     }
   }
 
@@ -162,7 +163,7 @@ const todosLosIds = data.camposDelGrupo.map((c: Campo) => c.id)
       >
         {/* Header */}
         <div className="sticky top-0 bg-white border-b px-3 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
-          <h2 className="text-base sm:text-2xl font-bold text-gray-900">
+          <h2 className="text-base sm:text-xl sm:text-2xl font-bold text-gray-900">
             {step === "seleccionar" && "Invitar nuevo usuario"}
             {step === "campos" && "Seleccionar campos"}
             {step === "mostrar-link" && "Link de invitación generado"}

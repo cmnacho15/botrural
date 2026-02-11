@@ -144,3 +144,88 @@ export function bufferToDataUrl(buffer: Buffer, mimeType: string): string {
   const base64 = buffer.toString('base64');
   return `data:${mimeType};base64,${base64}`;
 }
+
+/**
+ * 🛰️ Sube imagen NDVI a Supabase Storage
+ */
+export async function uploadNDVIImageToSupabase(
+  imageBuffer: Buffer,
+  loteId: string,
+  imagenDate: Date,
+  scale: 'fixed' | 'dynamic' = 'dynamic'
+): Promise<{ url: string; fileName: string; fileSize: number } | null> {
+  try {
+    const dateStr = imagenDate.toISOString().split('T')[0]; // YYYY-MM-DD
+    const fileName = `${loteId}/${dateStr}_${scale}.png`;
+
+    const { data, error } = await supabase.storage
+      .from('ndvi-images')
+      .upload(fileName, imageBuffer, {
+        contentType: 'image/png',
+        upsert: true, // Sobreescribir si existe
+        cacheControl: '86400', // Cache 1 día
+      });
+
+    if (error) {
+      console.error('❌ Error subiendo NDVI a Supabase:', error);
+      return null;
+    }
+
+    // Obtener URL pública
+    const { data: publicUrlData } = supabase.storage
+      .from('ndvi-images')
+      .getPublicUrl(data.path);
+
+    console.log(`✅ NDVI guardado en Storage: ${fileName}`);
+
+    return {
+      url: publicUrlData.publicUrl,
+      fileName: data.path,
+      fileSize: imageBuffer.length,
+    };
+  } catch (error) {
+    console.error('❌ Error en uploadNDVIImageToSupabase:', error);
+    return null;
+  }
+}
+
+/**
+ * 🏔️ Sube imagen de altimetría a Supabase Storage
+ */
+export async function uploadAltimetriaImageToSupabase(
+  imageBuffer: Buffer,
+  loteId: string,
+  tipo: 'heatmap' | 'slope' | 'aspect'
+): Promise<{ url: string; fileName: string; fileSize: number } | null> {
+  try {
+    const fileName = `${loteId}/${tipo}.png`;
+
+    const { data, error } = await supabase.storage
+      .from('altimetria-images')
+      .upload(fileName, imageBuffer, {
+        contentType: 'image/png',
+        upsert: true, // Sobreescribir si existe
+        cacheControl: '31536000', // Cache 1 año (no cambia)
+      });
+
+    if (error) {
+      console.error('❌ Error subiendo altimetría a Supabase:', error);
+      return null;
+    }
+
+    const { data: publicUrlData } = supabase.storage
+      .from('altimetria-images')
+      .getPublicUrl(data.path);
+
+    console.log(`✅ Altimetría ${tipo} guardada en Storage: ${fileName}`);
+
+    return {
+      url: publicUrlData.publicUrl,
+      fileName: data.path,
+      fileSize: imageBuffer.length,
+    };
+  } catch (error) {
+    console.error('❌ Error en uploadAltimetriaImageToSupabase:', error);
+    return null;
+  }
+}

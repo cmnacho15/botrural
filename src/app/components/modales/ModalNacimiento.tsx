@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { obtenerFechaLocal } from '@/lib/fechas'
+import { toast } from '@/app/components/Toast'
 
 type ModalNacimientoProps = {
   onClose: () => void
@@ -49,7 +50,7 @@ export default function ModalNacimiento({ onClose, onSuccess }: ModalNacimientoP
       const hayModulos = data.some((l: Lote) => l.moduloPastoreoId !== null)
       setTieneModulos(hayModulos)
     })
-    .catch(() => alert('Error al cargar potreros'))
+    .catch(() => toast.error('Error al cargar potreros'))
 }, [])
 
   // Cargar animales cuando se selecciona potrero (para mostrar info)
@@ -75,13 +76,13 @@ export default function ModalNacimiento({ onClose, onSuccess }: ModalNacimientoP
     e.preventDefault()
 
     if (!potreroSeleccionado) {
-      alert('Debe seleccionar un potrero')
+      toast.error('Debe seleccionar un potrero')
       return
     }
 
     const cant = parseInt(cantidad)
     if (cant <= 0) {
-      alert('La cantidad debe ser mayor a 0')
+      toast.error('La cantidad debe ser mayor a 0')
       return
     }
 
@@ -120,20 +121,20 @@ const response = await fetch('/api/eventos', {
       onSuccess()
       onClose()
     } catch (error) {
-      alert(error instanceof Error ? error.message : 'Error al registrar nacimiento')
+      toast.error(error instanceof Error ? error.message : 'Error al registrar nacimiento')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <form onSubmit={handleSubmit} className="p-6">
+    <form onSubmit={handleSubmit} className="p-4 sm:p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center text-2xl">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-orange-100 flex items-center justify-center text-2xl">
             🐣
           </div>
-          <h2 className="text-2xl font-bold text-gray-900">Nacimiento</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Nacimiento</h2>
         </div>
         <button
           onClick={onClose}

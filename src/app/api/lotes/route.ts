@@ -131,19 +131,27 @@ const { nombre, hectareas, poligono, cultivos = [], animales = [], moduloPastore
         moduloPastoreoId: moduloPastoreoId || null,
 
         cultivos: {
-          create: cultivos.map((c: any) => ({
-            tipoCultivo: c.tipoCultivo,
-            fechaSiembra: new Date(c.fechaSiembra),
-            hectareas: parseFloat(c.hectareas),
-          })),
+          create: cultivos
+            .filter((c: any) => c.tipoCultivo) // Solo cultivos con tipo
+            .map((c: any) => {
+              const haCultivo = parseFloat(c.hectareas)
+              return {
+                tipoCultivo: c.tipoCultivo,
+                fechaSiembra: c.fechaSiembra && c.fechaSiembra.length > 0 ? new Date(c.fechaSiembra) : new Date(),
+                hectareas: !isNaN(haCultivo) && haCultivo > 0 ? haCultivo : parseFloat(hectareas),
+              }
+            }),
         },
 
         animalesLote: {
-          create: animales.map((a: any) => ({
-            categoria: a.categoria,
-            cantidad: parseInt(a.cantidad),
-            fechaIngreso: new Date(),
-          })),
+          create: animales
+            .filter((a: any) => a.categoria && a.cantidad)
+            .map((a: any) => ({
+              categoria: a.categoria,
+              cantidad: parseInt(a.cantidad),
+              peso: a.peso ? parseFloat(a.peso) : null,
+              fechaIngreso: new Date(),
+            })),
         },
       },
       include: {
@@ -157,15 +165,21 @@ const { nombre, hectareas, poligono, cultivos = [], animales = [], moduloPastore
     // 1️⃣ Crear eventos de SIEMBRA por cada cultivo
     for (const cultivo of cultivos) {
       if (cultivo.tipoCultivo) {
+        const fechaSiembra = cultivo.fechaSiembra && cultivo.fechaSiembra.length > 0
+          ? new Date(cultivo.fechaSiembra)
+          : new Date()
+        const haParsed = parseFloat(cultivo.hectareas)
+        const hectareasCultivo = !isNaN(haParsed) && haParsed > 0 ? haParsed : parseFloat(hectareas)
+
         await prisma.evento.create({
           data: {
             tipo: 'SIEMBRA',
-            fecha: new Date(cultivo.fechaSiembra),
-            descripcion: `Se sembraron ${parseFloat(cultivo.hectareas).toFixed(1)} hectáreas de ${cultivo.tipoCultivo} en el lote "${nombre}".`,
+            fecha: fechaSiembra,
+            descripcion: `Se sembraron ${hectareasCultivo.toFixed(1)} hectáreas de ${cultivo.tipoCultivo} en el lote "${nombre}".`,
             campoId: usuario.campoId,
             loteId: lote.id,
             usuarioId: session.user.id,
-            cantidad: parseFloat(cultivo.hectareas),
+            cantidad: hectareasCultivo,
           },
         });
       }

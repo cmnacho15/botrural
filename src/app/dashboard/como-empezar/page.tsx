@@ -7,6 +7,7 @@ import { useOnboardingProgress } from '@/hooks/useOnboardingProgress'
 import ModalInvitarUsuario from '@/app/components/modales/ModalInvitarUsuario'
 import ModalNuevoDato from '@/app/components/modales/ModalNuevoDato'
 import KMZUploader from '@/app/preferencias/components/KMZUploader'
+import { toast } from '@/app/components/Toast'
 // ==========================================
 // 📦 COMPONENTE CARD DE OPCIÓN
 // ==========================================
@@ -396,7 +397,7 @@ export default function ComoEmpezar() {
                     subtitulo="Ideal cuando estás en el campo"
                     destacado
                     onClick={() => {
-                      alert('Próximamente: conexión directa al bot de WhatsApp')
+                      toast.info('Próximamente: conexión directa al bot de WhatsApp')
                     }}
                   />
                   <OpcionCard

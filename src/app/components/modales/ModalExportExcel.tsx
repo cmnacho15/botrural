@@ -2,6 +2,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { toast } from '@/app/components/Toast'
 
 type ModalExportExcelProps = {
   isOpen: boolean
@@ -138,7 +139,7 @@ export default function ModalExportExcel({ isOpen, onClose }: ModalExportExcelPr
   // Descargar Excel
   const handleDescargar = async () => {
     if (cantidadSeleccionadas === 0) {
-      alert('Seleccioná al menos una hoja para exportar')
+      toast.error('Seleccioná al menos una hoja para exportar')
       return
     }
 
@@ -181,7 +182,7 @@ export default function ModalExportExcel({ isOpen, onClose }: ModalExportExcelPr
       
       onClose()
     } catch (error: any) {
-      alert(error.message || 'Error al descargar')
+      toast.error(error.message || 'Error al descargar')
     } finally {
       setDescargando(false)
     }

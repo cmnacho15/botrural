@@ -251,11 +251,11 @@ function WhatsAppBubble({ text, isUser, delay = 0 }: { text: string; isUser: boo
 // ============================================================
 
 const AGRI_CULTIVOS = [
-  { id: 'tb-lotus', nombre: 'Trebol blanco + Lotus', ha: '145 ha', color: 'bg-emerald-500', colorLight: 'bg-emerald-100', border: 'border-emerald-300', text: 'text-emerald-800' },
-  { id: 'avena', nombre: 'Avena', ha: '95 ha', color: 'bg-amber-500', colorLight: 'bg-amber-100', border: 'border-amber-300', text: 'text-amber-800' },
-  { id: 'sorgo', nombre: 'Sorgo forrajero', ha: '60 ha', color: 'bg-pink-500', colorLight: 'bg-pink-100', border: 'border-pink-300', text: 'text-pink-800' },
-  { id: 'campo', nombre: 'Campo natural', ha: '120 ha', color: 'bg-violet-500', colorLight: 'bg-violet-100', border: 'border-violet-300', text: 'text-violet-800' },
-  { id: 'festuca', nombre: 'Festuca + T. rojo', ha: '80 ha', color: 'bg-cyan-500', colorLight: 'bg-cyan-100', border: 'border-cyan-300', text: 'text-cyan-800' },
+  { id: 'tb-lotus', nombre: 'Trebol blanco + Lotus', ha: '145 ha', color: 'bg-emerald-500', colorLight: 'bg-emerald-100', border: 'border-emerald-300', text: 'text-emerald-800', hex: '#10b981', hexLight: '#d1fae5', hexBorder: '#6ee7b7' },
+  { id: 'avena', nombre: 'Avena', ha: '95 ha', color: 'bg-amber-500', colorLight: 'bg-amber-100', border: 'border-amber-300', text: 'text-amber-800', hex: '#f59e0b', hexLight: '#fef3c7', hexBorder: '#fcd34d' },
+  { id: 'sorgo', nombre: 'Sorgo forrajero', ha: '60 ha', color: 'bg-pink-500', colorLight: 'bg-pink-100', border: 'border-pink-300', text: 'text-pink-800', hex: '#ec4899', hexLight: '#fce7f3', hexBorder: '#f9a8d4' },
+  { id: 'campo', nombre: 'Campo natural', ha: '120 ha', color: 'bg-violet-500', colorLight: 'bg-violet-100', border: 'border-violet-300', text: 'text-violet-800', hex: '#8b5cf6', hexLight: '#ede9fe', hexBorder: '#c4b5fd' },
+  { id: 'festuca', nombre: 'Festuca + T. rojo', ha: '80 ha', color: 'bg-cyan-500', colorLight: 'bg-cyan-100', border: 'border-cyan-300', text: 'text-cyan-800', hex: '#06b6d4', hexLight: '#cffafe', hexBorder: '#67e8f9' },
 ];
 
 const AGRI_POTREROS = [
@@ -264,11 +264,11 @@ const AGRI_POTREROS = [
   { nombre: 'Rincon', ha: '45', cultivo: 'tb-lotus', col: 'col-span-1', row: 'row-span-1' },
   { nombre: 'Este', ha: '60', cultivo: 'sorgo', col: 'col-span-2', row: 'row-span-1' },
   { nombre: 'Costa', ha: '80', cultivo: 'campo', col: 'col-span-2', row: 'row-span-1' },
-  { nombre: 'Oeste', ha: '55', cultivo: 'campo', col: 'col-span-1', row: 'row-span-1' },
+  { nombre: 'Oeste', ha: '55', cultivo: 'campo', col: 'col-span-2', row: 'row-span-1' },
   { nombre: 'Bajo', ha: '40', cultivo: 'festuca', col: 'col-span-2', row: 'row-span-1' },
   { nombre: 'Cuchilla', ha: '35', cultivo: 'avena', col: 'col-span-1', row: 'row-span-1' },
-  { nombre: 'Laguna', ha: '40', cultivo: 'campo', col: 'col-span-1', row: 'row-span-1' },
-  { nombre: 'Cerro', ha: '30', cultivo: 'festuca', col: 'col-span-1', row: 'row-span-1' },
+  { nombre: 'Laguna', ha: '40', cultivo: 'campo', col: 'col-span-2', row: 'row-span-1' },
+  { nombre: 'Cerro', ha: '30', cultivo: 'festuca', col: 'col-span-3', row: 'row-span-1' },
 ];
 
 function AgriculturaVisual() {
@@ -277,60 +277,99 @@ function AgriculturaVisual() {
   const getCultivoData = (id: string) => AGRI_CULTIVOS.find(c => c.id === id)!;
 
   return (
-    <div className="w-full flex gap-4">
-      {/* Treemap izquierda */}
-      <div className="flex-1 bg-white rounded-2xl p-5 shadow-sm">
-        <div className="text-sm font-bold text-gray-700 mb-3">Superficie por potrero</div>
-        <div className="grid grid-cols-5 grid-rows-5 gap-1.5" style={{ height: '340px' }}>
+    <div className="w-full flex flex-col sm:flex-row gap-4">
+      {/* Treemap - mapa de potreros */}
+      <div className="sm:w-[60%] bg-white rounded-2xl p-5 sm:p-6 shadow-sm">
+        <div className="text-sm font-bold text-gray-700 mb-4">Superficie por potrero</div>
+        <div className="grid grid-cols-5 grid-rows-5 gap-2 aspect-square">
           {AGRI_POTREROS.map((p, i) => {
             const cultivo = getCultivoData(p.cultivo);
             const isActive = !activeCultivo || activeCultivo === p.cultivo;
             return (
               <div
                 key={i}
-                className={`${p.col} ${p.row} ${cultivo.colorLight} ${cultivo.border} border-2 rounded-lg flex flex-col items-center justify-center transition-all duration-300 cursor-pointer ${
+                className={`${p.col} ${p.row} ${cultivo.colorLight} ${cultivo.border} border-2 rounded-xl flex flex-col items-center justify-center transition-all duration-300 cursor-pointer ${
                   isActive ? 'opacity-100 scale-100' : 'opacity-20 scale-[0.98]'
                 }`}
                 onClick={() => setActiveCultivo(activeCultivo === p.cultivo ? null : p.cultivo)}
               >
-                <span className={`text-xs font-bold ${cultivo.text} leading-tight`}>{p.nombre}</span>
-                <span className={`text-[11px] ${cultivo.text} opacity-70`}>{p.ha} ha</span>
+                <span className={`text-sm font-bold ${cultivo.text} leading-tight`}>{p.nombre}</span>
+                <span className={`text-xs ${cultivo.text} opacity-70`}>{p.ha} ha</span>
               </div>
             );
           })}
         </div>
       </div>
 
-      {/* Cultivos derecha */}
-      <div className="w-[170px] shrink-0 bg-white rounded-2xl p-5 shadow-sm flex flex-col">
-        <div className="text-sm font-bold text-gray-700 mb-3">Cultivos</div>
+      {/* Cultivos - panel lateral */}
+      <div className="sm:w-[40%] bg-white rounded-2xl p-5 sm:p-6 shadow-sm flex flex-col">
+        <div className="flex items-center gap-2 mb-1">
+          <Sprout className="w-4 h-4 text-gray-400" />
+          <span className="text-sm font-bold text-gray-700">Cultivos</span>
+        </div>
+        <p className="text-[11px] text-gray-400 mb-5">Selecciona un cultivo para filtrar en el mapa</p>
         <div className="space-y-2 flex-1">
-          {AGRI_CULTIVOS.map((c) => (
-            <button
-              key={c.id}
-              onClick={() => setActiveCultivo(activeCultivo === c.id ? null : c.id)}
-              className={`w-full text-left flex items-center gap-2 px-2.5 py-2 rounded-lg transition-all duration-200 ${
-                activeCultivo === c.id
-                  ? `${c.colorLight} ${c.border} border-2`
-                  : activeCultivo
-                    ? 'opacity-40 hover:opacity-70'
-                    : 'hover:bg-gray-50'
-              }`}
-            >
-              <div className={`w-3 h-3 rounded-sm ${c.color} shrink-0`} />
-              <div className="min-w-0">
-                <div className={`text-xs font-semibold leading-tight truncate ${activeCultivo === c.id ? c.text : 'text-gray-700'}`}>{c.nombre}</div>
-                <div className="text-[11px] text-gray-400">{c.ha}</div>
-              </div>
-            </button>
-          ))}
+          {AGRI_CULTIVOS.map((c) => {
+            const isSelected = activeCultivo === c.id;
+            const isDimmed = activeCultivo && !isSelected;
+            return (
+              <button
+                key={c.id}
+                onClick={() => setActiveCultivo(isSelected ? null : c.id)}
+                className="w-full text-left flex items-center gap-3 px-3.5 py-3 rounded-xl transition-all duration-300 group relative overflow-hidden"
+                style={{
+                  backgroundColor: isSelected ? c.hexLight : isDimmed ? '#f9fafb' : `${c.hex}08`,
+                  border: `2px solid ${isSelected ? c.hexBorder : 'transparent'}`,
+                  opacity: isDimmed ? 0.35 : 1,
+                  transform: isSelected ? 'scale(1.02)' : 'scale(1)',
+                  boxShadow: isSelected ? `0 4px 12px ${c.hex}25` : 'none',
+                }}
+              >
+                <div
+                  className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                  style={{ backgroundColor: `${c.hex}10` }}
+                />
+                <div
+                  className="w-4 h-4 rounded shrink-0 relative transition-transform duration-300 group-hover:scale-110"
+                  style={{
+                    backgroundColor: c.hex,
+                    boxShadow: isSelected ? `0 0 8px ${c.hex}60` : 'none',
+                  }}
+                />
+                <div className="flex-1 relative">
+                  <div
+                    className="text-sm font-semibold leading-tight transition-colors duration-200"
+                    style={{ color: isSelected ? c.hex : '#374151' }}
+                  >
+                    {c.nombre}
+                  </div>
+                  <div className="text-xs text-gray-400 mt-0.5">{c.ha}</div>
+                </div>
+                {isSelected && (
+                  <div
+                    className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 relative"
+                    style={{ backgroundColor: c.hex }}
+                  >
+                    <Check className="w-3 h-3 text-white" />
+                  </div>
+                )}
+                {!isSelected && !isDimmed && (
+                  <div
+                    className="w-1.5 h-8 rounded-full shrink-0 relative opacity-30 group-hover:opacity-60 transition-opacity duration-300"
+                    style={{ backgroundColor: c.hex }}
+                  />
+                )}
+              </button>
+            );
+          })}
         </div>
         {activeCultivo && (
           <button
             onClick={() => setActiveCultivo(null)}
-            className="mt-3 text-xs text-gray-400 hover:text-gray-600 underline text-center"
+            className="mt-4 text-xs text-gray-400 hover:text-gray-600 bg-gray-50 hover:bg-gray-100 px-3 py-2.5 rounded-xl transition-all duration-200 text-center flex items-center justify-center gap-1.5"
           >
-            Ver todos
+            <X className="w-3 h-3" />
+            Limpiar filtro
           </button>
         )}
       </div>
@@ -911,12 +950,12 @@ export default function Home() {
               initial={{ opacity: 0, y: 40 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-100px" }}
-              className={`grid lg:grid-cols-2 gap-16 items-center ${
+              className={section.visual === 'agricultura' ? '' : `grid lg:grid-cols-2 gap-16 items-center ${
                 index % 2 === 1 ? 'lg:direction-rtl' : ''
               }`}
             >
               {/* Content */}
-              <div className={index % 2 === 1 ? 'lg:order-2' : ''}>
+              <div className={index % 2 === 1 && section.visual !== 'agricultura' ? 'lg:order-2' : ''}>
                 <span className="inline-block bg-purple-100 text-purple-700 px-4 py-1.5 rounded-full text-sm font-semibold mb-4">
                   {section.badge}
                 </span>
@@ -926,7 +965,7 @@ export default function Home() {
                 <p className="text-lg text-gray-500 mb-8">
                   {section.subtitle}
                 </p>
-                <ul className="space-y-3">
+                <ul className={`space-y-3 ${section.visual === 'agricultura' ? 'grid sm:grid-cols-2 gap-x-8 gap-y-3 space-y-0 mb-10' : ''}`}>
                   {section.items.map((item, i) => (
                     <motion.li
                       key={i}
@@ -946,10 +985,12 @@ export default function Home() {
               </div>
 
               {/* Visual placeholder */}
-              <div className={index % 2 === 1 ? 'lg:order-1' : ''}>
+              <div className={index % 2 === 1 && section.visual !== 'agricultura' ? 'lg:order-1' : ''}>
                 <motion.div
                   whileHover={{ scale: 1.02 }}
-                  className="bg-gradient-to-br from-gray-100 to-gray-200 rounded-2xl p-8 aspect-[4/3] flex items-center justify-center border border-gray-200 shadow-lg"
+                  className={`bg-gradient-to-br from-gray-100 to-gray-200 rounded-2xl p-8 flex items-center justify-center border border-gray-200 shadow-lg ${
+                    section.visual === 'agricultura' ? 'min-h-[500px]' : 'aspect-[4/3]'
+                  }`}
                 >
                   {section.visual === 'indicadores' && (
                     <div className="w-full space-y-4">

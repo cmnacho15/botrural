@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
+import { toast } from '@/app/components/Toast'
 
 const MapaPoligono = dynamic(() => import('@/app/components/MapaPoligono'), {
   ssr: false,
@@ -35,6 +36,16 @@ interface Animal {
   peso?: string
 }
 
+// Función para normalizar texto (quitar tildes)
+function normalizarTexto(texto: string): string {
+  return texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+}
+
+// Capitalizar primera letra
+function capitalizarPrimeraLetra(texto: string): string {
+  return texto.charAt(0).toUpperCase() + texto.slice(1).toLowerCase()
+}
+
 export default function NuevoLotePage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
@@ -63,6 +74,11 @@ const [esPastoreable, setEsPastoreable] = useState(true)
   // 🆕 NUEVOS ESTADOS PARA DÍAS DE AJUSTE
   const [diasPastoreoAjuste, setDiasPastoreoAjuste] = useState<string>('')
   const [diasDescansoAjuste, setDiasDescansoAjuste] = useState<string>('')
+
+  // 🌾 Estados para selector de cultivo con búsqueda
+  const [cultivoDropdownOpen, setCultivoDropdownOpen] = useState<string | null>(null)
+  const [cultivoBusqueda, setCultivoBusqueda] = useState<string>('')
+  const [creandoCultivo, setCreandoCultivo] = useState(false)
 
   // Cargar lotes
   useEffect(() => {
@@ -110,6 +126,19 @@ const [esPastoreable, setEsPastoreable] = useState(true)
       .catch(() => {
         console.error('Error cargando módulos')
       })
+  }, [])
+
+  // Cerrar dropdown de cultivo al hacer click afuera
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      const target = e.target as HTMLElement
+      if (!target.closest('.cultivo-dropdown-container')) {
+        setCultivoDropdownOpen(null)
+        setCultivoBusqueda('')
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
   useEffect(() => {
@@ -167,6 +196,36 @@ const [esPastoreable, setEsPastoreable] = useState(true)
   const actualizarCultivo = (id: string, campo: string, valor: string) =>
     setCultivos(cultivos.map(c => (c.id === id ? { ...c, [campo]: valor } : c)))
 
+  // 🌾 Crear nuevo tipo de cultivo
+  async function crearNuevoCultivo(nombre: string, cultivoId: string) {
+    if (!nombre.trim()) return
+    const nombreCapitalizado = capitalizarPrimeraLetra(nombre.trim())
+    setCreandoCultivo(true)
+    try {
+      const response = await fetch('/api/tipos-cultivo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nombre: nombreCapitalizado }),
+      })
+      if (response.ok) {
+        // Agregar a la lista local
+        setCultivosDisponibles([...cultivosDisponibles, nombreCapitalizado])
+        // Actualizar el cultivo seleccionado
+        actualizarCultivo(cultivoId, 'tipoCultivo', nombreCapitalizado)
+        setCultivoDropdownOpen(null)
+        setCultivoBusqueda('')
+        toast.success(`Cultivo "${nombreCapitalizado}" creado`)
+      } else {
+        const error = await response.json()
+        toast.error(error.error || 'Error al crear cultivo')
+      }
+    } catch (error) {
+      toast.error('Error al crear cultivo')
+    } finally {
+      setCreandoCultivo(false)
+    }
+  }
+
   // 🐄 Animales
   const agregarAnimal = () => {
     setAnimales([
@@ -199,19 +258,19 @@ const [esPastoreable, setEsPastoreable] = useState(true)
         return moduloCreado.id
       } else {
         const error = await response.json()
-        alert(error.error || 'Error al crear el módulo')
+        toast.error(error.error || 'Error al crear el módulo')
         return null
       }
     } catch (error) {
       console.error('Error creando módulo:', error)
-      alert('Error al crear el módulo')
+      toast.error('Error al crear el módulo')
       return null
     }
   }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    if (!poligono) return alert('Dibujá la ubicación del potrero en el mapa')
+    if (!poligono) return toast.info('Dibujá la ubicación del potrero en el mapa')
 
     setLoading(true)
 
@@ -284,11 +343,11 @@ const [esPastoreable, setEsPastoreable] = useState(true)
         router.refresh()
       } else {
         console.error('❌ ERROR:', await response.text())
-        alert('Error al crear el potrero')
+        toast.error('Error al crear el potrero')
       }
     } catch (error) {
       console.error('💥 Error creando lote:', error)
-      alert('Error al crear el potrero')
+      toast.error('Error al crear el potrero')
     } finally {
       setLoading(false)
     }
@@ -298,7 +357,7 @@ const [esPastoreable, setEsPastoreable] = useState(true)
     setPoligono(coordinates)
     setHectareasCalculadas(areaHectareas)
     setShowMap(false)
-    alert(`¡Potrero dibujado! Área: ${areaHectareas.toFixed(2)} ha`)
+    toast.info(`¡Potrero dibujado! Área: ${areaHectareas.toFixed(2)} ha`)
   }
 
   const potrerosParaMapa = lotesExistentes
@@ -311,15 +370,15 @@ const [esPastoreable, setEsPastoreable] = useState(true)
     }))
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6 text-gray-900">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-1">Nuevo Potrero</h1>
+    <div className="min-h-screen bg-gray-50 px-3 py-4 sm:p-6 text-gray-900">
+      <div className="mb-4 sm:mb-6">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-1">Nuevo Potrero</h1>
         <p className="text-gray-600 text-sm">
           Ingresá los datos, cultivos, animales y ubicación del potrero
         </p>
       </div>
 
-      <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6 max-w-4xl mx-auto">
+      <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6 max-w-4xl mx-auto">
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* NOMBRE */}
           <div>
@@ -341,13 +400,13 @@ const [esPastoreable, setEsPastoreable] = useState(true)
   <label className="block text-sm font-medium text-gray-900 mb-3">
     Tipo de potrero
   </label>
-  
-  <div className="flex gap-4">
+
+  <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
     {/* OPCIÓN: PASTOREABLE */}
     <label className="flex-1 cursor-pointer">
-      <div className={`border-2 rounded-lg p-4 transition ${
-        esPastoreable 
-          ? 'border-green-500 bg-green-50' 
+      <div className={`border-2 rounded-lg p-3 sm:p-4 transition ${
+        esPastoreable
+          ? 'border-green-500 bg-green-50'
           : 'border-gray-300 bg-white hover:border-gray-400'
       }`}>
         <div className="flex items-center gap-3">
@@ -359,8 +418,8 @@ const [esPastoreable, setEsPastoreable] = useState(true)
             className="w-5 h-5 text-green-600"
           />
           <div>
-            <div className="font-medium text-gray-900">🌾 Pastoreable</div>
-            <div className="text-xs text-gray-600 mt-1">
+            <div className="font-medium text-gray-900 text-sm sm:text-base">🌾 Pastoreable</div>
+            <div className="text-xs text-gray-600 mt-0.5 sm:mt-1">
               Se incluye en el cálculo de SPG
             </div>
           </div>
@@ -370,9 +429,9 @@ const [esPastoreable, setEsPastoreable] = useState(true)
 
     {/* OPCIÓN: NO PASTOREABLE */}
     <label className="flex-1 cursor-pointer">
-      <div className={`border-2 rounded-lg p-4 transition ${
-        !esPastoreable 
-          ? 'border-gray-500 bg-gray-50' 
+      <div className={`border-2 rounded-lg p-3 sm:p-4 transition ${
+        !esPastoreable
+          ? 'border-gray-500 bg-gray-50'
           : 'border-gray-300 bg-white hover:border-gray-400'
       }`}>
         <div className="flex items-center gap-3">
@@ -384,8 +443,8 @@ const [esPastoreable, setEsPastoreable] = useState(true)
             className="w-5 h-5 text-gray-600"
           />
           <div>
-            <div className="font-medium text-gray-900">🔒 No pastoreable</div>
-            <div className="text-xs text-gray-600 mt-1">
+            <div className="font-medium text-gray-900 text-sm sm:text-base">🔒 No pastoreable</div>
+            <div className="text-xs text-gray-600 mt-0.5 sm:mt-1">
               No se usa para animales
             </div>
           </div>
@@ -402,34 +461,88 @@ const [esPastoreable, setEsPastoreable] = useState(true)
               <p className="text-sm text-gray-600 italic mb-3">No hay cultivos aún</p>
             )}
             <div className="space-y-3">
-              {cultivos.map(c => (
-                <div key={c.id} className="flex gap-2 bg-white p-3 rounded-lg items-center">
-                  <select
-                    value={c.tipoCultivo}
-                    onChange={e => actualizarCultivo(c.id, 'tipoCultivo', e.target.value)}
-                    className="flex-1 border border-gray-300 rounded px-3 py-2"
-                  >
-                    <option value="">Tipo de cultivo</option>
-                    {cultivosDisponibles.map((cultivo) => (
-                      <option key={cultivo} value={cultivo}>{cultivo}</option>
-                    ))}
-                  </select>
-                  <input
-                    type="date"
-                    value={c.fechaSiembra}
-                    onChange={e => actualizarCultivo(c.id, 'fechaSiembra', e.target.value)}
-                    className="border border-gray-300 rounded px-3 py-2"
-                  />
-                  <input
-                    type="number"
-                    value={c.hectareas}
-                    onChange={e => actualizarCultivo(c.id, 'hectareas', e.target.value)}
-                    placeholder="(total potrero)"
-                    className="w-24 border border-gray-300 rounded px-3 py-2"
-                  />
-                  <button onClick={() => eliminarCultivo(c.id)} type="button" className="text-red-600">🗑️</button>
-                </div>
-              ))}
+              {cultivos.map(c => {
+                const isOpen = cultivoDropdownOpen === c.id
+                const busqueda = isOpen ? cultivoBusqueda : ''
+                const busquedaNorm = normalizarTexto(busqueda)
+                const cultivosFiltrados = cultivosDisponibles.filter(cult =>
+                  normalizarTexto(cult).includes(busquedaNorm)
+                )
+                const noExiste = busqueda.trim() && !cultivosDisponibles.some(
+                  cult => normalizarTexto(cult) === busquedaNorm
+                )
+
+                return (
+                  <div key={c.id} className="bg-white p-3 rounded-lg space-y-2 sm:space-y-0 sm:flex sm:gap-2 sm:items-center">
+                    {/* Selector de cultivo con búsqueda */}
+                    <div className="relative w-full sm:flex-1 cultivo-dropdown-container">
+                      <input
+                        type="text"
+                        value={isOpen ? cultivoBusqueda : c.tipoCultivo}
+                        onChange={(e) => {
+                          setCultivoBusqueda(e.target.value)
+                          if (!isOpen) setCultivoDropdownOpen(c.id)
+                        }}
+                        onFocus={() => {
+                          setCultivoDropdownOpen(c.id)
+                          setCultivoBusqueda(c.tipoCultivo)
+                        }}
+                        placeholder="Buscar o crear cultivo..."
+                        className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+                      />
+                      {isOpen && (
+                        <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                          {cultivosFiltrados.map((cultivo) => (
+                            <button
+                              key={cultivo}
+                              type="button"
+                              onClick={() => {
+                                actualizarCultivo(c.id, 'tipoCultivo', cultivo)
+                                setCultivoDropdownOpen(null)
+                                setCultivoBusqueda('')
+                              }}
+                              className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 transition"
+                            >
+                              {cultivo}
+                            </button>
+                          ))}
+                          {noExiste && (
+                            <button
+                              type="button"
+                              onClick={() => crearNuevoCultivo(busqueda, c.id)}
+                              disabled={creandoCultivo}
+                              className="w-full text-left px-3 py-2 text-sm bg-green-50 text-green-700 hover:bg-green-100 transition font-medium"
+                            >
+                              {creandoCultivo ? 'Creando...' : `+ Crear "${capitalizarPrimeraLetra(busqueda.trim())}"`}
+                            </button>
+                          )}
+                          {cultivosFiltrados.length === 0 && !noExiste && (
+                            <div className="px-3 py-2 text-sm text-gray-500 italic">
+                              No hay resultados
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <input
+                        type="date"
+                        value={c.fechaSiembra}
+                        onChange={e => actualizarCultivo(c.id, 'fechaSiembra', e.target.value)}
+                        className="flex-1 sm:flex-none border border-gray-300 rounded px-3 py-2 text-sm"
+                      />
+                      <input
+                        type="number"
+                        value={c.hectareas}
+                        onChange={e => actualizarCultivo(c.id, 'hectareas', e.target.value)}
+                        placeholder="Ha"
+                        className="w-20 sm:w-24 border border-gray-300 rounded px-3 py-2 text-sm"
+                      />
+                      <button onClick={() => eliminarCultivo(c.id)} type="button" className="text-red-600 px-1">🗑️</button>
+                    </div>
+                  </div>
+                )
+              })}
             </div>
             <button type="button" onClick={agregarCultivo} className="text-blue-600 text-sm mt-2">
               + Agregar cultivo
@@ -448,46 +561,36 @@ const [esPastoreable, setEsPastoreable] = useState(true)
         const categoriasYaUsadas = animales.filter(an => an.id !== a.id && an.categoria).map(an => an.categoria);
         
         return (
-          <div key={a.id} className="grid grid-cols-[100px_1fr_120px_40px] gap-2 bg-white p-3 rounded-lg items-center">
-            {/* Cantidad */}
-            <input
-              type="number"
-              value={a.cantidad}
-              onChange={e => actualizarAnimal(a.id, 'cantidad', e.target.value)}
-              placeholder="Cant."
-              className="border border-gray-300 rounded px-3 py-2"
-            />
-            
-            {/* Tipo de animal */}
+          <div key={a.id} className="bg-white p-3 rounded-lg space-y-2 sm:space-y-0 sm:flex sm:gap-2 sm:items-center">
             <select
               value={a.categoria}
               onChange={e => actualizarAnimal(a.id, 'categoria', e.target.value)}
-              className="border border-gray-300 rounded px-3 py-2"
+              className="w-full sm:flex-1 border border-gray-300 rounded px-3 py-2 text-sm"
             >
               <option value="">Seleccionar categoría</option>
-              
+
               {['BOVINO', 'OVINO', 'EQUINO', 'OTRO'].map(tipo => {
                 const categoriasTipo = categoriasDisponibles.filter(c => c.tipo === tipo)
                 if (categoriasTipo.length === 0) return null
-                
+
                 const labels = {
                   BOVINO: '🐄 BOVINOS',
                   OVINO: '🐑 OVINOS',
                   EQUINO: '🐴 EQUINOS',
                   OTRO: '📦 OTROS'
                 }
-                
+
                 return (
                   <optgroup key={tipo} label={labels[tipo as keyof typeof labels]}>
                     {categoriasTipo.map((cat) => {
                       const yaUsada = categoriasYaUsadas.includes(cat.nombre);
                       return (
-                        <option 
-                          key={cat.nombre} 
+                        <option
+                          key={cat.nombre}
                           value={cat.nombre}
                           disabled={yaUsada}
                         >
-                          {cat.nombre}{yaUsada ? ' (ya existente - editá la existente)' : ''}
+                          {cat.nombre}{yaUsada ? ' (ya existente)' : ''}
                         </option>
                       );
                     })}
@@ -495,25 +598,30 @@ const [esPastoreable, setEsPastoreable] = useState(true)
                 )
               })}
             </select>
-
-                  {/* Peso (Opcional) */}
-                  <input
-                    type="number"
-                    value={a.peso || ''}
-                    onChange={e => actualizarAnimal(a.id, 'peso', e.target.value)}
-                    placeholder="Peso (kg)"
-                    className="border border-gray-300 rounded px-3 py-2 text-sm"
-                  />
-
-                  {/* Botón eliminar */}
-                  <button 
-                    onClick={() => eliminarAnimal(a.id)} 
-                    type="button" 
-                    className="text-red-600 hover:bg-red-50 p-2 rounded transition"
-                  >
-                    🗑️
-                  </button>
-                </div>
+            <div className="flex gap-2">
+              <input
+                type="number"
+                value={a.cantidad}
+                onChange={e => actualizarAnimal(a.id, 'cantidad', e.target.value)}
+                placeholder="Cant."
+                className="w-16 sm:w-20 border border-gray-300 rounded px-2 py-2 text-sm"
+              />
+              <input
+                type="number"
+                value={a.peso || ''}
+                onChange={e => actualizarAnimal(a.id, 'peso', e.target.value)}
+                placeholder="Peso"
+                className="flex-1 sm:flex-none sm:w-24 border border-gray-300 rounded px-2 py-2 text-sm"
+              />
+              <button
+                onClick={() => eliminarAnimal(a.id)}
+                type="button"
+                className="text-red-600 px-1"
+              >
+                🗑️
+              </button>
+            </div>
+          </div>
               );
             })}
             </div>
@@ -676,11 +784,12 @@ const [esPastoreable, setEsPastoreable] = useState(true)
 
       {/* MODAL MAPA */}
       {showMap && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
-          <div className="bg-white w-full h-full md:rounded-xl md:w-full md:max-w-5xl md:h-[85vh] flex flex-col">
-            <div className="p-4 border-b flex justify-between items-center">
-              <h2 className="text-lg font-bold">Dibujar {nombre || 'potrero'}</h2>
-              <button onClick={() => setShowMap(false)} className="text-gray-500 text-2xl">✕</button>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center" style={{ colorScheme: 'light' }}>
+          <div className="bg-white w-full h-[95vh] rounded-t-2xl sm:rounded-xl sm:max-w-5xl sm:h-[85vh] flex flex-col text-gray-900" style={{ colorScheme: 'light' }}>
+            <div className="p-3 sm:p-4 border-b flex justify-between items-center">
+              <div className="w-10 h-1 bg-gray-300 rounded-full mx-auto absolute left-1/2 -translate-x-1/2 top-2 sm:hidden" />
+              <h2 className="text-base sm:text-lg font-bold mt-2 sm:mt-0">Dibujar {nombre || 'potrero'}</h2>
+              <button onClick={() => setShowMap(false)} className="text-gray-500 text-2xl leading-none">✕</button>
             </div>
             <div className="flex-1">
               <MapaPoligono

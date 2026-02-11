@@ -25,13 +25,13 @@ export default function RecategorizacionWrapper() {
       <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
         <button
           onClick={() => toggleAcordeon('automatica')}
-          className="w-full flex items-center justify-between p-5 hover:bg-gray-50 transition-colors"
+          className="w-full flex items-center justify-between p-4 sm:p-5 hover:bg-gray-50 transition-colors"
         >
-          <div className="flex items-center gap-3">
-            <span className="text-2xl">🤖</span>
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            <span className="text-xl sm:text-2xl">🤖</span>
             <div className="text-left">
-              <h3 className="font-semibold text-gray-900">Recategorización Automática</h3>
-              <p className="text-sm text-gray-500">Cambios programados por fecha</p>
+              <h3 className="font-semibold text-gray-900 text-sm sm:text-base">Recategorización Automática</h3>
+              <p className="text-xs sm:text-sm text-gray-500">Cambios programados por fecha</p>
             </div>
           </div>
           <svg
@@ -47,7 +47,7 @@ export default function RecategorizacionWrapper() {
         </button>
 
         {acordeonAbierto === 'automatica' && (
-          <div className="border-t border-gray-200 p-6 bg-gray-50">
+          <div className="border-t border-gray-200 p-4 sm:p-6 bg-gray-50">
             <RecategorizacionPreferencias />
           </div>
         )}
@@ -57,13 +57,13 @@ export default function RecategorizacionWrapper() {
       <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
         <button
           onClick={() => toggleAcordeon('manual')}
-          className="w-full flex items-center justify-between p-5 hover:bg-gray-50 transition-colors"
+          className="w-full flex items-center justify-between p-4 sm:p-5 hover:bg-gray-50 transition-colors"
         >
-          <div className="flex items-center gap-3">
-            <span className="text-2xl">🔄</span>
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            <span className="text-xl sm:text-2xl">🔄</span>
             <div className="text-left">
-              <h3 className="font-semibold text-gray-900">Recategorización Manual Masiva</h3>
-              <p className="text-sm text-gray-500">Aplicá cambios cuando quieras con filtros personalizados</p>
+              <h3 className="font-semibold text-gray-900 text-sm sm:text-base">Recategorización Manual Masiva</h3>
+              <p className="text-xs sm:text-sm text-gray-500">Aplicá cambios cuando quieras con filtros personalizados</p>
             </div>
           </div>
           <svg
@@ -79,7 +79,7 @@ export default function RecategorizacionWrapper() {
         </button>
 
         {acordeonAbierto === 'manual' && (
-          <div className="border-t border-gray-200 p-6 bg-gray-50">
+          <div className="border-t border-gray-200 p-4 sm:p-6 bg-gray-50">
             <RecategorizacionMasiva />
           </div>
         )}

@@ -429,12 +429,24 @@ const filaTotalesOvinos = ['TOTAL:', totalHectareas.toFixed(0), ...catOviFiltrad
 }
 
 /**
+ * Sanitiza un string para usarlo como nombre de archivo (sin acentos ni caracteres especiales)
+ */
+function sanitizarNombreArchivo(nombre: string): string {
+  return nombre
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // Quitar acentos
+    .replace(/[^a-zA-Z0-9_-]/g, '_') // Solo alfanuméricos, guiones y underscores
+    .replace(/_+/g, '_') // Múltiples underscores a uno solo
+}
+
+/**
  * Sube el PDF a Supabase Storage y retorna la URL pública
  */
 async function subirPDFaSupabase(pdfBuffer: Buffer, nombreCampo: string): Promise<string | null> {
   try {
     const fecha = new Date().toISOString().split('T')[0]
-    const nombreArchivo = `reportes/carga_${nombreCampo.replace(/\s+/g, '_')}_${fecha}_${Date.now()}.pdf`
+    const nombreSanitizado = sanitizarNombreArchivo(nombreCampo)
+    const nombreArchivo = `reportes/carga_${nombreSanitizado}_${fecha}_${Date.now()}.pdf`
 
     const supabase = getSupabaseClient()
     const { data, error } = await supabase.storage

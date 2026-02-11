@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { toast } from '@/app/components/Toast'
 
 type ModalEditarIngresoProps = {
   gasto: {
@@ -173,12 +174,12 @@ export default function ModalEditarIngreso({ gasto, onClose, onSuccess }: ModalE
 
       if (!res.ok) throw new Error('Error al marcar como cobrado')
 
-      alert('✅ Ingreso marcado como cobrado')
+      toast.success('✅ Ingreso marcado como cobrado')
       onSuccess()
       onClose()
     } catch (err) {
       console.error(err)
-      alert('❌ Error al marcar como cobrado')
+      toast.error('❌ Error al marcar como cobrado')
     } finally {
       setLoading(false)
     }
@@ -188,17 +189,17 @@ export default function ModalEditarIngreso({ gasto, onClose, onSuccess }: ModalE
   e.preventDefault()
 
   if (items.some((item) => !item.item || item.precio <= 0)) {
-    alert('❌ Completá todos los ítems con nombre y precio válido')
+    toast.error('❌ Completá todos los ítems con nombre y precio válido')
     return
   }
 
   if (metodoPago === 'Plazo' && diasPlazo < 1) {
-    alert('❌ Ingresá una cantidad de días válida para el plazo')
+    toast.error('❌ Ingresá una cantidad de días válida para el plazo')
     return
   }
 
   if (moneda === 'USD' && !tasaCambio) {
-    alert('❌ No se pudo obtener la tasa de cambio')
+    toast.error('❌ No se pudo obtener la tasa de cambio')
     return
   }
 
@@ -255,12 +256,12 @@ export default function ModalEditarIngreso({ gasto, onClose, onSuccess }: ModalE
         throw new Error(errorData?.error || 'Error al actualizar')
       }
 
-      alert('✅ Ingreso actualizado correctamente')
+      toast.success('✅ Ingreso actualizado correctamente')
       onSuccess()
       onClose()
     } catch (error) {
       console.error('Error:', error)
-      alert(`❌ Error al actualizar el ingreso: ${error instanceof Error ? error.message : 'Error desconocido'}`)
+      toast.error(`❌ Error al actualizar el ingreso: ${error instanceof Error ? error.message : 'Error desconocido'}`)
     } finally {
       setLoading(false)
     }

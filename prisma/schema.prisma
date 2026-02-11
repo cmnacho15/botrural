@@ -8,47 +8,53 @@ datasource db {
 }
 
 model User {
-  id                    String       @id @default(cuid())
-  email                 String?      @unique
+  id                    String    @id @default(cuid())
+  email                 String?   @unique
   name                  String?
   apellido              String? // ✅ NUEVO - Para empleados sin email
   password              String?
-  role                  Role         @default(COLABORADOR)
-  accesoFinanzas        Boolean      @default(false) // ✅ NUEVO
+  role                  Role      @default(COLABORADOR)
+  accesoFinanzas        Boolean   @default(false) // ✅ NUEVO
   campoId               String?
-  createdAt             DateTime     @default(now())
-  updatedAt             DateTime     @updatedAt
-  lastMessageAt         DateTime?    @db.Timestamp(6)
-  lastLoginAt           DateTime?    @db.Timestamp(6) // 🆕 Último login web
-  onboardingCompletedAt DateTime?    @db.Timestamp(6)
-  onboardingStartedAt   DateTime?    @db.Timestamp(6)
-  telefono              String?      @unique
-  whatsappState         String?      @default("IDLE")
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  lastMessageAt         DateTime? @db.Timestamp(6)
+  lastLoginAt           DateTime? @db.Timestamp(6) // 🆕 Último login web
+  onboardingCompletedAt DateTime? @db.Timestamp(6)
+  onboardingStartedAt   DateTime? @db.Timestamp(6)
+  telefono              String?   @unique
+  whatsappState         String?   @default("IDLE")
 
   // 🔐 SUSCRIPCIÓN (para futura implementación)
-  subscriptionStatus    String?      @default("TRIAL") // TRIAL, ACTIVE, EXPIRED, CANCELLED
-  subscriptionPlan      String?      // FREE, BASIC, PRO, ENTERPRISE
-  trialEndsAt           DateTime?
-  subscriptionEndsAt    DateTime?
+  subscriptionStatus String?   @default("TRIAL") // TRIAL, ACTIVE, EXPIRED, CANCELLED
+  subscriptionPlan   String? // FREE, BASIC, PRO, ENTERPRISE
+  trialEndsAt        DateTime?
+  subscriptionEndsAt DateTime?
 
-  accounts              Account[]
-  eventos               Evento[]
-  createdInvitations    Invitation[] @relation("CreatedInvitations")
-  usedInvitations       Invitation[] @relation("UsedInvitations")
-  sessions              Session[]
-  campo                 Campo?       @relation(fields: [campoId], references: [id])
-  campos                UsuarioCampo[]
+  accounts           Account[]
+  eventos            Evento[]
+  createdInvitations Invitation[]   @relation("CreatedInvitations")
+  usedInvitations    Invitation[]   @relation("UsedInvitations")
+  sessions           Session[]
+  campo              Campo?         @relation(fields: [campoId], references: [id])
+  campos             UsuarioCampo[]
 
   // 🟢 LADO INVERSO DE SnigUploadSession
-  snigUploadSessions    SnigUploadSession[]
+  snigUploadSessions SnigUploadSession[]
 
-  grupos    UsuarioGrupo[]
+  grupos UsuarioGrupo[]
 
   // 📊 Consumo de IA
-  aiUsage               AIUsage[]
+  aiUsage AIUsage[]
 
   // 📝 Logs de actividad para admin
-  activityLogs          ActivityLog[]
+  activityLogs ActivityLog[]
+
+  // 🚨 Logs de errores
+  errorLogs ErrorLog[]
+
+  // 📊 Importaciones de gastos
+  importacionesGastos ImportacionGastos[]
 }
 
 model Account {
@@ -86,39 +92,40 @@ model VerificationToken {
 }
 
 model Campo {
-  id          String       @id @default(cuid())
-  nombre      String
-  tipoCampo         String   @default("MIXTO")  // "GANADERO" o "MIXTO"
+  id        String @id @default(cuid())
+  nombre    String
+  tipoCampo String @default("MIXTO") // "GANADERO" o "MIXTO"
 
-  modoRodeo   String       @default("OPCIONAL") // ← AGREGAR ESTA LÍNEA
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  eventos     Evento[]
-  gastos      Gasto[]
-  insumos     Insumo[]
-  invitations Invitation[]
-  lotes       Lote[]
-  usuarios    User[]
-  usuariosCampo  UsuarioCampo[]
-  modulosPastoreo ModuloPastoreo[]
-  manoObra    ManoObra[]
-  tiposCultivo TipoCultivo[]
+  modoRodeo        String            @default("OPCIONAL") // ← AGREGAR ESTA LÍNEA
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  eventos          Evento[]
+  gastos           Gasto[]
+  importacionesGastos ImportacionGastos[]
+  insumos          Insumo[]
+  invitations      Invitation[]
+  lotes            Lote[]
+  usuarios         User[]
+  usuariosCampo    UsuarioCampo[]
+  modulosPastoreo  ModuloPastoreo[]
+  manoObra         ManoObra[]
+  tiposCultivo     TipoCultivo[]
   categoriasAnimal CategoriaAnimal[]
-  categoriasGasto CategoriaGasto[]
-  
-  firmas   Firma[]
+  categoriasGasto  CategoriaGasto[]
 
-  rodeos      Rodeo[]
+  firmas Firma[]
+
+  rodeos Rodeo[]
 
   consumos Consumo[]
 
   inventarios Inventario[]
 
   // 🟢 NUEVA RELACIÓN SNIG
-  snigAnimales     SnigAnimal[]
+  snigAnimales       SnigAnimal[]
   snigUploadSessions SnigUploadSession[]
 
-  cargaHistorica   CargaHistorica[]
+  cargaHistorica CargaHistorica[]
 
   ventas Venta[]
 
@@ -126,16 +133,15 @@ model Campo {
 
   actividadesCalendario ActividadCalendario[]
 
-  trasladosOrigen   Traslado[] @relation("TrasladosOrigen")
-  trasladosDestino  Traslado[] @relation("TrasladosDestino")
+  trasladosOrigen  Traslado[] @relation("TrasladosOrigen")
+  trasladosDestino Traslado[] @relation("TrasladosDestino")
 
-  grupoId   String?
-  grupo     Grupo?   @relation(fields: [grupoId], references: [id])
+  grupoId String?
+  grupo   Grupo?  @relation(fields: [grupoId], references: [id])
 
-  equivalenciasUG EquivalenciaUG[]
+  equivalenciasUG        EquivalenciaUG[]
   configRecategorizacion ConfigRecategorizacion?
-  esquilas Esquila[]
-
+  esquilas               Esquila[]
 }
 
 model CategoriaGasto {
@@ -147,9 +153,9 @@ model CategoriaGasto {
   orden     Int      @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   campo Campo @relation(fields: [campoId], references: [id], onDelete: Cascade)
-  
+
   @@unique([nombre, campoId])
   @@index([campoId])
 }
@@ -161,24 +167,24 @@ model TipoCultivo {
   campo     Campo    @relation(fields: [campoId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   @@unique([nombre, campoId])
   @@index([campoId])
 }
 
 model CategoriaAnimal {
-  id               String   @id @default(cuid())
+  id               String     @id @default(cuid())
   nombreSingular   String
   nombrePlural     String
   tipoAnimal       TipoAnimal
   campoId          String
-  activo           Boolean  @default(true)
-  esPredeterminado Boolean  @default(false)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-  
+  activo           Boolean    @default(true)
+  esPredeterminado Boolean    @default(false)
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
   campo Campo @relation(fields: [campoId], references: [id], onDelete: Cascade)
-  
+
   @@unique([nombreSingular, campoId])
   @@index([campoId])
 }
@@ -196,28 +202,26 @@ model Rodeo {
   campoId   String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
-  campo     Campo    @relation(fields: [campoId], references: [id], onDelete: Cascade)
-  eventos   Evento[]
-  
+
+  campo   Campo    @relation(fields: [campoId], references: [id], onDelete: Cascade)
+  eventos Evento[]
+
   @@unique([nombre, campoId])
   @@index([campoId])
 }
 
 model Lote {
-  id                String             @id @default(cuid())
-  nombre            String
-  hectareas         Float
-  poligono          Json?
-  ultimoCambio      DateTime           @default(now())
-  esPastoreable     Boolean            @default(true)  // 🆕 NUEVO CAMPO
-  campoId           String
-  moduloPastoreoId  String? 
+  id               String   @id @default(cuid())
+  nombre           String
+  hectareas        Float
+  poligono         Json?
+  ultimoCambio     DateTime @default(now())
+  esPastoreable    Boolean  @default(true) // 🆕 NUEVO CAMPO
+  campoId          String
+  moduloPastoreoId String?
 
-  trasladosDesde    Traslado[] @relation("TrasladosDesdePotreros")
-  trasladosHacia    Traslado[] @relation("TrasladosHaciaPotreros")
-  
-
+  trasladosDesde Traslado[] @relation("TrasladosDesdePotreros")
+  trasladosHacia Traslado[] @relation("TrasladosHaciaPotreros")
 
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
@@ -228,14 +232,14 @@ model Lote {
   campo             Campo              @relation(fields: [campoId], references: [id], onDelete: Cascade)
   movimientosInsumo MovimientoInsumo[]
   cargaHistorica    CargaHistorica[]
+  ndviImages        NDVIImage[] // 🛰️ Imágenes NDVI cacheadas
+  altimetria        AltimetriaImage? // 🏔️ Datos de altimetría (uno por lote)
 
   // 🆕 AGREGAR ESTA RELACIÓN
-  moduloPastoreo    ModuloPastoreo?    @relation(fields: [moduloPastoreoId], references: [id], onDelete: SetNull)
-  
-  @@index([moduloPastoreoId])  // ← índice para búsquedas rápidas
-  @@index([esPastoreable])  // 🆕 ÍNDICE para filtrar rápido
+  moduloPastoreo ModuloPastoreo? @relation(fields: [moduloPastoreoId], references: [id], onDelete: SetNull)
 
-  
+  @@index([moduloPastoreoId]) // ← índice para búsquedas rápidas
+  @@index([esPastoreable]) // 🆕 ÍNDICE para filtrar rápido
 }
 
 model Cultivo {
@@ -253,7 +257,7 @@ model AnimalLote {
   id           String   @id @default(cuid())
   categoria    String
   cantidad     Int
-  peso         Float?   // ✅ NUEVO CAMPO (opcional)
+  peso         Float? // ✅ NUEVO CAMPO (opcional)
   fechaIngreso DateTime @default(now())
   loteId       String
   createdAt    DateTime @default(now())
@@ -261,17 +265,16 @@ model AnimalLote {
   lote         Lote     @relation(fields: [loteId], references: [id], onDelete: Cascade)
   eventos      Evento[]
 
-  @@unique([loteId, categoria])
-
   ventasRenglones VentaRenglon[]
 
   consumosRenglones ConsumoRenglon[]
-  comprasRenglones CompraRenglon[] 
+  comprasRenglones  CompraRenglon[]
 
+  @@unique([loteId, categoria])
 }
 
 model Evento {
-  id              String      @id @default(cuid())
+  id              String     @id @default(cuid())
   tipo            TipoEvento
   descripcion     String
   fecha           DateTime
@@ -281,12 +284,12 @@ model Evento {
   loteId          String?
   usuarioId       String?
   campoId         String
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
   comprador       String?
-  pagado          Boolean     @default(false)
+  pagado          Boolean    @default(false)
   diasPlazo       Int?
-  metodoPago      String?     @default("Contado")
+  metodoPago      String?    @default("Contado")
   proveedor       String?
   iva             Float?
   monto           Float?
@@ -294,29 +297,29 @@ model Evento {
   cantidadVendida Int?
   loteDestinoId   String?
   notas           String?
-  caravana    String?
+  caravana        String?
   intensidad      String?
 
-  metadata        Json?       // ← AGREGAR ESTA LÍNEA
-  imageUrl        String?     // URL de foto adjunta (observaciones de campo)
+  metadata Json? // ← AGREGAR ESTA LÍNEA
+  imageUrl String? // URL de foto adjunta (observaciones de campo)
 
-  rodeoId         String?
-  
-  animalLote      AnimalLote? @relation(fields: [animalLoteId], references: [id])
-  campo           Campo       @relation(fields: [campoId], references: [id], onDelete: Cascade)
-  lote            Lote?       @relation(fields: [loteId], references: [id])
-  usuario         User?       @relation(fields: [usuarioId], references: [id])
-  rodeo           Rodeo?      @relation(fields: [rodeoId], references: [id]) // ← AGREGAR ESTA LÍNEA
+  rodeoId String?
 
-  caravanas   Json?
-  origenSnig  String?
+  animalLote AnimalLote? @relation(fields: [animalLoteId], references: [id])
+  campo      Campo       @relation(fields: [campoId], references: [id], onDelete: Cascade)
+  lote       Lote?       @relation(fields: [loteId], references: [id])
+  usuario    User?       @relation(fields: [usuarioId], references: [id])
+  rodeo      Rodeo?      @relation(fields: [rodeoId], references: [id]) // ← AGREGAR ESTA LÍNEA
+
+  caravanas  Json?
+  origenSnig String?
 }
 
 model Insumo {
   id          String             @id @default(cuid())
   nombre      String
   unidad      String
-  orden       Int                @default(0)  // 👈 AGREGAR ESTA LÍNEA
+  orden       Int                @default(0) // 👈 AGREGAR ESTA LÍNEA
   campoId     String
   createdAt   DateTime           @default(now())
   updatedAt   DateTime           @updatedAt
@@ -324,7 +327,7 @@ model Insumo {
   campo       Campo              @relation(fields: [campoId], references: [id], onDelete: Cascade)
   movimientos MovimientoInsumo[]
 
-  @@index([campoId, orden])  // 👈 AGREGAR ESTA LÍNEA
+  @@index([campoId, orden]) // 👈 AGREGAR ESTA LÍNEA
 }
 
 model MovimientoInsumo {
@@ -344,7 +347,7 @@ model MovimientoInsumo {
 model Gasto {
   id              String    @id @default(cuid())
   tipo            String
-  monto           Float     // ❌ deprecated
+  monto           Float // ❌ deprecated
   fecha           DateTime
   descripcion     String?
   categoria       String
@@ -364,32 +367,36 @@ model Gasto {
   animalLoteId    String?
   cantidadVendida Int?
 
-  imageUrl        String?
-  imageName       String?
+  imageUrl  String?
+  imageName String?
 
   // 💵 CAMPOS DE MONEDA Y CONVERSIÓN
-  moneda          String
-  montoOriginal   Float
-  tasaCambio      Float?
-  montoEnUYU      Float
-  montoEnUSD      Float      // ✅ NUEVO: valor histórico en USD
+  moneda        String
+  montoOriginal Float
+  tasaCambio    Float?
+  montoEnUYU    Float
+  montoEnUSD    Float // ✅ NUEVO: valor histórico en USD
 
   // 🐄 ASIGNACIÓN DE ESPECIE (para costos fijos)
-  especie         String?    // ✅ NUEVO: "VACUNOS" | "OVINOS" | "EQUINOS" | null
+  especie String? // ✅ NUEVO: "VACUNOS" | "OVINOS" | "EQUINOS" | null
+
+  // 🏢 GASTOS COMPARTIDOS ENTRE CAMPOS DEL MISMO GRUPO
+  esGastoGrupo          Boolean @default(false) // 🆕
+  grupoId               String? // 🆕
+  montoTotalGrupo       Float? // 🆕 monto original antes de distribuir
+  porcentajeDistribuido Float? // 🆕 % que corresponde a este campo
+
+  // 📊 IMPORTACIÓN
+  importacionId String?
+  importacion   ImportacionGastos? @relation(fields: [importacionId], references: [id], onDelete: SetNull)
 
   @@index([campoId])
   @@index([fecha])
   @@index([tipo])
-  @@index([especie])  // ✅ índice para filtrar por especie
-
-  // 🏢 GASTOS COMPARTIDOS ENTRE CAMPOS DEL MISMO GRUPO
-  esGastoGrupo          Boolean   @default(false)  // 🆕
-  grupoId               String?                     // 🆕
-  montoTotalGrupo       Float?                      // 🆕 monto original antes de distribuir
-  porcentajeDistribuido Float?                      // 🆕 % que corresponde a este campo
-  
-  @@index([grupoId])          // 🆕
-  @@index([esGastoGrupo])     // 🆕
+  @@index([especie]) // ✅ índice para filtrar por especie
+  @@index([grupoId]) // 🆕
+  @@index([esGastoGrupo]) // 🆕
+  @@index([importacionId]) // 📊
 }
 
 model Invitation {
@@ -397,7 +404,7 @@ model Invitation {
   token       String         @unique @default(cuid())
   role        InvitationRole // ✅ CAMBIADO a enum específico
   campoId     String
-  campoIds    Json?          // 👈 AGREGAR ESTA LÍNEA
+  campoIds    Json? // 👈 AGREGAR ESTA LÍNEA
   createdById String
   usedById    String?
   expiresAt   DateTime       @db.Timestamptz(6)
@@ -445,11 +452,11 @@ model ManoObra {
 
 // ✅ ENUM DE ROLES DE USUARIO
 enum Role {
-  MEGA_ADMIN    // Super admin de la plataforma (solo nosotros)
+  MEGA_ADMIN // Super admin de la plataforma (solo nosotros)
   ADMIN_GENERAL // Primer usuario del campo, acceso total
-  COLABORADOR   // Acceso web + bot, finanzas opcional
-  EMPLEADO      // Solo bot, sin web
-  CONTADOR      // Solo lectura finanzas en web
+  COLABORADOR // Acceso web + bot, finanzas opcional
+  EMPLEADO // Solo bot, sin web
+  CONTADOR // Solo lectura finanzas en web
 }
 
 // ✅ ENUM DE TIPOS DE INVITACIÓN
@@ -472,7 +479,7 @@ enum TipoEvento {
   TACTO
   TRATAMIENTO
   RECATEGORIZACION
-  RECATEGORIZACION_MASIVA  // ← AGREGAR ESTA LÍNEA
+  RECATEGORIZACION_MASIVA // ← AGREGAR ESTA LÍNEA
   SIEMBRA
   PULVERIZACION
   REFERTILIZACION
@@ -487,15 +494,15 @@ enum TipoEvento {
   GASTO
   AJUSTE
   CAMBIO_POTRERO
-  DAO           // <-- AGREGAR ESTA LÍNEA
-  MANEJO        // Acciones físicas no sanitarias (quitar tablilla, señalar, etc.)
-  OBSERVACION   // Fotos de campo con comentarios
+  DAO // <-- AGREGAR ESTA LÍNEA
+  MANEJO // Acciones físicas no sanitarias (quitar tablilla, señalar, etc.)
+  OBSERVACION // Fotos de campo con comentarios
 
-  SNIG_STOCK_INICIAL           // ✅ AGREGAR ESTOS
-  SNIG_NACIMIENTO_CARAVANEO    // ✅
-  SNIG_COMPRA                  // ✅
-  SNIG_VENTA                   // ✅
-  SNIG_MORTANDAD              // ✅
+  SNIG_STOCK_INICIAL // ✅ AGREGAR ESTOS
+  SNIG_NACIMIENTO_CARAVANEO // ✅
+  SNIG_COMPRA // ✅
+  SNIG_VENTA // ✅
+  SNIG_MORTANDAD // ✅
 }
 
 model SnigAnimal {
@@ -534,20 +541,20 @@ enum SnigOrigen {
 }
 
 model SnigUploadSession {
-  id            String       @id @default(cuid())
+  id            String   @id @default(cuid())
   campoId       String
   usuarioId     String?
   fechaSnig     DateTime
   cantidadTotal Int
-  estado        String       @default("PENDIENTE")
-  tipoDetectado String       @default("PENDIENTE")
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+  estado        String   @default("PENDIENTE")
+  tipoDetectado String   @default("PENDIENTE")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-  animales  SnigAnimal[]
-  campo     Campo    @relation(fields: [campoId], references: [id], onDelete: Cascade)
-  usuario   User?    @relation(fields: [usuarioId], references: [id])
-  
+  animales SnigAnimal[]
+  campo    Campo        @relation(fields: [campoId], references: [id], onDelete: Cascade)
+  usuario  User?        @relation(fields: [usuarioId], references: [id])
+
   @@index([campoId])
   @@index([estado])
 }
@@ -569,158 +576,142 @@ model CargaHistorica {
 }
 
 model Inventario {
-  id         String   @id @default(cuid())
-  campoId    String
-  fecha      DateTime
-  categoria  String
-  cantidad   Int
-  peso       Float?
-  precioKg   Float?      // ← Este es el precio INICIO
-  precioKgFin Float?     // ← AGREGAR ESTE CAMPO (precio FIN)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  
+  id          String   @id @default(cuid())
+  campoId     String
+  fecha       DateTime
+  categoria   String
+  cantidad    Int
+  peso        Float?
+  precioKg    Float? // ← Este es el precio INICIO
+  precioKgFin Float? // ← AGREGAR ESTE CAMPO (precio FIN)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
   campo Campo @relation(fields: [campoId], references: [id], onDelete: Cascade)
-  
+
   @@unique([campoId, fecha, categoria])
   @@index([campoId, fecha])
 }
-
-
-
-
-
-
-
 
 // ==========================================
 // 💰 MODELOS DE VENTAS (agregar al final del schema)
 // ==========================================
 
 model Venta {
-  id                String    @id @default(cuid())
-  campoId           String
-  tipoProducto      String?   // "GANADO" | "LANA" | "GRANOS"
-  fecha             DateTime
-  comprador         String
-  consignatario     String?   // quien vende/intermedia
-  nroTropa          String?
-  nroFactura        String?
-  
-  metodoPago        String    @default("Contado")  // "Contado" | "Plazo"
-  diasPlazo         Int?
-  fechaVencimiento  DateTime?
-  pagado            Boolean   @default(false)
-  
-  moneda            String    @default("USD")  // "USD" | "UYU"
-  tasaCambio        Float?    // si es UYU
-  
-  subtotalUSD       Float     // suma de importes de renglones
-  totalImpuestosUSD Float     @default(0) // suma de todos los impuestos
-  totalNetoUSD      Float     // subtotal - impuestos
-  
-  firmaId  String?
+  id            String   @id @default(cuid())
+  campoId       String
+  tipoProducto  String? // "GANADO" | "LANA" | "GRANOS"
+  fecha         DateTime
+  comprador     String
+  consignatario String? // quien vende/intermedia
+  nroTropa      String?
+  nroFactura    String?
+
+  metodoPago       String    @default("Contado") // "Contado" | "Plazo"
+  diasPlazo        Int?
+  fechaVencimiento DateTime?
+  pagado           Boolean   @default(false)
+
+  moneda     String @default("USD") // "USD" | "UYU"
+  tasaCambio Float? // si es UYU
+
+  subtotalUSD       Float // suma de importes de renglones
+  totalImpuestosUSD Float @default(0) // suma de todos los impuestos
+  totalNetoUSD      Float // subtotal - impuestos
+
+  firmaId String?
 
   // 📎 ADJUNTAR BOLETA
-  imageUrl          String?   // URL de la boleta guardada
-  imageName         String?   // nombre del archivo
-  
+  imageUrl  String? // URL de la boleta guardada
+  imageName String? // nombre del archivo
+
   // 📊 IMPUESTOS DESGLOSADOS (JSON)
-  impuestos         Json?     // {mevir: 64.95, inia: 129.90, imeba: 649.49, ...}
-  
-  notas             String?
-  
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-  
-  campo             Campo     @relation(fields: [campoId], references: [id], onDelete: Cascade)
-  renglones         VentaRenglon[]
-  serviciosGranos   VentaGranoServicio[]
-  serviciosGrano    ServicioGrano[]
-  firma    Firma?   @relation(fields: [firmaId], references: [id])
+  impuestos Json? // {mevir: 64.95, inia: 129.90, imeba: 649.49, ...}
+
+  notas String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  campo           Campo                @relation(fields: [campoId], references: [id], onDelete: Cascade)
+  renglones       VentaRenglon[]
+  serviciosGranos VentaGranoServicio[]
+  serviciosGrano  ServicioGrano[]
+  firma           Firma?               @relation(fields: [firmaId], references: [id])
 
   @@index([campoId])
   @@index([fecha])
   @@index([comprador])
   @@index([firmaId])
-  
 }
 
 model VentaRenglon {
-  id                      String   @id @default(cuid())
-  ventaId                 String
-  
-  tipo                    String   @default("GANADO")  // "GANADO" | "LANA" | "GRANOS"
-  tipoAnimal              String   // "BOVINO" | "OVINO" | "EQUINO" | "OTRO"
-  categoria               String   // "Vaca gorda", "Novillo gordo", "Ovejas", etc.
-  raza                    String?  // "GEN S/Clasif", "HEREFORD"
-  
-  cantidad                Int      // nº de animales
-  
-  // 💰 PRECIOS Y MONTOS (simplificado para el Excel)
-  pesoPromedio            Float    // kg/animal (peso/animal del Excel)
-  precioKgUSD             Float    // precio/kg (US$/kg del Excel)
-  precioAnimalUSD         Float    // pesoPromedio * precioKgUSD
-  pesoTotalKg             Float    // cantidad * pesoPromedio
-  importeBrutoUSD         Float    // pesoTotalKg * precioKgUSD
-  
-  // 🏦 DESCUENTO DE STOCK
-  descontadoDeStock       Boolean  @default(false)  // si se descontó del AnimalLote
-  animalLoteId            String?  // potrero del cual se descontó
-  fechaDescuento          DateTime?
-  
-  // 🐑 CAMPOS PARA LANA (para futuro)
-  esVentaLana             Boolean  @default(false)
-  kgVellon                Float?
-  kgBarriga               Float?
-  precioKgVellon          Float?
-  precioKgBarriga         Float?
-  numeroEsquilados        Int?
-  
-  // 🌾 CAMPOS ESPECÍFICOS PARA GRANOS
-  tipoCultivoNombre       String?  // "Trigo", "Soja", "Maíz", etc.
-  cantidadToneladas       Decimal? @db.Decimal(10, 3) // 455.256 ton
-  precioToneladaUSD       Decimal? @db.Decimal(10, 4) // 182.0000 USD/ton
-  kgRecibidos             Decimal? @db.Decimal(10, 2) // 466,260.00 (para liquidaciones)
-  kgDescuentos            Decimal? @db.Decimal(10, 2) // -11,004.52 (para liquidaciones)
-  kgNetosLiquidar         Decimal? @db.Decimal(10, 2) // 455,255.48 (para liquidaciones)
+  id      String @id @default(cuid())
+  ventaId String
 
-  createdAt               DateTime @default(now())
-  updatedAt               DateTime @updatedAt
-  
-  venta                   Venta      @relation(fields: [ventaId], references: [id], onDelete: Cascade)
-  animalLote              AnimalLote? @relation(fields: [animalLoteId], references: [id])
-  
+  tipo       String  @default("GANADO") // "GANADO" | "LANA" | "GRANOS"
+  tipoAnimal String // "BOVINO" | "OVINO" | "EQUINO" | "OTRO"
+  categoria  String // "Vaca gorda", "Novillo gordo", "Ovejas", etc.
+  raza       String? // "GEN S/Clasif", "HEREFORD"
+
+  cantidad Int // nº de animales
+
+  // 💰 PRECIOS Y MONTOS (simplificado para el Excel)
+  pesoPromedio    Float // kg/animal (peso/animal del Excel)
+  precioKgUSD     Float // precio/kg (US$/kg del Excel)
+  precioAnimalUSD Float // pesoPromedio * precioKgUSD
+  pesoTotalKg     Float // cantidad * pesoPromedio
+  importeBrutoUSD Float // pesoTotalKg * precioKgUSD
+
+  // 🏦 DESCUENTO DE STOCK
+  descontadoDeStock Boolean   @default(false) // si se descontó del AnimalLote
+  animalLoteId      String? // potrero del cual se descontó
+  fechaDescuento    DateTime?
+
+  // 🐑 CAMPOS PARA LANA (para futuro)
+  esVentaLana      Boolean @default(false)
+  kgVellon         Float?
+  kgBarriga        Float?
+  precioKgVellon   Float?
+  precioKgBarriga  Float?
+  numeroEsquilados Int?
+
+  // 🌾 CAMPOS ESPECÍFICOS PARA GRANOS
+  tipoCultivoNombre String? // "Trigo", "Soja", "Maíz", etc.
+  cantidadToneladas Decimal? @db.Decimal(10, 3) // 455.256 ton
+  precioToneladaUSD Decimal? @db.Decimal(10, 4) // 182.0000 USD/ton
+  kgRecibidos       Decimal? @db.Decimal(10, 2) // 466,260.00 (para liquidaciones)
+  kgDescuentos      Decimal? @db.Decimal(10, 2) // -11,004.52 (para liquidaciones)
+  kgNetosLiquidar   Decimal? @db.Decimal(10, 2) // 455,255.48 (para liquidaciones)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  venta      Venta       @relation(fields: [ventaId], references: [id], onDelete: Cascade)
+  animalLote AnimalLote? @relation(fields: [animalLoteId], references: [id])
+
   @@index([ventaId])
   @@index([animalLoteId])
 }
 
-
-
-
-
-
-
-
-
 model Consumo {
-  id          String    @id @default(cuid())
+  id          String   @id @default(cuid())
   campoId     String
   fecha       DateTime
   descripcion String?
   notas       String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  
-  campo       Campo     @relation(fields: [campoId], references: [id], onDelete: Cascade)
-  renglones   ConsumoRenglon[]
-  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  campo     Campo            @relation(fields: [campoId], references: [id], onDelete: Cascade)
+  renglones ConsumoRenglon[]
+
   @@index([campoId])
   @@index([fecha])
 }
 
 model ConsumoRenglon {
-  id                String   @id @default(cuid())
+  id                String    @id @default(cuid())
   consumoId         String
   tipoAnimal        String
   categoria         String
@@ -730,111 +721,94 @@ model ConsumoRenglon {
   precioAnimalUSD   Float?
   pesoTotalKg       Float?
   valorTotalUSD     Float?
-  descontadoDeStock Boolean  @default(true)
+  descontadoDeStock Boolean   @default(true)
   animalLoteId      String?
   fechaDescuento    DateTime?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  
-  consumo           Consumo      @relation(fields: [consumoId], references: [id], onDelete: Cascade)
-  animalLote        AnimalLote? @relation(fields: [animalLoteId], references: [id])
-  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  consumo    Consumo     @relation(fields: [consumoId], references: [id], onDelete: Cascade)
+  animalLote AnimalLote? @relation(fields: [animalLoteId], references: [id])
+
   @@index([consumoId])
   @@index([animalLoteId])
 }
-
-
-
-
-
-
-
 
 // ==========================================
 // 🛒 MODELOS DE COMPRAS
 // ==========================================
 
 model Compra {
-  id                String    @id @default(cuid())
-  campoId           String
-  fecha             DateTime
-  proveedor         String    // ← CAMBIO: en vez de "comprador"
-  consignatario     String?
-  nroTropa          String?
-  nroFactura        String?
-  
-  firmaId  String? 
+  id            String   @id @default(cuid())
+  campoId       String
+  fecha         DateTime
+  proveedor     String // ← CAMBIO: en vez de "comprador"
+  consignatario String?
+  nroTropa      String?
+  nroFactura    String?
 
-  metodoPago        String    @default("Contado")
-  diasPlazo         Int?
-  fechaVencimiento  DateTime?
-  pagado            Boolean   @default(false)
-  
-  moneda            String    @default("USD")
-  tasaCambio        Float?
-  
+  firmaId String?
+
+  metodoPago       String    @default("Contado")
+  diasPlazo        Int?
+  fechaVencimiento DateTime?
+  pagado           Boolean   @default(false)
+
+  moneda     String @default("USD")
+  tasaCambio Float?
+
   subtotalUSD       Float
-  totalImpuestosUSD Float     @default(0)
+  totalImpuestosUSD Float @default(0)
   totalNetoUSD      Float
-  
-  imageUrl          String?
-  imageName         String?
-  impuestos         Json?
-  notas             String?
-  
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-  
-  campo             Campo     @relation(fields: [campoId], references: [id], onDelete: Cascade)
-  renglones         CompraRenglon[]
 
-  
+  imageUrl  String?
+  imageName String?
+  impuestos Json?
+  notas     String?
 
-  firma    Firma?   @relation(fields: [firmaId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  campo     Campo           @relation(fields: [campoId], references: [id], onDelete: Cascade)
+  renglones CompraRenglon[]
+
+  firma Firma? @relation(fields: [firmaId], references: [id])
 
   @@index([campoId])
   @@index([fecha])
   @@index([proveedor])
-  @@index([firmaId]) 
+  @@index([firmaId])
 }
 
 model CompraRenglon {
-  id                      String   @id @default(cuid())
-  compraId                String
-  
-  tipoAnimal              String   // "BOVINO" | "OVINO" | "EQUINO" | "OTRO"
-  categoria               String
-  raza                    String?
-  cantidad                Int
-  
-  pesoPromedio            Float
-  precioKgUSD             Float
-  precioAnimalUSD         Float
-  pesoTotalKg             Float
-  importeBrutoUSD         Float
-  
+  id       String @id @default(cuid())
+  compraId String
+
+  tipoAnimal String // "BOVINO" | "OVINO" | "EQUINO" | "OTRO"
+  categoria  String
+  raza       String?
+  cantidad   Int
+
+  pesoPromedio    Float
+  precioKgUSD     Float
+  precioAnimalUSD Float
+  pesoTotalKg     Float
+  importeBrutoUSD Float
+
   // 🏦 INGRESO AL STOCK (en vez de descuento)
-  agregarAlStock          Boolean  @default(false)  // ← CAMBIO: agregar en vez de descontar
-  animalLoteId            String?  // potrero al cual se agregó
-  fechaIngreso            DateTime?
-  
-  createdAt               DateTime @default(now())
-  updatedAt               DateTime @updatedAt
-  
-  compra                  Compra      @relation(fields: [compraId], references: [id], onDelete: Cascade)
-  animalLote              AnimalLote? @relation(fields: [animalLoteId], references: [id])
-  
+  agregarAlStock Boolean   @default(false) // ← CAMBIO: agregar en vez de descontar
+  animalLoteId   String? // potrero al cual se agregó
+  fechaIngreso   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  compra     Compra      @relation(fields: [compraId], references: [id], onDelete: Cascade)
+  animalLote AnimalLote? @relation(fields: [animalLoteId], references: [id])
+
   @@index([compraId])
   @@index([animalLoteId])
 }
-
-
-
-
-
-
-
-
 
 model ModuloPastoreo {
   id          String   @id @default(cuid())
@@ -843,72 +817,57 @@ model ModuloPastoreo {
   campoId     String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  
-  campo       Campo    @relation(fields: [campoId], references: [id], onDelete: Cascade)
-  lotes       Lote[]
-  
+
+  campo Campo  @relation(fields: [campoId], references: [id], onDelete: Cascade)
+  lotes Lote[]
+
   @@unique([nombre, campoId])
   @@index([campoId])
 }
-
-
-
-
 
 // ==========================================
 // 📅 CALENDARIO DE ACTIVIDADES
 // ==========================================
 
 model ActividadCalendario {
-  id                String    @id @default(cuid())
-  campoId           String
-  usuarioId         String?
-  
-  titulo            String
-  fechaProgramada   DateTime  @db.Date
-  realizada         Boolean   @default(false)
-  fechaRealizacion  DateTime?
-  
-  origen            String    @default("WEB")  // "WEB" | "WHATSAPP"
-  notas             String?
-  
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-  
-  campo             Campo     @relation(fields: [campoId], references: [id], onDelete: Cascade)
-  
+  id        String  @id @default(cuid())
+  campoId   String
+  usuarioId String?
+
+  titulo           String
+  fechaProgramada  DateTime  @db.Date
+  realizada        Boolean   @default(false)
+  fechaRealizacion DateTime?
+
+  origen String  @default("WEB") // "WEB" | "WHATSAPP"
+  notas  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  campo Campo @relation(fields: [campoId], references: [id], onDelete: Cascade)
+
   @@index([campoId])
   @@index([fechaProgramada])
   @@index([realizada])
 }
 
-
-
-
-
-
-
-
-
-
-
 model Firma {
-  id           String   @id @default(cuid())
-  campoId      String
-  rut          String   
-  razonSocial  String
-  esPrincipal  Boolean  @default(false)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  
-  campo        Campo    @relation(fields: [campoId], references: [id], onDelete: Cascade)
-  ventas       Venta[]
-  compras      Compra[]
-  
+  id          String   @id @default(cuid())
+  campoId     String
+  rut         String
+  razonSocial String
+  esPrincipal Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  campo   Campo    @relation(fields: [campoId], references: [id], onDelete: Cascade)
+  ventas  Venta[]
+  compras Compra[]
+
   @@unique([rut, campoId])
   @@index([campoId])
 }
-
 
 // ==========================================
 // 👥 RELACIÓN USUARIO-CAMPO (Multi-campo)
@@ -919,79 +878,65 @@ model UsuarioCampo {
   userId    String
   campoId   String
   rol       Role     @default(COLABORADOR)
-  esActivo  Boolean  @default(false)  // Campo actualmente seleccionado en la sesión
+  esActivo  Boolean  @default(false) // Campo actualmente seleccionado en la sesión
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  campo     Campo    @relation(fields: [campoId], references: [id], onDelete: Cascade)
-  
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  campo Campo @relation(fields: [campoId], references: [id], onDelete: Cascade)
+
   @@unique([userId, campoId])
   @@index([userId])
   @@index([campoId])
 }
-
-
-
-
-
-
-
-
-
-
 
 // ==========================================
 // 🚚 TRASLADOS ENTRE CAMPOS
 // ==========================================
 
 model Traslado {
-  id                String   @id @default(cuid())
-  fecha             DateTime
-  
+  id    String   @id @default(cuid())
+  fecha DateTime
+
   // Origen
-  campoOrigenId     String
-  potreroOrigenId   String
-  
+  campoOrigenId   String
+  potreroOrigenId String
+
   // Destino  
-  campoDestinoId    String
-  potreroDestinoId  String
-  
+  campoDestinoId   String
+  potreroDestinoId String
+
   // Animales
-  tipoAnimal        String   // "BOVINO" | "OVINO"
-  categoria         String
-  cantidad          Int
-  
+  tipoAnimal String // "BOVINO" | "OVINO"
+  categoria  String
+  cantidad   Int
+
   // Valoración (opcional, editable)
-  pesoPromedio      Float?
-  precioKgUSD       Float?
-  pesoTotalKg       Float?   // calculado: cantidad * pesoPromedio
-  precioAnimalUSD   Float?   // calculado: pesoPromedio * precioKgUSD
-  totalUSD          Float?   // calculado: cantidad * precioAnimalUSD
-  
+  pesoPromedio    Float?
+  precioKgUSD     Float?
+  pesoTotalKg     Float? // calculado: cantidad * pesoPromedio
+  precioAnimalUSD Float? // calculado: pesoPromedio * precioKgUSD
+  totalUSD        Float? // calculado: cantidad * precioAnimalUSD
+
   // Stock
-  stockDescontado   Boolean  @default(false)
-  stockSumado       Boolean  @default(false)
-  
-  notas             String?
-  
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  
+  stockDescontado Boolean @default(false)
+  stockSumado     Boolean @default(false)
+
+  notas String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Relaciones
-  campoOrigen       Campo    @relation("TrasladosOrigen", fields: [campoOrigenId], references: [id], onDelete: Cascade)
-  campoDestino      Campo    @relation("TrasladosDestino", fields: [campoDestinoId], references: [id], onDelete: Cascade)
-  potreroOrigen     Lote     @relation("TrasladosDesdePotreros", fields: [potreroOrigenId], references: [id])
-  potreroDestino    Lote     @relation("TrasladosHaciaPotreros", fields: [potreroDestinoId], references: [id])
-  
+  campoOrigen    Campo @relation("TrasladosOrigen", fields: [campoOrigenId], references: [id], onDelete: Cascade)
+  campoDestino   Campo @relation("TrasladosDestino", fields: [campoDestinoId], references: [id], onDelete: Cascade)
+  potreroOrigen  Lote  @relation("TrasladosDesdePotreros", fields: [potreroOrigenId], references: [id])
+  potreroDestino Lote  @relation("TrasladosHaciaPotreros", fields: [potreroDestinoId], references: [id])
+
   @@index([campoOrigenId])
   @@index([campoDestinoId])
   @@index([fecha])
 }
-
-
-
-
 
 // ==========================================
 // 🏢 GRUPOS (Empresas/Clientes)
@@ -1002,9 +947,9 @@ model Grupo {
   nombre    String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
-  campos    Campo[]
-  usuarios  UsuarioGrupo[]
+
+  campos   Campo[]
+  usuarios UsuarioGrupo[]
 }
 
 model UsuarioGrupo {
@@ -1015,100 +960,95 @@ model UsuarioGrupo {
   esActivo  Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  grupo     Grupo    @relation(fields: [grupoId], references: [id], onDelete: Cascade)
-  
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  grupo Grupo @relation(fields: [grupoId], references: [id], onDelete: Cascade)
+
   @@unique([userId, grupoId])
   @@index([userId])
   @@index([grupoId])
 }
-
 
 // ==========================================
 // ⚖️ EQUIVALENCIAS UG PERSONALIZADAS
 // ==========================================
 
 model EquivalenciaUG {
-  id        String   @id @default(cuid())
+  id        String @id @default(cuid())
   campoId   String
-  categoria String   // "Terneros", "Vacas", etc.
-  pesoKg    Float    // El peso que el usuario configura
-  
+  categoria String // "Terneros", "Vacas", etc.
+  pesoKg    Float // El peso que el usuario configura
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
-  campo     Campo    @relation(fields: [campoId], references: [id], onDelete: Cascade)
-  
+
+  campo Campo @relation(fields: [campoId], references: [id], onDelete: Cascade)
+
   @@unique([campoId, categoria])
   @@index([campoId])
 }
-
-
 
 // ==========================================
 // 🔄 RECATEGORIZACIÓN AUTOMÁTICA
 // ==========================================
 
 model ConfigRecategorizacion {
-  id            String   @id @default(cuid())
-  campoId       String   @unique
-  
-  bovinosActivo Boolean  @default(false)
-  bovinosDia    Int      @default(1)
-  bovinosMes    Int      @default(1)
-  
-  ovinosActivo  Boolean  @default(false)
-  ovinosDia     Int      @default(1)
-  ovinosMes     Int      @default(1)
-  
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  
-  campo         Campo    @relation(fields: [campoId], references: [id], onDelete: Cascade)
-  
+  id      String @id @default(cuid())
+  campoId String @unique
+
+  bovinosActivo Boolean @default(false)
+  bovinosDia    Int     @default(1)
+  bovinosMes    Int     @default(1)
+
+  ovinosActivo Boolean @default(false)
+  ovinosDia    Int     @default(1)
+  ovinosMes    Int     @default(1)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  campo Campo @relation(fields: [campoId], references: [id], onDelete: Cascade)
+
   @@index([campoId])
 }
-
 
 // ==========================================
 // 🧶 STOCK DE LANA
 // ==========================================
 
 model Esquila {
-  id                  String   @id @default(cuid())
-  fecha               DateTime
-  nroAnimales         Int
-  notas               String?
-  micras              Decimal? @db.Decimal(5, 1)
-  rendimientoLavado   Decimal? @db.Decimal(5, 2)
-  campoId             String
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
-  
-  campo               Campo              @relation(fields: [campoId], references: [id], onDelete: Cascade)
-  categorias          EsquilaCategoria[]
-  
+  id                String   @id @default(cuid())
+  fecha             DateTime
+  nroAnimales       Int
+  notas             String?
+  micras            Decimal? @db.Decimal(5, 1)
+  rendimientoLavado Decimal? @db.Decimal(5, 2)
+  campoId           String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  campo      Campo              @relation(fields: [campoId], references: [id], onDelete: Cascade)
+  categorias EsquilaCategoria[]
+
   @@index([campoId])
   @@index([fecha])
 }
 
 model EsquilaCategoria {
-  id              String   @id @default(cuid())
-  esquilaId       String
-  categoria       String
-  pesoKg          Decimal  @db.Decimal(10, 2)
-  precioUSD       Decimal  @db.Decimal(10, 2)
-  pesoVendido     Decimal  @default(0) @db.Decimal(10, 2)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  
-  esquila         Esquila  @relation(fields: [esquilaId], references: [id], onDelete: Cascade)
-  
+  id          String   @id @default(cuid())
+  esquilaId   String
+  categoria   String
+  pesoKg      Decimal  @db.Decimal(10, 2)
+  precioUSD   Decimal  @db.Decimal(10, 2)
+  pesoVendido Decimal  @default(0) @db.Decimal(10, 2)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  esquila Esquila @relation(fields: [esquilaId], references: [id], onDelete: Cascade)
+
   @@index([esquilaId])
   @@index([categoria])
 }
-
 
 // ==========================================
 // 🌾 SERVICIOS DE VENTAS DE GRANOS
@@ -1117,52 +1057,51 @@ model EsquilaCategoria {
 model VentaGranoServicio {
   id         String   @id @default(cuid())
   ventaId    String
-  concepto   String   // "Secado", "Flete", "Prelimpeza", "DAP-Flete", etc.
+  concepto   String // "Secado", "Flete", "Prelimpeza", "DAP-Flete", etc.
   importeUSD Decimal  @db.Decimal(10, 2)
   createdAt  DateTime @default(now())
-  
-  venta      Venta    @relation(fields: [ventaId], references: [id], onDelete: Cascade)
-  
+
+  venta Venta @relation(fields: [ventaId], references: [id], onDelete: Cascade)
+
   @@index([ventaId])
 }
 
 model ServicioGrano {
-  id              String   @id @default(cuid())
-  ventaId         String
-  cultivo         String
-  loteId          String
-  loteNombre      String
-  hectareas       Float
-  toneladas       Float
-  precioTonelada  Float
-  precioTotalUSD  Float
-  createdAt       DateTime @default(now())
+  id             String   @id @default(cuid())
+  ventaId        String
+  cultivo        String
+  loteId         String
+  loteNombre     String
+  hectareas      Float
+  toneladas      Float
+  precioTonelada Float
+  precioTotalUSD Float
+  createdAt      DateTime @default(now())
 
-  venta           Venta    @relation(fields: [ventaId], references: [id], onDelete: Cascade)
+  venta Venta @relation(fields: [ventaId], references: [id], onDelete: Cascade)
 
   @@index([ventaId])
   @@index([loteId])
 }
-
 
 // ==========================================
 // 🤖 CONSUMO DE IA
 // ==========================================
 
 model AIUsage {
-  id            String   @id @default(cuid())
-  userId        String
-  provider      String   // "OPENAI" | "CLAUDE"
-  model         String   // "gpt-4o", "claude-3-sonnet", etc.
-  feature       String   // "FACTURA_PARSER", "BOT_RESPONSE", "VENTA_PARSER", etc.
-  inputTokens   Int
-  outputTokens  Int
-  totalTokens   Int
-  costUSD       Float?   // Costo estimado en USD
-  metadata      Json?    // Info adicional (ej: campoId, tipo de documento)
-  createdAt     DateTime @default(now())
+  id           String   @id @default(cuid())
+  userId       String
+  provider     String // "OPENAI" | "CLAUDE"
+  model        String // "gpt-4o", "claude-3-sonnet", etc.
+  feature      String // "FACTURA_PARSER", "BOT_RESPONSE", "VENTA_PARSER", etc.
+  inputTokens  Int
+  outputTokens Int
+  totalTokens  Int
+  costUSD      Float? // Costo estimado en USD
+  metadata     Json? // Info adicional (ej: campoId, tipo de documento)
+  createdAt    DateTime @default(now())
 
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([provider])
@@ -1170,26 +1109,25 @@ model AIUsage {
   @@index([createdAt])
 }
 
-
 // ==========================================
 // 💬 MENSAJES DEL BOT WHATSAPP
 // ==========================================
 
 model BotMessage {
-  id            String   @id @default(cuid())
-  waId          String   // WhatsApp ID del usuario
-  telefono      String
-  direction     String   // "INBOUND" | "OUTBOUND"
-  messageType   String   // "TEXT", "IMAGE", "DOCUMENT", "AUDIO", etc.
-  content       String?  @db.Text // Contenido del mensaje
-  mediaUrl      String?  // URL de media si aplica
-  status        String?  // "SENT", "DELIVERED", "READ", "FAILED"
-  errorCode     String?  // Código de error si falló
-  errorMessage  String?  // Mensaje de error
-  responseTime  Int?     // Tiempo de respuesta en ms (para outbound)
-  aiTokensUsed  Int?     // Tokens de IA usados para esta respuesta
-  metadata      Json?    // Info adicional
-  createdAt     DateTime @default(now())
+  id           String   @id @default(cuid())
+  waId         String // WhatsApp ID del usuario
+  telefono     String
+  direction    String // "INBOUND" | "OUTBOUND"
+  messageType  String // "TEXT", "IMAGE", "DOCUMENT", "AUDIO", etc.
+  content      String?  @db.Text // Contenido del mensaje
+  mediaUrl     String? // URL de media si aplica
+  status       String? // "SENT", "DELIVERED", "READ", "FAILED"
+  errorCode    String? // Código de error si falló
+  errorMessage String? // Mensaje de error
+  responseTime Int? // Tiempo de respuesta en ms (para outbound)
+  aiTokensUsed Int? // Tokens de IA usados para esta respuesta
+  metadata     Json? // Info adicional
+  createdAt    DateTime @default(now())
 
   @@index([waId])
   @@index([telefono])
@@ -1198,27 +1136,162 @@ model BotMessage {
   @@index([status])
 }
 
-
 // ==========================================
 // 📝 LOGS DE ACTIVIDAD (ADMIN)
 // ==========================================
 
 model ActivityLog {
-  id          String   @id @default(cuid())
-  userId      String?
-  campoId     String?
-  action      String   // "LOGIN", "CREATE_VENTA", "DELETE_GASTO", "IMPERSONATE", etc.
-  entity      String?  // "Venta", "Gasto", "Evento", etc.
-  entityId    String?  // ID del objeto afectado
-  details     Json?    // Detalles adicionales
-  ipAddress   String?
-  userAgent   String?
-  createdAt   DateTime @default(now())
+  id        String   @id @default(cuid())
+  userId    String?
+  campoId   String?
+  action    String // "LOGIN", "CREATE_VENTA", "DELETE_GASTO", "IMPERSONATE", etc.
+  entity    String? // "Venta", "Gasto", "Evento", etc.
+  entityId  String? // ID del objeto afectado
+  details   Json? // Detalles adicionales
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
 
-  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([userId])
   @@index([campoId])
   @@index([action])
+  @@index([createdAt])
+}
+
+// ==========================================
+// 🛰️ IMÁGENES NDVI (Cache de imágenes satelitales)
+// ==========================================
+
+model NDVIImage {
+  id         String   @id @default(cuid())
+  loteId     String
+  imagenUrl  String // URL pública en Supabase Storage
+  imagenDate DateTime // Fecha de la imagen satelital
+  scale      String   @default("dynamic") // "fixed" o "dynamic"
+  minNdvi    Float?
+  maxNdvi    Float?
+  avgNdvi    Float?
+  cloudIndex Float? // Índice de nubosidad
+  bbox       Json? // Bounding box [west, south, east, north]
+  width      Int?
+  height     Int?
+  fileSize   Int? // Tamaño en bytes
+  source     String   @default("Sentinel-2") // Fuente de datos
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  lote Lote @relation(fields: [loteId], references: [id], onDelete: Cascade)
+
+  @@index([loteId])
+  @@index([imagenDate])
+  @@index([loteId, scale])
+}
+
+// ==========================================
+// 🏔️ ALTIMETRÍA (Cache de datos de elevación)
+// ==========================================
+
+model AltimetriaImage {
+  id        String @id @default(cuid())
+  loteId    String @unique // Un registro por lote (no cambia)
+
+  // 📊 Estadísticas de elevación
+  elevacionMin      Float // Metros sobre nivel del mar
+  elevacionMax      Float
+  elevacionPromedio Float
+  rangoElevacion    Float // max - min
+
+  // 📐 Estadísticas de pendiente
+  pendientePromedio Float? // En grados
+  pendienteMax      Float?
+
+  // 🖼️ URLs en Supabase Storage
+  heatmapUrl   String? // PNG del mapa de elevación
+  slopeUrl     String? // PNG del mapa de pendientes
+  aspectUrl    String? // PNG del mapa de drenaje/aspecto
+
+  // 📍 Curvas de nivel (GeoJSON)
+  curvasNivel Json? // Array de LineString con propiedad elevation
+
+  // 📦 Metadata
+  bbox           Json?  // Bounding box [west, south, east, north]
+  width          Int?
+  height         Int?
+  resolucionM    Float  @default(30) // Resolución en metros
+  fuente         String @default("Copernicus GLO-30")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  lote Lote @relation(fields: [loteId], references: [id], onDelete: Cascade)
+
+  @@index([loteId])
+}
+
+// ==========================================
+// 🚨 LOGS DE ERRORES (Para monitoreo de clientes)
+// ==========================================
+
+model ErrorLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  campoId   String?
+
+  // 📍 Contexto del error
+  source    String   // "WEB", "WHATSAPP", "API", "CRON"
+  level     String   @default("ERROR") // "ERROR", "WARNING", "CRITICAL"
+
+  // 📝 Detalles del error
+  message   String   // Mensaje de error principal
+  stack     String?  // Stack trace si existe
+  context   Json?    // Datos adicionales (página, acción, etc.)
+
+  // 🔧 Metadata técnica
+  userAgent String?
+  url       String?  // URL donde ocurrió (para web)
+
+  // 📧 Estado de notificación
+  emailSent Boolean  @default(false)
+  resolved  Boolean  @default(false)
+  resolvedAt DateTime?
+  resolvedBy String?  // ID del admin que lo resolvió
+  notes     String?   // Notas del admin
+
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([campoId])
+  @@index([source])
+  @@index([level])
+  @@index([resolved])
+  @@index([createdAt])
+}
+
+// ==========================================
+// 📊 IMPORTACIONES DE GASTOS
+// ==========================================
+
+model ImportacionGastos {
+  id               String   @id @default(cuid())
+  campoId          String
+  usuarioId        String
+  nombreArchivo    String
+  totalFilas       Int
+  filasImportadas  Int
+  filasConError    Int
+  errores          Json?    // Array de errores por fila
+  estado           String   @default("COMPLETADA") // COMPLETADA, REVERTIDA
+  createdAt        DateTime @default(now())
+
+  campo   Campo @relation(fields: [campoId], references: [id], onDelete: Cascade)
+  usuario User  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  gastos  Gasto[]
+
+  @@index([campoId])
+  @@index([usuarioId])
   @@index([createdAt])
 }

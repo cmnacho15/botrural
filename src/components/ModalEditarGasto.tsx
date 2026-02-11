@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { METODOS_PAGO } from '@/lib/constants'
 import { esCategoriaVariable, ESPECIES_VALIDAS } from '@/lib/costos/categoriasCostos'
+import { toast } from '@/app/components/Toast'
 
 type ModalEditarGastoProps = {
   gasto: {
@@ -166,12 +167,12 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
 
       if (!res.ok) throw new Error('Error al marcar como pagado')
 
-      alert('✅ Gasto marcado como pagado')
+      toast.success('✅ Gasto marcado como pagado')
       onSuccess()
       onClose()
     } catch (err) {
       console.error(err)
-      alert('❌ Error al marcar como pagado')
+      toast.error('❌ Error al marcar como pagado')
     } finally {
       setLoading(false)
     }
@@ -182,23 +183,23 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
     e.preventDefault()
 
     if (!item.trim() || precioBase <= 0) {
-      alert('❌ Completá el nombre del ítem y un precio válido')
+      toast.error('❌ Completá el nombre del ítem y un precio válido')
       return
     }
 
     // ✅ VALIDACIÓN: Variables requieren especie
     if (esVariable && !especie) {
-      alert(`❌ Este gasto es un costo variable y requiere que asignes una especie (Vacunos/Ovinos/Equinos)`)
+      toast.error(`❌ Este gasto es un costo variable y requiere que asignes una especie (Vacunos/Ovinos/Equinos)`)
       return
     }
 
     if (metodoPago === 'Plazo' && diasPlazo < 1) {
-      alert('❌ Ingresá una cantidad de días válida para pago a plazo')
+      toast.error('❌ Ingresá una cantidad de días válida para pago a plazo')
       return
     }
 
     if (moneda === 'USD' && !tasaCambio) {
-      alert('❌ No se pudo obtener la tasa de cambio')
+      toast.error('❌ No se pudo obtener la tasa de cambio')
       return
     }
 
@@ -246,12 +247,12 @@ export default function ModalEditarGasto({ gasto, onClose, onSuccess }: ModalEdi
 
       if (!response.ok) throw new Error('Error al actualizar')
 
-      alert('✅ Gasto actualizado correctamente')
+      toast.success('✅ Gasto actualizado correctamente')
       onSuccess()
       onClose()
     } catch (error) {
       console.error('Error:', error)
-      alert('❌ Error al actualizar el gasto')
+      toast.error('❌ Error al actualizar el gasto')
     } finally {
       setLoading(false)
     }

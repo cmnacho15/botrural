@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react'
 import useSWR from 'swr'
 import ModalConsumo from '@/app/components/modales/ModalConsumo'
 import ModalEsquila from '@/app/components/modales/ModalEsquila'
+import { toast } from '@/app/components/Toast'
 
 // ============================================
 // TIPOS - CONSUMO
@@ -105,7 +106,7 @@ const [lanaAbierto, setLanaAbierto] = useState(false)
       setConsumos(consumosConFecha)
     } catch (error) {
       console.error('Error al cargar consumos:', error)
-      alert('Error al cargar los consumos')
+      toast.error('Error al cargar los consumos')
     } finally {
       setLoadingConsumos(false)
     }
@@ -156,7 +157,7 @@ const [lanaAbierto, setLanaAbierto] = useState(false)
       await cargarConsumos()
     } catch (error) {
       console.error('Error:', error)
-      alert('Error al actualizar el consumo')
+      toast.error('Error al actualizar el consumo')
     }
   }
 
@@ -173,7 +174,7 @@ const [lanaAbierto, setLanaAbierto] = useState(false)
       await cargarConsumos()
     } catch (error) {
       console.error('Error:', error)
-      alert('Error al eliminar el consumo')
+      toast.error('Error al eliminar el consumo')
     }
   }
 
@@ -196,7 +197,7 @@ const [lanaAbierto, setLanaAbierto] = useState(false)
       await cargarConsumos()
     } catch (error) {
       console.error('Error:', error)
-      alert('Error al eliminar la categoría')
+      toast.error('Error al eliminar la categoría')
     }
   }
 
@@ -274,7 +275,7 @@ const [lanaAbierto, setLanaAbierto] = useState(false)
   
   const handleEliminarEsquila = async (esquilaId: string, porcentaje: number) => {
     if (porcentaje < 100) {
-      alert('No podés eliminar una esquila que tiene ventas asociadas')
+      toast.info('No podés eliminar una esquila que tiene ventas asociadas')
       return
     }
 
@@ -293,9 +294,9 @@ const [lanaAbierto, setLanaAbierto] = useState(false)
       }
 
       mutateEsquilas()
-      alert('Esquila eliminada correctamente')
+      toast.success('Esquila eliminada correctamente')
     } catch (error: any) {
-      alert(error.message || 'Error al eliminar esquila')
+      toast.error(error.message || 'Error al eliminar esquila')
     }
   }
 

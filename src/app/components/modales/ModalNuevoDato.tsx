@@ -79,8 +79,8 @@ export default function ModalNuevoDato({
   }
 
   return (
-    <div className="fixed inset-0 backdrop-blur-md bg-white/30 flex items-center justify-center z-[60] p-4">
-      <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 backdrop-blur-md bg-black/30 sm:bg-white/30 flex items-end sm:items-center justify-center z-[60] sm:p-4" style={{ colorScheme: 'light' }}>
+      <div className="bg-white rounded-t-2xl sm:rounded-xl shadow-2xl max-w-2xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto text-gray-900 [&_input]:bg-white [&_select]:bg-white [&_textarea]:bg-white" style={{ colorScheme: 'light' }}>
         {tipo === 'lluvia' && <ModalLluvia onClose={onClose} onSuccess={handleSuccess} />}
         {tipo === 'helada' && <ModalHelada onClose={onClose} onSuccess={handleSuccess} />}
         {tipo === 'gasto' && <ModalGasto onClose={onClose} onSuccess={handleSuccess} />}

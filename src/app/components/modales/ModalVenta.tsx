@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { obtenerFechaLocal } from '@/lib/fechas'
+import { toast } from '@/app/components/Toast'
 
 type ModalVentaProps = {
   onClose: () => void
@@ -330,12 +331,12 @@ export default function ModalVenta({ onClose, onSuccess }: ModalVentaProps) {
 
   const validarPaso1 = () => {
     if (!fecha || !comprador.trim()) {
-      alert('Completá fecha y comprador')
+      toast.error('Completá fecha y comprador')
       return false
     }
 
     if (metodoPago === 'Plazo' && diasPlazo < 1) {
-      alert('Ingresá los días de plazo')
+      toast.error('Ingresá los días de plazo')
       return false
     }
 
@@ -345,7 +346,7 @@ export default function ModalVenta({ onClose, onSuccess }: ModalVentaProps) {
   const validarPaso2 = () => {
     if (tipoVenta === 'GANADO') {
       if (renglones.some(r => !r.categoria || r.cantidad <= 0 || r.precioKg <= 0 || r.pesoPromedio <= 0)) {
-        alert('Completá todos los renglones con valores válidos')
+        toast.error('Completá todos los renglones con valores válidos')
         return false
       }
 
@@ -359,7 +360,7 @@ export default function ModalVenta({ onClose, onSuccess }: ModalVentaProps) {
           if (potrero) {
             const animalLote = potrero.animalesLote.find((a: any) => a.id === renglon.animalLoteId)
             if (animalLote && animalLote.cantidad < renglon.cantidad) {
-              alert(`Stock insuficiente en ${potrero.nombre}. Disponible: ${animalLote.cantidad}, Necesario: ${renglon.cantidad}`)
+              toast.error(`Stock insuficiente en ${potrero.nombre}. Disponible: ${animalLote.cantidad}, Necesario: ${renglon.cantidad}`)
               return false
             }
           }
@@ -371,13 +372,13 @@ export default function ModalVenta({ onClose, onSuccess }: ModalVentaProps) {
 
     if (tipoVenta === 'LANA') {
       if (renglonesLana.some(r => !r.categoriaLana || r.pesoKg <= 0 || r.precioKgUSD <= 0)) {
-        alert('Completá todos los renglones de lana con valores válidos')
+        toast.error('Completá todos los renglones de lana con valores válidos')
         return false
       }
 
       // Validar gastos si existen
       if (gastosLana.length > 0 && gastosLana.some(g => !g.concepto.trim())) {
-        alert('Completá el concepto de todos los gastos')
+        toast.error('Completá el concepto de todos los gastos')
         return false
       }
 
@@ -467,22 +468,22 @@ export default function ModalVenta({ onClose, onSuccess }: ModalVentaProps) {
       onClose()
     } catch (error: any) {
       console.error('Error:', error)
-      alert(error.message || 'Error al crear la venta')
+      toast.error(error.message || 'Error al crear la venta')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="p-6 max-h-[90vh] overflow-y-auto">
+    <div className="p-4 sm:p-6">
       {/* HEADER */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-2xl">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-blue-100 flex items-center justify-center text-2xl">
             🐄
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">Nueva Venta</h2>
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Nueva Venta</h2>
             <p className="text-sm text-gray-600">
               {paso === 1 ? 'Paso 1: Datos generales' : 'Paso 2: Detalle de venta'}
             </p>

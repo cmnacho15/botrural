@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { obtenerFechaLocal } from '@/lib/fechas'
+import { toast } from '@/app/components/Toast'
 type ModalHeladaProps = {
   onClose: () => void
   onSuccess: () => void
@@ -34,20 +35,20 @@ export default function ModalHelada({ onClose, onSuccess }: ModalHeladaProps) {
       onSuccess()
       onClose()
     } catch {
-      alert('Error al guardar la helada')
+      toast.error('Error al guardar la helada')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <form onSubmit={handleSubmit} className="p-6">
+    <form onSubmit={handleSubmit} className="p-4 sm:p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full bg-cyan-100 flex items-center justify-center text-2xl">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-cyan-100 flex items-center justify-center text-2xl">
             ❄️
           </div>
-          <h2 className="text-2xl font-bold text-gray-900">Registrar Helada</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Registrar Helada</h2>
         </div>
         <button onClick={onClose} type="button" className="text-gray-400 hover:text-gray-600 text-2xl leading-none">
           ✕

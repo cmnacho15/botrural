@@ -7,9 +7,10 @@ import { Rocket } from 'lucide-react'
 
 interface OnboardingIndicatorProps {
   variant?: 'default' | 'compact'
+  onClick?: () => void
 }
 
-function OnboardingIndicator({ variant = 'default' }: OnboardingIndicatorProps) {
+function OnboardingIndicator({ variant = 'default', onClick }: OnboardingIndicatorProps) {
   const { totalCompletados, porcentaje, isLoading } = useOnboardingProgress()
 
   // No mostrar nada mientras carga o si ya completó los 3 pasos
@@ -23,6 +24,7 @@ if (variant === 'compact') {
     <Link
       href="/dashboard/como-empezar"
       className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg text-sm bg-amber-50 hover:bg-amber-100 border border-amber-200 transition-colors group relative"
+      onClick={onClick}
     >
       {/* Dot animado */}
       <span className="absolute left-1.5 top-1/2 -translate-y-1/2 flex h-2 w-2">

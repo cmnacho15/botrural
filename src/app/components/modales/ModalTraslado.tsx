@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { obtenerFechaLocal } from '@/lib/fechas'
+import { toast } from '@/app/components/Toast'
 
 type ModalTrasladoProps = {
   onClose: () => void
@@ -119,7 +120,7 @@ if (resPot.ok) {
         setAnimalesDisponibles(data)
         setAnimalesAMover([{ id: '1', tipoAnimal: 'BOVINO', categoria: '', cantidad: '', cantidadMaxima: 0, pesoPromedio: '', precioKgUSD: '' }])
       })
-      .catch(() => alert('Error al cargar animales'))
+      .catch(() => toast.error('Error al cargar animales'))
       .finally(() => setLoadingAnimales(false))
   }, [potreroOrigenId])
 
@@ -140,7 +141,7 @@ if (resPot.ok) {
     setTieneModulosDestino(hayModulos)
     setPotreroDestinoId('')
   })
-      .catch(() => alert('Error al cargar potreros del campo destino'))
+      .catch(() => toast.error('Error al cargar potreros del campo destino'))
       .finally(() => setLoadingPotreros(false))
   }, [campoDestinoId])
 
@@ -180,7 +181,7 @@ if (resPot.ok) {
 
   const validarPaso1 = () => {
     if (!potreroOrigenId) {
-      alert('Seleccioná un potrero de origen')
+      toast.error('Seleccioná un potrero de origen')
       return false
     }
 
@@ -189,14 +190,14 @@ if (resPot.ok) {
     )
 
     if (animalesValidos.length === 0) {
-      alert('Debe seleccionar al menos una categoría con cantidad')
+      toast.error('Debe seleccionar al menos una categoría con cantidad')
       return false
     }
 
     for (const animal of animalesValidos) {
       const cantidad = parseInt(animal.cantidad)
       if (cantidad <= 0 || cantidad > animal.cantidadMaxima) {
-        alert(`La cantidad de ${animal.categoria} debe estar entre 1 y ${animal.cantidadMaxima}`)
+        toast.error(`La cantidad de ${animal.categoria} debe estar entre 1 y ${animal.cantidadMaxima}`)
         return false
       }
     }
@@ -206,12 +207,12 @@ if (resPot.ok) {
 
   const validarPaso2 = () => {
     if (!campoDestinoId) {
-      alert('Seleccioná un campo de destino')
+      toast.error('Seleccioná un campo de destino')
       return false
     }
 
     if (!potreroDestinoId) {
-      alert('Seleccioná un potrero de destino')
+      toast.error('Seleccioná un potrero de destino')
       return false
     }
 
@@ -257,7 +258,7 @@ if (resPot.ok) {
       onSuccess()
       onClose()
     } catch (error: any) {
-      alert(error.message || 'Error al crear traslado')
+      toast.error(error.message || 'Error al crear traslado')
     } finally {
       setLoading(false)
     }
@@ -268,15 +269,15 @@ if (resPot.ok) {
   )
 
   return (
-    <div className="p-6 max-h-[90vh] overflow-y-auto">
+    <div className="p-4 sm:p-6">
       {/* HEADER */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center text-2xl">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-indigo-100 flex items-center justify-center text-2xl">
             🚚
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">Traslado Entre Campos</h2>
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Traslado Entre Campos</h2>
             <p className="text-sm text-gray-600">
               {paso === 1 ? 'Paso 1: Origen y animales' : 'Paso 2: Campo destino'}
             </p>

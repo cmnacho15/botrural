@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { obtenerFechaLocal } from '@/lib/fechas'
+import { toast } from '@/app/components/Toast'
 
 type ModalTactoProps = {
   onClose: () => void
@@ -46,7 +47,7 @@ export default function ModalTacto({ onClose, onSuccess }: ModalTactoProps) {
         const hayModulos = data.some((l: Lote) => l.moduloPastoreoId !== null)
         setTieneModulos(hayModulos)
       })
-      .catch(() => alert('Error al cargar potreros'))
+      .catch(() => toast.error('Error al cargar potreros'))
   }, [])
 
   // Cargar rodeos y configuración
@@ -81,7 +82,7 @@ export default function ModalTacto({ onClose, onSuccess }: ModalTactoProps) {
     e.preventDefault()
 
     if (!potreroSeleccionado) {
-      alert('Debe seleccionar un potrero')
+      toast.error('Debe seleccionar un potrero')
       return
     }
 
@@ -89,18 +90,18 @@ export default function ModalTacto({ onClose, onSuccess }: ModalTactoProps) {
     const preñados = parseInt(animalesPreñados)
 
     if (!tactados || tactados <= 0) {
-      alert('Debe ingresar la cantidad de animales tactados')
+      toast.error('Debe ingresar la cantidad de animales tactados')
       return
     }
 
     if (preñados < 0 || preñados > tactados) {
-      alert('La cantidad de animales preñados no puede ser mayor a los tactados')
+      toast.error('La cantidad de animales preñados no puede ser mayor a los tactados')
       return
     }
 
     // VALIDAR RODEO OBLIGATORIO
     if (modoRodeo === 'OBLIGATORIO' && !rodeoId) {
-      alert('Seleccioná un rodeo')
+      toast.error('Seleccioná un rodeo')
       return
     }
 
@@ -134,20 +135,20 @@ const response = await fetch('/api/eventos', {
       onSuccess()
       onClose()
     } catch (error) {
-      alert(error instanceof Error ? error.message : 'Error al registrar tacto')
+      toast.error(error instanceof Error ? error.message : 'Error al registrar tacto')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <form onSubmit={handleSubmit} className="p-6">
+    <form onSubmit={handleSubmit} className="p-4 sm:p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-2xl">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-blue-100 flex items-center justify-center text-2xl">
             ✋
           </div>
-          <h2 className="text-2xl font-bold text-gray-900">Tacto</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Tacto</h2>
         </div>
         <button
           onClick={onClose}

@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from 'react'
 import { obtenerFechaLocal } from '@/lib/fechas'
+import { toast } from '@/app/components/Toast'
 
 type ModalPulverizacionProps = {
   onClose: () => void
@@ -19,6 +20,7 @@ type Lote = {
   nombre: string
   moduloPastoreoId: string | null
   moduloPastoreo?: Modulo | null
+  cultivos?: any[]
 }
 
 type Cultivo = {
@@ -61,7 +63,7 @@ export default function ModalPulverizacion({ onClose, onSuccess }: ModalPulveriz
       const hayModulos = data.some((l: Lote) => l.moduloPastoreoId !== null)
       setTieneModulos(hayModulos)
     })
-    .catch(() => alert('Error al cargar potreros'))
+    .catch(() => toast.error('Error al cargar potreros'))
 }, [])
 
   // Cargar cultivos cuando se selecciona potrero
@@ -81,7 +83,7 @@ export default function ModalPulverizacion({ onClose, onSuccess }: ModalPulveriz
         setLoadingCultivos(false)
       })
       .catch(() => {
-        alert('Error al cargar cultivos')
+        toast.error('Error al cargar cultivos')
         setLoadingCultivos(false)
       })
   }, [potreroSeleccionado])
@@ -140,7 +142,7 @@ export default function ModalPulverizacion({ onClose, onSuccess }: ModalPulveriz
     )
 
     if (productosValidos.length === 0) {
-      alert('Debe agregar al menos un producto con nombre y dosis')
+      toast.error('Debe agregar al menos un producto con nombre y dosis')
       return
     }
 
@@ -196,20 +198,20 @@ if (hectareas) {
       onSuccess()
       onClose()
     } catch (error) {
-      alert(error instanceof Error ? error.message : 'Error al registrar pulverización')
+      toast.error(error instanceof Error ? error.message : 'Error al registrar pulverización')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <form onSubmit={handleSubmit} className="p-6">
+    <form onSubmit={handleSubmit} className="p-4 sm:p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full bg-cyan-100 flex items-center justify-center text-2xl">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-cyan-100 flex items-center justify-center text-2xl">
             💦
           </div>
-          <h2 className="text-2xl font-bold text-gray-900">Pulverización</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Pulverización</h2>
         </div>
         <button
           onClick={onClose}
@@ -260,19 +262,35 @@ if (hectareas) {
       }, {} as Record<string, Lote[]>)
     ).map(([moduloNombre, lotes]) => (
       <optgroup key={moduloNombre} label={moduloNombre}>
-        {lotes.map((lote) => (
-          <option key={lote.id} value={lote.id}>
-            {lote.nombre}
-          </option>
-        ))}
+        {lotes.map((lote) => {
+          const resumen = lote.cultivos && lote.cultivos.length > 0
+            ? lote.cultivos
+                .map((c: any) => `${c.tipoCultivo} ${c.hectareas}ha`)
+                .join(', ')
+            : 'Sin cultivos'
+
+          return (
+            <option key={lote.id} value={lote.id}>
+              {lote.nombre} ({resumen})
+            </option>
+          )
+        })}
       </optgroup>
     ))
   ) : (
-    potreros.map((lote) => (
-      <option key={lote.id} value={lote.id}>
-        {lote.nombre}
-      </option>
-    ))
+    potreros.map((lote) => {
+      const resumen = lote.cultivos && lote.cultivos.length > 0
+        ? lote.cultivos
+            .map((c: any) => `${c.tipoCultivo} ${c.hectareas}ha`)
+            .join(', ')
+        : 'Sin cultivos'
+
+      return (
+        <option key={lote.id} value={lote.id}>
+          {lote.nombre} ({resumen})
+        </option>
+      )
+    })
   )}
 </select>
           {errorPotrero && (

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { X } from "lucide-react";
 import { obtenerFechaLocal } from '@/lib/fechas'
+import { toast } from '@/app/components/Toast'
 
 interface Modulo {
   id: string;
@@ -180,18 +181,18 @@ useEffect(() => {
     e.preventDefault();
 
     if (!loteId || !categoria || !categoriaNueva || !cantidad) {
-      alert("Por favor complete todos los campos obligatorios");
+      toast.error("Por favor complete todos los campos obligatorios");
       return;
     }
 
     if (categoria === categoriaNueva) {
-      alert("La categoría nueva debe ser diferente a la actual");
+      toast.error("La categoría nueva debe ser diferente a la actual");
       return;
     }
 
     const cantidadNum = parseInt(cantidad);
     if (cantidadNum <= 0 || cantidadNum > cantidadMaxima) {
-      alert(`La cantidad debe ser entre 1 y ${cantidadMaxima}`);
+      toast.error(`La cantidad debe ser entre 1 y ${cantidadMaxima}`);
       return;
     }
 

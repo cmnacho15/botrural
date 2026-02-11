@@ -40,6 +40,10 @@ import {
   handlePagoButtonResponse,
   handlePagoTextResponse,
 } from "@/lib/whatsapp"
+import { esConsultaConversacional, handleIAConversacional } from "@/lib/whatsapp/handlers/iaConversacionalHandler"
+import { handleAgricultura, confirmarAgricultura, cancelarAgricultura } from "@/lib/whatsapp/handlers/agriculturaHandler"
+import { handleInsumos, confirmarInsumos, cancelarInsumos } from "@/lib/whatsapp/handlers/insumosHandler"
+import { logWhatsAppError } from "@/lib/error-logger"
 
 /**
  * Procesa un mensaje de WhatsApp
@@ -51,14 +55,28 @@ export async function processWhatsAppMessage(
   messageType: string
 ): Promise<{ status: string }> {
 
-  // ==========================================
-  // 1. PROCESAR IMÁGENES (facturas)
-  // ==========================================
-  if (messageType === "image") {
-    console.log("DETECTADO messageType === image")
-    await handleImageMessage(message, from)
-    return { status: "image processed" }
-  }
+  // Obtener info del usuario para logging
+  let userContext: { userId?: string; campoId?: string; telefono: string } = { telefono: from }
+
+  try {
+    const userForLogging = await prisma.user.findUnique({
+      where: { telefono: from },
+      select: { id: true, campoId: true }
+    })
+    if (userForLogging) {
+      userContext = { userId: userForLogging.id, campoId: userForLogging.campoId || undefined, telefono: from }
+    }
+  } catch {}
+
+  try {
+    // ==========================================
+    // 1. PROCESAR IMÁGENES (facturas)
+    // ==========================================
+    if (messageType === "image") {
+      console.log("DETECTADO messageType === image")
+      await handleImageMessage(message, from)
+      return { status: "image processed" }
+    }
 
   // ==========================================
   // 2. EXTRAER TEXTO DEL MENSAJE
@@ -103,6 +121,24 @@ export async function processWhatsAppMessage(
       if (messageText.startsWith("pago_")) {
         await handlePagoButtonResponse(from, messageText)
         return { status: "pago button processed" }
+      }
+
+      if (messageText.startsWith("agri_")) {
+        if (messageText === "agri_confirm") {
+          await confirmarAgricultura(from)
+        } else {
+          await cancelarAgricultura(from)
+        }
+        return { status: "agricultura button processed" }
+      }
+
+      if (messageText.startsWith("insumo_")) {
+        if (messageText === "insumo_confirm") {
+          await confirmarInsumos(from)
+        } else {
+          await cancelarInsumos(from)
+        }
+        return { status: "insumos button processed" }
       }
 
       if (messageText.startsWith("campo_")) {
@@ -407,6 +443,26 @@ export async function processWhatsAppMessage(
   }
 
   // ==========================================
+  // PREGUNTAS SOBRE STOCK → PDF DE CARGA
+  // ==========================================
+  const preguntaStock = /cu[aá]ntos?\s+animales|cu[aá]ntas?\s+vacas|cu[aá]ntos?\s+tengo|stock\s+actual|carga\s+actual|reporte\s+de\s+carga|pdf\s+de\s+carga/i
+  if (preguntaStock.test(messageText)) {
+    await handleReporteCarga(from)
+    return { status: "reporte carga sent" }
+  }
+
+  // ==========================================
+  // IA CONVERSACIONAL - Preguntas sobre datos
+  // ==========================================
+  if (usuario?.campoId && esConsultaConversacional(messageText)) {
+    const campoNombre = usuario.campo?.nombre || 'tu campo'
+    const respondido = await handleIAConversacional(from, messageText, usuario.campoId, campoNombre)
+    if (respondido) {
+      return { status: "ia conversacional" }
+    }
+  }
+
+  // ==========================================
   // DETECTAR CONSULTA DE STOCK
   // ==========================================
   // Detectar formato "hay X vacas en potrero Y" primero
@@ -528,6 +584,20 @@ export async function processWhatsAppMessage(
       return { status: "calendario consulted" }
     }
 
+    // EVENTOS DE AGRICULTURA
+    const tiposAgricultura = ['SIEMBRA', 'COSECHA', 'PULVERIZACION', 'REFERTILIZACION', 'RIEGO', 'MONITOREO', 'OTROS_LABORES']
+    if (tiposAgricultura.includes(parsedData.tipo)) {
+      await handleAgricultura(from, parsedData)
+      return { status: "agricultura processed" }
+    }
+
+    // EVENTOS DE INSUMOS
+    const tiposInsumos = ['INGRESO_INSUMO', 'USO_INSUMO']
+    if (tiposInsumos.includes(parsedData.tipo)) {
+      await handleInsumos(from, parsedData)
+      return { status: "insumos processed" }
+    }
+
     // Decidir qué tipo de confirmación usar
     if (parsedData.tipo === "GASTO") {
       await solicitarConfirmacionConFlow(from, parsedData)
@@ -554,13 +624,45 @@ export async function processWhatsAppMessage(
       "• llovieron 25mm\n" +
       "• gasté $5000 en alimento\n" +
       "• moví 10 vacas del potrero norte al sur\n\n" +
+      "🌱 *Agricultura:*\n" +
+      "• sembré 50 ha de maíz en el norte\n" +
+      "• cosechamos la soja del sur\n" +
+      "• pulvericé el maíz con glifosato\n" +
+      "• regué 20mm el trigo\n\n" +
       "📅 *Calendario:*\n" +
       "• en 14 días sacar tablilla\n" +
       "• el martes vacunar\n" +
       "• calendario (ver pendientes)\n\n" +
+      "🤖 *Consultas con IA:*\n" +
+      "• ¿cuántos animales tengo?\n" +
+      "• ¿cuánto gasté este mes?\n" +
+      "• dame un resumen del campo\n\n" +
       "También podés enviarme un *audio* o una *foto de factura*\n\n" +
       `_(Escribí "cambiar campo" si querés trabajar en otro campo)_`
   )
 
   return { status: "not recognized" }
+
+  } catch (error) {
+    // Loguear el error con contexto del usuario
+    await logWhatsAppError(
+      `Error procesando mensaje de WhatsApp: ${error instanceof Error ? error.message : 'Error desconocido'}`,
+      error,
+      {
+        ...userContext,
+        messageType,
+        messageText: message?.text?.body || message?.interactive?.button_reply?.id || '[no text]'
+      }
+    )
+
+    // Notificar al usuario que hubo un error
+    try {
+      await sendWhatsAppMessage(
+        from,
+        "❌ Hubo un error procesando tu mensaje. Ya fue registrado y lo vamos a revisar. Por favor intentá de nuevo."
+      )
+    } catch {}
+
+    return { status: "error" }
+  }
 }

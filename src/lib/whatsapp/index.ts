@@ -57,5 +57,19 @@ export {
   handlePagoTextResponse,
 } from './handlers/pagoHandler'
 
+// Agricultura
+export {
+  handleAgricultura,
+  confirmarAgricultura,
+  cancelarAgricultura,
+} from './handlers/agriculturaHandler'
+
+// Insumos
+export {
+  handleInsumos,
+  confirmarInsumos,
+  cancelarInsumos,
+} from './handlers/insumosHandler'
+
 // Processor (para el worker)
 export { processWhatsAppMessage } from './processor'

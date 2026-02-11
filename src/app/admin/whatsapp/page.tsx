@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { toast } from '@/app/components/Toast'
 
 interface QueueStats {
   enabled: boolean
@@ -89,12 +90,12 @@ export default function WhatsAppPage() {
       const res = await fetch('/api/bot-worker', { method: 'POST' })
       if (res.ok) {
         const data = await res.json()
-        alert(`Procesados: ${data.processed} mensajes`)
+        toast.success(`Procesados: ${data.processed} mensajes`)
         await fetchQueueStats()
       }
     } catch (error) {
       console.error('Error processing queue:', error)
-      alert('Error procesando cola')
+      toast.error('Error procesando cola')
     } finally {
       setProcessing(false)
     }
@@ -109,12 +110,12 @@ export default function WhatsAppPage() {
       const res = await fetch('/api/bot-worker', { method: 'DELETE' })
       if (res.ok) {
         const data = await res.json()
-        alert(`Limpiados: ${data.cleared} mensajes`)
+        toast.success(`Limpiados: ${data.cleared} mensajes`)
         await fetchQueueStats()
       }
     } catch (error) {
       console.error('Error clearing queue:', error)
-      alert('Error limpiando cola')
+      toast.error('Error limpiando cola')
     } finally {
       setClearing(false)
     }

@@ -21,6 +21,10 @@ const NOMBRES_TIPO: Record<string, string> = {
   OBSERVACION: 'Observaciones',
   HELADA: 'Heladas',
   CAMBIO_POTRERO: 'Cambios de Potrero',
+  // Gastos/Ingresos (tabla Gasto)
+  GASTO: 'Gastos',
+  INGRESO: 'Ingresos',
+  FINANZAS: 'Gastos e Ingresos',
 }
 
 const ICONOS: Record<string, string> = {
@@ -38,6 +42,10 @@ const ICONOS: Record<string, string> = {
   OBSERVACION: '📸',
   HELADA: '❄️',
   CAMBIO_POTRERO: '🔄',
+  // Gastos/Ingresos
+  GASTO: '💸',
+  INGRESO: '💵',
+  FINANZAS: '💰',
 }
 
 function getSupabaseClient() {
@@ -122,6 +130,18 @@ export async function handleConsultaDatos(phoneNumber: string, parsedData: any) 
 
     // Procesar cada tipo
     for (const tipoEvento of tipos) {
+      // Gastos/Ingresos van a tabla separada
+      if (tipoEvento === 'GASTO' || tipoEvento === 'INGRESO' || tipoEvento === 'FINANZAS') {
+        await consultarYEnviarGastos(phoneNumber, {
+          campoId: usuario.campoId,
+          campoNombre: usuario.campo?.nombre || 'Campo',
+          tipoGasto: tipoEvento,
+          fechaDesde,
+          fechaHasta,
+        })
+        continue
+      }
+
       await consultarYEnviarTipo(phoneNumber, {
         campoId: usuario.campoId,
         campoNombre: usuario.campo?.nombre || 'Campo',
@@ -238,6 +258,315 @@ async function consultarYEnviarTipo(
 
   // Enviar fotos adjuntas después del PDF
   await enviarFotosAdjuntas(phoneNumber, eventos, tipoNombre)
+}
+
+/**
+ * Consulta y envía datos de la tabla Gasto (gastos/ingresos)
+ */
+async function consultarYEnviarGastos(
+  phoneNumber: string,
+  params: {
+    campoId: string
+    campoNombre: string
+    tipoGasto: 'GASTO' | 'INGRESO' | 'FINANZAS'
+    fechaDesde?: Date
+    fechaHasta?: Date
+  }
+) {
+  const { campoId, campoNombre, tipoGasto, fechaDesde, fechaHasta } = params
+
+  // Construir query
+  const where: any = { campoId }
+
+  // Filtrar por tipo si no es FINANZAS (todos)
+  if (tipoGasto === 'GASTO') {
+    where.tipo = 'GASTO'
+  } else if (tipoGasto === 'INGRESO') {
+    where.tipo = 'INGRESO'
+  }
+
+  if (fechaDesde) {
+    where.fecha = { gte: fechaDesde }
+    if (fechaHasta) {
+      where.fecha = { gte: fechaDesde, lte: fechaHasta }
+    }
+  }
+
+  // Consultar gastos con todos los campos relevantes
+  const gastos = await prisma.gasto.findMany({
+    where,
+    orderBy: { fecha: 'desc' },
+    take: 100,
+    select: {
+      id: true,
+      tipo: true,
+      monto: true,
+      fecha: true,
+      descripcion: true,
+      categoria: true,
+      proveedor: true,
+      comprador: true,
+      metodoPago: true,
+      diasPlazo: true,
+      pagado: true,
+      fechaPago: true,
+      iva: true,
+      lote: { select: { nombre: true } },
+    }
+  })
+
+  const icono = ICONOS[tipoGasto] || '💰'
+  const tipoNombre = NOMBRES_TIPO[tipoGasto] || 'Movimientos'
+
+  if (gastos.length === 0) {
+    await sendWhatsAppMessage(
+      phoneNumber,
+      `${icono} No encontré registros de *${tipoNombre}* con esos filtros.`
+    )
+    return
+  }
+
+  // Calcular totales
+  let totalGastos = 0
+  let totalIngresos = 0
+  for (const g of gastos) {
+    if (g.tipo === 'GASTO') totalGastos += g.monto
+    else totalIngresos += g.monto
+  }
+
+  // Si son pocos registros, enviar como texto detallado
+  if (gastos.length <= 10) {
+    let mensaje = `${icono} *${tipoNombre}* (${gastos.length} registros)\n\n`
+
+    for (const g of gastos) {
+      mensaje += formatearGasto(g)
+    }
+
+    mensaje += `\n━━━━━━━━━━━━━━━━━━━━━━\n`
+    if (tipoGasto === 'FINANZAS') {
+      mensaje += `💸 Total gastos: *$${totalGastos.toLocaleString()}*\n`
+      mensaje += `💵 Total ingresos: *$${totalIngresos.toLocaleString()}*\n`
+      mensaje += `📊 Balance: *$${(totalIngresos - totalGastos).toLocaleString()}*`
+    } else if (tipoGasto === 'GASTO') {
+      mensaje += `💸 Total: *$${totalGastos.toLocaleString()}*`
+    } else {
+      mensaje += `💵 Total: *$${totalIngresos.toLocaleString()}*`
+    }
+
+    await sendWhatsAppMessage(phoneNumber, mensaje)
+    return
+  }
+
+  // Si son muchos registros, generar PDF
+  await sendWhatsAppMessage(
+    phoneNumber,
+    `${icono} Encontré *${gastos.length}* registros de ${tipoNombre}. Generando PDF...`
+  )
+
+  const pdfBuffer = await generarPDFGastos(gastos, tipoGasto, campoNombre, { totalGastos, totalIngresos })
+
+  if (!pdfBuffer) {
+    await enviarGastosComoTextoResumido(phoneNumber, gastos, tipoGasto, { totalGastos, totalIngresos })
+    return
+  }
+
+  const pdfUrl = await subirPDFaSupabase(pdfBuffer, tipoNombre)
+
+  if (!pdfUrl) {
+    await enviarGastosComoTextoResumido(phoneNumber, gastos, tipoGasto, { totalGastos, totalIngresos })
+    return
+  }
+
+  const nombreArchivo = `${tipoNombre.toLowerCase()}_${gastos.length}_registros.pdf`
+  await sendWhatsAppDocument(phoneNumber, pdfUrl, nombreArchivo, `📊 ${tipoNombre} - ${gastos.length} registros`)
+}
+
+/**
+ * Formatea un gasto/ingreso individual para envío por texto
+ */
+function formatearGasto(gasto: any): string {
+  const fecha = gasto.fecha.toLocaleDateString('es-UY', {
+    day: '2-digit',
+    month: '2-digit',
+    year: '2-digit'
+  })
+  const icono = gasto.tipo === 'GASTO' ? '💸' : '💵'
+  const monto = `$${gasto.monto.toLocaleString()}`
+  const desc = gasto.descripcion || gasto.categoria || 'Sin descripción'
+  const prov = gasto.proveedor || gasto.comprador || ''
+  const potrero = gasto.lote?.nombre ? ` 📍${gasto.lote.nombre}` : ''
+  const pagadoStr = gasto.pagado ? '' : ' ⏳PENDIENTE'
+  const metodoPago = gasto.metodoPago && gasto.metodoPago !== 'Contado' ? ` (${gasto.metodoPago})` : ''
+  const iva = gasto.iva ? ` +IVA $${gasto.iva.toLocaleString()}` : ''
+
+  let linea = `${icono} *${fecha}* - ${monto}${iva}\n`
+  linea += `   ${desc}`
+  if (prov) linea += ` | ${prov}`
+  linea += `${metodoPago}${potrero}${pagadoStr}\n\n`
+
+  return linea
+}
+
+/**
+ * Genera un PDF con los gastos/ingresos
+ */
+async function generarPDFGastos(
+  gastos: any[],
+  tipoGasto: string,
+  campoNombre: string,
+  totales: { totalGastos: number, totalIngresos: number }
+): Promise<Buffer | null> {
+  try {
+    const { jsPDF } = await import('jspdf')
+    const autoTable = (await import('jspdf-autotable')).default
+
+    const doc = new jsPDF()
+    const tipoNombre = NOMBRES_TIPO[tipoGasto] || 'Movimientos'
+
+    // Título
+    doc.setFontSize(18)
+    doc.setFont('helvetica', 'bold')
+    doc.text(`${tipoNombre}`, 14, 20)
+
+    // Subtítulo
+    doc.setFontSize(11)
+    doc.setFont('helvetica', 'normal')
+    doc.text(`${campoNombre} - ${gastos.length} registros`, 14, 28)
+
+    // Fecha de generación
+    doc.setFontSize(9)
+    doc.setTextColor(100)
+    const fechaGeneracion = new Date().toLocaleDateString('es-UY', {
+      day: '2-digit', month: '2-digit', year: 'numeric',
+      hour: '2-digit', minute: '2-digit'
+    })
+    doc.text(`Generado: ${fechaGeneracion}`, 14, 34)
+    doc.setTextColor(0)
+
+    // Totales
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'bold')
+    let totalesY = 42
+    if (tipoGasto === 'FINANZAS') {
+      doc.setTextColor(220, 38, 38)
+      doc.text(`Total Gastos: $${totales.totalGastos.toLocaleString()}`, 14, totalesY)
+      doc.setTextColor(22, 163, 74)
+      doc.text(`Total Ingresos: $${totales.totalIngresos.toLocaleString()}`, 80, totalesY)
+      const balance = totales.totalIngresos - totales.totalGastos
+      doc.setTextColor(balance >= 0 ? 22 : 220, balance >= 0 ? 163 : 38, balance >= 0 ? 74 : 38)
+      doc.text(`Balance: $${balance.toLocaleString()}`, 150, totalesY)
+      totalesY += 8
+    } else if (tipoGasto === 'GASTO') {
+      doc.setTextColor(220, 38, 38)
+      doc.text(`Total: $${totales.totalGastos.toLocaleString()}`, 14, totalesY)
+      totalesY += 8
+    } else {
+      doc.setTextColor(22, 163, 74)
+      doc.text(`Total: $${totales.totalIngresos.toLocaleString()}`, 14, totalesY)
+      totalesY += 8
+    }
+    doc.setTextColor(0)
+    doc.setFont('helvetica', 'normal')
+
+    // Preparar datos de la tabla
+    const headers = ['Fecha', 'Tipo', 'Monto', 'Descripción', 'Categoría', 'Proveedor', 'Pago', 'Estado']
+    const data = gastos.map(g => [
+      g.fecha.toLocaleDateString('es-UY', { day: '2-digit', month: '2-digit', year: '2-digit' }),
+      g.tipo === 'GASTO' ? 'Gasto' : 'Ingreso',
+      `$${g.monto.toLocaleString()}${g.iva ? ` (+${g.iva})` : ''}`,
+      (g.descripcion || '-').substring(0, 30),
+      g.categoria || '-',
+      (g.proveedor || g.comprador || '-').substring(0, 15),
+      g.metodoPago || 'Contado',
+      g.pagado ? '✓ Pagado' : '⏳ Pendiente'
+    ])
+
+    // Generar tabla
+    autoTable(doc, {
+      startY: totalesY,
+      head: [headers],
+      body: data,
+      theme: 'striped',
+      headStyles: {
+        fillColor: tipoGasto === 'INGRESO' ? [22, 163, 74] : [220, 38, 38],
+        textColor: 255,
+        fontStyle: 'bold',
+        fontSize: 8
+      },
+      bodyStyles: { fontSize: 7 },
+      alternateRowStyles: { fillColor: [245, 247, 250] },
+      columnStyles: {
+        0: { cellWidth: 18 },
+        1: { cellWidth: 14 },
+        2: { cellWidth: 22 },
+        3: { cellWidth: 40 },
+        4: { cellWidth: 25 },
+        5: { cellWidth: 25 },
+        6: { cellWidth: 18 },
+        7: { cellWidth: 20 }
+      },
+      margin: { left: 10, right: 10 },
+      didDrawPage: (data: any) => {
+        const pageCount = doc.getNumberOfPages()
+        doc.setFontSize(8)
+        doc.setTextColor(150)
+        doc.text(
+          `Página ${data.pageNumber} de ${pageCount}`,
+          doc.internal.pageSize.width / 2,
+          doc.internal.pageSize.height - 10,
+          { align: 'center' }
+        )
+      }
+    })
+
+    // Footer
+    const finalY = (doc as any).lastAutoTable.finalY + 10
+    doc.setFontSize(8)
+    doc.setTextColor(128, 128, 128)
+    doc.text('Generado por Bot Rural - botrural.vercel.app', 14, finalY > 280 ? 285 : finalY)
+
+    return Buffer.from(doc.output('arraybuffer'))
+  } catch (error) {
+    console.error('Error generando PDF de gastos:', error)
+    return null
+  }
+}
+
+/**
+ * Fallback: envía gastos como texto resumido si falla el PDF
+ */
+async function enviarGastosComoTextoResumido(
+  phoneNumber: string,
+  gastos: any[],
+  tipoGasto: string,
+  totales: { totalGastos: number, totalIngresos: number }
+) {
+  const icono = ICONOS[tipoGasto] || '💰'
+  const tipoNombre = NOMBRES_TIPO[tipoGasto] || 'Movimientos'
+
+  let mensaje = `${icono} *${tipoNombre}* (${gastos.length} registros)\n\n`
+  mensaje += `_Mostrando primeros 15:_\n\n`
+
+  for (const g of gastos.slice(0, 15)) {
+    mensaje += formatearGasto(g)
+  }
+
+  if (gastos.length > 15) {
+    mensaje += `\n_...y ${gastos.length - 15} más_\n`
+  }
+
+  mensaje += `\n━━━━━━━━━━━━━━━━━━━━━━\n`
+  if (tipoGasto === 'FINANZAS') {
+    mensaje += `💸 Total gastos: *$${totales.totalGastos.toLocaleString()}*\n`
+    mensaje += `💵 Total ingresos: *$${totales.totalIngresos.toLocaleString()}*\n`
+    mensaje += `📊 Balance: *$${(totales.totalIngresos - totales.totalGastos).toLocaleString()}*`
+  } else if (tipoGasto === 'GASTO') {
+    mensaje += `💸 Total: *$${totales.totalGastos.toLocaleString()}*`
+  } else {
+    mensaje += `💵 Total: *$${totales.totalIngresos.toLocaleString()}*`
+  }
+
+  await sendWhatsAppMessage(phoneNumber, mensaje)
 }
 
 /**
@@ -765,12 +1094,25 @@ function prepararDatosTabla(eventos: any[], tipoEvento: string): { headers: stri
 }
 
 /**
+ * Sanitiza un string para usarlo como nombre de archivo
+ */
+function sanitizarNombre(nombre: string): string {
+  return nombre
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9_-]/g, '_')
+    .replace(/_+/g, '_')
+    .toLowerCase()
+}
+
+/**
  * Sube el PDF a Supabase Storage
  */
 async function subirPDFaSupabase(pdfBuffer: Buffer, tipoNombre: string): Promise<string | null> {
   try {
     const fecha = new Date().toISOString().split('T')[0]
-    const nombreArchivo = `reportes/consulta_${tipoNombre.toLowerCase()}_${fecha}_${Date.now()}.pdf`
+    const nombreSanitizado = sanitizarNombre(tipoNombre)
+    const nombreArchivo = `reportes/consulta_${nombreSanitizado}_${fecha}_${Date.now()}.pdf`
 
     const supabase = getSupabaseClient()
     const { error } = await supabase.storage

@@ -6,6 +6,7 @@ import { useInsumos } from '@/app/contexts/InsumosContext'
 import { useSearchParams } from 'next/navigation'
 import ModalIngresoInsumos from '@/app/components/modales/ModalIngresoInsumos'
 import ModalUsoInsumos from '@/app/components/modales/ModalUsoInsumos'
+import { toast } from '@/app/components/Toast'
 
 type Lote = {
   id: string
@@ -134,11 +135,11 @@ function InsumosContent() {
         setIsReordering(false)
         setDraggedIndex(null)
       } else {
-        alert('Error al guardar el orden. Por favor intentá de nuevo.')
+        toast.error('Error al guardar el orden. Por favor intentá de nuevo.')
       }
     } catch (error) {
       console.error('Error al guardar el orden:', error)
-      alert('Error al guardar el orden. Por favor intentá de nuevo.')
+      toast.error('Error al guardar el orden. Por favor intentá de nuevo.')
     } finally {
       setLoading(false)
     }

@@ -115,7 +115,9 @@ export async function GET() {
       GASTO_PARSER: 'Parser de Gastos',
       CHAT_ASSISTANT: 'Asistente Chat',
       DOCUMENT_OCR: 'OCR Documentos',
-      DATA_ANALYSIS: 'Analisis de Datos'
+      DATA_ANALYSIS: 'Analisis de Datos',
+      IMPORTACION_GASTOS_ANALISIS: 'Importación de Gastos (Análisis)',
+      IMPORTACION_GASTOS_CLASIFICACION: 'Importación de Gastos (Clasificación)'
     }
 
     return NextResponse.json({

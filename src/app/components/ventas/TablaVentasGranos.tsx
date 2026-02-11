@@ -2,6 +2,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { toast } from '@/app/components/Toast'
 
 type TablaVentasGranosProps = {
   ventas: any[]
@@ -27,11 +28,11 @@ export default function TablaVentasGranos({ ventas, onRefresh }: TablaVentasGran
 
       if (!res.ok) throw new Error('Error al eliminar')
 
-      alert('Venta eliminada correctamente')
+      toast.success('Venta eliminada correctamente')
       onRefresh()
     } catch (error) {
       console.error('Error:', error)
-      alert('Error al eliminar la venta')
+      toast.error('Error al eliminar la venta')
     }
   }
 
@@ -440,7 +441,7 @@ function ModalAsignarLotes({ ventaId, ventas, onClose, onSuccess }: { ventaId: s
       })
       .catch(() => {
         setLoading(false)
-        alert('Error cargando lotes')
+        toast.error('Error cargando lotes')
       })
   }, [toneladasTotales])
   
@@ -512,12 +513,12 @@ function ModalAsignarLotes({ ventaId, ventas, onClose, onSuccess }: { ventaId: s
       .map(([loteId, ton]) => ({ loteId, toneladas: parseFloat(ton) }))
     
     if (asignaciones.length === 0) {
-      alert('Seleccioná al menos un lote')
+      toast.error('Seleccioná al menos un lote')
       return
     }
     
     if (Math.abs(diferencia) > 0.1) {
-      alert(`La suma no coincide. Faltan/sobran ${diferencia.toFixed(2)} toneladas`)
+      toast.error(`La suma no coincide. Faltan/sobran ${diferencia.toFixed(2)} toneladas`)
       return
     }
     
@@ -536,11 +537,11 @@ function ModalAsignarLotes({ ventaId, ventas, onClose, onSuccess }: { ventaId: s
       
       if (!response.ok) throw new Error('Error guardando')
       
-      alert('✅ Lotes asignados correctamente')
+      toast.success('✅ Lotes asignados correctamente')
       onSuccess()
       onClose()
     } catch (error) {
-      alert('❌ Error guardando')
+      toast.error('❌ Error guardando')
     } finally {
       setGuardando(false)
     }

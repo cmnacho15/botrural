@@ -3,8 +3,9 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { 
-  Calendar, 
+import { toast } from '@/app/components/Toast'
+import {
+  Calendar,
   Plus, 
   Check, 
   Trash2, 
@@ -138,7 +139,7 @@ export default function CalendarioPage() {
         cargarActividades()
       } else {
         const error = await res.json()
-        alert(error.error || "Error al crear actividad")
+        toast.error(error.error || "Error al crear actividad")
       }
     } catch (error) {
       console.error("Error creando actividad:", error)
@@ -172,7 +173,7 @@ export default function CalendarioPage() {
         setActividadSeleccionada(actividadActualizada)
       } else {
         const error = await res.json()
-        alert(error.error || "Error al actualizar actividad")
+        toast.error(error.error || "Error al actualizar actividad")
       }
     } catch (error) {
       console.error("Error actualizando actividad:", error)

@@ -140,9 +140,17 @@ export async function POST(req: Request) {
     });
 
     // 👑 Actualizar campoId del usuario al nuevo campo
+    // Preservar MEGA_ADMIN si ya lo tiene
+    const usuarioActual = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { role: true }
+    });
+
+    const nuevoRol = usuarioActual?.role === 'MEGA_ADMIN' ? 'MEGA_ADMIN' : 'ADMIN_GENERAL';
+
     await prisma.user.update({
       where: { id: session.user.id },
-      data: { campoId: campo.id, role: "ADMIN_GENERAL" },
+      data: { campoId: campo.id, role: nuevoRol },
     });
 
     console.log(`✅ Campo creado: ${campo.nombre} (asociado a ${session.user.email})`);

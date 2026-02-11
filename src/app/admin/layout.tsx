@@ -9,6 +9,7 @@ const menuItems = [
   { href: '/admin', label: 'Dashboard', icon: '📊' },
   { href: '/admin/usuarios', label: 'Usuarios', icon: '👥' },
   { href: '/admin/whatsapp', label: 'Bot WhatsApp', icon: '💬' },
+  { href: '/admin/logs', label: 'Logs de Errores', icon: '🚨' },
   { href: '/admin/ia', label: 'Consumo IA', icon: '🤖' },
   { href: '/admin/metricas', label: 'Métricas', icon: '📈' },
   { href: '/admin/features', label: 'Funcionalidades', icon: '⚙️' },

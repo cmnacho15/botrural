@@ -5,6 +5,7 @@ import { METODOS_PAGO } from '@/lib/constants'
 import { obtenerFechaLocal } from '@/lib/fechas'
 import { esCategoriaVariable, ESPECIES_VALIDAS } from '@/lib/costos/categoriasCostos'
 import { useTipoCampo } from '@/app/contexts/TipoCampoContext'
+import { toast } from '@/app/components/Toast'
 
 type ModalGastoProps = {
   onClose: () => void
@@ -306,7 +307,7 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
     e.preventDefault()
 
     if (items.some(item => !item.item || item.precio <= 0)) {
-      alert('Completá todos los ítems con nombre y precio válido')
+      toast.error('Completá todos los ítems con nombre y precio válido')
       return
     }
 
@@ -318,7 +319,7 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
     )
     
     if (itemSinEspecie) {
-      alert(`El item "${itemSinEspecie.item}" es un costo variable y requiere que asignes al menos una especie (Vacunos/Ovinos/Equinos)`)
+      toast.info(`El item "${itemSinEspecie.item}" es un costo variable y requiere que asignes al menos una especie (Vacunos/Ovinos/Equinos)`)
       return
     }
 
@@ -326,12 +327,12 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
     const tieneInsumoCultivos = esMixto && items.some(item => item.categoria === 'Insumos de Cultivos')
     
     if (tieneInsumoCultivos && cultivosSeleccionados.length === 0) {
-      alert('Debes seleccionar al menos un cultivo para "Insumos de Cultivos"')
+      toast.error('Debes seleccionar al menos un cultivo para "Insumos de Cultivos"')
       return
     }
 
     if (esPlazo && diasPlazo < 1) {
-      alert('Si es pago a plazo, ingresá una cantidad de días válida')
+      toast.error('Si es pago a plazo, ingresá una cantidad de días válida')
       return
     }
 
@@ -418,7 +419,7 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
       onClose()
     } catch (error) {
       console.error('Error:', error)
-      alert('Error al guardar los gastos')
+      toast.error('Error al guardar los gastos')
     } finally {
       setLoading(false)
     }
@@ -429,14 +430,14 @@ export default function ModalGasto({ onClose, onSuccess }: ModalGastoProps) {
   )
 
   return (
-    <form onSubmit={handleSubmit} className="p-6 max-h-[90vh] overflow-y-auto">
+    <form onSubmit={handleSubmit} className="p-4 sm:p-6">
       {/* HEADER */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center text-2xl">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-red-100 flex items-center justify-center text-2xl">
             💰
           </div>
-          <h2 className="text-2xl font-bold text-gray-900">Nuevo Gasto</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Nuevo Gasto</h2>
         </div>
         <button
           type="button"

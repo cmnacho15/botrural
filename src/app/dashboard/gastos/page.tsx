@@ -19,6 +19,8 @@ import ModalEditarGasto from '@/components/ModalEditarGasto'
 import ModalEditarIngreso from '@/components/ModalEditarIngreso'
 import { FileText } from 'lucide-react'
 import ModalFactura from '@/app/components/modales/ModalFactura'
+import ModalImportarGastos from '@/app/components/modales/ModalImportarGastos'
+import { toast } from '@/app/components/Toast'
 
 type Gasto = {
   id: string
@@ -137,6 +139,9 @@ const [mostrarMenuEstado, setMostrarMenuEstado] = useState(false)
   const [fechaInicio, setFechaInicio] = useState('')
   const [fechaFin, setFechaFin] = useState('')
   const [rangoSeleccionado, setRangoSeleccionado] = useState('Último Año')
+
+  // Estado para modal de importación
+  const [modalImportarOpen, setModalImportarOpen] = useState(false)
 
   // Datos reales
   const [gastosData, setGastosData] = useState<Gasto[]>([])
@@ -542,7 +547,7 @@ const handleCambiarCategoria = async (gastoId: string, nuevaCategoria: string, t
     setBusquedaCategoria('')
   } catch (error) {
     console.error('Error:', error)
-    alert('❌ Error al cambiar categoría')
+    toast.error('❌ Error al cambiar categoría')
   } finally {
     setLoadingInline(null)
   }
@@ -567,7 +572,7 @@ const handleCambiarEstado = async (gastoId: string, nuevoPagado: boolean, tipo: 
     setPopoverEstadoId(null)
   } catch (error) {
     console.error('Error:', error)
-    alert('❌ Error al cambiar estado')
+    toast.error('❌ Error al cambiar estado')
   } finally {
     setLoadingInline(null)
   }
@@ -595,10 +600,10 @@ const handleEditarGasto = (gasto: Gasto) => {
 
       setModalDeleteOpen(false)
       setGastoAEliminar(null)
-      alert('¡Gasto eliminado exitosamente!')
+      toast.success('¡Gasto eliminado exitosamente!')
     } catch (error) {
       console.error('Error al eliminar:', error)
-      alert('Error al eliminar el gasto')
+      toast.error('Error al eliminar el gasto')
     } finally {
       setLoadingDelete(false)
     }
@@ -693,6 +698,22 @@ const handleEditarGasto = (gasto: Gasto) => {
                 />
               </svg>
               {rangoSeleccionado}
+            </button>
+
+            {/* Botón Importar Gastos */}
+            <button
+              onClick={() => setModalImportarOpen(true)}
+              className="inline-flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-1.5 sm:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-xs sm:text-sm font-medium transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                />
+              </svg>
+              <span className="hidden sm:inline">Importar</span>
             </button>
           </div>
         </div>
@@ -1977,7 +1998,7 @@ const handleEditarGasto = (gasto: Gasto) => {
 
                     if (!response.ok) {
                       const error = await response.json()
-                      alert(error.error || 'Error al crear categoría')
+                      toast.error(error.error || 'Error al crear categoría')
                       return
                     }
 
@@ -1987,10 +2008,10 @@ const handleEditarGasto = (gasto: Gasto) => {
                     
                     setNuevaCategoriaNombre('')
                     setModalCategoriaOpen(false)
-                    alert('✅ Categoría creada exitosamente')
+                    toast.success('✅ Categoría creada exitosamente')
                   } catch (error) {
                     console.error('Error:', error)
-                    alert('Error al crear la categoría')
+                    toast.error('Error al crear la categoría')
                   }
                 }}
                 disabled={nuevaCategoriaNombre.trim() === ''}
@@ -2232,6 +2253,21 @@ const handleEditarGasto = (gasto: Gasto) => {
           imageUrl={facturaSeleccionada.imageUrl || ''}
           gastoData={facturaSeleccionada}
         />
+      )}
+
+      {/* MODAL IMPORTAR GASTOS */}
+      {modalImportarOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-xl max-w-5xl w-full max-h-[90vh] overflow-y-auto">
+            <ModalImportarGastos
+              onClose={() => setModalImportarOpen(false)}
+              onSuccess={() => {
+                fetchGastos()
+                setModalImportarOpen(false)
+              }}
+            />
+          </div>
+        </div>
       )}
     </div>
   )

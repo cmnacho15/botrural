@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { toast } from '@/app/components/Toast'
 
 export default function SnigPage() {
   const router = useRouter();
@@ -84,7 +85,7 @@ export default function SnigPage() {
     const file = e.target.files[0];
 
     if (!campoId) {
-      alert("No se pudo obtener el campo del usuario. Por favor recargá la página.");
+      toast.error("No se pudo obtener el campo del usuario. Por favor recargá la página.");
       return;
     }
 
@@ -114,7 +115,7 @@ export default function SnigPage() {
 
       if (!res.ok) {
         console.error("❌ Error del servidor:", data);
-        alert(data.error || "Error procesando SNIG");
+        toast.error(data.error || "Error procesando SNIG");
         return;
       }
 
@@ -127,7 +128,7 @@ export default function SnigPage() {
       console.log("✅ Sesión SNIG creada:", data.snigSessionId);
     } catch (error) {
       console.error("Error subiendo archivo:", error);
-      alert("Error procesando el archivo");
+      toast.error("Error procesando el archivo");
     } finally {
       setLoadingUpload(false);
     }
@@ -138,29 +139,29 @@ export default function SnigPage() {
   // ===========================================
   const confirmarAccion = async () => {
     if (!snigSessionId) {
-      alert("No hay sesión SNIG cargada");
+      toast.error("No hay sesión SNIG cargada");
       return;
     }
 
     if (!accion) {
-      alert("Seleccioná una acción");
+      toast.error("Seleccioná una acción");
       return;
     }
 
     // Validaciones según acción
     if (["NACIMIENTO", "COMPRA", "VENTA", "MORTANDAD", "TRASLADO"].includes(accion)) {
       if (!categoria) {
-        alert("Seleccioná una categoría");
+        toast.error("Seleccioná una categoría");
         return;
       }
       if (!loteId) {
-        alert("Seleccioná un potrero");
+        toast.error("Seleccioná un potrero");
         return;
       }
     }
 
     if (accion === "TRASLADO" && !loteDestinoId) {
-      alert("Seleccioná un potrero destino");
+      toast.error("Seleccioná un potrero destino");
       return;
     }
 
@@ -203,11 +204,11 @@ export default function SnigPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        alert(data.error || "Error confirmando SNIG");
+        toast.error(data.error || "Error confirmando SNIG");
         return;
       }
 
-      alert(`✅ ${data.mensaje}\n${data.cantidad} animales procesados`);
+      toast.success(`✅ ${data.mensaje}\n${data.cantidad} animales procesados`);
       
       // Resetear estado
       setSnigSessionId(null);
@@ -224,7 +225,7 @@ export default function SnigPage() {
       router.refresh();
     } catch (error) {
       console.error("Error confirmando:", error);
-      alert("Error procesando la confirmación");
+      toast.error("Error procesando la confirmación");
     } finally {
       setLoadingConfirm(false);
     }

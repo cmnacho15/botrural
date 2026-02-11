@@ -3,6 +3,7 @@
 
 import { SessionProvider } from "next-auth/react"
 import { ReactNode } from "react"
+import { ToastProvider } from "@/app/components/Toast"
 
 export function Providers({ children }: { children: ReactNode }) {
   return (
@@ -11,7 +12,9 @@ export function Providers({ children }: { children: ReactNode }) {
       refetchOnWindowFocus={false}
       refetchWhenOffline={false}
     >
-      {children}
+      <ToastProvider>
+        {children}
+      </ToastProvider>
     </SessionProvider>
   )
 }

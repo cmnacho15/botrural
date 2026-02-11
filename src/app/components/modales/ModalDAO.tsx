@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { obtenerFechaLocal } from '@/lib/fechas'
+import { toast } from '@/app/components/Toast'
 
 type ModalDAOProps = {
   onClose: () => void
@@ -83,7 +84,7 @@ export default function ModalDAO({ onClose, onSuccess }: ModalDAOProps) {
       const hayModulos = data.some((l: Lote) => l.moduloPastoreoId !== null)
       setTieneModulos(hayModulos)
     })
-    .catch(() => alert('Error al cargar potreros'))
+    .catch(() => toast.error('Error al cargar potreros'))
 }, [])
 
   // Cargar rodeos y configuración
@@ -118,7 +119,7 @@ export default function ModalDAO({ onClose, onSuccess }: ModalDAOProps) {
         setLoadingAnimales(false)
       })
       .catch(() => {
-        alert('Error al cargar animales')
+        toast.error('Error al cargar animales')
         setLoadingAnimales(false)
       })
   }, [potreroSeleccionado])
@@ -162,7 +163,7 @@ export default function ModalDAO({ onClose, onSuccess }: ModalDAOProps) {
 
     // Validar rodeo obligatorio
     if (modoRodeo === 'OBLIGATORIO' && !rodeoId) {
-      alert('Seleccioná un rodeo')
+      toast.error('Seleccioná un rodeo')
       return
     }
 
@@ -176,7 +177,7 @@ const resultadosValidos = resultadosDAO.filter(r => {
 })
 
 if (resultadosValidos.length < 1) {
-  alert('Debe registrar al menos 1 categoría con datos')
+  toast.error('Debe registrar al menos 1 categoría con datos')
   return
 }
 
@@ -186,7 +187,7 @@ if (resultadosValidos.length < 1) {
 for (const resultado of resultadosValidos) {
   const disponible = animalesDisponibles.find(d => d.categoria === resultado.categoria)
   if (!disponible) {
-    alert(`No hay animales de tipo ${resultado.categoria} en este potrero`)
+    toast.error(`No hay animales de tipo ${resultado.categoria} en este potrero`)
     return
   }
   const cantidadExaminada = (parseInt(resultado.prenado) || 0) + 
@@ -194,7 +195,7 @@ for (const resultado of resultadosValidos) {
                             (parseInt(resultado.anestroSuperficial) || 0) + 
                             (parseInt(resultado.anestroProfundo) || 0)
   if (cantidadExaminada > disponible.cantidad) {
-    alert(`Solo hay ${disponible.cantidad} ${resultado.categoria} disponibles`)
+    toast.info(`Solo hay ${disponible.cantidad} ${resultado.categoria} disponibles`)
     return
   }
 }
@@ -239,21 +240,21 @@ const descripcionFinal = `DAO${rodeoId && rodeos.find(r => r.id === rodeoId) ? `
       onSuccess()
       onClose()
     } catch (error) {
-      alert(error instanceof Error ? error.message : 'Error al registrar DAO')
+      toast.error(error instanceof Error ? error.message : 'Error al registrar DAO')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <form onSubmit={handleSubmit} className="p-6">
+    <form onSubmit={handleSubmit} className="p-4 sm:p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center text-2xl">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-purple-100 flex items-center justify-center text-2xl">
             🔬
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">DAO</h2>
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900">DAO</h2>
             <p className="text-sm text-gray-500">Diagnóstico de Actividad Ovárica</p>
           </div>
         </div>

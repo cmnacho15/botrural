@@ -1,13 +1,15 @@
 //src/app/dashboard/preferencias/page.tsx
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, type CSSProperties } from 'react'
+import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import { useTipoCampo } from '@/app/contexts/TipoCampoContext'
 import GastosPreferencias from '@/app/preferencias/components/GastosPreferencias'
 import ModulosPreferencias from '@/app/preferencias/components/ModulosPreferencias'
 import EquivalenciasUGPreferencias from '@/app/preferencias/components/EquivalenciasUGPreferencias'
 import RecategorizacionWrapper from '@/app/preferencias/components/RecategorizacionWrapper'
+import { toast } from '@/app/components/Toast'
 
 type TipoCultivo = {
   id: string
@@ -75,6 +77,59 @@ const [showModalFirma, setShowModalFirma] = useState(false)
 const [nuevaFirma, setNuevaFirma] = useState({ rut: '', razonSocial: '', esPrincipal: false })
 const [savingFirma, setSavingFirma] = useState(false)
 const [editandoFirma, setEditandoFirma] = useState<{ id: string; rut: string; razonSocial: string; esPrincipal: boolean } | null>(null)
+
+const [mounted, setMounted] = useState(false)
+
+  useEffect(() => { setMounted(true) }, [])
+
+  // Estilos inline para modales
+  const overlayStyle: CSSProperties = {
+    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 99999,
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    padding: '16px', colorScheme: 'light' as any,
+  }
+  const cardStyle: CSSProperties = {
+    backgroundColor: '#ffffff', borderRadius: '12px',
+    boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
+    width: '100%', maxWidth: '400px', color: '#111827',
+    colorScheme: 'light' as any,
+  }
+  const headerStyle: CSSProperties = {
+    padding: '14px 16px', borderBottom: '1px solid #e5e7eb',
+    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+  }
+  const bodyStyle: CSSProperties = { padding: '12px 16px' }
+  const footerStyle: CSSProperties = { padding: '8px 16px 14px', display: 'flex', gap: '8px' }
+  const inputStyle: CSSProperties = {
+    width: '100%', padding: '8px 12px', border: '1px solid #d1d5db',
+    borderRadius: '8px', fontSize: '16px', outline: 'none',
+    backgroundColor: '#f9fafb', boxSizing: 'border-box', color: '#111827',
+    colorScheme: 'light' as any,
+  }
+  const selectStyle: CSSProperties = {
+    ...inputStyle, appearance: 'auto' as any,
+  }
+  const btnCancelStyle: CSSProperties = {
+    flex: 1, padding: '8px', border: '1px solid #d1d5db', borderRadius: '8px',
+    fontSize: '14px', fontWeight: 500, color: '#374151', backgroundColor: '#fff', cursor: 'pointer',
+  }
+  const btnPrimaryStyle = (disabled: boolean): CSSProperties => ({
+    flex: 1, padding: '8px', border: 'none', borderRadius: '8px',
+    fontSize: '14px', fontWeight: 500, color: '#fff',
+    backgroundColor: disabled ? '#d1d5db' : '#2563eb',
+    cursor: disabled ? 'not-allowed' : 'pointer',
+  })
+  const btnDangerStyle = (disabled: boolean): CSSProperties => ({
+    flex: 1, padding: '8px', border: 'none', borderRadius: '8px',
+    fontSize: '14px', fontWeight: 500, color: '#fff',
+    backgroundColor: '#dc2626', cursor: disabled ? 'not-allowed' : 'pointer',
+    opacity: disabled ? 0.5 : 1,
+  })
+  const labelStyle: CSSProperties = {
+    display: 'block', fontSize: '13px', fontWeight: 500, color: '#374151', marginBottom: '6px',
+  }
+  const closeBtn: CSSProperties = { color: '#9ca3af', fontSize: '20px', lineHeight: '1', padding: '4px', background: 'none', border: 'none', cursor: 'pointer' }
 
   // Cargar campos del usuario
   useEffect(() => {
@@ -213,7 +268,7 @@ useEffect(() => {
 
   async function handleAgregarCultivo() {
     if (!nuevoCultivo.trim()) {
-      alert('Ingrese el nombre del cultivo')
+      toast.info('Ingrese el nombre del cultivo')
       return
     }
 
@@ -232,10 +287,10 @@ useEffect(() => {
         cargarCultivos()
       } else {
         const error = await response.json()
-        alert(error.error || 'Error al crear cultivo')
+        toast.error(error.error || 'Error al crear cultivo')
       }
     } catch (error) {
-      alert('Error al crear cultivo')
+      toast.error('Error al crear cultivo')
     } finally {
       setSavingCultivo(false)
     }
@@ -253,10 +308,10 @@ useEffect(() => {
         cargarCultivos()
       } else {
         const error = await response.json()
-        alert(error.error || 'Error al eliminar cultivo')
+        toast.error(error.error || 'Error al eliminar cultivo')
       }
     } catch (error) {
-      alert('Error al eliminar cultivo')
+      toast.error('Error al eliminar cultivo')
     }
   }
 
@@ -264,7 +319,7 @@ useEffect(() => {
     const categoria = categorias.find(c => c.id === id)
     
     if (!nuevoEstado && categoria && categoriasEnUso.has(categoria.nombreSingular)) {
-      alert('No se puede desactivar esta categoría porque hay animales registrados con ella. Primero transfiera o elimine esos animales.')
+      toast.info('No se puede desactivar esta categoría porque hay animales registrados con ella. Primero transfiera o elimine esos animales.')
       return
     }
 
@@ -284,19 +339,19 @@ useEffect(() => {
           prev.map(cat => cat.id === id ? { ...cat, activo: !nuevoEstado } : cat)
         )
         const error = await response.json()
-        alert(error.error || 'Error al actualizar categoría')
+        toast.error(error.error || 'Error al actualizar categoría')
       }
     } catch (error) {
       setCategorias(prev => 
         prev.map(cat => cat.id === id ? { ...cat, activo: !nuevoEstado } : cat)
       )
-      alert('Error al actualizar categoría')
+      toast.error('Error al actualizar categoría')
     }
   }
 
   async function handleAgregarAnimal() {
     if (!nuevoAnimal.nombreSingular.trim() || !nuevoAnimal.nombrePlural.trim()) {
-      alert('Complete todos los campos')
+      toast.info('Complete todos los campos')
       return
     }
 
@@ -315,10 +370,10 @@ useEffect(() => {
         cargarAnimales()
       } else {
         const error = await response.json()
-        alert(error.error || 'Error al crear categoría')
+        toast.error(error.error || 'Error al crear categoría')
       }
     } catch (error) {
-      alert('Error al crear categoría')
+      toast.error('Error al crear categoría')
     } finally {
       setSavingAnimal(false)
     }
@@ -336,17 +391,17 @@ useEffect(() => {
         cargarAnimales()
       } else {
         const error = await response.json()
-        alert(error.error || 'Error al eliminar categoría')
+        toast.error(error.error || 'Error al eliminar categoría')
       }
     } catch (error) {
-      alert('Error al eliminar categoría')
+      toast.error('Error al eliminar categoría')
     }
   }
 
   // Funciones de rodeos
   async function handleAgregarRodeo() {
     if (!nuevoRodeo.trim()) {
-      alert('Ingrese el nombre del rodeo')
+      toast.info('Ingrese el nombre del rodeo')
       return
     }
 
@@ -364,13 +419,13 @@ useEffect(() => {
         setShowModalRodeo(false)
         setEditandoRodeo(null)
         cargarRodeos()
-        alert('¡Lote creado!')
+        toast.success('¡Lote creado!')
       } else {
         const error = await response.json()
-        alert(error.error || 'Error al crear rodeo')
+        toast.error(error.error || 'Error al crear rodeo')
       }
     } catch (error) {
-      alert('Error al crear rodeo')
+      toast.error('Error al crear rodeo')
     } finally {
       setSavingRodeo(false)
     }
@@ -393,13 +448,13 @@ useEffect(() => {
         setShowModalRodeo(false)
         setEditandoRodeo(null)
         cargarRodeos()
-        alert('¡Lote actualizado!')
+        toast.success('¡Lote actualizado!')
       } else {
         const error = await response.json()
-        alert(error.error || 'Error al actualizar rodeo')
+        toast.error(error.error || 'Error al actualizar rodeo')
       }
     } catch (error) {
-      alert('Error al actualizar rodeo')
+      toast.error('Error al actualizar rodeo')
     } finally {
       setSavingRodeo(false)
     }
@@ -415,20 +470,20 @@ useEffect(() => {
 
       if (response.ok) {
         cargarRodeos()
-        alert('Lote eliminado')
+        toast.success('Lote eliminado')
       } else {
         const error = await response.json()
-        alert(error.error || 'Error al eliminar lote')
+        toast.error(error.error || 'Error al eliminar lote')
       }
     } catch (error) {
-      alert('Error al eliminar lote')
+      toast.error('Error al eliminar lote')
     }
   }
   
   // Funciones de firmas
 async function handleAgregarFirma() {
   if (!nuevaFirma.rut.trim() || !nuevaFirma.razonSocial.trim()) {
-    alert('Complete todos los campos obligatorios')
+    toast.error('Complete todos los campos obligatorios')
     return
   }
 
@@ -446,13 +501,13 @@ async function handleAgregarFirma() {
       setShowModalFirma(false)
       setEditandoFirma(null)
       cargarFirmas()
-      alert('¡Firma creada!')
+      toast.success('¡Firma creada!')
     } else {
       const error = await response.json()
-      alert(error.error || 'Error al crear firma')
+      toast.error(error.error || 'Error al crear firma')
     }
   } catch (error) {
-    alert('Error al crear firma')
+    toast.error('Error al crear firma')
   } finally {
     setSavingFirma(false)
   }
@@ -475,13 +530,13 @@ async function handleEditarFirma() {
       setShowModalFirma(false)
       setEditandoFirma(null)
       cargarFirmas()
-      alert('¡Firma actualizada!')
+      toast.success('¡Firma actualizada!')
     } else {
       const error = await response.json()
-      alert(error.error || 'Error al actualizar firma')
+      toast.error(error.error || 'Error al actualizar firma')
     }
   } catch (error) {
-    alert('Error al actualizar firma')
+    toast.error('Error al actualizar firma')
   } finally {
     setSavingFirma(false)
   }
@@ -497,13 +552,13 @@ async function handleEliminarFirma(id: string) {
 
     if (response.ok) {
       cargarFirmas()
-      alert('Firma eliminada')
+      toast.success('Firma eliminada')
     } else {
       const error = await response.json()
-      alert(error.error || 'Error al eliminar firma')
+      toast.error(error.error || 'Error al eliminar firma')
     }
   } catch (error) {
-    alert('Error al eliminar firma')
+    toast.error('Error al eliminar firma')
   }
 }
 
@@ -661,7 +716,7 @@ async function handleEliminarFirma(id: string) {
                   <button
                     onClick={async () => {
                       if (!nombreCampo.trim()) {
-                        alert('El nombre del campo no puede estar vacío')
+                        toast.error('El nombre del campo no puede estar vacío')
                         return
                       }
 
@@ -674,12 +729,12 @@ async function handleEliminarFirma(id: string) {
                         })
 
                         if (response.ok) {
-                          alert('¡Nombre del campo actualizado!')
+                          toast.success('¡Nombre del campo actualizado!')
                         } else {
-                          alert('Error al actualizar el nombre')
+                          toast.error('Error al actualizar el nombre')
                         }
                       } catch (error) {
-                        alert('Error al actualizar el nombre')
+                        toast.error('Error al actualizar el nombre')
                       } finally {
                         setGuardandoCampo(false)
                       }
@@ -712,10 +767,10 @@ async function handleEliminarFirma(id: string) {
                       setGuardandoTipo(true)
                       try {
                         await actualizarTipo('GANADERO')
-                        alert('✅ Tipo de campo actualizado')
+                        toast.success('✅ Tipo de campo actualizado')
                         window.location.reload()
                       } catch (error) {
-                        alert('Error al actualizar')
+                        toast.error('Error al actualizar')
                       } finally {
                         setGuardandoTipo(false)
                       }
@@ -769,10 +824,10 @@ async function handleEliminarFirma(id: string) {
                       setGuardandoTipo(true)
                       try {
                         await actualizarTipo('MIXTO')
-                        alert('✅ Tipo de campo actualizado')
+                        toast.success('✅ Tipo de campo actualizado')
                         window.location.reload()
                       } catch (error) {
-                        alert('Error al actualizar')
+                        toast.error('Error al actualizar')
                       } finally {
                         setGuardandoTipo(false)
                       }
@@ -854,7 +909,7 @@ async function handleEliminarFirma(id: string) {
                         <button
                           onClick={async () => {
                             if (confirmacionVaciar !== 'VACIAR') {
-                              alert('Escribí "VACIAR" para confirmar')
+                              toast.info('Escribí "VACIAR" para confirmar')
                               return
                             }
 
@@ -874,15 +929,15 @@ async function handleEliminarFirma(id: string) {
                               })
 
                               if (response.ok) {
-                                alert('✅ Campo vaciado correctamente')
+                                toast.success('✅ Campo vaciado correctamente')
                                 setConfirmacionVaciar('')
                                 window.location.reload()
                               } else {
                                 const error = await response.json()
-                                alert(error.error || 'Error al vaciar campo')
+                                toast.error(error.error || 'Error al vaciar campo')
                               }
                             } catch (error) {
-                              alert('Error al vaciar campo')
+                              toast.error('Error al vaciar campo')
                             } finally {
                               setVaciandoCampo(false)
                             }
@@ -924,7 +979,7 @@ async function handleEliminarFirma(id: string) {
                           <button
                             onClick={async () => {
                               if (confirmacionEliminar !== 'ELIMINAR') {
-                                alert('Escribí "ELIMINAR" para confirmar')
+                                toast.info('Escribí "ELIMINAR" para confirmar')
                                 return
                               }
 
@@ -939,14 +994,14 @@ async function handleEliminarFirma(id: string) {
                                 })
 
                                 if (response.ok) {
-                                  alert('✅ Campo eliminado correctamente')
+                                  toast.success('✅ Campo eliminado correctamente')
                                   window.location.href = '/dashboard'
                                 } else {
                                   const error = await response.json()
-                                  alert(error.error || 'Error al eliminar campo')
+                                  toast.error(error.error || 'Error al eliminar campo')
                                 }
                               } catch (error) {
-                                alert('Error al eliminar campo')
+                                toast.error('Error al eliminar campo')
                               } finally {
                                 setEliminandoCampo(false)
                               }
@@ -1408,12 +1463,12 @@ async function handleEliminarFirma(id: string) {
                       })
 
                       if (response.ok) {
-                        alert('¡Configuración actualizada!')
+                        toast.success('¡Configuración actualizada!')
                       } else {
-                        alert('Error al actualizar')
+                        toast.error('Error al actualizar')
                       }
                     } catch (error) {
-                      alert('Error al actualizar')
+                      toast.error('Error al actualizar')
                     } finally {
                       setGuardandoRodeo(false)
                     }
@@ -1504,97 +1559,55 @@ className="text-red-600 hover:text-red-900">
         </div>
 
         {/* MODAL NUEVO CULTIVO */}
-        {showModalCultivo && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
-              <div className="p-6 border-b border-gray-200 flex justify-between items-center">
-                <h2 className="text-lg font-semibold text-gray-900">Nuevo Cultivo</h2>
-                <button onClick={() => setShowModalCultivo(false)} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">
-✕
-</button>
+        {mounted && showModalCultivo && createPortal(
+          <div style={overlayStyle} onClick={(e) => { if (e.target === e.currentTarget) setShowModalCultivo(false) }}>
+            <div style={cardStyle}>
+              <div style={headerStyle}>
+                <span style={{ fontWeight: 600, fontSize: '14px', color: '#111827' }}>Nuevo Cultivo</span>
+                <button onClick={() => setShowModalCultivo(false)} style={closeBtn}>✕</button>
               </div>
-
-              <div className="p-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Nombre del cultivo <span className="text-red-500">*</span>
-                </label>
+              <div style={bodyStyle}>
                 <input
                   type="text"
                   value={nuevoCultivo}
                   onChange={(e) => setNuevoCultivo(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' && nuevoCultivo.trim()) handleAgregarCultivo() }}
                   placeholder="Ej: Quinoa"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  style={inputStyle}
                   autoFocus
                 />
               </div>
-
-              <div className="p-6 border-t border-gray-200 flex gap-3">
-                <button
-                  onClick={() => setShowModalCultivo(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700 font-medium"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={handleAgregarCultivo}
-                  disabled={savingCultivo || !nuevoCultivo.trim()}
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
-                >
+              <div style={footerStyle}>
+                <button onClick={() => setShowModalCultivo(false)} style={btnCancelStyle}>Cancelar</button>
+                <button onClick={handleAgregarCultivo} disabled={savingCultivo || !nuevoCultivo.trim()} style={btnPrimaryStyle(savingCultivo || !nuevoCultivo.trim())}>
                   {savingCultivo ? 'Guardando...' : 'Guardar'}
                 </button>
               </div>
             </div>
-          </div>
+          </div>,
+          document.body
         )}
 
         {/* MODAL NUEVA CATEGORÍA ANIMAL */}
-        {showModalAnimal && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
-              <div className="p-6 border-b border-gray-200 flex justify-between items-center">
-                <h2 className="text-lg font-semibold text-gray-900">Nueva Categoría</h2>
-                <button onClick={() => setShowModalAnimal(false)} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">
-                  ✕
-                </button>
+        {mounted && showModalAnimal && createPortal(
+          <div style={overlayStyle} onClick={(e) => { if (e.target === e.currentTarget) setShowModalAnimal(false) }}>
+            <div style={cardStyle}>
+              <div style={headerStyle}>
+                <span style={{ fontWeight: 600, fontSize: '14px', color: '#111827' }}>Nueva Categoría</span>
+                <button onClick={() => setShowModalAnimal(false)} style={closeBtn}>✕</button>
               </div>
-
-              <div className="p-6 space-y-4">
+              <div style={{ ...bodyStyle, display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Nombre Singular <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={nuevoAnimal.nombreSingular}
-                    onChange={(e) => setNuevoAnimal({ ...nuevoAnimal, nombreSingular: e.target.value })}
-                    placeholder="Ej: Torito"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    autoFocus
-                  />
+                  <label style={labelStyle}>Nombre Singular <span style={{ color: '#ef4444' }}>*</span></label>
+                  <input type="text" value={nuevoAnimal.nombreSingular} onChange={(e) => setNuevoAnimal({ ...nuevoAnimal, nombreSingular: e.target.value })} placeholder="Ej: Torito" style={inputStyle} autoFocus />
                 </div>
-
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Nombre Plural <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={nuevoAnimal.nombrePlural}
-                    onChange={(e) => setNuevoAnimal({ ...nuevoAnimal, nombrePlural: e.target.value })}
-                    placeholder="Ej: Toritos"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
+                  <label style={labelStyle}>Nombre Plural <span style={{ color: '#ef4444' }}>*</span></label>
+                  <input type="text" value={nuevoAnimal.nombrePlural} onChange={(e) => setNuevoAnimal({ ...nuevoAnimal, nombrePlural: e.target.value })} placeholder="Ej: Toritos" style={inputStyle} />
                 </div>
-
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Tipo de Categoría <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    value={nuevoAnimal.tipoAnimal}
-                    onChange={(e) => setNuevoAnimal({ ...nuevoAnimal, tipoAnimal: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
+                  <label style={labelStyle}>Tipo de Categoría <span style={{ color: '#ef4444' }}>*</span></label>
+                  <select value={nuevoAnimal.tipoAnimal} onChange={(e) => setNuevoAnimal({ ...nuevoAnimal, tipoAnimal: e.target.value })} style={selectStyle}>
                     <option value="BOVINO">Bovinos</option>
                     <option value="OVINO">Ovinos</option>
                     <option value="EQUINO">Equinos</option>
@@ -1602,169 +1615,72 @@ className="text-red-600 hover:text-red-900">
                   </select>
                 </div>
               </div>
-
-              <div className="p-6 border-t border-gray-200 flex gap-3">
-                <button
-                  onClick={() => setShowModalAnimal(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700 font-medium"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={handleAgregarAnimal}
-                  disabled={savingAnimal || !nuevoAnimal.nombreSingular.trim() || !nuevoAnimal.nombrePlural.trim()}
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
-                >
+              <div style={footerStyle}>
+                <button onClick={() => setShowModalAnimal(false)} style={btnCancelStyle}>Cancelar</button>
+                <button onClick={handleAgregarAnimal} disabled={savingAnimal || !nuevoAnimal.nombreSingular.trim() || !nuevoAnimal.nombrePlural.trim()} style={btnPrimaryStyle(savingAnimal || !nuevoAnimal.nombreSingular.trim() || !nuevoAnimal.nombrePlural.trim())}>
                   {savingAnimal ? 'Guardando...' : 'Guardar'}
                 </button>
               </div>
             </div>
-          </div>
+          </div>,
+          document.body
         )}
 
         {/* MODAL NUEVO/EDITAR RODEO */}
-        {showModalRodeo && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
-              <div className="p-6 border-b border-gray-200 flex justify-between items-center">
-                <h2 className="text-lg font-semibold text-gray-900">
-                  {editandoRodeo ? 'Editar Lote' : 'Nuevo Lote'}
-                </h2>
-                <button
-                  onClick={() => {
-                    setShowModalRodeo(false)
-                    setEditandoRodeo(null)
-                    setNuevoRodeo('')
-                  }}
-                  className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
-                >
-                  ✕
-                </button>
+        {mounted && showModalRodeo && createPortal(
+          <div style={overlayStyle} onClick={(e) => { if (e.target === e.currentTarget) { setShowModalRodeo(false); setEditandoRodeo(null); setNuevoRodeo('') } }}>
+            <div style={cardStyle}>
+              <div style={headerStyle}>
+                <span style={{ fontWeight: 600, fontSize: '14px', color: '#111827' }}>{editandoRodeo ? 'Editar Lote' : 'Nuevo Lote'}</span>
+                <button onClick={() => { setShowModalRodeo(false); setEditandoRodeo(null); setNuevoRodeo('') }} style={closeBtn}>✕</button>
               </div>
-
-              <div className="p-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Nombre del lote <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={nuevoRodeo}
-                  onChange={(e) => setNuevoRodeo(e.target.value)}
-                  placeholder="Ej: Lote Norte, Vacunados 2025"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  autoFocus
-                />
+              <div style={bodyStyle}>
+                <label style={labelStyle}>Nombre del lote <span style={{ color: '#ef4444' }}>*</span></label>
+                <input type="text" value={nuevoRodeo} onChange={(e) => setNuevoRodeo(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && nuevoRodeo.trim()) (editandoRodeo ? handleEditarRodeo : handleAgregarRodeo)() }} placeholder="Ej: Lote Norte, Vacunados 2025" style={inputStyle} autoFocus />
               </div>
-
-              <div className="p-6 border-t border-gray-200 flex gap-3">
-                <button
-                  onClick={() => {
-                    setShowModalRodeo(false)
-                    setEditandoRodeo(null)
-                    setNuevoRodeo('')
-                  }}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700 font-medium"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={editandoRodeo ? handleEditarRodeo : handleAgregarRodeo}
-                  disabled={savingRodeo || !nuevoRodeo.trim()}
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
-                >
+              <div style={footerStyle}>
+                <button onClick={() => { setShowModalRodeo(false); setEditandoRodeo(null); setNuevoRodeo('') }} style={btnCancelStyle}>Cancelar</button>
+                <button onClick={editandoRodeo ? handleEditarRodeo : handleAgregarRodeo} disabled={savingRodeo || !nuevoRodeo.trim()} style={btnPrimaryStyle(savingRodeo || !nuevoRodeo.trim())}>
                   {savingRodeo ? 'Guardando...' : editandoRodeo ? 'Actualizar' : 'Crear'}
                 </button>
               </div>
             </div>
-          </div>
+          </div>,
+          document.body
         )}
 
         {/* MODAL NUEVA/EDITAR FIRMA */}
-        {showModalFirma && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
-              <div className="p-6 border-b border-gray-200 flex justify-between items-center">
-                <h2 className="text-lg font-semibold text-gray-900">
-                  {editandoFirma ? 'Editar Firma' : 'Nueva Firma'}
-                </h2>
-                <button
-                  onClick={() => {
-                    setShowModalFirma(false)
-                    setEditandoFirma(null)
-                    setNuevaFirma({ rut: '', razonSocial: '', esPrincipal: false })
-                  }}
-                  className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
-                >
-                  ✕
-                </button>
+        {mounted && showModalFirma && createPortal(
+          <div style={overlayStyle} onClick={(e) => { if (e.target === e.currentTarget) { setShowModalFirma(false); setEditandoFirma(null); setNuevaFirma({ rut: '', razonSocial: '', esPrincipal: false }) } }}>
+            <div style={cardStyle}>
+              <div style={headerStyle}>
+                <span style={{ fontWeight: 600, fontSize: '14px', color: '#111827' }}>{editandoFirma ? 'Editar Firma' : 'Nueva Firma'}</span>
+                <button onClick={() => { setShowModalFirma(false); setEditandoFirma(null); setNuevaFirma({ rut: '', razonSocial: '', esPrincipal: false }) }} style={closeBtn}>✕</button>
               </div>
-
-              <div className="p-6 space-y-4">
+              <div style={{ ...bodyStyle, display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    RUT <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={nuevaFirma.rut}
-                    onChange={(e) => setNuevaFirma({ ...nuevaFirma, rut: e.target.value })}
-                    placeholder="Ej: 160096500018"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"
-                    autoFocus
-                  />
+                  <label style={labelStyle}>RUT <span style={{ color: '#ef4444' }}>*</span></label>
+                  <input type="text" value={nuevaFirma.rut} onChange={(e) => setNuevaFirma({ ...nuevaFirma, rut: e.target.value })} placeholder="Ej: 160096500018" style={{ ...inputStyle, fontFamily: 'monospace' }} autoFocus />
                 </div>
-
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Razón Social <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={nuevaFirma.razonSocial}
-                    onChange={(e) => setNuevaFirma({ ...nuevaFirma, razonSocial: e.target.value })}
-                    placeholder="Ej: Lema Abadie Juan y Da Rosa Maria"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
+                  <label style={labelStyle}>Razón Social <span style={{ color: '#ef4444' }}>*</span></label>
+                  <input type="text" value={nuevaFirma.razonSocial} onChange={(e) => setNuevaFirma({ ...nuevaFirma, razonSocial: e.target.value })} placeholder="Ej: Lema Abadie Juan y Da Rosa Maria" style={inputStyle} />
                 </div>
-
-                <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                  <input
-                    type="checkbox"
-                    id="esPrincipal"
-                    checked={nuevaFirma.esPrincipal}
-                    onChange={(e) => setNuevaFirma({ ...nuevaFirma, esPrincipal: e.target.checked })}
-                    className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
-                  />
-                  <label htmlFor="esPrincipal" className="text-sm font-medium text-gray-900 cursor-pointer">
-                    ⭐ Marcar como firma principal
-                  </label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px', backgroundColor: '#eff6ff', borderRadius: '8px', border: '1px solid #bfdbfe' }}>
+                  <input type="checkbox" id="esPrincipal" checked={nuevaFirma.esPrincipal} onChange={(e) => setNuevaFirma({ ...nuevaFirma, esPrincipal: e.target.checked })} style={{ width: '18px', height: '18px', accentColor: '#2563eb' }} />
+                  <label htmlFor="esPrincipal" style={{ fontSize: '13px', fontWeight: 500, color: '#111827', cursor: 'pointer' }}>Marcar como firma principal</label>
                 </div>
-                <p className="text-xs text-gray-500">
-                  La firma principal se pre-seleccionará automáticamente al cargar nuevas ventas
-                </p>
+                <p style={{ fontSize: '11px', color: '#6b7280' }}>La firma principal se pre-seleccionará al cargar nuevas ventas</p>
               </div>
-
-              <div className="p-6 border-t border-gray-200 flex gap-3">
-                <button
-                  onClick={() => {
-                    setShowModalFirma(false)
-                    setEditandoFirma(null)
-                    setNuevaFirma({ rut: '', razonSocial: '', esPrincipal: false })
-                  }}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700 font-medium"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={editandoFirma ? handleEditarFirma : handleAgregarFirma}
-                  disabled={savingFirma || !nuevaFirma.rut.trim() || !nuevaFirma.razonSocial.trim()}
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
-                >
+              <div style={footerStyle}>
+                <button onClick={() => { setShowModalFirma(false); setEditandoFirma(null); setNuevaFirma({ rut: '', razonSocial: '', esPrincipal: false }) }} style={btnCancelStyle}>Cancelar</button>
+                <button onClick={editandoFirma ? handleEditarFirma : handleAgregarFirma} disabled={savingFirma || !nuevaFirma.rut.trim() || !nuevaFirma.razonSocial.trim()} style={btnPrimaryStyle(savingFirma || !nuevaFirma.rut.trim() || !nuevaFirma.razonSocial.trim())}>
                   {savingFirma ? 'Guardando...' : editandoFirma ? 'Actualizar' : 'Crear'}
                 </button>
               </div>
             </div>
-          </div>
+          </div>,
+          document.body
         )}
       </div>
     </div>

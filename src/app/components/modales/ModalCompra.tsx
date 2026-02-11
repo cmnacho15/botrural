@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { obtenerFechaLocal } from '@/lib/fechas'
+import { toast } from '@/app/components/Toast'
 
 type ModalCompraProps = {
   onClose: () => void
@@ -156,12 +157,12 @@ export default function ModalCompra({ onClose, onSuccess }: ModalCompraProps) {
 
   const validarPaso1 = () => {
     if (!fecha || !proveedor.trim()) {
-      alert('Completá fecha y proveedor')
+      toast.error('Completá fecha y proveedor')
       return false
     }
 
     if (metodoPago === 'Plazo' && diasPlazo < 1) {
-      alert('Ingresá los días de plazo')
+      toast.error('Ingresá los días de plazo')
       return false
     }
 
@@ -170,7 +171,7 @@ export default function ModalCompra({ onClose, onSuccess }: ModalCompraProps) {
 
   const validarPaso2 = () => {
     if (renglones.some(r => !r.categoria || r.cantidad <= 0 || r.precioKg <= 0 || r.pesoPromedio <= 0)) {
-      alert('Completá todos los renglones con valores válidos')
+      toast.error('Completá todos los renglones con valores válidos')
       return false
     }
 
@@ -229,22 +230,22 @@ export default function ModalCompra({ onClose, onSuccess }: ModalCompraProps) {
       onClose()
     } catch (error: any) {
       console.error('Error:', error)
-      alert(error.message || 'Error al crear la compra')
+      toast.error(error.message || 'Error al crear la compra')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="p-6 max-h-[90vh] overflow-y-auto">
+    <div className="p-4 sm:p-6">
       {/* HEADER */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center text-2xl">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-green-100 flex items-center justify-center text-2xl">
             🛒
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">Nueva Compra</h2>
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Nueva Compra</h2>
             <p className="text-sm text-gray-600">
               {paso === 1 ? 'Paso 1: Datos generales' : 'Paso 2: Detalle de animales'}
             </p>

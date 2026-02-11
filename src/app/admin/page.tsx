@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { toast } from '@/app/components/Toast'
 
 interface QueueStats {
   enabled: boolean
@@ -87,7 +88,7 @@ export default function AdminDashboard() {
       const res = await fetch('/api/bot-worker', { method: 'POST' })
       if (res.ok) {
         const data = await res.json()
-        alert(`Procesados: ${data.processed} mensajes`)
+        toast.success(`Procesados: ${data.processed} mensajes`)
         fetchQueueStats()
       }
     } catch (error) {

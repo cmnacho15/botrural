@@ -3,14 +3,15 @@ import Link from 'next/link'
 
 export default function UGEvolutionPage() {
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen px-3 py-4 sm:p-6" style={{ backgroundColor: '#f9fafb', colorScheme: 'light' }}>
       {/* 👇 BOTÓN DE VOLVER */}
-      <div className="mb-6">
+      <div className="mb-4 sm:mb-6">
         <Link
           href="/dashboard/lotes"
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 shadow-sm transition text-sm font-medium"
+          className="inline-flex items-center gap-2 px-3 py-2 sm:px-4 rounded-lg shadow-sm transition text-sm font-medium"
+          style={{ backgroundColor: 'white', border: '1px solid #d1d5db', color: '#374151' }}
         >
-          <span className="text-lg">←</span> Volver a Potreros
+          <span className="text-lg">←</span> <span className="hidden sm:inline">Volver a</span> Potreros
         </Link>
       </div>
 

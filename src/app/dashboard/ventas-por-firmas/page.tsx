@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react'
 import useSWR from 'swr'
 import Link from 'next/link'
 import ModalFactura from '@/app/components/modales/ModalFactura'
+import { toast } from '@/app/components/Toast'
 
 const fetcher = async (url: string) => {
   const res = await fetch(url)
@@ -85,7 +86,7 @@ export default function VentasPorFirmasPage() {
       await mutate() // Recargar datos
       setEditandoVenta(null)
     } catch (err) {
-      alert('Error al asignar firma')
+      toast.error('Error al asignar firma')
     } finally {
       setGuardando(false)
     }

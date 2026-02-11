@@ -6,6 +6,7 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import 'leaflet-draw/dist/leaflet.draw.css'
 import * as turf from '@turf/turf'
+import { toast } from '@/app/components/Toast'
 
 
 if (typeof window !== 'undefined') {
@@ -50,6 +51,16 @@ if (typeof window !== 'undefined') {
       /* 📍 MOVER CONTROLES DE LEAFLET HACIA ABAJO para no superponerse con pantalla completa */
       .leaflet-top.leaflet-left {
         top: 50px !important;
+      }
+      /* 📱 Fullscreen simulado para móvil (iOS Safari no soporta Fullscreen API) */
+      #map-container.mobile-fullscreen {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        z-index: 99999 !important;
+        background: #000 !important;
       }
       /* 📏 Quitar fondo azul de los marcadores de medición */
       .medicion-label {
@@ -156,112 +167,30 @@ function calcularAreaPoligono(latlngs: any[]): number {
   return turf.area(polygon) // Retorna m² con precisión geodésica
 }
 
-// 🎨 FUNCIÓN PROFESIONAL: Renderizar NDVI con Canvas
-function crearImagenNDVI(
-  ndviData: any,
-  poligonoCoords: number[][]
-) {
-  if (!ndviData.matriz || ndviData.matriz.length === 0) return null
+// 🖼️ FUNCIÓN: Crear overlay desde URL (cache) o base64 (procesado en vivo)
+function crearImagenNDVI(ndviData: any) {
+  // Usar URL del cache si existe, sino base64
+  const imageSrc = ndviData.imagenUrl || ndviData.imagenBase64
+  if (!imageSrc || !ndviData.bbox) return null
 
-  const { matriz, width, height, bbox } = ndviData
+  const { bbox } = ndviData
   const [west, south, east, north] = bbox
 
-  console.log('🎨 Creando imagen NDVI profesional:', {
-    dimensiones: `${width}x${height}`,
-    bbox: bbox,
-    totalPixels: width * height
+  console.log('🖼️ Mostrando imagen NDVI:', {
+    fuente: ndviData.imagenUrl ? '📦 CACHE (URL)' : '🔄 PROCESADA (base64)',
+    dimensiones: `${ndviData.width}x${ndviData.height}`,
+    promedio: ndviData.promedio?.toFixed(3),
+    fromCache: ndviData.fromCache || false
   })
-
-// ✅ Función para verificar si un punto está dentro del polígono
-  // coords viene en formato [lng, lat]
-  function puntoEnPoligono(lat: number, lng: number, coords: number[][]): boolean {
-    let dentro = false
-    for (let i = 0, j = coords.length - 1; i < coords.length; j = i++) {
-      const xi = coords[i][0], yi = coords[i][1]  // [0] = lng, [1] = lat
-      const xj = coords[j][0], yj = coords[j][1]
-      
-      const intersecta = ((yi > lat) !== (yj > lat)) &&
-        (lng < (xj - xi) * (lat - yi) / (yj - yi) + xi)
-      
-      if (intersecta) dentro = !dentro
-    }
-    return dentro
-  }
-
-  // 🎨 Colores basados en estándares científicos NDVI
-  function getColorFromNDVI(ndvi: number): { r: number, g: number, b: number, a: number } {
-    if (ndvi < 0) return { r: 0, g: 0, b: 255, a: 180 }           // Azul (agua)
-    if (ndvi < 0.1) return { r: 165, g: 42, b: 42, a: 220 }       // Marrón oscuro
-    if (ndvi < 0.2) return { r: 210, g: 105, b: 30, a: 220 }      // Chocolate
-    if (ndvi < 0.3) return { r: 218, g: 165, b: 32, a: 220 }      // Dorado
-    if (ndvi < 0.4) return { r: 255, g: 215, b: 0, a: 220 }       // Amarillo
-    if (ndvi < 0.5) return { r: 173, g: 255, b: 47, a: 220 }      // Verde-amarillo
-    if (ndvi < 0.6) return { r: 127, g: 255, b: 0, a: 220 }       // Verde lima
-    if (ndvi < 0.7) return { r: 50, g: 205, b: 50, a: 220 }       // Verde medio
-    if (ndvi < 0.8) return { r: 34, g: 139, b: 34, a: 220 }       // Verde bosque
-    return { r: 0, g: 100, b: 0, a: 220 }                         // Verde oscuro
-  }
-
-  let minValue = Infinity
-  let maxValue = -Infinity
-  let validCount = 0
-  let pixelesDentro = 0
-
-  // Crear canvas
-  const canvas = document.createElement('canvas')
-  canvas.width = width
-  canvas.height = height
-  const ctx = canvas.getContext('2d', { willReadFrequently: true })!
-
-  // ✅ Pintar pixel por pixel
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      const value = matriz[y][x]
-      
-      const lng = west + (x / width) * (east - west)
-      const lat = north - (y / height) * (north - south)
-      
-      if (puntoEnPoligono(lat, lng, poligonoCoords)) {
-        pixelesDentro++
-        
-        if (value !== -999 && !isNaN(value)) {
-          const color = getColorFromNDVI(value)
-          ctx.fillStyle = `rgba(${color.r}, ${color.g}, ${color.b}, ${color.a / 255})`
-          ctx.fillRect(x, y, 1, 1)
-          
-          validCount++
-          minValue = Math.min(minValue, value)
-          maxValue = Math.max(maxValue, value)
-        } else {
-          ctx.fillStyle = 'rgba(128, 128, 128, 0.3)'
-          ctx.fillRect(x, y, 1, 1)
-        }
-      }
-    }
-  }
-
-  console.log('✅ Imagen NDVI renderizada:', {
-    pixelesDentro: pixelesDentro,
-    pixelesConDatos: validCount,
-    cobertura: `${((validCount / pixelesDentro) * 100).toFixed(1)}%`,
-    minNDVI: minValue.toFixed(3),
-    maxNDVI: maxValue.toFixed(3)
-  })
-
-  if (validCount === 0) {
-    console.warn('⚠️ No hay datos NDVI válidos dentro del polígono')
-    return null
-  }
 
   const bounds = (L as any).latLngBounds(
     [south, west],
     [north, east]
   )
 
-  const imageOverlay = (L as any).imageOverlay(canvas.toDataURL(), bounds, {
-    opacity: 0.75,
+  const imageOverlay = (L as any).imageOverlay(imageSrc, bounds, {
+    opacity: 1.0,  // 🔥 100% opaco - colores puros sin transparencia
     interactive: false,
-    crossOrigin: 'anonymous'
   })
 
   return imageOverlay
@@ -303,65 +232,72 @@ export default function MapaPoligono({
   
   const [midiendo, setMidiendo] = useState(false)
   const [puntosMedicion, setPuntosMedicion] = useState<any[]>([])
+  const [leyendaExpandida, setLeyendaExpandida] = useState(false)
+  const [moduloExpandido, setModuloExpandido] = useState<string | null>(null)
 
   // 🖥️ Función para entrar/salir de pantalla completa
   const toggleFullscreen = () => {
     const mapContainer = document.getElementById('map-container')
-    
-    console.log('🖥️ FULLSCREEN DEBUG:')
-    console.log('  - mapContainer encontrado:', !!mapContainer)
-    console.log('  - existingLayersRef:', !!existingLayersRef.current)
-    
-    if (existingLayersRef.current) {
-  let tooltipCount = 0
-  existingLayersRef.current.eachLayer((layer: any) => {
-    const isTooltip = layer instanceof (L as any).Tooltip || 
-                      layer._tooltip || 
-                      (layer.getContent && typeof layer.getContent === 'function')
-    if (isTooltip) {
-      tooltipCount++
-      console.log('  - Tooltip encontrado, opacity actual:', layer.options?.opacity)
-    }
-  })
-  console.log('  - Total tooltips:', tooltipCount)
-}
-    
     if (!mapContainer) return
-    
-    if (!document.fullscreenElement) {
-      mapContainer.requestFullscreen()
-        .then(() => {
-          setIsFullscreen(true)
-          console.log('✅ Entró en fullscreen')
-          
-          setTimeout(() => {
-            if (mapRef.current) {
-              mapRef.current.invalidateSize()
-              console.log('📐 invalidateSize ejecutado')
-              
-              if (existingLayersRef.current) {
-  let count = 0
-  existingLayersRef.current.eachLayer((layer: any) => {
-    // Detectar tooltips de cualquier forma
-    if (layer instanceof (L as any).Tooltip || 
-        layer._tooltip || 
-        layer.options?.permanent === true ||
-        (layer.getContent && typeof layer.getContent === 'function')) {
-      layer.setOpacity(1)
-      count++
-      console.log('  👁️ Tooltip mostrado')
+
+    // 📱 Detectar si el navegador soporta Fullscreen API nativa
+    const soportaFullscreenNativo = !!document.fullscreenElement || !!mapContainer.requestFullscreen
+
+    const activarFullscreen = () => {
+      setIsFullscreen(true)
+      setLeyendaExpandida(false)
+      setTimeout(() => {
+        if (mapRef.current) {
+          mapRef.current.invalidateSize()
+          if (existingLayersRef.current) {
+            existingLayersRef.current.eachLayer((layer: any) => {
+              if (layer instanceof (L as any).Tooltip ||
+                  layer._tooltip ||
+                  layer.options?.permanent === true ||
+                  (layer.getContent && typeof layer.getContent === 'function')) {
+                layer.setOpacity(1)
+              }
+            })
+          }
+        }
+      }, 300)
     }
-  })
-  console.log('👁️ Tooltips forzados a visible:', count)
-}
-            }
-          }, 300)
-        })
-        .catch((err) => console.error('Error:', err))
+
+    const desactivarFullscreen = () => {
+      setIsFullscreen(false)
+      setLeyendaExpandida(false)
+      mapContainer.classList.remove('mobile-fullscreen')
+      setTimeout(() => {
+        if (mapRef.current) {
+          mapRef.current.invalidateSize()
+        }
+      }, 300)
+    }
+
+    if (!isFullscreen) {
+      // ENTRAR en fullscreen
+      if (soportaFullscreenNativo && mapContainer.requestFullscreen) {
+        mapContainer.requestFullscreen()
+          .then(() => activarFullscreen())
+          .catch(() => {
+            // Fallback CSS si falla la API nativa (ej: iOS Safari)
+            mapContainer.classList.add('mobile-fullscreen')
+            activarFullscreen()
+          })
+      } else {
+        // 📱 Fallback CSS para iOS Safari y navegadores sin soporte
+        mapContainer.classList.add('mobile-fullscreen')
+        activarFullscreen()
+      }
     } else {
-      document.exitFullscreen()
-        .then(() => setIsFullscreen(false))
-        .catch((err) => console.error('Error:', err))
+      // SALIR de fullscreen
+      if (document.fullscreenElement) {
+        document.exitFullscreen()
+          .then(() => desactivarFullscreen())
+          .catch(() => desactivarFullscreen())
+      } else {
+        desactivarFullscreen()
+      }
     }
   }
 
@@ -372,14 +308,15 @@ export default function MapaPoligono({
   // 🖥️ Detectar cuando el usuario sale de pantalla completa (ESC)
 useEffect(() => {
   const handleFullscreenChange = () => {
-    const isNowFullscreen = !!document.fullscreenElement
+    const mapContainer = document.getElementById('map-container')
+    const isNowFullscreen = !!document.fullscreenElement || !!mapContainer?.classList.contains('mobile-fullscreen')
     setIsFullscreen(isNowFullscreen)
-    
+
     // 🔥 FORZAR RECALCULO Y MOSTRAR TOOLTIPS
     if (mapRef.current) {
       setTimeout(() => {
         mapRef.current.invalidateSize()
-        
+
         // Si entramos en fullscreen, forzar visibilidad de tooltips
         if (isNowFullscreen && existingLayersRef.current) {
           existingLayersRef.current.eachLayer((layer: any) => {
@@ -391,9 +328,9 @@ useEffect(() => {
       }, 200)
     }
   }
-  
+
   document.addEventListener('fullscreenchange', handleFullscreenChange)
-  
+
   return () => {
     document.removeEventListener('fullscreenchange', handleFullscreenChange)
   }
@@ -479,11 +416,8 @@ L.control.layers({ 'Satélite': satelitalLayer, 'Mapa': osmLayer }).addTo(map)
   const coordsParaMapa = potrero.coordinates.map(coord => [coord[1], coord[0]])
 
   // 🗺️ PRIMERO: Agregar imagen NDVI si hay datos (solo si NO está editando)
-  if (potrero.info?.ndviMatriz?.matriz?.length > 0 && !potrero.isEditing) {
-    const imageOverlay = crearImagenNDVI(
-      potrero.info.ndviMatriz,
-      potrero.coordinates
-    )
+  if ((potrero.info?.ndviMatriz?.imagenBase64 || potrero.info?.ndviMatriz?.imagenUrl) && !potrero.isEditing) {
+    const imageOverlay = crearImagenNDVI(potrero.info.ndviMatriz)
     if (imageOverlay) {
       existingLayersRef.current.addLayer(imageOverlay)
     }
@@ -612,11 +546,8 @@ const polygon = (L as any).polygon(coordsParaMapa, {
   const coordsParaMapa = potrero.coordinates.map(coord => [coord[1], coord[0]])
 
       // 🗺️ PRIMERO: Agregar imagen NDVI si hay datos
-      if (potrero.info?.ndviMatriz?.matriz?.length > 0) {
-        const imageOverlay = crearImagenNDVI(
-          potrero.info.ndviMatriz,
-          potrero.coordinates
-        )
+      if ((potrero.info?.ndviMatriz?.imagenBase64 || potrero.info?.ndviMatriz?.imagenUrl)) {
+        const imageOverlay = crearImagenNDVI(potrero.info.ndviMatriz)
         if (imageOverlay) {
           existingLayersRef.current.addLayer(imageOverlay)
         }
@@ -1056,12 +987,38 @@ if (esCierre) {
 
     setSearching(true)
     try {
+      // Limpiar query: remover "km XXX" que los geocoders no entienden
+      const queryLimpio = searchQuery.trim().replace(/\bkm\.?\s*[\d.,]+/gi, '').replace(/\s+/g, ' ').trim()
+      const queryFinal = queryLimpio || searchQuery.trim()
+
+      // 1) Intentar con Photon (Komoot) - mejor búsqueda
       const r = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
-          searchQuery
-        )}&countrycodes=uy&limit=5`
+        `https://photon.komoot.io/api/?q=${encodeURIComponent(queryFinal)}&bbox=-58.5,-35.0,-53.0,-30.0&limit=5`
       )
-      setSearchResults(await r.json())
+      const data = await r.json()
+      let resultados = (data.features || []).map((f: any) => ({
+        lat: String(f.geometry.coordinates[1]),
+        lon: String(f.geometry.coordinates[0]),
+        display_name: [
+          f.properties.name,
+          f.properties.city,
+          f.properties.state,
+          f.properties.country,
+        ].filter(Boolean).join(', '),
+      }))
+
+      // 2) Si Photon no devuelve nada, fallback a Nominatim
+      if (resultados.length === 0) {
+        const r2 = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(queryFinal)}&countrycodes=uy&limit=5`
+        )
+        resultados = await r2.json()
+      }
+
+      setSearchResults(resultados)
+    } catch (error) {
+      console.error('Error buscando ubicación:', error)
+      setSearchResults([])
     } finally {
       setSearching(false)
     }
@@ -1073,7 +1030,7 @@ if (esCierre) {
     setUbicandoUsuario(true)
 
     if (!navigator.geolocation) {
-      alert('Tu navegador no soporta geolocalización')
+      toast.info('Tu navegador no soporta geolocalización')
       setUbicandoUsuario(false)
       return
     }
@@ -1084,7 +1041,7 @@ if (esCierre) {
         const permission = await (navigator as any).permissions.query({ name: 'geolocation' })
         
         if (permission.state === 'denied') {
-          alert('❌ Permiso de ubicación denegado.\n\n📍 Para habilitarlo:\n1. Hacé clic en el ícono 🔒 o ⓘ en la barra de direcciones\n2. Buscá "Ubicación" y cambialo a "Permitir"\n3. Recargá la página')
+          toast.error('❌ Permiso de ubicación denegado.\n\n📍 Para habilitarlo:\n1. Hacé clic en el ícono 🔒 o ⓘ en la barra de direcciones\n2. Buscá "Ubicación" y cambialo a "Permitir"\n3. Recargá la página')
           setUbicandoUsuario(false)
           return
         }
@@ -1135,7 +1092,7 @@ if (esCierre) {
           setUbicandoUsuario(false)
         } catch (error) {
           console.error('Error mostrando ubicación:', error)
-          alert('Error mostrando la ubicación en el mapa')
+          toast.error('Error mostrando la ubicación en el mapa')
           setUbicandoUsuario(false)
         }
       },
@@ -1157,7 +1114,7 @@ if (esCierre) {
             mensaje = '❌ Error desconocido obteniendo ubicación.'
         }
         
-        alert(mensaje)
+        toast.info(mensaje)
         setUbicandoUsuario(false)
       },
       { 
@@ -1171,7 +1128,7 @@ if (esCierre) {
   const confirmarPoligono = () => {
     if (!drawnItemsRef.current) return
     if (drawnItemsRef.current.getLayers().length === 0)
-      return alert('Dibuje el potrero primero')
+      return toast.info('Dibuje el potrero primero')
 
     const layer = drawnItemsRef.current.getLayers()[0]
     const latlngs = layer.getLatLngs()[0]
@@ -1204,7 +1161,7 @@ if (esCierre) {
       {/* 🖥️ BOTÓN DE PANTALLA COMPLETA - Arriba a la izquierda */}
 <button
   onClick={toggleFullscreen}
-  className="hidden sm:flex absolute top-3 left-3 z-[10] bg-white rounded-lg shadow-lg hover:shadow-xl transition-all w-[34px] h-[34px] sm:w-[36px] sm:h-[36px] items-center justify-center border-2 border-gray-300"
+  className="flex absolute top-3 left-3 z-[10] bg-white rounded-lg shadow-lg hover:shadow-xl transition-all w-[34px] h-[34px] sm:w-[36px] sm:h-[36px] items-center justify-center border-2 border-gray-300"
   title={isFullscreen ? "Salir de pantalla completa" : "Pantalla completa"}
 >
         {isFullscreen ? (
@@ -1223,12 +1180,16 @@ if (esCierre) {
 {readOnly && (
   <button
     onClick={toggleMedicion}
-    className={`absolute top-3 left-3 z-[10] rounded-lg shadow-lg hover:shadow-xl transition-all w-[34px] h-[34px] sm:w-[36px] sm:h-[36px] flex items-center justify-center border-2 text-lg ${
-      midiendo 
-        ? 'bg-blue-600 border-blue-600' 
+    className={`absolute z-[10] rounded-lg shadow-lg hover:shadow-xl transition-all w-[34px] h-[34px] sm:w-[36px] sm:h-[36px] flex items-center justify-center border-2 text-lg ${
+      midiendo
+        ? 'bg-blue-600 border-blue-600'
         : 'bg-white border-gray-300'
+    } ${
+      isFullscreen
+        ? 'top-3 left-3'
+        : 'bottom-4 left-3'
     }`}
-    style={{ marginTop: '124px' }}
+    style={isFullscreen ? { marginTop: '124px' } : {}}
     title={midiendo ? "Terminar medición" : "Medir distancia"}
   >
     📏
@@ -1258,7 +1219,7 @@ if (esCierre) {
 
       {/* 🎨 CONTROL DE OPACIDAD - Solo en pantalla completa y vista Curvas */}
       {isFullscreen && mostrarCurvasNivel && (
-        <div className="absolute top-[120px] right-3 z-[10] bg-white/95 backdrop-blur-sm rounded-xl shadow-2xl border border-gray-200 p-4 w-[280px]">
+        <div className="hidden sm:block absolute top-[120px] right-3 z-[10] bg-white/95 backdrop-blur-sm rounded-xl shadow-2xl border border-gray-200 p-4 w-[280px]">
           <div className="flex items-center justify-between mb-3">
             <label className="text-sm font-semibold text-gray-800">
               📏 Opacidad Curvas
@@ -1292,146 +1253,291 @@ if (esCierre) {
 
       {/* 📦 LEYENDA DE MÓDULOS - Solo visible en PANTALLA COMPLETA */}
 {isFullscreen && mostrarLeyendaModulos && modulosLeyenda.length > 0 && (
-  <div className="absolute top-[120px] right-3 z-[1000] bg-white/95 backdrop-blur-sm rounded-xl shadow-2xl border border-gray-200 p-4 max-w-[320px]">
-    <h3 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
-      <span>📦</span> Módulos de Pastoreo
-    </h3>
-    <div className="space-y-3">
-      {modulosLeyenda.map((modulo) => (
-        <div
-          key={modulo.id}
-          className="p-3 rounded-lg transition-colors"
-          style={{
-            backgroundColor: `${modulo.color}15`,
-          }}
-        >
-          {/* Header del módulo */}
-          <div className="flex items-center gap-3 mb-2">
+  <>
+    {/* Botón toggle para móvil */}
+    <button
+      onClick={() => setLeyendaExpandida(!leyendaExpandida)}
+      className="sm:hidden absolute top-3 left-12 z-[1000] bg-white/95 backdrop-blur-sm rounded-lg shadow-lg border border-gray-200 px-3 py-2 flex items-center gap-1.5 text-xs font-semibold text-gray-800"
+    >
+      📦 Módulos
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className={`transition-transform ${leyendaExpandida ? 'rotate-180' : ''}`}>
+        <path d="M6 9l6 6 6-6" />
+      </svg>
+    </button>
+    {/* Panel expandido en móvil - aparece debajo del botón */}
+    {leyendaExpandida && (
+      <div className="sm:hidden absolute top-14 left-3 z-[1000] bg-white/95 backdrop-blur-sm rounded-xl shadow-2xl border border-gray-200 p-3 w-[calc(100vw-24px)] max-w-[320px] max-h-[65vh] overflow-y-auto">
+        <h3 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
+          <span>📦</span> Módulos de Pastoreo
+        </h3>
+        <div className="space-y-2.5">
+          {modulosLeyenda.map((modulo) => (
             <div
-              className="w-4 h-4 rounded flex-shrink-0"
-              style={{ backgroundColor: modulo.color }}
-            />
-            <span className="font-semibold text-gray-900 text-sm">
-              {modulo.nombre}
-            </span>
-          </div>
-          
-          {/* Stats en pills */}
-          <div className="flex flex-wrap gap-1.5">
-            <span className="px-2 py-0.5 bg-white/80 rounded-full text-xs text-gray-600">
-              {modulo.cantidadPotreros} potrero{modulo.cantidadPotreros !== 1 ? 's' : ''}
-            </span>
-            <span className="px-2 py-0.5 bg-white/80 rounded-full text-xs text-gray-600">
-              {modulo.hectareas.toFixed(0)} ha
-            </span>
-            {modulo.totalAnimales && modulo.totalAnimales > 0 && (
-              <span className="px-2 py-0.5 bg-white/80 rounded-full text-xs text-gray-600">
-                {modulo.totalAnimales} animales
+              key={modulo.id}
+              className="p-2.5 rounded-lg"
+              style={{ backgroundColor: `${modulo.color}15` }}
+            >
+              {/* Header del módulo con nombre */}
+              <div className="flex items-center gap-2 mb-2">
+                <div
+                  className="w-3.5 h-3.5 rounded flex-shrink-0"
+                  style={{ backgroundColor: modulo.color }}
+                />
+                <span className="font-semibold text-gray-900 text-sm">
+                  {modulo.nombre}
+                </span>
+              </div>
+
+              {/* Stats en pills - igual que desktop */}
+              <div className="flex flex-wrap gap-1">
+                <span className="px-2 py-0.5 bg-white/80 rounded-full text-[11px] text-gray-600">
+                  {modulo.cantidadPotreros} potrero{modulo.cantidadPotreros !== 1 ? 's' : ''}
+                </span>
+                <span className="px-2 py-0.5 bg-white/80 rounded-full text-[11px] text-gray-600">
+                  {modulo.hectareas.toFixed(0)} ha
+                </span>
+                {modulo.totalAnimales && modulo.totalAnimales > 0 && (
+                  <span className="px-2 py-0.5 bg-white/80 rounded-full text-[11px] text-gray-600">
+                    {modulo.totalAnimales} animales
+                  </span>
+                )}
+              </div>
+
+              {/* Desglose de animales por categoría */}
+              {modulo.animalesPorCategoria && Object.keys(modulo.animalesPorCategoria).length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-1.5">
+                  {Object.entries(modulo.animalesPorCategoria).map(([categoria, cantidad]) => (
+                    <span
+                      key={categoria}
+                      className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-[11px] font-medium"
+                    >
+                      {cantidad} {categoria}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    )}
+    {/* Panel desktop (sin cambios) */}
+    <div className="hidden sm:block absolute top-[120px] right-3 z-[1000] bg-white/95 backdrop-blur-sm rounded-xl shadow-2xl border border-gray-200 p-4 max-w-[320px]">
+      <h3 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
+        <span>📦</span> Módulos de Pastoreo
+      </h3>
+      <div className="space-y-3">
+        {modulosLeyenda.map((modulo) => (
+          <div
+            key={modulo.id}
+            className="p-3 rounded-lg transition-colors"
+            style={{
+              backgroundColor: `${modulo.color}15`,
+            }}
+          >
+            {/* Header del módulo */}
+            <div className="flex items-center gap-3 mb-2">
+              <div
+                className="w-4 h-4 rounded flex-shrink-0"
+                style={{ backgroundColor: modulo.color }}
+              />
+              <span className="font-semibold text-gray-900 text-sm">
+                {modulo.nombre}
               </span>
+            </div>
+
+            {/* Stats en pills */}
+            <div className="flex flex-wrap gap-1.5">
+              <span className="px-2 py-0.5 bg-white/80 rounded-full text-xs text-gray-600">
+                {modulo.cantidadPotreros} potrero{modulo.cantidadPotreros !== 1 ? 's' : ''}
+              </span>
+              <span className="px-2 py-0.5 bg-white/80 rounded-full text-xs text-gray-600">
+                {modulo.hectareas.toFixed(0)} ha
+              </span>
+              {modulo.totalAnimales && modulo.totalAnimales > 0 && (
+                <span className="px-2 py-0.5 bg-white/80 rounded-full text-xs text-gray-600">
+                  {modulo.totalAnimales} animales
+                </span>
+              )}
+            </div>
+
+            {/* Desglose de animales */}
+            {modulo.animalesPorCategoria && Object.keys(modulo.animalesPorCategoria).length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {Object.entries(modulo.animalesPorCategoria).map(([categoria, cantidad]) => (
+                  <span
+                    key={categoria}
+                    className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-medium"
+                  >
+                    {cantidad} {categoria}
+                  </span>
+                ))}
+              </div>
             )}
           </div>
-          
-          {/* Desglose de animales */}
-          {modulo.animalesPorCategoria && Object.keys(modulo.animalesPorCategoria).length > 0 && (
-            <div className="flex flex-wrap gap-1.5 mt-2">
-              {Object.entries(modulo.animalesPorCategoria).map(([categoria, cantidad]) => (
-                <span 
-                  key={categoria}
-                  className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-medium"
-                >
-                  {cantidad} {categoria}
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
-  </div>
+  </>
 )}
 
 {/* 🌾 RESUMEN DE CULTIVOS - Solo visible en PANTALLA COMPLETA cuando mostrarResumenCultivos está activo */}
 {isFullscreen && mostrarResumenCultivos && resumenCultivos.length > 0 && (
-  <div className="absolute top-[120px] right-3 z-[1000] bg-white/95 backdrop-blur-sm rounded-xl shadow-2xl border border-gray-200 p-4 max-w-[360px] max-h-[calc(100vh-140px)] overflow-y-auto">
-    <div className="flex items-center justify-between mb-3">
-      <h3 className="text-sm font-bold text-gray-800 flex items-center gap-2">
-        <span>🌾</span> Cultivos por potrero
-      </h3>
-      {cultivoSeleccionado && (
-        <button
-          onClick={() => onCultivoClick?.(null)}
-          className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full hover:bg-red-200 transition"
-        >
-          ✕ Limpiar
-        </button>
-      )}
-    </div>
+  <>
+    {/* Botón toggle para móvil */}
+    <button
+      onClick={() => setLeyendaExpandida(!leyendaExpandida)}
+      className="sm:hidden absolute top-3 left-12 z-[1000] bg-white/95 backdrop-blur-sm rounded-lg shadow-lg border border-gray-200 px-3 py-2 flex items-center gap-1.5 text-xs font-semibold text-gray-800"
+    >
+      🌾 Cultivos
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className={`transition-transform ${leyendaExpandida ? 'rotate-180' : ''}`}>
+        <path d="M6 9l6 6 6-6" />
+      </svg>
+    </button>
+    {/* Panel expandido en móvil - aparece debajo del botón */}
+    {leyendaExpandida && (
+      <div className="sm:hidden absolute top-14 left-3 z-[1000] bg-white/95 backdrop-blur-sm rounded-xl shadow-2xl border border-gray-200 p-3 w-[calc(100vw-24px)] max-w-[340px] max-h-[65vh] overflow-y-auto">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-bold text-gray-800 flex items-center gap-2">
+            <span>🌾</span> Cultivos por potrero
+          </h3>
+          {cultivoSeleccionado && (
+            <button
+              onClick={() => onCultivoClick?.(null)}
+              className="text-[11px] bg-red-100 text-red-700 px-2 py-1 rounded-full hover:bg-red-200 transition"
+            >
+              ✕ Limpiar
+            </button>
+          )}
+        </div>
+        <div className="space-y-2">
+          {resumenCultivos.map((cultivo, idx) => (
+            <button
+              key={idx}
+              onClick={() => onCultivoClick?.(cultivoSeleccionado === cultivo.tipo ? null : cultivo.tipo)}
+              className={`w-full text-left p-2.5 rounded-lg border-2 transition-all ${
+                cultivoSeleccionado === cultivo.tipo
+                  ? 'border-blue-500 shadow-lg ring-2 ring-blue-200'
+                  : cultivoSeleccionado === null
+                  ? 'border-transparent hover:border-gray-300'
+                  : 'border-transparent opacity-40'
+              }`}
+              style={{ backgroundColor: `${cultivo.color}25` }}
+            >
+              {/* Header del cultivo */}
+              <div className="flex items-center justify-between mb-1.5">
+                <div className="flex items-center gap-2">
+                  <div
+                    className="w-3.5 h-3.5 rounded flex-shrink-0"
+                    style={{ backgroundColor: cultivo.color }}
+                  />
+                  <span className="font-semibold text-gray-900 text-sm">
+                    {cultivo.tipo}
+                  </span>
+                </div>
+                <span className="text-xs font-medium text-gray-700 bg-white/80 px-2 py-0.5 rounded-full">
+                  {cultivo.hectareas.toFixed(1)} ha
+                </span>
+              </div>
 
-    <div className="space-y-2">
-      {resumenCultivos.map((cultivo, idx) => (
-        <button
-          key={idx}
-          onClick={() => onCultivoClick?.(cultivoSeleccionado === cultivo.tipo ? null : cultivo.tipo)}
-          className={`w-full text-left p-3 rounded-lg border-2 transition-all cursor-pointer hover:scale-[1.02] hover:shadow-md ${
-            cultivoSeleccionado === cultivo.tipo
-              ? 'border-blue-500 shadow-lg ring-2 ring-blue-200'
-              : cultivoSeleccionado === null
-              ? 'border-transparent hover:border-gray-300'
-              : 'border-transparent opacity-40'
-          }`}
-          style={{ backgroundColor: `${cultivo.color}25` }}
-        >
-          {/* Header del cultivo */}
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2.5">
-              <div
-                className="w-4 h-4 rounded flex-shrink-0"
-                style={{ backgroundColor: cultivo.color }}
-              />
-              <span className="font-semibold text-gray-900 text-sm">
-                {cultivo.tipo}
+              {/* Lista de potreros - igual que desktop */}
+              {cultivo.potreros && cultivo.potreros.length > 0 && (
+                <div className="text-[11px] text-gray-600 leading-relaxed pl-5">
+                  {cultivo.potreros.map((p, i) => (
+                    <span key={i}>
+                      {p.nombre} ({p.hectareas.toFixed(1)} ha){i < cultivo.potreros!.length - 1 ? ', ' : ''}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
+    )}
+    {/* Panel desktop (sin cambios) */}
+    <div className="hidden sm:block absolute top-[120px] right-3 z-[1000] bg-white/95 backdrop-blur-sm rounded-xl shadow-2xl border border-gray-200 p-4 max-w-[360px] max-h-[calc(100vh-140px)] overflow-y-auto">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-bold text-gray-800 flex items-center gap-2">
+          <span>🌾</span> Cultivos por potrero
+        </h3>
+        {cultivoSeleccionado && (
+          <button
+            onClick={() => onCultivoClick?.(null)}
+            className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full hover:bg-red-200 transition"
+          >
+            ✕ Limpiar
+          </button>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        {resumenCultivos.map((cultivo, idx) => (
+          <button
+            key={idx}
+            onClick={() => onCultivoClick?.(cultivoSeleccionado === cultivo.tipo ? null : cultivo.tipo)}
+            className={`w-full text-left p-3 rounded-lg border-2 transition-all cursor-pointer hover:scale-[1.02] hover:shadow-md ${
+              cultivoSeleccionado === cultivo.tipo
+                ? 'border-blue-500 shadow-lg ring-2 ring-blue-200'
+                : cultivoSeleccionado === null
+                ? 'border-transparent hover:border-gray-300'
+                : 'border-transparent opacity-40'
+            }`}
+            style={{ backgroundColor: `${cultivo.color}25` }}
+          >
+            {/* Header del cultivo */}
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2.5">
+                <div
+                  className="w-4 h-4 rounded flex-shrink-0"
+                  style={{ backgroundColor: cultivo.color }}
+                />
+                <span className="font-semibold text-gray-900 text-sm">
+                  {cultivo.tipo}
+                </span>
+              </div>
+              <span className="text-xs font-medium text-gray-700 bg-white/80 px-2 py-1 rounded-full">
+                {cultivo.hectareas.toFixed(1)} ha
               </span>
             </div>
-            <span className="text-xs font-medium text-gray-700 bg-white/80 px-2 py-1 rounded-full">
-              {cultivo.hectareas.toFixed(1)} ha
-            </span>
-          </div>
 
-          {/* Lista de potreros */}
-          {cultivo.potreros && cultivo.potreros.length > 0 && (
-            <div className="text-xs text-gray-600 leading-relaxed pl-6">
-              {cultivo.potreros.map((p, i) => (
-                <span key={i}>
-                  {p.nombre} ({p.hectareas.toFixed(1)} ha){i < cultivo.potreros!.length - 1 ? ', ' : ''}
-                </span>
-              ))}
-            </div>
-          )}
-        </button>
-      ))}
+            {/* Lista de potreros */}
+            {cultivo.potreros && cultivo.potreros.length > 0 && (
+              <div className="text-xs text-gray-600 leading-relaxed pl-6">
+                {cultivo.potreros.map((p, i) => (
+                  <span key={i}>
+                    {p.nombre} ({p.hectareas.toFixed(1)} ha){i < cultivo.potreros!.length - 1 ? ', ' : ''}
+                  </span>
+                ))}
+              </div>
+            )}
+          </button>
+        ))}
+      </div>
     </div>
-  </div>
+  </>
 )}
 
-      {!readOnly && (
-        <div className="absolute top-4 left-4 right-4 z-[10] md:left-16 md:w-96">
-          <div className="bg-white rounded-lg shadow-lg p-3">
-            <div className="flex gap-2">
+      {/* 🔍 BUSCADOR - Solo visible cuando NO hay lotes existentes (primer potrero) */}
+      {!readOnly && existingPolygons.length === 0 && (
+        <div className="absolute top-2 left-2 right-2 sm:top-4 sm:left-4 sm:right-4 z-[10] md:left-16 md:w-96">
+          <div className="bg-white rounded-lg shadow-lg p-2 sm:p-3">
+            <div className="flex gap-1.5 sm:gap-2">
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && buscarUbicacion()}
                 placeholder="Buscar ubicación..."
-                className="flex-1 px-3 py-2 border rounded-lg text-sm"
+                className="flex-1 px-2.5 sm:px-3 py-1.5 sm:py-2 border rounded-lg text-sm min-w-0"
               />
-              <button onClick={buscarUbicacion} className="px-4 py-2 bg-blue-600 text-white rounded-lg">
+              <button onClick={buscarUbicacion} className="px-3 sm:px-4 py-1.5 sm:py-2 bg-blue-600 text-white rounded-lg text-sm shrink-0">
                 {searching ? '⏳' : '🔍'}
               </button>
             </div>
 
             {searchResults.length > 0 && (
-              <div className="mt-2 max-h-48 overflow-y-auto">
+              <div className="mt-2 max-h-36 sm:max-h-48 overflow-y-auto">
                 {searchResults.map((r, i) => (
                   <button
                     key={i}
@@ -1441,7 +1547,7 @@ if (esCierre) {
                       }
                       setSearchResults([])
                     }}
-                    className="w-full text-left px-3 py-2 hover:bg-gray-100 rounded text-sm border-b"
+                    className="w-full text-left px-2.5 sm:px-3 py-1.5 sm:py-2 hover:bg-gray-100 rounded text-xs sm:text-sm border-b"
                   >
                     {r.display_name}
                   </button>
@@ -1454,9 +1560,9 @@ if (esCierre) {
 
 
       {!readOnly && areaHectareas !== null && (
-        <div className="absolute top-4 right-4 z-[10] bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg">
-          <div className="text-sm">Área:</div>
-          <div className="text-xl font-bold">{areaHectareas.toFixed(2)} ha</div>
+        <div className="absolute bottom-16 sm:bottom-auto sm:top-4 right-2 sm:right-4 z-[10] bg-green-600 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg shadow-lg">
+          <div className="text-xs sm:text-sm">Área:</div>
+          <div className="text-base sm:text-xl font-bold">{areaHectareas.toFixed(2)} ha</div>
         </div>
       )}
 

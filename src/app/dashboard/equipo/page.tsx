@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { UserPlus, DollarSign, Trash2 } from "lucide-react"
 import ModalInvitarUsuario from "@/app/components/modales/ModalInvitarUsuario"
+import { toast } from '@/app/components/Toast'
 
 interface Usuario {
   id: string
@@ -71,9 +72,9 @@ export default function EquipoPage() {
       }
 
       await cargarUsuarios()
-      alert("Permisos actualizados correctamente")
+      toast.success("Permisos actualizados correctamente")
     } catch (error: any) {
-      alert(error.message || "Error actualizando permisos")
+      toast.error(error.message || "Error actualizando permisos")
     } finally {
       setActualizando(null)
     }
@@ -112,10 +113,10 @@ export default function EquipoPage() {
       }
 
       await cargarUsuarios()
-      alert(`${usuario.nombre} ${usuario.apellido} eliminado correctamente`)
+      toast.success(`${usuario.nombre} ${usuario.apellido} eliminado correctamente`)
     } catch (error: any) {
       console.error("Error eliminando usuario:", error)
-      alert(`Error: ${error.message}`)
+      toast.error(`Error: ${error.message}`)
     } finally {
       setActualizando(null)
     }

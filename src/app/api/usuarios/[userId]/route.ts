@@ -24,7 +24,7 @@ export async function DELETE(
       select: { role: true, campoId: true },
     })
 
-    if (adminUser?.role !== "ADMIN_GENERAL") {
+    if (!["ADMIN_GENERAL", "MEGA_ADMIN"].includes(adminUser?.role || "")) {
       return NextResponse.json({ error: "No autorizado" }, { status: 403 })
     }
 

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef, memo, useCallback } from 'react';
 import useSWR from 'swr';
+import { toast } from '@/app/components/Toast'
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -344,22 +345,22 @@ export default function InventarioPage() {
           ? `1 de julio ${añoInicio}`
           : `30 de junio ${añoFin}`;
 
-        alert(`Stock de potreros cargado en ${fechaTexto}. Completá peso y precios manualmente.`);
+        toast.info(`Stock de potreros cargado en ${fechaTexto}. Completá peso y precios manualmente.`);
       }
     } catch (error) {
       console.error('Error regenerando:', error);
-      alert('Error al regenerar inventario');
+      toast.error('Error al regenerar inventario');
     }
   }
 
   function agregarCategoriaManual() {
     if (!nuevaCategoria.trim()) {
-      alert('Ingresa un nombre de categoría');
+      toast.info('Ingresa un nombre de categoría');
       return;
     }
 
     if (items.some(i => i.categoria.toLowerCase() === nuevaCategoria.toLowerCase())) {
-      alert('Esta categoría ya existe');
+      toast.info('Esta categoría ya existe');
       return;
     }
 
@@ -422,10 +423,10 @@ export default function InventarioPage() {
       mutateInicial();
       mutateFinal();
 
-      alert('✅ Inventario guardado correctamente');
+      toast.success('✅ Inventario guardado correctamente');
     } catch (error) {
       console.error('Error guardando:', error);
-      alert('❌ Error al guardar inventario');
+      toast.error('❌ Error al guardar inventario');
     } finally {
       setGuardando(false);
     }
@@ -638,17 +639,18 @@ export default function InventarioPage() {
       />
 
       {modalRegenerar && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4">
-          <div className="bg-white rounded-xl max-w-md w-full p-4 sm:p-6" style={{ colorScheme: 'light' }}>
-            <h2 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4">🔄 Regenerar desde Potreros</h2>
+        <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 sm:p-4">
+          <div className="bg-white rounded-t-2xl sm:rounded-xl w-full sm:max-w-md p-5 sm:p-6 animate-slide-up sm:animate-none" style={{ colorScheme: 'light' }}>
+            <div className="w-10 h-1 bg-gray-300 rounded-full mx-auto mb-4 sm:hidden" />
+            <h2 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4 text-gray-900">🔄 Regenerar desde Potreros</h2>
             <p className="text-gray-700 mb-4 sm:mb-6 text-sm sm:text-base">
               ¿A qué fecha querés cargar el stock actual de tus potreros?
             </p>
 
-            <div className="space-y-2 sm:space-y-3 mb-4 sm:mb-6">
+            <div className="space-y-3 mb-4 sm:mb-6">
               <button
                 onClick={() => regenerarDesdePotreros('INICIO')}
-                className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium text-left text-sm sm:text-base"
+                className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium text-left text-sm sm:text-base"
               >
                 📅 Inicio de Ejercicio
                 <div className="text-xs sm:text-sm opacity-90">1 de julio {añoInicio}</div>
@@ -656,7 +658,7 @@ export default function InventarioPage() {
 
               <button
                 onClick={() => regenerarDesdePotreros('FIN')}
-                className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium text-left text-sm sm:text-base"
+                className="w-full px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium text-left text-sm sm:text-base"
               >
                 📅 Fin de Ejercicio
                 <div className="text-xs sm:text-sm opacity-90">30 de junio {añoFin}</div>
@@ -665,7 +667,7 @@ export default function InventarioPage() {
 
             <button
               onClick={() => setModalRegenerar(false)}
-              className="w-full px-3 sm:px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 text-sm sm:text-base"
+              className="w-full px-4 py-2.5 bg-gray-200 rounded-lg hover:bg-gray-300 text-sm sm:text-base font-medium"
             >
               Cancelar
             </button>
@@ -674,28 +676,30 @@ export default function InventarioPage() {
       )}
 
       {modalAgregar && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4">
-          <div className="bg-white rounded-xl max-w-md w-full p-4 sm:p-6" style={{ colorScheme: 'light' }}>
-            <h2 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4">➕ Agregar Categoría Manual</h2>
+        <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 sm:p-4">
+          <div className="bg-white rounded-t-2xl sm:rounded-xl w-full sm:max-w-md p-5 sm:p-6 animate-slide-up sm:animate-none" style={{ colorScheme: 'light' }}>
+            <div className="w-10 h-1 bg-gray-300 rounded-full mx-auto mb-4 sm:hidden" />
+            <h2 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4 text-gray-900">➕ Agregar Categoría Manual</h2>
             <input
               type="text"
               value={nuevaCategoria}
               onChange={(e) => setNuevaCategoria(e.target.value)}
               placeholder="Ej: Terneros especiales"
-              className="w-full px-3 sm:px-4 py-2 border rounded-lg mb-3 sm:mb-4 text-sm sm:text-base bg-white text-gray-900"
+              className="w-full px-4 py-2.5 border rounded-lg mb-4 text-sm sm:text-base bg-white text-gray-900"
               style={{ colorScheme: 'light' }}
+              autoFocus
               onKeyDown={(e) => e.key === 'Enter' && agregarCategoriaManual()}
             />
-            <div className="flex gap-2 sm:gap-3">
+            <div className="flex gap-3">
               <button
                 onClick={() => setModalAgregar(false)}
-                className="flex-1 px-3 sm:px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 text-sm sm:text-base"
+                className="flex-1 px-4 py-2.5 bg-gray-200 rounded-lg hover:bg-gray-300 text-sm sm:text-base font-medium"
               >
                 Cancelar
               </button>
               <button
                 onClick={agregarCategoriaManual}
-                className="flex-1 px-3 sm:px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm sm:text-base"
+                className="flex-1 px-4 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm sm:text-base font-medium"
               >
                 Agregar
               </button>

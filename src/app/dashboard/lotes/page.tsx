@@ -308,6 +308,7 @@ const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
 
 import { useSession } from 'next-auth/react'
+import { toast } from '@/app/components/Toast'
 
 export default function LotesPage() {
   // ✅ Cargar lotes con SWR
@@ -403,14 +404,14 @@ const [acordeonesAbiertos, setAcordeonesAbiertos] = useState<{[key: string]: boo
           animales: [],
           cultivos: []
         })
-        alert('Potrero eliminado correctamente')
+        toast.success('Potrero eliminado correctamente')
       } else {
         const error = await response.json()
-        alert(error.error || 'Error al eliminar el potrero')
+        toast.error(error.error || 'Error al eliminar el potrero')
       }
     } catch (error) {
       console.error('Error eliminando lote:', error)
-      alert('Error al eliminar el potrero')
+      toast.error('Error al eliminar el potrero')
     } finally {
       setLoadingBorrado(false)
     }
@@ -451,150 +452,253 @@ const [acordeonesAbiertos, setAcordeonesAbiertos] = useState<{[key: string]: boo
   }
 
   // 🎴 COMPONENTE PARA RENDERIZAR UN POTRERO (reutilizable)
-  const PotreroCard = ({ lote }: { lote: Lote }) => (
-    <tr key={lote.id} className="hover:bg-gray-50 transition">
-      <td className="px-3 sm:px-6 py-3 sm:py-4">
-        <div className="font-medium text-gray-900 text-sm sm:text-base">{lote.nombre}</div>
-        <div className="text-xs sm:text-sm text-gray-500">
-          {Number(lote.hectareas).toLocaleString('es-UY', {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-          })}{' '}
-          has
-        </div>
-      </td>
+  // Desktop: fila de tabla | Mobile: tarjeta
+  const PotreroCard = ({ lote }: { lote: Lote }) => {
+    const totalAnimales = lote.animalesLote.reduce((sum, a) => sum + a.cantidad, 0)
 
-      <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-gray-700">
-        {lote.cultivos?.length > 0 ? (
-          <div className="space-y-1">
-            {lote.cultivos.map((cultivo, idx) => (
-              <Link
-                key={idx}
-                href={`/dashboard/datos?potreros=${encodeURIComponent(lote.nombre)}&cultivos=${encodeURIComponent(cultivo.tipoCultivo)}`}
-                className="block"
-              >
-                <div className="inline-block px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm hover:bg-green-200 transition cursor-pointer">
-                  <span className="font-medium">{cultivo.tipoCultivo}</span>
-                  <span className="text-xs ml-1">({cultivo.hectareas.toFixed(1)} ha)</span>
-                </div>
-              </Link>
-            ))}
+    // Calcular UG/ha para este lote
+    const ugTotales = calcularUGTotales(lote.animalesLote, pesosPersonalizados)
+    const ugPorHa = lote.hectareas > 0 ? ugTotales / lote.hectareas : 0
+
+    return (
+      <>
+        {/* 📱 MOBILE: Tarjeta */}
+        <div className="sm:hidden p-4 mx-3 my-3 bg-white rounded-xl border border-gray-200 shadow-sm">
+          {/* HEADER: Nombre destacado + Estado */}
+          <div className="flex items-start justify-between mb-3 pb-3 border-b border-gray-100">
+            <div>
+              <div className="font-bold text-gray-900 text-lg">{lote.nombre}</div>
+              <div className="text-sm text-gray-500 mt-0.5">
+                {Number(lote.hectareas).toLocaleString('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ha
+              </div>
+            </div>
+            <div className="flex flex-col items-end gap-1.5">
+              {/* Estado: Pastoreo / Descanso / No pastoreable */}
+              {lote.animalesLote.length > 0 ? (
+                <span className="px-3 py-1 bg-blue-600 text-white rounded-full text-xs font-semibold">
+                  Pastoreo ({lote.diasPastoreo || 0} {(lote.diasPastoreo || 0) === 1 ? 'día' : 'días'})
+                </span>
+              ) : lote.esPastoreable === false ? (
+                <span className="px-3 py-1 bg-gray-400 text-white rounded-full text-xs font-medium">
+                  No pastoreable
+                </span>
+              ) : (
+                <span className="px-3 py-1 bg-green-600 text-white rounded-full text-xs font-medium">
+                  Descanso ({lote.diasDescanso || 0} {(lote.diasDescanso || 0) === 1 ? 'día' : 'días'})
+                </span>
+              )}
+              {/* UG/ha - solo si hay animales */}
+              {lote.animalesLote.length > 0 && ugPorHa > 0 && (
+                <span className="text-xs text-gray-500 font-medium">
+                  {ugPorHa.toFixed(2)} UG/ha
+                </span>
+              )}
+            </div>
           </div>
-        ) : (
-          <span className="text-gray-400 italic">Sin cultivos</span>
-        )}
-      </td>
 
-      <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-gray-700">
-        {lote.animalesLote.length > 0 ? (
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 flex-wrap">
-              <div className="relative group">
-                <div className="inline-block px-3 py-1 bg-blue-600 text-white rounded-full text-sm font-semibold cursor-pointer">
-                  {lote.animalesLote.reduce((sum, a) => sum + a.cantidad, 0)} ({lote.diasPastoreo || 0} días)
+          {/* CULTIVOS - solo si hay */}
+          {lote.cultivos?.length > 0 && (
+            <div className="mb-3">
+              <div className="text-[10px] text-gray-400 uppercase tracking-wide font-medium mb-1.5">
+                Cultivos
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {lote.cultivos.map((cultivo, idx) => (
+                  <Link
+                    key={idx}
+                    href={`/dashboard/datos?potreros=${encodeURIComponent(lote.nombre)}&cultivos=${encodeURIComponent(cultivo.tipoCultivo)}`}
+                  >
+                    <span className="inline-block px-2.5 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
+                      {cultivo.tipoCultivo} <span className="text-green-600">({cultivo.hectareas.toFixed(1)}ha)</span>
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ANIMALES - solo si hay */}
+          {lote.animalesLote.length > 0 && (
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-1.5">
+                <div className="text-[10px] text-gray-400 uppercase tracking-wide font-medium">
+                  Animales
                 </div>
-                <div className="hidden group-hover:block absolute z-10 px-3 py-2 text-sm text-white bg-gray-900 rounded-lg shadow-lg -top-10 left-0 whitespace-nowrap">
-                  {lote.animalesLote.reduce((sum, a) => sum + a.cantidad, 0)} animales, {lote.diasPastoreo || 0} días de pastoreo
+                <span className="text-xs font-semibold text-blue-600">
+                  {totalAnimales} total
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {lote.animalesLote.map((animal, idx) => (
+                  <Link
+                    key={idx}
+                    href={`/dashboard/datos?potreros=${encodeURIComponent(lote.nombre)}&animales=${encodeURIComponent(animal.categoria)}`}
+                  >
+                    <span className="inline-block px-2.5 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-medium">
+                      {animal.cantidad} {animal.categoria}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ACCIONES */}
+          <div className="flex justify-between items-center pt-3 border-t border-gray-100">
+            <Link
+              href={`/dashboard/lotes/${lote.id}/editar`}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition text-sm"
+            >
+              ✏️ Editar
+            </Link>
+            <button
+              onClick={() => abrirModalBorrado(lote)}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition text-sm"
+            >
+              🗑️ Eliminar
+            </button>
+          </div>
+        </div>
+
+        {/* 🖥️ DESKTOP: Fila de tabla */}
+        <tr className="hidden sm:table-row hover:bg-gray-50 transition">
+          <td className="px-3 sm:px-6 py-3 sm:py-4">
+            <div className="font-medium text-gray-900 text-sm sm:text-base">{lote.nombre}</div>
+            <div className="text-xs sm:text-sm text-gray-500">
+              {Number(lote.hectareas).toLocaleString('es-UY', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}{' '}
+              has
+            </div>
+          </td>
+
+          <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-gray-700">
+            {lote.cultivos?.length > 0 ? (
+              <div className="space-y-1">
+                {lote.cultivos.map((cultivo, idx) => (
+                  <Link
+                    key={idx}
+                    href={`/dashboard/datos?potreros=${encodeURIComponent(lote.nombre)}&cultivos=${encodeURIComponent(cultivo.tipoCultivo)}`}
+                    className="block"
+                  >
+                    <div className="inline-block px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm hover:bg-green-200 transition cursor-pointer">
+                      <span className="font-medium">{cultivo.tipoCultivo}</span>
+                      <span className="text-xs ml-1">({cultivo.hectareas.toFixed(1)} ha)</span>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <span className="text-gray-400 italic">Sin cultivos</span>
+            )}
+          </td>
+
+          <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-gray-700">
+            {lote.animalesLote.length > 0 ? (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <div className="relative group">
+                    <div className="inline-block px-3 py-1 bg-blue-600 text-white rounded-full text-sm font-semibold cursor-pointer">
+                      {totalAnimales} ({lote.diasPastoreo || 0} {(lote.diasPastoreo || 0) === 1 ? 'día' : 'días'})
+                    </div>
+                    <div className="hidden group-hover:block absolute z-10 px-3 py-2 text-sm text-white bg-gray-900 rounded-lg shadow-lg -top-10 left-0 whitespace-nowrap">
+                      {totalAnimales} {totalAnimales === 1 ? 'animal' : 'animales'}, {lote.diasPastoreo || 0} {(lote.diasPastoreo || 0) === 1 ? 'día' : 'días'} de pastoreo
+                    </div>
+                  </div>
+
+                  {/* CARGA UG/ha DEL POTRERO CON TOOLTIP */}
+                  {(() => {
+                    const animalesAgrupados = (lote.animalesLote || []).reduce((acc, animal) => {
+                      const existing = acc.find(a => a.categoria === animal.categoria)
+                      if (existing) {
+                        existing.cantidad += animal.cantidad
+                      } else {
+                        acc.push({ categoria: animal.categoria, cantidad: animal.cantidad })
+                      }
+                      return acc
+                    }, [] as Array<{ categoria: string; cantidad: number }>)
+
+                    const ugTotales = calcularUGTotales(animalesAgrupados, pesosPersonalizados)
+                    const cargaUG = lote.hectareas > 0 ? ugTotales / lote.hectareas : 0
+
+                    const color =
+                      cargaUG < 0.7 ? 'bg-blue-100 text-blue-700' :
+                      cargaUG <= 1.5 ? 'bg-green-100 text-green-700' :
+                      cargaUG <= 2.0 ? 'bg-orange-100 text-orange-700' :
+                      'bg-red-100 text-red-700'
+
+                    return (
+                      <Tooltip content={<TooltipCargaPotrero />}>
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${color}`}>
+                          {cargaUG.toFixed(2)} UG/ha
+                        </span>
+                      </Tooltip>
+                    )
+                  })()}
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  {lote.animalesLote.map((animal, idx) => (
+                    <Link
+                      key={idx}
+                      href={`/dashboard/datos?potreros=${encodeURIComponent(lote.nombre)}&animales=${encodeURIComponent(animal.categoria)}`}
+                    >
+                      <div className="inline-block px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm hover:bg-gray-200 transition cursor-pointer">
+                        <span className="font-medium">{animal.cantidad}</span> {animal.categoria}
+                      </div>
+                    </Link>
+                  ))}
                 </div>
               </div>
-              
-              {/* CARGA UG/ha DEL POTRERO CON TOOLTIP */}
-{(() => {
-  // ✅ Agrupar animales por categoría antes de calcular UG
-  const animalesAgrupados = (lote.animalesLote || []).reduce((acc, animal) => {
-    const existing = acc.find(a => a.categoria === animal.categoria)
-    if (existing) {
-      existing.cantidad += animal.cantidad
-    } else {
-      acc.push({ categoria: animal.categoria, cantidad: animal.cantidad })
-    }
-    return acc
-  }, [] as Array<{ categoria: string; cantidad: number }>)
-  
-  const ugTotales = calcularUGTotales(animalesAgrupados, pesosPersonalizados)
-  const cargaUG = lote.hectareas > 0 ? ugTotales / lote.hectareas : 0
-                
-                const color = 
-                  cargaUG < 0.7 ? 'bg-blue-100 text-blue-700' :
-                  cargaUG <= 1.5 ? 'bg-green-100 text-green-700' :
-                  cargaUG <= 2.0 ? 'bg-orange-100 text-orange-700' :
-                  'bg-red-100 text-red-700'
-                
-                return (
-                  <Tooltip content={<TooltipCargaPotrero />}>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${color}`}>
-                      {cargaUG.toFixed(2)} UG/ha
-                    </span>
-                  </Tooltip>
-                )
-              })()}
-            </div>
-            
-            <div className="flex flex-wrap gap-2">
-              {lote.animalesLote.map((animal, idx) => (
-                <Link
-                  key={idx}
-                  href={`/dashboard/datos?potreros=${encodeURIComponent(lote.nombre)}&animales=${encodeURIComponent(animal.categoria)}`}
-                >
-                  <div className="inline-block px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm hover:bg-gray-200 transition cursor-pointer">
-                    <span className="font-medium">{animal.cantidad}</span> {animal.categoria}
+            ) : (
+              <div className="space-y-2">
+                {lote.esPastoreable === false ? (
+                  <div className="relative group">
+                    <div className="inline-block px-3 py-1 bg-gray-400 text-white rounded-full text-sm font-semibold cursor-pointer">
+                      No pastoreable
+                    </div>
+                    <div className="hidden group-hover:block absolute z-10 px-3 py-2 text-sm text-white bg-gray-900 rounded-lg shadow-lg -top-10 left-0 whitespace-nowrap">
+                      Este potrero no es apto para pastoreo
+                    </div>
                   </div>
-                </Link>
-              ))}
+                ) : (
+                  <div className="relative group">
+                    <div className="inline-block px-3 py-1 bg-green-600 text-white rounded-full text-sm font-semibold cursor-pointer">
+                      Descanso ({lote.diasDescanso || 0} {(lote.diasDescanso || 0) === 1 ? 'día' : 'días'})
+                    </div>
+                    <div className="hidden group-hover:block absolute z-10 px-3 py-2 text-sm text-white bg-gray-900 rounded-lg shadow-lg -top-10 left-0 whitespace-nowrap">
+                      Potrero en descanso: {lote.diasDescanso || 0} {(lote.diasDescanso || 0) === 1 ? 'día' : 'días'}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </td>
+
+          <td className="px-3 sm:px-6 py-3 sm:py-4 text-right">
+            <div className="flex justify-end gap-2 sm:gap-3">
+              <Link
+                href={`/dashboard/lotes/${lote.id}/editar`}
+                className="text-gray-400 hover:text-gray-600 transition"
+                title="Editar"
+              >
+                ✏️
+              </Link>
+
+              <button
+                onClick={() => abrirModalBorrado(lote)}
+                className="text-gray-400 hover:text-red-600 transition"
+                title="Eliminar"
+              >
+                🗑️
+              </button>
             </div>
-          </div>
-        ) : (
-  <div className="space-y-2">
-    {lote.esPastoreable === false ? (
-      // 🔒 POTRERO NO PASTOREABLE
-      <div className="relative group">
-        <div className="inline-block px-3 py-1 bg-gray-400 text-white rounded-full text-sm font-semibold cursor-pointer">
-          No pastoreable
-        </div>
-        <div className="hidden group-hover:block absolute z-10 px-3 py-2 text-sm text-white bg-gray-900 rounded-lg shadow-lg -top-10 left-0 whitespace-nowrap">
-          Este potrero no es apto para pastoreo
-        </div>
-      </div>
-    ) : (
-      // ✅ POTRERO EN DESCANSO
-      <div className="relative group">
-        <div className="inline-block px-3 py-1 bg-green-600 text-white rounded-full text-sm font-semibold cursor-pointer">
-          Descanso ({lote.diasDescanso || 0} días)
-        </div>
-        <div className="hidden group-hover:block absolute z-10 px-3 py-2 text-sm text-white bg-gray-900 rounded-lg shadow-lg -top-10 left-0 whitespace-nowrap">
-          Potrero en descanso: {lote.diasDescanso || 0} días
-        </div>
-      </div>
-    )}
-  </div>
-)}
-      </td>
-
-      <td className="px-3 sm:px-6 py-3 sm:py-4 text-right">
-        <div className="flex justify-end gap-2 sm:gap-3">
-          <button className="text-gray-400 hover:text-gray-600 transition" title="Ver detalles">
-            🔗
-          </button>
-
-          <Link
-            href={`/dashboard/lotes/${lote.id}/editar`}
-            className="text-gray-400 hover:text-gray-600 transition"
-            title="Editar"
-          >
-            ✏️
-          </Link>
-
-          <button
-            onClick={() => abrirModalBorrado(lote)}
-            className="text-gray-400 hover:text-red-600 transition"
-            title="Eliminar"
-          >
-            🗑️
-          </button>
-        </div>
-      </td>
-    </tr>
-  )
+          </td>
+        </tr>
+      </>
+    )
+  }
 
  const loading = loadingLotes || loadingModulos || loadingEquivalencias
   const hayLotes = lotes.length > 0
@@ -885,31 +989,41 @@ const [acordeonesAbiertos, setAcordeonesAbiertos] = useState<{[key: string]: boo
                     
                     {/* CONTENIDO DEL MÓDULO */}
                     {estaAbierto && modulo.lotes.length > 0 && (
-                      <div className="overflow-x-auto">
-                        <table className="w-full min-w-[500px]">
-                          <thead className="bg-gray-50 border-b border-gray-200">
-                            <tr>
-                              <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-gray-600 uppercase tracking-wider">
-                                Potrero
-                              </th>
-                              <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-gray-600 uppercase tracking-wider">
-                                Cultivos
-                              </th>
-                              <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-gray-600 uppercase tracking-wider">
-                                Animales
-                              </th>
-                              <th className="px-3 sm:px-6 py-2 sm:py-3 text-right text-[10px] sm:text-xs font-medium text-gray-600 uppercase tracking-wider">
-                                Acciones
-                              </th>
-                            </tr>
-                          </thead>
-                          <tbody className="bg-white divide-y divide-gray-100">
-                            {modulo.lotes.map((lote) => (
-                              <PotreroCard key={lote.id} lote={lote} />
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
+                      <>
+                        {/* 📱 MOBILE: Lista de tarjetas */}
+                        <div className="sm:hidden bg-gray-50 py-2">
+                          {modulo.lotes.map((lote) => (
+                            <PotreroCard key={lote.id} lote={lote} />
+                          ))}
+                        </div>
+
+                        {/* 🖥️ DESKTOP: Tabla */}
+                        <div className="hidden sm:block overflow-x-auto">
+                          <table className="w-full">
+                            <thead className="bg-gray-50 border-b border-gray-200">
+                              <tr>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                                  Potrero
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                                  Cultivos
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                                  Animales
+                                </th>
+                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">
+                                  Acciones
+                                </th>
+                              </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-100">
+                              {modulo.lotes.map((lote) => (
+                                <PotreroCard key={lote.id} lote={lote} />
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </>
                     )}
                     
                     {estaAbierto && modulo.lotes.length === 0 && (
@@ -952,60 +1066,80 @@ const [acordeonesAbiertos, setAcordeonesAbiertos] = useState<{[key: string]: boo
       </button>
       
       {(acordeonesAbiertos['sin-modulo'] ?? false) && (
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[500px]">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-gray-600 uppercase tracking-wider">
-                  Potrero
-                </th>
-                <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-gray-600 uppercase tracking-wider">
-                  Cultivos
-                </th>
-                <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-gray-600 uppercase tracking-wider">
-                  Animales
-                </th>
-                <th className="px-3 sm:px-6 py-2 sm:py-3 text-right text-[10px] sm:text-xs font-medium text-gray-600 uppercase tracking-wider">
-                  Acciones
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-100">
-              {lotesAgrupados.sinModulo.map((lote) => (
-                <PotreroCard key={lote.id} lote={lote} />
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <>
+          {/* 📱 MOBILE: Lista de tarjetas */}
+          <div className="sm:hidden bg-gray-50 py-2">
+            {lotesAgrupados.sinModulo.map((lote) => (
+              <PotreroCard key={lote.id} lote={lote} />
+            ))}
+          </div>
+
+          {/* 🖥️ DESKTOP: Tabla */}
+          <div className="hidden sm:block overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                    Potrero
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                    Cultivos
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                    Animales
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">
+                    Acciones
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-100">
+                {lotesAgrupados.sinModulo.map((lote) => (
+                  <PotreroCard key={lote.id} lote={lote} />
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
     </div>
   ) : (
-    // 🔥 NO HAY MÓDULOS -> Mostrar tabla directa
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-[500px]">
-        <thead className="bg-gray-50 border-b border-gray-200">
-          <tr>
-            <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-gray-600 uppercase tracking-wider">
-              Potrero
-            </th>
-            <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-gray-600 uppercase tracking-wider">
-              Cultivos
-            </th>
-            <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-gray-600 uppercase tracking-wider">
-              Animales
-            </th>
-            <th className="px-3 sm:px-6 py-2 sm:py-3 text-right text-[10px] sm:text-xs font-medium text-gray-600 uppercase tracking-wider">
-              Acciones
-            </th>
-          </tr>
-        </thead>
-        <tbody className="bg-white divide-y divide-gray-100">
-          {lotesAgrupados.sinModulo.map((lote) => (
-            <PotreroCard key={lote.id} lote={lote} />
-              ))}
-            </tbody>
-          </table>
-        </div>
+    // 🔥 NO HAY MÓDULOS -> Mostrar lista/tabla directa
+    <>
+      {/* 📱 MOBILE: Lista de tarjetas */}
+      <div className="sm:hidden bg-gray-50 py-2">
+        {lotesAgrupados.sinModulo.map((lote) => (
+          <PotreroCard key={lote.id} lote={lote} />
+        ))}
+      </div>
+
+      {/* 🖥️ DESKTOP: Tabla */}
+      <div className="hidden sm:block overflow-x-auto">
+        <table className="w-full">
+          <thead className="bg-gray-50 border-b border-gray-200">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                Potrero
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                Cultivos
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                Animales
+              </th>
+              <th className="px-6 py-3 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">
+                Acciones
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-100">
+            {lotesAgrupados.sinModulo.map((lote) => (
+              <PotreroCard key={lote.id} lote={lote} />
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
       )
     )}
               

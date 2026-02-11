@@ -15,6 +15,7 @@ import BannerRecategorizacion from "@/app/components/BannerRecategorizacion";
 
 import { SuperficieProvider } from "@/app/contexts/SuperficieContext";
 import { TipoCampoProvider } from "@/app/contexts/TipoCampoContext";
+import { toast } from '@/app/components/Toast'
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -106,6 +107,35 @@ useEffect(() => {
     };
   }, [sidebarOpen]);
 
+  // Bloquear scroll del body cuando el menú de usuario está abierto (mobile)
+  useEffect(() => {
+    if (userMenuOpen && window.innerWidth < 640) {
+      document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+      document.body.style.top = `-${window.scrollY}px`;
+    } else {
+      const scrollY = document.body.style.top;
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+      document.body.style.top = '';
+      if (scrollY) {
+        window.scrollTo(0, parseInt(scrollY || '0') * -1);
+      }
+    }
+    return () => {
+      const scrollY = document.body.style.top;
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+      document.body.style.top = '';
+      if (scrollY) {
+        window.scrollTo(0, parseInt(scrollY || '0') * -1);
+      }
+    };
+  }, [userMenuOpen]);
+
   // Cerrar menú de usuario al hacer clic fuera
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -151,17 +181,17 @@ useEffect(() => {
   // 🆕 Función para crear nuevo campo
 const crearNuevoCampo = async () => {
   if (!nombreNuevoCampo.trim() || nombreNuevoCampo.trim().length < 2) {
-    alert('El nombre debe tener al menos 2 caracteres');
+    toast.error('El nombre debe tener al menos 2 caracteres');
     return;
   }
 
   if (opcionGrupo === 'nuevo' && (!nombreNuevoGrupo.trim() || nombreNuevoGrupo.trim().length < 2)) {
-    alert('El nombre del cliente/empresa debe tener al menos 2 caracteres');
+    toast.error('El nombre del cliente/empresa debe tener al menos 2 caracteres');
     return;
   }
 
   if (opcionGrupo === 'existente' && !grupoSeleccionadoId && campos.length > 0) {
-    alert('Seleccioná un grupo');
+    toast.error('Seleccioná un grupo');
     return;
   }
   
@@ -190,10 +220,10 @@ const crearNuevoCampo = async () => {
       window.location.reload();
     } else {
       const error = await res.json();
-      alert(error.error || 'Error al crear campo');
+      toast.error(error.error || 'Error al crear campo');
     }
   } catch (error) {
-    alert('Error al crear campo');
+    toast.error('Error al crear campo');
   } finally {
     setCreandoCampo(false);
   }
@@ -203,7 +233,7 @@ const crearNuevoCampo = async () => {
 // 🆕 Función para editar nombre del grupo
 const guardarNombreGrupo = async (grupoId: string) => {
   if (!nombreGrupoEdit.trim() || nombreGrupoEdit.trim().length < 2) {
-    alert('El nombre debe tener al menos 2 caracteres');
+    toast.error('El nombre debe tener al menos 2 caracteres');
     return;
   }
   
@@ -223,10 +253,10 @@ const guardarNombreGrupo = async (grupoId: string) => {
         setGrupos(await resGrupos.json());
       }
     } else {
-      alert('Error al guardar');
+      toast.error('Error al guardar');
     }
   } catch (error) {
-    alert('Error al guardar');
+    toast.error('Error al guardar');
   }
 };
 
@@ -244,10 +274,10 @@ const guardarNombreGrupo = async (grupoId: string) => {
         window.location.reload();
       } else {
         const error = await res.json();
-        alert(error.error || 'Error al cambiar campo');
+        toast.error(error.error || 'Error al cambiar campo');
       }
     } catch (error) {
-      alert('Error al cambiar campo');
+      toast.error('Error al cambiar campo');
     }
   };
 
@@ -375,15 +405,38 @@ const guardarNombreGrupo = async (grupoId: string) => {
 
             {/* Menú desplegable */}
             {userMenuOpen && (
-              <div className="absolute right-0 mt-2 w-[calc(100vw-1rem)] sm:w-72 max-w-sm bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden z-50">
+              <>
+              {/* Overlay mobile - bloquea scroll del body */}
+              <div
+                className="fixed inset-0 bg-black/40 z-40 sm:hidden"
+                onClick={() => setUserMenuOpen(false)}
+                style={{ colorScheme: 'light', touchAction: 'none' }}
+              />
+              <div
+                className="fixed inset-0 z-50 sm:absolute sm:inset-auto sm:right-0 sm:top-auto sm:mt-2 sm:w-72 sm:max-w-sm bg-white sm:rounded-xl sm:shadow-2xl sm:border sm:border-gray-200 overflow-hidden flex flex-col"
+                style={{ colorScheme: 'light' }}
+                onTouchMove={(e) => e.stopPropagation()}
+              >
                 {/* Header del menú con nombre de usuario */}
-                <div className="bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-4">
-                  <h3 className="text-white font-bold text-lg">{userName}</h3>
-                  <p className="text-blue-100 text-sm">{userEmail}</p>
+                <div className="bg-gradient-to-r from-blue-500 to-blue-600 px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between shrink-0">
+                  <div className="min-w-0">
+                    <h3 className="text-white font-bold text-base sm:text-lg truncate">{userName}</h3>
+                    <p className="text-blue-100 text-xs sm:text-sm truncate">{userEmail}</p>
+                  </div>
+                  <button
+                    onClick={() => setUserMenuOpen(false)}
+                    className="sm:hidden text-white/80 hover:text-white p-1 -mr-1 shrink-0"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
                 </div>
 
+                {/* Contenido scrollable */}
+                <div className="flex-1 overflow-y-auto" style={{ overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}>
                 {/* Campo actual y lista de campos agrupados */}
-<div className="p-3 bg-blue-50 border-b border-blue-100">
+<div className="p-3 bg-blue-50 border-b border-blue-100" style={{ colorScheme: 'light' }}>
   <div className="space-y-3 max-h-60 overflow-y-auto">
     {grupos.map((grupo) => {
       const camposDelGrupo = campos.filter(c => c.grupoId === grupo.id);
@@ -509,34 +562,34 @@ const guardarNombreGrupo = async (grupoId: string) => {
 
 
                 {/* Opciones del menú */}
-                <div className="py-2">
+                <div className="py-2 bg-white" style={{ colorScheme: 'light' }}>
                   {/* Panel Admin - Solo para MEGA_ADMIN */}
                   {isMegaAdmin && (
                     <Link
                       href="/admin"
-                      className="flex items-center gap-3 px-6 py-3 hover:bg-purple-50 transition-colors bg-purple-50 border-b border-purple-100"
+                      className="flex items-center gap-3 px-4 sm:px-6 py-3 hover:bg-purple-50 transition-colors bg-purple-50 border-b border-purple-100"
                       onClick={() => setUserMenuOpen(false)}
                     >
                       <span className="text-xl">🛡️</span>
-                      <span className="text-purple-700 font-medium">Panel Admin</span>
+                      <span className="text-purple-700 font-medium text-sm sm:text-base">Panel Admin</span>
                     </Link>
                   )}
 
                   {/* Cómo Empezar */}
                   <Link
                     href="/dashboard/como-empezar"
-                    className="flex items-center gap-3 px-6 py-3 hover:bg-gray-50 transition-colors"
+                    className="flex items-center gap-3 px-4 sm:px-6 py-3 hover:bg-gray-50 transition-colors"
                     onClick={() => setUserMenuOpen(false)}
                   >
                     <span className="text-xl">🚀</span>
-                    <span className="text-gray-700 font-medium">Cómo Empezar</span>
+                    <span className="text-gray-700 font-medium text-sm sm:text-base">Cómo Empezar</span>
                   </Link>
 
                   {/* Suscribir - Deshabilitado por ahora */}
-                  <div className="flex items-center gap-3 px-6 py-3 opacity-50 cursor-not-allowed">
+                  <div className="flex items-center gap-3 px-4 sm:px-6 py-3 opacity-50 cursor-not-allowed">
                     <span className="text-xl">💳</span>
                     <div className="flex-1">
-                      <span className="text-gray-700 font-medium">Suscribir</span>
+                      <span className="text-gray-700 font-medium text-sm sm:text-base">Suscribir</span>
                       <p className="text-xs text-gray-500">Próximamente</p>
                     </div>
                   </div>
@@ -547,17 +600,17 @@ const guardarNombreGrupo = async (grupoId: string) => {
                       setUserMenuOpen(false);
                       setMostrarModalNuevoCampo(true);
                     }}
-                    className="w-full flex items-center gap-3 px-6 py-3 hover:bg-gray-50 transition-colors border-t border-gray-100"
+                    className="w-full flex items-center gap-3 px-4 sm:px-6 py-3 hover:bg-gray-50 transition-colors border-t border-gray-100"
                   >
                     <span className="text-xl">➕</span>
-                    <span className="text-gray-700 font-medium">Agregar Campo</span>
+                    <span className="text-gray-700 font-medium text-sm sm:text-base">Agregar Campo</span>
                   </button>
 
                   {/* Mis Pagos - Deshabilitado por ahora */}
-                  <div className="flex items-center gap-3 px-6 py-3 opacity-50 cursor-not-allowed">
+                  <div className="flex items-center gap-3 px-4 sm:px-6 py-3 opacity-50 cursor-not-allowed">
                     <span className="text-xl">⚙️</span>
                     <div className="flex-1">
-                      <span className="text-gray-700 font-medium">Mis Pagos</span>
+                      <span className="text-gray-700 font-medium text-sm sm:text-base">Mis Pagos</span>
                       <p className="text-xs text-gray-500">Próximamente</p>
                     </div>
                   </div>
@@ -565,13 +618,15 @@ const guardarNombreGrupo = async (grupoId: string) => {
                   {/* Cerrar Sesión */}
                   <a
                     href="/auth/signout"
-                    className="flex items-center gap-3 px-6 py-3 hover:bg-red-50 transition-colors border-t border-gray-100 mt-2"
+                    className="flex items-center gap-3 px-4 sm:px-6 py-3 hover:bg-red-50 transition-colors border-t border-gray-100 mt-2"
                   >
                     <span className="text-xl">⏻</span>
                     <span className="text-red-600 font-medium">Cerrar Sesión</span>
                   </a>
                 </div>
+                </div>{/* cierra div scrollable */}
               </div>
+              </>
             )}
           </div>
         </div>
@@ -750,7 +805,7 @@ const guardarNombreGrupo = async (grupoId: string) => {
           </div>
           <nav className="p-3 sm:p-4 space-y-2.5 pb-20 lg:pb-4">
             {/* Indicador compacto que se integra con el resto del menú */}
-            <OnboardingIndicator variant="compact" />
+            <OnboardingIndicator variant="compact" onClick={() => setSidebarOpen(false)} />
 
             {menuSections.map((section, i) => (
               <div key={i}>

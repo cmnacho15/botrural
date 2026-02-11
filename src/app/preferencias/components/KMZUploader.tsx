@@ -4,9 +4,9 @@ import { useState, useEffect, useMemo } from 'react'
 import JSZip from 'jszip'
 import * as turf from '@turf/turf'
 import dynamic from 'next/dynamic'
+import { toast } from '@/app/components/Toast'
 
-// Importar mapa dinámicamente para evitar SSR issues
-const MapaPreview = dynamic(() => import('./MapaPreviewKMZ'), { 
+const MapaPreview = dynamic(() => import('./MapaPreviewKMZ'), {
   ssr: false,
   loading: () => (
     <div className="w-full h-64 bg-gray-100 animate-pulse rounded-lg flex items-center justify-center">
@@ -15,19 +15,49 @@ const MapaPreview = dynamic(() => import('./MapaPreviewKMZ'), {
   )
 })
 
+type AnimalConfig = {
+  id: string
+  categoria: string
+  cantidad: string
+  peso?: string
+}
+
+type CultivoConfig = {
+  id: string
+  tipoCultivo: string
+  fechaSiembra: string
+  hectareas: string
+}
+
 type LotePreview = {
   nombre: string
   hectareas: number
   poligono: number[][]
-  incluir: boolean // 🆕 Para trackear si el usuario quiere incluirlo
+  incluir: boolean
+  // Configuración adicional
+  esPastoreable: boolean
+  animales: AnimalConfig[]
+  cultivos: CultivoConfig[]
+  moduloPastoreoId: string
+  diasAjuste: string
 }
 
-type Paso = 'upload' | 'resumen' | 'revision' | 'completado'
+type Paso = 'upload' | 'resumen' | 'revision' | 'completado' | 'configuracion'
 
-export default function KMZUploader({ 
+// Función para normalizar texto (quitar tildes)
+function normalizarTexto(texto: string): string {
+  return texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+}
+
+// Capitalizar primera letra
+function capitalizarPrimeraLetra(texto: string): string {
+  return texto.charAt(0).toUpperCase() + texto.slice(1).toLowerCase()
+}
+
+export default function KMZUploader({
   onComplete,
   potrerosExistentes = []
-}: { 
+}: {
   onComplete: () => void
   potrerosExistentes?: Array<{ nombre: string; poligono: number[][] }>
 }) {
@@ -39,34 +69,73 @@ export default function KMZUploader({
   const [nombreEditado, setNombreEditado] = useState('')
   const [isFullscreen, setIsFullscreen] = useState(false)
 
-  // Potrero actual en revisión
+  // Para configuración
+  const [indiceConfig, setIndiceConfig] = useState(0)
+  const [categoriasDisponibles, setCategoriasDisponibles] = useState<Array<{nombre: string, tipo: string}>>([])
+  const [modulos, setModulos] = useState<Array<{id: string, nombre: string}>>([])
+  const [cultivosDisponibles, setCultivosDisponibles] = useState<string[]>([])
+
+  // Para selector de cultivo con búsqueda
+  const [cultivoDropdownOpen, setCultivoDropdownOpen] = useState<string | null>(null)
+  const [cultivoBusqueda, setCultivoBusqueda] = useState('')
+  const [creandoCultivo, setCreandoCultivo] = useState(false)
+
+  // Cargar categorías de animales
+  useEffect(() => {
+    fetch('/api/categorias-animal')
+      .then((res) => res.json())
+      .then((data) => {
+        const activas = data
+          .filter((c: any) => c.activo)
+          .map((c: any) => ({
+            nombre: c.nombreSingular,
+            tipo: c.tipoAnimal
+          }))
+        setCategoriasDisponibles(activas)
+      })
+      .catch(() => console.error('Error cargando categorías'))
+  }, [])
+
+  // Cargar módulos de pastoreo
+  useEffect(() => {
+    fetch('/api/modulos-pastoreo')
+      .then((res) => res.json())
+      .then((data) => setModulos(data))
+      .catch(() => console.error('Error cargando módulos'))
+  }, [])
+
+  // Cargar tipos de cultivo
+  useEffect(() => {
+    fetch('/api/tipos-cultivo')
+      .then((res) => res.json())
+      .then((data) => {
+        const nombres = data.map((c: any) => c.nombre)
+        setCultivosDisponibles(nombres)
+      })
+      .catch(() => console.error('Error cargando cultivos'))
+  }, [])
+
   const potreroActual = previews[indiceActual]
-  
-  // Contar cuántos se van a incluir
+  const potreroConfig = previews.filter(p => p.incluir)[indiceConfig]
   const potrerosAIncluir = previews.filter(p => p.incluir)
-  
-  // Detectar si el nombre ya existe
+
   const nombreYaExiste = useMemo(() => {
     if (!potreroActual) return false
     const nombreBuscar = nombreEditado.toLowerCase().trim()
-    return potrerosExistentes.some(p => 
+    return potrerosExistentes.some(p =>
       p.nombre.toLowerCase().trim() === nombreBuscar
     )
   }, [nombreEditado, potrerosExistentes, potreroActual])
 
-  // Actualizar nombre editado cuando cambia el potrero actual
   useEffect(() => {
     if (potreroActual) {
       setNombreEditado(potreroActual.nombre)
     }
   }, [indiceActual, potreroActual])
 
-  // Manejar fullscreen
   useEffect(() => {
     const handleFullscreenChange = () => {
       setIsFullscreen(!!document.fullscreenElement)
-      
-      // Forzar redimensionamiento del mapa después del cambio
       setTimeout(() => {
         window.dispatchEvent(new Event('resize'))
       }, 100)
@@ -78,7 +147,7 @@ export default function KMZUploader({
   const toggleFullscreen = () => {
     const container = document.getElementById('revision-container')
     if (!container) return
-    
+
     if (!document.fullscreenElement) {
       container.requestFullscreen()
     } else {
@@ -119,12 +188,12 @@ export default function KMZUploader({
 
       for (let i = 0; i < placemarks.length; i++) {
         const placemark = placemarks[i]
-        
+
         const nameElement = placemark.getElementsByTagName('name')[0]
         const nombre = nameElement?.textContent?.trim() || `Potrero ${i + 1}`
 
         let coordinatesElement = placemark.getElementsByTagName('coordinates')[0]
-        
+
         if (!coordinatesElement) {
           const polygon = placemark.getElementsByTagName('Polygon')[0]
           if (polygon) {
@@ -149,8 +218,8 @@ export default function KMZUploader({
           })
           .filter(coord => {
             const [lng, lat] = coord
-            return !isNaN(lng) && !isNaN(lat) && 
-                   lng >= -180 && lng <= 180 && 
+            return !isNaN(lng) && !isNaN(lat) &&
+                   lng >= -180 && lng <= 180 &&
                    lat >= -90 && lat <= 90
           })
 
@@ -159,8 +228,8 @@ export default function KMZUploader({
         const firstCoord = coords[0]
         const lastCoord = coords[coords.length - 1]
         const tolerance = 0.0000001
-        
-        if (Math.abs(firstCoord[0] - lastCoord[0]) > tolerance || 
+
+        if (Math.abs(firstCoord[0] - lastCoord[0]) > tolerance ||
             Math.abs(firstCoord[1] - lastCoord[1]) > tolerance) {
           coords.push([firstCoord[0], firstCoord[1]])
         }
@@ -174,14 +243,24 @@ export default function KMZUploader({
             nombre,
             hectareas,
             poligono: coords,
-            incluir: true // Por defecto incluir
+            incluir: true,
+            esPastoreable: true,
+            animales: [],
+            cultivos: [],
+            moduloPastoreoId: '',
+            diasAjuste: ''
           })
         } catch (turfError) {
           lotes.push({
             nombre,
             hectareas: 0,
             poligono: coords,
-            incluir: true
+            incluir: true,
+            esPastoreable: true,
+            animales: [],
+            cultivos: [],
+            moduloPastoreoId: '',
+            diasAjuste: ''
           })
         }
       }
@@ -211,7 +290,7 @@ export default function KMZUploader({
 
     try {
       const lotes = await parseKMZ(file)
-      
+
       if (lotes.length === 0) {
         setError('No se encontraron potreros en el archivo.')
         return
@@ -232,7 +311,6 @@ export default function KMZUploader({
   }
 
   function agregarPotrero() {
-    // Actualizar nombre si fue editado
     const nuevasPreviews = [...previews]
     nuevasPreviews[indiceActual] = {
       ...nuevasPreviews[indiceActual],
@@ -257,18 +335,163 @@ export default function KMZUploader({
     if (indiceActual < previews.length - 1) {
       setIndiceActual(indiceActual + 1)
     } else {
-      // Salir de fullscreen PRIMERO si está activo
       if (document.fullscreenElement) {
         document.exitFullscreen().then(() => {
-          // Después de salir de fullscreen, cambiar el paso
           setPaso('completado')
         }).catch(() => {
-          // Si falla, cambiar el paso igual
           setPaso('completado')
         })
       } else {
         setPaso('completado')
       }
+    }
+  }
+
+  // Funciones para configuración de animales
+  function agregarAnimalConfig(potreroIndex: number) {
+    const nuevasPreviews = [...previews]
+    const potrerosIncluidos = nuevasPreviews.filter(p => p.incluir)
+    const potreroReal = potrerosIncluidos[potreroIndex]
+
+    if (potreroReal) {
+      potreroReal.animales.push({
+        id: Date.now().toString(),
+        categoria: '',
+        cantidad: '',
+        peso: ''
+      })
+      setPreviews(nuevasPreviews)
+    }
+  }
+
+  function eliminarAnimalConfig(potreroIndex: number, animalId: string) {
+    const nuevasPreviews = [...previews]
+    const potrerosIncluidos = nuevasPreviews.filter(p => p.incluir)
+    const potreroReal = potrerosIncluidos[potreroIndex]
+
+    if (potreroReal) {
+      potreroReal.animales = potreroReal.animales.filter(a => a.id !== animalId)
+      setPreviews(nuevasPreviews)
+    }
+  }
+
+  function actualizarAnimalConfig(potreroIndex: number, animalId: string, campo: string, valor: string) {
+    const nuevasPreviews = [...previews]
+    const potrerosIncluidos = nuevasPreviews.filter(p => p.incluir)
+    const potreroReal = potrerosIncluidos[potreroIndex]
+
+    if (potreroReal) {
+      potreroReal.animales = potreroReal.animales.map(a =>
+        a.id === animalId ? { ...a, [campo]: valor } : a
+      )
+      setPreviews(nuevasPreviews)
+    }
+  }
+
+  function togglePastoreable(potreroIndex: number) {
+    const nuevasPreviews = [...previews]
+    const potrerosIncluidos = nuevasPreviews.filter(p => p.incluir)
+    const potreroReal = potrerosIncluidos[potreroIndex]
+
+    if (potreroReal) {
+      potreroReal.esPastoreable = !potreroReal.esPastoreable
+      if (!potreroReal.esPastoreable) {
+        potreroReal.animales = []
+        potreroReal.moduloPastoreoId = ''
+        potreroReal.diasAjuste = ''
+      }
+      setPreviews(nuevasPreviews)
+    }
+  }
+
+  function actualizarModulo(potreroIndex: number, moduloId: string) {
+    const nuevasPreviews = [...previews]
+    const potrerosIncluidos = nuevasPreviews.filter(p => p.incluir)
+    const potreroReal = potrerosIncluidos[potreroIndex]
+
+    if (potreroReal) {
+      potreroReal.moduloPastoreoId = moduloId
+      setPreviews(nuevasPreviews)
+    }
+  }
+
+  function actualizarDiasAjuste(potreroIndex: number, dias: string) {
+    const nuevasPreviews = [...previews]
+    const potrerosIncluidos = nuevasPreviews.filter(p => p.incluir)
+    const potreroReal = potrerosIncluidos[potreroIndex]
+
+    if (potreroReal) {
+      potreroReal.diasAjuste = dias
+      setPreviews(nuevasPreviews)
+    }
+  }
+
+  // Funciones para cultivos
+  function agregarCultivoConfig(potreroIndex: number) {
+    const nuevasPreviews = [...previews]
+    const potrerosIncluidos = nuevasPreviews.filter(p => p.incluir)
+    const potreroReal = potrerosIncluidos[potreroIndex]
+
+    if (potreroReal) {
+      potreroReal.cultivos.push({
+        id: Date.now().toString(),
+        tipoCultivo: '',
+        fechaSiembra: '',
+        hectareas: ''
+      })
+      setPreviews(nuevasPreviews)
+    }
+  }
+
+  function eliminarCultivoConfig(potreroIndex: number, cultivoId: string) {
+    const nuevasPreviews = [...previews]
+    const potrerosIncluidos = nuevasPreviews.filter(p => p.incluir)
+    const potreroReal = potrerosIncluidos[potreroIndex]
+
+    if (potreroReal) {
+      potreroReal.cultivos = potreroReal.cultivos.filter(c => c.id !== cultivoId)
+      setPreviews(nuevasPreviews)
+    }
+  }
+
+  function actualizarCultivoConfig(potreroIndex: number, cultivoId: string, campo: string, valor: string) {
+    const nuevasPreviews = [...previews]
+    const potrerosIncluidos = nuevasPreviews.filter(p => p.incluir)
+    const potreroReal = potrerosIncluidos[potreroIndex]
+
+    if (potreroReal) {
+      potreroReal.cultivos = potreroReal.cultivos.map(c =>
+        c.id === cultivoId ? { ...c, [campo]: valor } : c
+      )
+      setPreviews(nuevasPreviews)
+    }
+  }
+
+  // Crear nuevo tipo de cultivo
+  async function crearNuevoCultivo(nombre: string, cultivoId: string) {
+    if (!nombre.trim()) return
+    const nombreCapitalizado = capitalizarPrimeraLetra(nombre.trim())
+    setCreandoCultivo(true)
+    try {
+      const response = await fetch('/api/tipos-cultivo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nombre: nombreCapitalizado }),
+      })
+      if (response.ok) {
+        setCultivosDisponibles([...cultivosDisponibles, nombreCapitalizado])
+        actualizarCultivoConfig(indiceConfig, cultivoId, 'tipoCultivo', nombreCapitalizado)
+        setCultivoDropdownOpen(null)
+        setCultivoBusqueda('')
+        toast.success(`Cultivo "${nombreCapitalizado}" creado`)
+      } else {
+        const error = await response.json()
+        toast.error(error.error || 'Error al crear cultivo')
+      }
+    } catch {
+      toast.error('Error al crear cultivo')
+    } finally {
+      setCreandoCultivo(false)
     }
   }
 
@@ -280,6 +503,16 @@ export default function KMZUploader({
 
     try {
       for (const lote of potrerosParaCrear) {
+        const animalesValidos = lote.animales.filter(a => a.categoria && a.cantidad)
+        const tieneAnimales = animalesValidos.length > 0
+        const cultivosValidos = lote.cultivos
+          .filter(c => c.tipoCultivo)
+          .map(c => ({
+            tipoCultivo: c.tipoCultivo,
+            fechaSiembra: c.fechaSiembra || null,
+            hectareas: c.hectareas ? parseFloat(c.hectareas) : null
+          }))
+
         const response = await fetch('/api/lotes', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -287,9 +520,12 @@ export default function KMZUploader({
             nombre: lote.nombre,
             hectareas: lote.hectareas,
             poligono: lote.poligono,
-            cultivos: [],
-            animales: [],
-            esPastoreable: true
+            cultivos: cultivosValidos,
+            animales: animalesValidos,
+            esPastoreable: lote.esPastoreable,
+            moduloPastoreoId: lote.moduloPastoreoId || null,
+            diasPastoreoAjuste: tieneAnimales && lote.diasAjuste ? parseInt(lote.diasAjuste) : undefined,
+            diasDescansoAjuste: !tieneAnimales && lote.diasAjuste ? parseInt(lote.diasAjuste) : undefined
           })
         })
 
@@ -299,7 +535,7 @@ export default function KMZUploader({
         }
       }
 
-      alert(`✅ Se crearon ${potrerosParaCrear.length} potreros exitosamente`)
+      toast.success(`✅ Se crearon ${potrerosParaCrear.length} potreros exitosamente`)
       setPreviews([])
       setPaso('upload')
       onComplete()
@@ -316,7 +552,6 @@ export default function KMZUploader({
   if (paso === 'upload') {
     return (
       <div className="space-y-6">
-        {/* Instrucciones */}
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
           <div className="flex items-start gap-3">
             <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0">
@@ -342,12 +577,11 @@ export default function KMZUploader({
           </div>
         </div>
 
-        {/* Zona de carga */}
         <div className="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center hover:border-blue-400 transition">
           <div className="text-5xl mb-4">☁️</div>
           <h3 className="text-lg font-semibold text-gray-900 mb-2">Subir Archivo</h3>
           <p className="text-sm text-gray-500 mb-4">Hacé clic o arrastrá el archivo acá</p>
-          
+
           <label className="inline-block cursor-pointer">
             <input
               type="file"
@@ -385,9 +619,8 @@ export default function KMZUploader({
           <span className="text-sm text-gray-500">KMZ Analizado</span>
         </div>
 
-        {/* Mapa con todos los potreros */}
         <div className="rounded-lg overflow-hidden border border-gray-200">
-          <MapaPreview 
+          <MapaPreview
             poligonos={previews.map(p => ({
               coordinates: p.poligono,
               color: '#22c55e',
@@ -396,14 +629,12 @@ export default function KMZUploader({
           />
         </div>
 
-        {/* Badges de resumen */}
         <div className="flex gap-2 justify-center">
           <span className="px-3 py-1 bg-green-500 text-white rounded-full text-sm font-medium">
             {previews.length} Potreros Detectados
           </span>
         </div>
 
-        {/* Botón para revisar */}
         <button
           onClick={iniciarRevision}
           className="w-full py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition"
@@ -419,17 +650,16 @@ export default function KMZUploader({
     const potrerosRestantes = previews.length - indiceActual - 1
 
     return (
-      <div 
+      <div
         id="revision-container"
         className={`${isFullscreen ? 'fixed inset-0 z-50 bg-black' : 'space-y-4'}`}
       >
-        {/* Mapa */}
-<div className={`${isFullscreen ? 'absolute inset-0 bottom-[280px]' : 'rounded-lg overflow-hidden border border-gray-200'}`}>
+        <div className={`${isFullscreen ? 'absolute inset-0 bottom-[280px]' : 'rounded-lg overflow-hidden border border-gray-200'}`}>
           <div className={`${isFullscreen ? 'hidden' : 'text-xs text-gray-500 px-3 py-1 bg-gray-50 border-b'}`}>
             POLÍGONO DEL POTRERO
           </div>
           <div className="h-full">
-            <MapaPreview 
+            <MapaPreview
               poligonos={previews.map((p, idx) => ({
                 coordinates: p.poligono,
                 color: idx === indiceActual ? '#eab308' : '#22c55e',
@@ -441,36 +671,33 @@ export default function KMZUploader({
               mostrarVertices={true}
               editable={true}
               onPoligonoEditado={(nuevasCoords) => {
-  // Recalcular hectáreas con las nuevas coordenadas
-  let nuevasHectareas = previews[indiceActual].hectareas
-  try {
-    const polygon = turf.polygon([nuevasCoords])
-    const areaM2 = turf.area(polygon)
-    nuevasHectareas = parseFloat((areaM2 / 10000).toFixed(2))
-  } catch (e) {
-    console.error('Error recalculando área:', e)
-  }
-  
-  const nuevasPreviews = [...previews]
-  nuevasPreviews[indiceActual] = {
-    ...nuevasPreviews[indiceActual],
-    poligono: nuevasCoords,
-    hectareas: nuevasHectareas
-  }
-  setPreviews(nuevasPreviews)
-}}
+                let nuevasHectareas = previews[indiceActual].hectareas
+                try {
+                  const polygon = turf.polygon([nuevasCoords])
+                  const areaM2 = turf.area(polygon)
+                  nuevasHectareas = parseFloat((areaM2 / 10000).toFixed(2))
+                } catch (e) {
+                  console.error('Error recalculando área:', e)
+                }
+
+                const nuevasPreviews = [...previews]
+                nuevasPreviews[indiceActual] = {
+                  ...nuevasPreviews[indiceActual],
+                  poligono: nuevasCoords,
+                  hectareas: nuevasHectareas
+                }
+                setPreviews(nuevasPreviews)
+              }}
             />
           </div>
         </div>
 
-        {/* Panel de controles - flotante en fullscreen */}
         <div className={`
-          ${isFullscreen 
-            ? 'absolute bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm shadow-2xl rounded-t-2xl p-4 space-y-3' 
+          ${isFullscreen
+            ? 'absolute bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm shadow-2xl rounded-t-2xl p-4 space-y-3'
             : 'space-y-3'
           }
         `}>
-          {/* Header con contador y botón fullscreen */}
           <div className="flex items-center justify-between">
             <div className="text-sm font-medium text-gray-500">
               POTRERO {indiceActual + 1} DE {previews.length}
@@ -492,7 +719,6 @@ export default function KMZUploader({
             </button>
           </div>
 
-          {/* Input nombre editable */}
           <div>
             <label className="text-xs text-gray-500">Nombre</label>
             <input
@@ -503,13 +729,11 @@ export default function KMZUploader({
             />
           </div>
 
-          {/* Info compacta */}
           <div className="flex items-center justify-between">
             <div className="text-sm text-gray-600">
               📐 {potreroActual.hectareas} hectáreas
             </div>
-            
-            {/* Advertencia si nombre ya existe */}
+
             {nombreYaExiste && (
               <span className="text-sm text-amber-600">
                 ⚠️ Nombre duplicado
@@ -517,10 +741,9 @@ export default function KMZUploader({
             )}
           </div>
 
-          {/* Barra de progreso */}
           <div className="space-y-1">
             <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-              <div 
+              <div
                 className="h-full bg-green-500 transition-all duration-300"
                 style={{ width: `${((indiceActual + 1) / previews.length) * 100}%` }}
               />
@@ -530,9 +753,7 @@ export default function KMZUploader({
             </p>
           </div>
 
-          {/* Botones de acción */}
           <div className="flex gap-2">
-            {/* Botón atrás */}
             <button
               onClick={() => {
                 if (indiceActual > 0) {
@@ -545,7 +766,7 @@ export default function KMZUploader({
             >
               ←
             </button>
-            
+
             <button
               onClick={noIncluirPotrero}
               className="flex-1 py-3 border border-gray-300 rounded-lg font-medium text-gray-600 hover:bg-gray-50 transition"
@@ -565,7 +786,7 @@ export default function KMZUploader({
     )
   }
 
-  // PASO 4: Completado - Resumen final
+  // PASO 4: Completado - Opción de configurar o crear directo
   if (paso === 'completado') {
     const incluidos = previews.filter(p => p.incluir)
     const excluidos = previews.filter(p => !p.incluir)
@@ -575,6 +796,9 @@ export default function KMZUploader({
         <div className="text-center">
           <div className="text-4xl mb-2">✅</div>
           <h3 className="text-lg font-semibold text-gray-900">Revisión Completada</h3>
+          <p className="text-sm text-gray-500 mt-1">
+            {incluidos.length} potreros listos para crear
+          </p>
         </div>
 
         {/* Resumen */}
@@ -583,13 +807,57 @@ export default function KMZUploader({
             <span className="text-gray-600">Potreros a crear:</span>
             <span className="font-semibold text-green-600">{incluidos.length}</span>
           </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-gray-600">Potreros excluidos:</span>
-            <span className="font-semibold text-gray-500">{excluidos.length}</span>
-          </div>
+          {excluidos.length > 0 && (
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600">Potreros excluidos:</span>
+              <span className="font-semibold text-gray-500">{excluidos.length}</span>
+            </div>
+          )}
         </div>
 
-        {/* Lista de incluidos */}
+        {/* Opciones */}
+        <div className="space-y-3">
+          {/* Opción 1: Configurar animales y cultivos */}
+          <button
+            onClick={() => {
+              setIndiceConfig(0)
+              setPaso('configuracion')
+            }}
+            className="w-full p-4 border-2 border-green-200 bg-green-50 rounded-xl hover:border-green-400 transition text-left"
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-3xl">🐄🌱</span>
+              <div>
+                <div className="font-semibold text-gray-900">Configurar Potreros</div>
+                <div className="text-sm text-gray-600">
+                  Asignar animales, cultivos y configurar cada potrero
+                </div>
+              </div>
+              <span className="ml-auto text-green-600">→</span>
+            </div>
+          </button>
+
+          {/* Opción 2: Crear directo */}
+          <button
+            onClick={handleConfirm}
+            disabled={uploading || incluidos.length === 0}
+            className="w-full p-4 border-2 border-gray-200 bg-white rounded-xl hover:border-blue-400 transition text-left disabled:opacity-50"
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-3xl">⚡</span>
+              <div>
+                <div className="font-semibold text-gray-900">
+                  {uploading ? 'Creando...' : 'Crear Todos Vacíos'}
+                </div>
+                <div className="text-sm text-gray-600">
+                  Crear los {incluidos.length} potreros sin animales ni cultivos (podés agregar después)
+                </div>
+              </div>
+            </div>
+          </button>
+        </div>
+
+        {/* Lista de potreros */}
         {incluidos.length > 0 && (
           <div className="border border-gray-200 rounded-lg overflow-hidden">
             <div className="bg-green-50 px-4 py-2 border-b border-gray-200">
@@ -597,7 +865,7 @@ export default function KMZUploader({
                 Potreros a crear ({incluidos.length})
               </span>
             </div>
-            <div className="max-h-48 overflow-y-auto">
+            <div className="max-h-32 overflow-y-auto">
               {incluidos.map((p, idx) => (
                 <div key={idx} className="px-4 py-2 border-b border-gray-100 last:border-0 flex justify-between">
                   <span className="text-sm text-gray-900">{p.nombre}</span>
@@ -608,24 +876,361 @@ export default function KMZUploader({
           </div>
         )}
 
-        {/* Botones */}
-        <div className="flex gap-3 pt-2">
+        <button
+          onClick={() => {
+            setPaso('upload')
+            setPreviews([])
+          }}
+          className="w-full py-2 text-gray-600 hover:text-gray-900 text-sm"
+        >
+          ← Cancelar y empezar de nuevo
+        </button>
+
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <p className="text-sm text-red-700">{error}</p>
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  // PASO 5: Configuración de cada potrero
+  if (paso === 'configuracion' && potreroConfig) {
+    const potrerosIncluidos = previews.filter(p => p.incluir)
+    const totalConfig = potrerosIncluidos.length
+
+    return (
+      <div className="space-y-4">
+        {/* Header fijo */}
+        <div className="sticky top-0 z-10 bg-white pb-3 -mx-4 px-4 pt-1 border-b border-gray-100 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-semibold text-gray-900 text-lg">{potreroConfig.nombre}</h3>
+              <p className="text-sm text-gray-500">{potreroConfig.hectareas} ha</p>
+            </div>
+            <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
+              {indiceConfig + 1} / {totalConfig}
+            </span>
+          </div>
+          {/* Barra de progreso */}
+          <div className="h-2 bg-gray-200 rounded-full overflow-hidden mt-3">
+            <div
+              className="h-full bg-blue-500 transition-all duration-300"
+              style={{ width: `${((indiceConfig + 1) / totalConfig) * 100}%` }}
+            />
+          </div>
+        </div>
+
+        {/* 1. TIPO DE POTRERO - PRIMERO */}
+        <div className="bg-purple-50 rounded-lg p-4">
+          <div className="font-medium text-gray-900 mb-3">Tipo de potrero</div>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={() => {
+                if (!potreroConfig.esPastoreable) togglePastoreable(indiceConfig)
+              }}
+              className={`p-3 rounded-lg border-2 text-left transition ${
+                potreroConfig.esPastoreable
+                  ? 'border-green-500 bg-green-100'
+                  : 'border-gray-200 bg-white hover:border-gray-300'
+              }`}
+            >
+              <div className="font-medium text-gray-900">🌾 Pastoreable</div>
+              <div className="text-xs text-gray-600 mt-1">Para animales</div>
+            </button>
+            <button
+              onClick={() => {
+                if (potreroConfig.esPastoreable) togglePastoreable(indiceConfig)
+              }}
+              className={`p-3 rounded-lg border-2 text-left transition ${
+                !potreroConfig.esPastoreable
+                  ? 'border-amber-500 bg-amber-100'
+                  : 'border-gray-200 bg-white hover:border-gray-300'
+              }`}
+            >
+              <div className="font-medium text-gray-900">🔒 No pastoreable</div>
+              <div className="text-xs text-gray-600 mt-1">Agrícola, casco u otro</div>
+            </button>
+          </div>
+        </div>
+
+        {/* 2. CULTIVOS */}
+        <div className="bg-green-50 rounded-lg p-4">
+          <h4 className="font-medium text-gray-900 mb-3">🌱 Cultivos</h4>
+
+          {potreroConfig.cultivos.length === 0 && (
+            <p className="text-sm text-gray-500 italic mb-3">
+              Sin cultivos (podés agregar ahora o después)
+            </p>
+          )}
+
+          <div className="space-y-2">
+            {potreroConfig.cultivos.map((cultivo) => {
+              const isOpen = cultivoDropdownOpen === cultivo.id
+              const busqueda = isOpen ? cultivoBusqueda : ''
+              const busquedaNorm = normalizarTexto(busqueda)
+              const cultivosFiltrados = cultivosDisponibles.filter(c =>
+                normalizarTexto(c).includes(busquedaNorm)
+              )
+              const noExiste = busqueda.trim() && !cultivosDisponibles.some(
+                c => normalizarTexto(c) === busquedaNorm
+              )
+
+              return (
+                <div key={cultivo.id} className="bg-white p-3 rounded-lg flex flex-wrap gap-2 items-center">
+                  <div className="relative flex-1 min-w-[140px]">
+                    <input
+                      type="text"
+                      value={isOpen ? cultivoBusqueda : cultivo.tipoCultivo}
+                      onChange={(e) => {
+                        setCultivoBusqueda(e.target.value)
+                        if (!isOpen) setCultivoDropdownOpen(cultivo.id)
+                      }}
+                      onFocus={() => {
+                        setCultivoDropdownOpen(cultivo.id)
+                        setCultivoBusqueda(cultivo.tipoCultivo)
+                      }}
+                      onBlur={() => {
+                        setTimeout(() => {
+                          setCultivoDropdownOpen(null)
+                          setCultivoBusqueda('')
+                        }, 150)
+                      }}
+                      placeholder="Buscar cultivo..."
+                      className="w-full border border-gray-300 rounded px-2 py-2 text-sm"
+                    />
+                    {isOpen && (
+                      <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                        {cultivosFiltrados.map((nombre) => (
+                          <button
+                            key={nombre}
+                            type="button"
+                            onMouseDown={(e) => {
+                              e.preventDefault()
+                              actualizarCultivoConfig(indiceConfig, cultivo.id, 'tipoCultivo', nombre)
+                              setCultivoDropdownOpen(null)
+                              setCultivoBusqueda('')
+                            }}
+                            className="w-full text-left px-3 py-2 text-sm hover:bg-green-50"
+                          >
+                            {nombre}
+                          </button>
+                        ))}
+                        {noExiste && (
+                          <button
+                            type="button"
+                            onMouseDown={(e) => {
+                              e.preventDefault()
+                              crearNuevoCultivo(busqueda, cultivo.id)
+                            }}
+                            disabled={creandoCultivo}
+                            className="w-full text-left px-3 py-2 text-sm bg-green-100 text-green-700 hover:bg-green-200 font-medium"
+                          >
+                            {creandoCultivo ? 'Creando...' : `+ Crear "${capitalizarPrimeraLetra(busqueda.trim())}"`}
+                          </button>
+                        )}
+                        {cultivosFiltrados.length === 0 && !noExiste && (
+                          <div className="px-3 py-2 text-sm text-gray-500 italic">Sin resultados</div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <input
+                    type="number"
+                    value={cultivo.hectareas}
+                    onChange={(e) => actualizarCultivoConfig(indiceConfig, cultivo.id, 'hectareas', e.target.value)}
+                    placeholder="Ha"
+                    className="w-20 border border-gray-300 rounded px-2 py-2 text-sm"
+                  />
+                  <input
+                    type="date"
+                    value={cultivo.fechaSiembra}
+                    onChange={(e) => actualizarCultivoConfig(indiceConfig, cultivo.id, 'fechaSiembra', e.target.value)}
+                    className="w-32 border border-gray-300 rounded px-2 py-2 text-sm"
+                  />
+                  <button
+                    onClick={() => eliminarCultivoConfig(indiceConfig, cultivo.id)}
+                    className="text-red-500 hover:text-red-700 px-2"
+                  >
+                    🗑️
+                  </button>
+                </div>
+              )
+            })}
+          </div>
+
+          <button
+            onClick={() => agregarCultivoConfig(indiceConfig)}
+            className="mt-3 text-green-600 text-sm hover:underline"
+          >
+            + Agregar cultivo
+          </button>
+        </div>
+
+        {/* Animales - Solo si es pastoreable */}
+        {potreroConfig.esPastoreable && (
+          <div className="bg-blue-50 rounded-lg p-4">
+            <h4 className="font-medium text-gray-900 mb-3">🐄 Animales en este potrero</h4>
+
+            {potreroConfig.animales.length === 0 && (
+              <p className="text-sm text-gray-500 italic mb-3">
+                Sin animales (podés agregar ahora o después)
+              </p>
+            )}
+
+            <div className="space-y-2">
+              {potreroConfig.animales.map((animal) => {
+                const categoriasUsadas = potreroConfig.animales
+                  .filter(a => a.id !== animal.id && a.categoria)
+                  .map(a => a.categoria)
+
+                return (
+                  <div key={animal.id} className="bg-white p-3 rounded-lg flex flex-wrap gap-2 items-center">
+                    <select
+                      value={animal.categoria}
+                      onChange={(e) => actualizarAnimalConfig(indiceConfig, animal.id, 'categoria', e.target.value)}
+                      className="flex-1 min-w-[140px] border border-gray-300 rounded px-2 py-2 text-sm"
+                    >
+                      <option value="">Categoría</option>
+                      {['BOVINO', 'OVINO', 'EQUINO', 'OTRO'].map(tipo => {
+                        const categoriasTipo = categoriasDisponibles.filter(c => c.tipo === tipo)
+                        if (categoriasTipo.length === 0) return null
+
+                        const labels: Record<string, string> = {
+                          BOVINO: '🐄 BOVINOS',
+                          OVINO: '🐑 OVINOS',
+                          EQUINO: '🐴 EQUINOS',
+                          OTRO: '📦 OTROS'
+                        }
+
+                        return (
+                          <optgroup key={tipo} label={labels[tipo]}>
+                            {categoriasTipo.map((cat) => (
+                              <option
+                                key={cat.nombre}
+                                value={cat.nombre}
+                                disabled={categoriasUsadas.includes(cat.nombre)}
+                              >
+                                {cat.nombre}
+                              </option>
+                            ))}
+                          </optgroup>
+                        )
+                      })}
+                    </select>
+                    <input
+                      type="number"
+                      value={animal.cantidad}
+                      onChange={(e) => actualizarAnimalConfig(indiceConfig, animal.id, 'cantidad', e.target.value)}
+                      placeholder="Cant."
+                      className="w-20 border border-gray-300 rounded px-2 py-2 text-sm"
+                    />
+                    <input
+                      type="number"
+                      value={animal.peso || ''}
+                      onChange={(e) => actualizarAnimalConfig(indiceConfig, animal.id, 'peso', e.target.value)}
+                      placeholder="Peso kg"
+                      className="w-24 border border-gray-300 rounded px-2 py-2 text-sm"
+                    />
+                    <button
+                      onClick={() => eliminarAnimalConfig(indiceConfig, animal.id)}
+                      className="text-red-500 hover:text-red-700 px-2"
+                    >
+                      🗑️
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+
+            <button
+              onClick={() => agregarAnimalConfig(indiceConfig)}
+              className="mt-3 text-blue-600 text-sm hover:underline"
+            >
+              + Agregar animales
+            </button>
+          </div>
+        )}
+
+        {/* Módulo de Pastoreo - Solo si es pastoreable */}
+        {potreroConfig.esPastoreable && (
+          <div className="bg-purple-50 rounded-lg p-4">
+            <h4 className="font-medium text-gray-900 mb-2">📦 Módulo de Pastoreo <span className="text-gray-500 text-sm font-normal">(opcional)</span></h4>
+            <p className="text-xs text-gray-600 mb-3">
+              Útil en pastoreo rotativo para agrupar potreros
+            </p>
+            <select
+              value={potreroConfig.moduloPastoreoId}
+              onChange={(e) => actualizarModulo(indiceConfig, e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2"
+            >
+              <option value="">Sin módulo asignado</option>
+              {modulos.map((mod) => (
+                <option key={mod.id} value={mod.id}>{mod.nombre}</option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {/* Días de ajuste - Solo si es pastoreable */}
+        {potreroConfig.esPastoreable && (
+          <div className="bg-amber-50 rounded-lg p-4 border border-amber-200">
+            <h4 className="font-medium text-gray-900 mb-2">
+              📅 {potreroConfig.animales.some(a => a.categoria && a.cantidad) ? 'Días de Pastoreo' : 'Días de Descanso'}
+              <span className="text-gray-500 text-sm font-normal ml-2">(opcional)</span>
+            </h4>
+            <p className="text-xs text-gray-600 mb-3">
+              {potreroConfig.animales.some(a => a.categoria && a.cantidad)
+                ? '¿Los animales ya estaban aquí? Indicá cuántos días atrás.'
+                : 'Si ya estaba en descanso, indicá hace cuántos días comenzó.'
+              }
+            </p>
+            <div className="flex items-center gap-3">
+              <input
+                type="number"
+                value={potreroConfig.diasAjuste}
+                onChange={(e) => actualizarDiasAjuste(indiceConfig, e.target.value)}
+                min="0"
+                placeholder="Ej: 15"
+                className="flex-1 border border-gray-300 rounded-lg px-3 py-2"
+              />
+              <span className="text-sm text-gray-600">días atrás</span>
+            </div>
+          </div>
+        )}
+
+        {/* Navegación */}
+        <div className="flex gap-2 pt-2">
           <button
             onClick={() => {
-              setPaso('upload')
-              setPreviews([])
+              if (indiceConfig > 0) {
+                setIndiceConfig(indiceConfig - 1)
+              } else {
+                setPaso('completado')
+              }
             }}
-            className="flex-1 py-3 border border-gray-300 rounded-lg font-medium text-gray-600 hover:bg-gray-50"
+            className="px-4 py-3 border border-gray-300 rounded-lg font-medium text-gray-600 hover:bg-gray-50"
           >
-            Cancelar
+            ←
           </button>
-          <button
-            onClick={handleConfirm}
-            disabled={uploading || incluidos.length === 0}
-            className="flex-1 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {uploading ? 'Creando...' : `Crear ${incluidos.length} Potreros`}
-          </button>
+
+          {indiceConfig < totalConfig - 1 ? (
+            <button
+              onClick={() => setIndiceConfig(indiceConfig + 1)}
+              className="flex-1 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 flex items-center justify-center gap-2"
+            >
+              Siguiente Potrero →
+            </button>
+          ) : (
+            <button
+              onClick={handleConfirm}
+              disabled={uploading}
+              className="flex-1 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:opacity-50"
+            >
+              {uploading ? 'Creando...' : `✓ Crear ${totalConfig} Potreros`}
+            </button>
+          )}
         </div>
 
         {error && (

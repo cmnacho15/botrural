@@ -140,16 +140,16 @@ export default function EvolucionUGDashboard() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="flex items-center justify-center h-96" style={{ colorScheme: 'light' }}>
+        <div className="animate-spin rounded-full h-12 w-12" style={{ borderWidth: '2px', borderColor: '#e5e7eb', borderTopColor: '#2563eb' }}></div>
       </div>
     )
   }
 
   if (!datos) {
     return (
-      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-        <p className="text-yellow-800">No se pudieron cargar los datos</p>
+      <div className="rounded-lg p-4" style={{ backgroundColor: '#fefce8', border: '1px solid #fde047', colorScheme: 'light' }}>
+        <p style={{ color: '#854d0e' }}>No se pudieron cargar los datos</p>
       </div>
     )
   }
@@ -308,22 +308,22 @@ export default function EvolucionUGDashboard() {
     if (!active || !payload) return null
 
     const fecha = new Date(label)
-    const mes = fecha.toLocaleDateString('es-UY', { 
+    const mes = fecha.toLocaleDateString('es-UY', {
       day: 'numeric',
-      month: 'long', 
-      year: 'numeric' 
+      month: 'long',
+      year: 'numeric'
     })
 
     return (
-      <div className="bg-white p-3 rounded-lg shadow-lg border border-gray-200">
-        <p className="font-semibold text-gray-900 mb-2 text-sm">{mes}</p>
+      <div className="p-2 sm:p-3 rounded-lg shadow-lg" style={{ backgroundColor: 'white', border: '1px solid #e5e7eb' }}>
+        <p className="font-semibold mb-1.5 sm:mb-2 text-xs sm:text-sm" style={{ color: '#111827' }}>{mes}</p>
         {payload.map((entry: any, index: number) => (
-          <div key={index} className="flex justify-between gap-4 text-sm">
+          <div key={index} className="flex justify-between gap-3 sm:gap-4 text-xs sm:text-sm">
             <span style={{ color: entry.color }} className="font-medium">
               {entry.name}:
             </span>
-            <span className="font-mono font-semibold">
-              {entry.value.toFixed(2)} {vistaActiva === 'ug' ? 'UG' : 'UG/ha'}
+            <span className="font-mono font-semibold" style={{ color: '#111827' }}>
+              {entry.value.toFixed(2)}
             </span>
           </div>
         ))}
@@ -332,48 +332,51 @@ export default function EvolucionUGDashboard() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6" style={{ colorScheme: 'light' }}>
       {/* CONTROLES */}
-      <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold text-gray-900">
+      <div className="rounded-xl shadow-md p-4 sm:p-6" style={{ backgroundColor: 'white', border: '1px solid #e5e7eb' }}>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+          <h2 className="text-lg sm:text-xl font-bold" style={{ color: '#111827' }}>
             Evolución de Carga Animal
           </h2>
           <div className="flex gap-2">
             <button
               onClick={() => setVistaTabla(!vistaTabla)}
-              className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium transition-colors"
+              className="flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+              style={{ backgroundColor: '#f3f4f6', color: '#374151' }}
             >
               {vistaTabla ? 'Ver Gráfico' : 'Ver Tabla'}
             </button>
             <button
               onClick={exportarCSV}
-              className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors"
+              className="flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+              style={{ backgroundColor: '#16a34a', color: 'white' }}
             >
               Exportar CSV
             </button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
           {/* Período */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium mb-1.5 sm:mb-2" style={{ color: '#374151' }}>
               Período
             </label>
             <select
               value={periodo}
               onChange={(e) => setPeriodo(e.target.value as any)}
-              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full rounded-lg px-3 sm:px-4 py-2 text-sm sm:text-base"
+              style={{ border: '1px solid #d1d5db', backgroundColor: 'white', color: '#111827' }}
             >
               <option value="mensual">Últimos 12 meses</option>
-              <option value="ejercicio">Ejercicio actual (1 Jul - 30 Jun)</option>
+              <option value="ejercicio">Ejercicio (Jul-Jun)</option>
             </select>
           </div>
 
           {/* Potrero */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium mb-1.5 sm:mb-2" style={{ color: '#374151' }}>
               Potrero
             </label>
             <select
@@ -382,7 +385,8 @@ export default function EvolucionUGDashboard() {
                 const valor = e.target.value
                 setLoteSeleccionado(valor === '' ? null : valor)
               }}
-              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full rounded-lg px-3 sm:px-4 py-2 text-sm sm:text-base"
+              style={{ border: '1px solid #d1d5db', backgroundColor: 'white', color: '#111827' }}
             >
               <option value="">Campo completo (SPG)</option>
               {datos.lotes.map((lote) => (
@@ -395,13 +399,14 @@ export default function EvolucionUGDashboard() {
 
           {/* Vista */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium mb-1.5 sm:mb-2" style={{ color: '#374151' }}>
               Métrica
             </label>
             <select
               value={vistaActiva}
               onChange={(e) => setVistaActiva(e.target.value as any)}
-              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full rounded-lg px-3 sm:px-4 py-2 text-sm sm:text-base"
+              style={{ border: '1px solid #d1d5db', backgroundColor: 'white', color: '#111827' }}
             >
               <option value="ug">UG Totales</option>
               <option value="ug-ha">UG por Hectárea</option>
@@ -410,81 +415,82 @@ export default function EvolucionUGDashboard() {
         </div>
 
         {/* Opciones de visualización */}
-        <div className="flex gap-4 mt-4 pt-4 border-t border-gray-200">
+        <div className="flex gap-4 mt-3 sm:mt-4 pt-3 sm:pt-4" style={{ borderTop: '1px solid #e5e7eb' }}>
           <label className="flex items-center gap-2 text-sm cursor-pointer">
             <input
               type="checkbox"
               checked={mostrarTemporadas}
               onChange={(e) => setMostrarTemporadas(e.target.checked)}
-              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              className="rounded"
+              style={{ borderColor: '#d1d5db' }}
             />
-            <span className="text-gray-700">Marcar temporadas</span>
+            <span style={{ color: '#374151' }}>Marcar temporadas</span>
           </label>
         </div>
       </div>
 
       {/* ESTADÍSTICAS */}
       {estadisticas && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <p className="text-sm text-blue-700 mb-1">Actual</p>
-            <p className="text-2xl font-bold text-blue-900">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4">
+          <div className="rounded-lg p-3 sm:p-4" style={{ backgroundColor: '#eff6ff', border: '1px solid #bfdbfe' }}>
+            <p className="text-xs sm:text-sm mb-1" style={{ color: '#1d4ed8' }}>Actual</p>
+            <p className="text-xl sm:text-2xl font-bold" style={{ color: '#1e3a8a' }}>
               {vistaActiva === 'ug' ? estadisticas.actual : estadisticas.cargaHaActual}
             </p>
-            <p className="text-xs text-blue-600 mt-1">
+            <p className="text-[10px] sm:text-xs mt-1" style={{ color: '#2563eb' }}>
               {vistaActiva === 'ug' ? 'UG totales' : 'UG/ha'}
             </p>
           </div>
 
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-            <p className="text-sm text-green-700 mb-1">Promedio 30 días</p>
-            <p className="text-2xl font-bold text-green-900">{estadisticas.promedioMes}</p>
-            <p className="text-xs text-green-600 mt-1">
+          <div className="rounded-lg p-3 sm:p-4" style={{ backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0' }}>
+            <p className="text-xs sm:text-sm mb-1" style={{ color: '#15803d' }}>Prom. 30d</p>
+            <p className="text-xl sm:text-2xl font-bold" style={{ color: '#14532d' }}>{estadisticas.promedioMes}</p>
+            <p className="text-[10px] sm:text-xs mt-1" style={{ color: '#16a34a' }}>
               {vistaActiva === 'ug' ? 'UG' : 'UG/ha'}
             </p>
           </div>
 
-          <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-            <p className="text-sm text-purple-700 mb-1">Promedio 90 días</p>
-            <p className="text-2xl font-bold text-purple-900">{estadisticas.promedioTrimestre}</p>
-            <p className="text-xs text-purple-600 mt-1">
+          <div className="rounded-lg p-3 sm:p-4" style={{ backgroundColor: '#faf5ff', border: '1px solid #e9d5ff' }}>
+            <p className="text-xs sm:text-sm mb-1" style={{ color: '#7e22ce' }}>Prom. 90d</p>
+            <p className="text-xl sm:text-2xl font-bold" style={{ color: '#581c87' }}>{estadisticas.promedioTrimestre}</p>
+            <p className="text-[10px] sm:text-xs mt-1" style={{ color: '#9333ea' }}>
               {vistaActiva === 'ug' ? 'UG' : 'UG/ha'}
             </p>
           </div>
 
-          <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-            <p className="text-sm text-orange-700 mb-1">Superficie de Pastoreo Ganadero</p>
-            <p className="text-2xl font-bold text-orange-900">
-              {loteSeleccionado 
+          <div className="rounded-lg p-3 sm:p-4" style={{ backgroundColor: '#fff7ed', border: '1px solid #fed7aa' }}>
+            <p className="text-xs sm:text-sm mb-1" style={{ color: '#c2410c' }}>SPG</p>
+            <p className="text-xl sm:text-2xl font-bold" style={{ color: '#7c2d12' }}>
+              {loteSeleccionado
   ? datos.lotes.find(l => l.loteId === loteSeleccionado)?.hectareas.toFixed(2)
   : datos.global.hectareasTotales.toFixed(2)}
             </p>
-            <p className="text-xs text-orange-600 mt-1">hectáreas</p>
+            <p className="text-[10px] sm:text-xs mt-1" style={{ color: '#ea580c' }}>hectáreas</p>
           </div>
         </div>
       )}
 
       {/* VISTA DE TABLA */}
       {vistaTabla ? (
-        <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6 overflow-x-auto">
-          <table className="w-full text-sm">
+        <div className="rounded-xl shadow-md p-3 sm:p-6 overflow-x-auto" style={{ backgroundColor: 'white', border: '1px solid #e5e7eb' }}>
+          <table className="w-full text-xs sm:text-sm">
             <thead>
-              <tr className="border-b border-gray-200">
-                <th className="text-left py-2 px-3 font-semibold text-gray-700">Fecha</th>
+              <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
+                <th className="text-left py-2 px-2 sm:px-3 font-semibold" style={{ color: '#374151' }}>Fecha</th>
 
                 {loteSeleccionado ? (
                   <>
-                    <th className="text-right py-2 px-3 font-semibold text-gray-700">
-                      {datos.lotes.find(l => l.loteId === loteSeleccionado)?.nombre} (UG)
+                    <th className="text-right py-2 px-2 sm:px-3 font-semibold" style={{ color: '#374151' }}>
+                      <span className="hidden sm:inline">{datos.lotes.find(l => l.loteId === loteSeleccionado)?.nombre}</span> UG
                     </th>
-                    <th className="text-right py-2 px-3 font-semibold text-gray-700">
-                      {datos.lotes.find(l => l.loteId === loteSeleccionado)?.nombre} (UG/ha)
+                    <th className="text-right py-2 px-2 sm:px-3 font-semibold" style={{ color: '#374151' }}>
+                      UG/ha
                     </th>
                   </>
                 ) : (
                   <>
-                    <th className="text-right py-2 px-3 font-semibold text-gray-700">Todo el Campo (UG)</th>
-                    <th className="text-right py-2 px-3 font-semibold text-gray-700">Todo el Campo (UG/ha)</th>
+                    <th className="text-right py-2 px-2 sm:px-3 font-semibold" style={{ color: '#374151' }}>UG</th>
+                    <th className="text-right py-2 px-2 sm:px-3 font-semibold" style={{ color: '#374151' }}>UG/ha</th>
                   </>
                 )}
               </tr>
@@ -492,26 +498,26 @@ export default function EvolucionUGDashboard() {
 
             <tbody>
               {datos.dias.map((dia, index) => (
-                <tr key={dia} className="border-b border-gray-100 hover:bg-gray-50">
-                  <td className="py-2 px-3 text-gray-600">
+                <tr key={dia} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                  <td className="py-2 px-2 sm:px-3" style={{ color: '#4b5563' }}>
                     {new Date(dia).toLocaleDateString('es-UY')}
                   </td>
 
                   {loteSeleccionado ? (
                     <>
-                      <td className="text-right py-2 px-3 font-mono text-gray-900">
+                      <td className="text-right py-2 px-2 sm:px-3 font-mono" style={{ color: '#111827' }}>
                         {datos.lotes.find(l => l.loteId === loteSeleccionado)?.datos[index].toFixed(2)}
                       </td>
-                      <td className="text-right py-2 px-3 font-mono text-gray-900">
+                      <td className="text-right py-2 px-2 sm:px-3 font-mono" style={{ color: '#111827' }}>
                         {datos.lotes.find(l => l.loteId === loteSeleccionado)?.cargaPorHectarea[index].toFixed(2)}
                       </td>
                     </>
                   ) : (
                     <>
-                      <td className="text-right py-2 px-3 font-mono text-gray-900">
+                      <td className="text-right py-2 px-2 sm:px-3 font-mono" style={{ color: '#111827' }}>
                         {datos.global?.ug?.[index]?.toFixed(2) ?? '0.00'}
                       </td>
-                      <td className="text-right py-2 px-3 font-mono text-gray-900">
+                      <td className="text-right py-2 px-2 sm:px-3 font-mono" style={{ color: '#111827' }}>
                         {datos.global?.ugPorHectarea?.[index]?.toFixed(2) ?? '0.00'}
                       </td>
                     </>
@@ -524,8 +530,10 @@ export default function EvolucionUGDashboard() {
       ) : (
 
         /* GRÁFICO PRINCIPAL */
-        <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6">
-          <ResponsiveContainer width="100%" height={450}>
+        <div className="rounded-xl shadow-md p-3 sm:p-6" style={{ backgroundColor: 'white', border: '1px solid #e5e7eb' }}>
+          {/* Altura responsive: 280px móvil, 450px desktop */}
+          <div className="h-[280px] sm:h-[450px]">
+          <ResponsiveContainer width="100%" height="100%">
             <LineChart 
               data={datosGrafico}
               key={`${loteSeleccionado}-${vistaActiva}`}
@@ -613,58 +621,59 @@ export default function EvolucionUGDashboard() {
 
             </LineChart>
           </ResponsiveContainer>
+          </div>
         </div>
       )}
 
       {/* RESUMEN GLOBAL */}
 {!loteSeleccionado && (
-  <div className="bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 rounded-lg p-6">
-    <h3 className="font-semibold text-blue-900 mb-4 text-lg">Resumen del Campo</h3>
-    <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+  <div className="rounded-lg p-4 sm:p-6" style={{ background: 'linear-gradient(to right, #eff6ff, #ecfeff)', border: '1px solid #bfdbfe' }}>
+    <h3 className="font-semibold mb-3 sm:mb-4 text-base sm:text-lg" style={{ color: '#1e3a8a' }}>Resumen del Campo</h3>
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 sm:gap-4">
       <div className="text-center">
-        <p className="text-3xl font-bold text-blue-600">{datos.lotes.length}</p>
-        <p className="text-sm text-blue-700 mt-1">Potreros</p>
+        <p className="text-2xl sm:text-3xl font-bold" style={{ color: '#2563eb' }}>{datos.lotes.length}</p>
+        <p className="text-xs sm:text-sm mt-1" style={{ color: '#1d4ed8' }}>Potreros</p>
       </div>
 
       <div className="text-center">
-        <p className="text-3xl font-bold text-blue-600">
-          {datos.global?.hectareasTodasPredio?.toFixed(2) ?? '0.00'}
+        <p className="text-2xl sm:text-3xl font-bold" style={{ color: '#2563eb' }}>
+          {datos.global?.hectareasTodasPredio?.toFixed(0) ?? '0'}
         </p>
-        <p className="text-sm text-blue-700 mt-1">Hectáreas totales del predio</p>
+        <p className="text-xs sm:text-sm mt-1" style={{ color: '#1d4ed8' }}>Ha totales</p>
       </div>
 
       <div className="text-center">
-        <p className="text-3xl font-bold text-blue-600">
-          {datos.global?.hectareasTotales?.toFixed(2) ?? '0.00'}
+        <p className="text-2xl sm:text-3xl font-bold" style={{ color: '#2563eb' }}>
+          {datos.global?.hectareasTotales?.toFixed(0) ?? '0'}
         </p>
-        <p className="text-sm text-blue-700 mt-1">SPG (ha pastoreables)</p>
+        <p className="text-xs sm:text-sm mt-1" style={{ color: '#1d4ed8' }}>SPG (ha)</p>
       </div>
 
       <div className="text-center">
-        <p className="text-3xl font-bold text-blue-600">
+        <p className="text-2xl sm:text-3xl font-bold" style={{ color: '#2563eb' }}>
           {datos.global?.ug?.[datos.global.ug.length - 1]?.toFixed(2) ?? '0.00'}
         </p>
-        <p className="text-sm text-blue-700 mt-1">UG Totales hoy</p>
+        <p className="text-xs sm:text-sm mt-1" style={{ color: '#1d4ed8' }}>UG actuales</p>
       </div>
 
-      <div className="text-center">
-        <p className="text-3xl font-bold text-blue-600">
+      <div className="text-center col-span-2 sm:col-span-1">
+        <p className="text-2xl sm:text-3xl font-bold" style={{ color: '#2563eb' }}>
           {datos.global?.ugPorHectarea?.[datos.global.ugPorHectarea.length - 1]?.toFixed(2) ?? '0.00'}
         </p>
-        <p className="text-sm text-blue-700 mt-1">UG/ha promedio hoy</p>
+        <p className="text-xs sm:text-sm mt-1" style={{ color: '#1d4ed8' }}>UG/ha actual</p>
       </div>
     </div>
   </div>
 )}
 
       {/* LEYENDA */}
-      <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-        <h4 className="font-semibold text-gray-900 mb-2 text-sm">Guía de interpretación</h4>
-        <ul className="text-xs text-gray-600 space-y-1">
+      <div className="rounded-lg p-3 sm:p-4" style={{ backgroundColor: '#f9fafb', border: '1px solid #e5e7eb' }}>
+        <h4 className="font-semibold mb-2 text-sm" style={{ color: '#111827' }}>Guía de interpretación</h4>
+        <ul className="text-xs space-y-1" style={{ color: '#4b5563' }}>
           <li>• <strong>Línea escalonada:</strong> Cambios por altas/bajas</li>
-          <li>• <strong>Puntos marcados:</strong> Cambios superiores al 5% o inicio de mes</li>
+          <li>• <strong>Puntos marcados:</strong> Cambios &gt;5% o inicio de mes</li>
           <li>• <strong>Bandas azules:</strong> Invierno</li>
-          <li>• <strong>Línea roja:</strong> Máxima recomendada (1.2 UG/ha)</li>
+          <li>• <strong>Línea roja:</strong> Máx. recomendada (1.2 UG/ha)</li>
         </ul>
       </div>
     </div>

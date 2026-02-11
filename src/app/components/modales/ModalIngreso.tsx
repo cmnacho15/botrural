@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { obtenerFechaLocal } from '@/lib/fechas'
+import { toast } from '@/app/components/Toast'
 
 async function obtenerTasaCambio(): Promise<number> {
   try {
@@ -134,12 +135,12 @@ export default function ModalIngreso({ onClose, onSuccess }: ModalIngresoProps) 
     e.preventDefault()
 
     if (items.some((item) => !item.item || item.precio <= 0)) {
-      alert('❌ Completá todos los ítems con nombre y precio válido')
+      toast.error('❌ Completá todos los ítems con nombre y precio válido')
       return
     }
 
     if (metodoPago === 'Plazo' && diasPlazo < 1) {
-      alert('❌ Ingresá una cantidad de días válida para el plazo')
+      toast.error('❌ Ingresá una cantidad de días válida para el plazo')
       return
     }
 
@@ -197,30 +198,28 @@ montoEnUYU: item.precioFinal,     // 🔥 siempre esto, el backend lo corrige
         }
       }
 
-      alert('✅ Ingresos guardados correctamente')
+      toast.success('✅ Ingresos guardados correctamente')
       onSuccess()
       onClose()
     } catch (error) {
       console.error('💥 Error:', error)
-      alert(
-        `❌ Error al guardar los ingresos: ${
+      toast.error(`❌ Error al guardar los ingresos: ${
           error instanceof Error ? error.message : 'Error desconocido'
-        }`
-      )
+        }`)
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="p-6 max-h-[90vh] overflow-y-auto">
+    <div className="p-4 sm:p-6">
       {/* HEADER */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center text-2xl">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-green-100 flex items-center justify-center text-2xl">
             💰
           </div>
-          <h2 className="text-2xl font-bold text-gray-900">Nuevo Ingreso</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Nuevo Ingreso</h2>
         </div>
         <button
           type="button"

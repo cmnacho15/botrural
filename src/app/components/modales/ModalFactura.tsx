@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { X, ZoomIn, ZoomOut, Download, RotateCw, Move } from 'lucide-react';
+import { toast } from '@/app/components/Toast'
 
 interface ModalFacturaProps {
   isOpen: boolean;
@@ -130,7 +131,7 @@ export default function ModalFactura({
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Error descargando imagen:', error);
-      alert('Error al descargar la imagen');
+      toast.error('Error al descargar la imagen');
     }
   };
 

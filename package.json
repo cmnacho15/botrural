@@ -12,6 +12,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.71.2",
     "@auth/prisma-adapter": "^2.11.1",
+    "@mapbox/mapbox-gl-draw": "^1.5.1",
     "@react-leaflet/core": "^2.1.0",
     "@supabase/supabase-js": "^2.84.0",
     "@turf/area": "^7.3.1",
@@ -19,6 +20,7 @@
     "@upstash/redis": "^1.36.1",
     "@vercel/og": "^0.8.6",
     "bcryptjs": "^3.0.3",
+    "canvas": "^3.2.1",
     "date-fns": "^4.1.0",
     "esri-leaflet": "^3.0.19",
     "exceljs": "^4.4.0",
@@ -32,18 +34,21 @@
     "leaflet.heat": "^0.2.0",
     "lucide-react": "^0.553.0",
     "mapbox-gl": "^3.16.0",
+    "maplibre-gl": "^5.17.0",
     "next": "^15.1.9",
     "next-auth": "^4.24.13",
     "openai": "^6.9.1",
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "react-leaflet": "^4.2.1",
+    "react-map-gl": "^8.1.0",
     "recharts": "^3.3.0",
     "satori": "^0.18.3",
     "sharp": "^0.34.5",
     "skia-canvas": "^3.0.8",
     "swr": "^2.3.6",
-    "uuid": "^13.0.0"
+    "uuid": "^13.0.0",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@prisma/client": "^6.19.0",

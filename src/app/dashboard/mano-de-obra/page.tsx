@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Calendar, Download, Plus, Edit2, Trash2, X, Save } from 'lucide-react'
+import { toast } from '@/app/components/Toast'
 
 export default function ManoDeObraPage() {
   const [mesSeleccionado, setMesSeleccionado] = useState(new Date().getMonth())
@@ -70,7 +71,7 @@ export default function ManoDeObraPage() {
 
       setEmpleados(empleadosMapeados)
     } catch (error: any) {
-      alert(error.message)
+      toast.error(error.message)
     } finally {
       setCargando(false)
     }
@@ -78,7 +79,7 @@ export default function ManoDeObraPage() {
 
   const handleGuardar = async () => {
     if (!formData.nombre.trim()) {
-      alert('El nombre es obligatorio')
+      toast.error('El nombre es obligatorio')
       return
     }
 
@@ -114,9 +115,9 @@ export default function ManoDeObraPage() {
 
       setModalOpen(false)
       cargarDatos()
-      alert('✅ Guardado correctamente')
+      toast.success('✅ Guardado correctamente')
     } catch (error: any) {
-      alert('❌ Error al guardar: ' + error.message)
+      toast.error('❌ Error al guardar: ' + error.message)
     }
   }
 
@@ -128,9 +129,9 @@ export default function ManoDeObraPage() {
       if (!res.ok) throw new Error('Error eliminando')
 
       cargarDatos()
-      alert('✅ Eliminado correctamente')
+      toast.success('✅ Eliminado correctamente')
     } catch (error: any) {
-      alert('❌ Error al eliminar: ' + error.message)
+      toast.error('❌ Error al eliminar: ' + error.message)
     }
   }
 
@@ -140,7 +141,7 @@ export default function ManoDeObraPage() {
   const handleExportarPDF = () => {
     const printWindow = window.open('', '_blank')
     if (!printWindow) {
-      alert('Por favor permite ventanas emergentes para descargar el PDF')
+      toast.error('Por favor permite ventanas emergentes para descargar el PDF')
       return
     }
 

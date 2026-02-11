@@ -26,8 +26,8 @@ export async function GET(request: Request) {
       )
     }
 
-    // Solo ADMIN_GENERAL puede ver invitaciones
-    if (usuario.role !== "ADMIN_GENERAL") {
+    // Solo ADMIN_GENERAL o MEGA_ADMIN pueden ver invitaciones
+    if (!["ADMIN_GENERAL", "MEGA_ADMIN"].includes(usuario.role)) {
       return NextResponse.json(
         { error: "No autorizado" },
         { status: 403 }
@@ -80,8 +80,8 @@ export async function POST(req: Request) {
       )
     }
 
-    // 🔒 Solo ADMIN_GENERAL puede crear invitaciones
-    if (usuario.role !== "ADMIN_GENERAL") {
+    // 🔒 Solo ADMIN_GENERAL o MEGA_ADMIN pueden crear invitaciones
+    if (!["ADMIN_GENERAL", "MEGA_ADMIN"].includes(usuario.role)) {
       return NextResponse.json(
         { error: "Solo el administrador puede crear invitaciones" },
         { status: 403 }
@@ -180,7 +180,7 @@ export async function DELETE(request: Request) {
       where: { id: session.user.id },
     })
 
-    if (!usuario?.campoId || usuario.role !== "ADMIN_GENERAL") {
+    if (!usuario?.campoId || !["ADMIN_GENERAL", "MEGA_ADMIN"].includes(usuario.role)) {
       return NextResponse.json(
         { error: "No autorizado" },
         { status: 403 }

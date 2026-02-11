@@ -44,6 +44,7 @@ interface DashboardData {
 export default function DashboardMejorado({ session }: { session: any }) {
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [imagenModal, setImagenModal] = useState<string | null>(null)
 
   useEffect(() => {
     cargarDatos()
@@ -182,94 +183,6 @@ export default function DashboardMejorado({ session }: { session: any }) {
     brown: 'bg-orange-800',
   }
 
-  const renderDetalles = (dato: any) => {
-    const detalles = []
-
-    if (dato.monto !== undefined && dato.monto !== null && dato.monto !== 0) {
-      const esIngreso = dato.tipo === 'INGRESO' || dato.tipo === 'VENTA'
-      const moneda = dato.moneda || 'UYU'
-
-      detalles.push(
-        <div key="monto" className="flex items-center gap-2">
-          <span
-            className={`${esIngreso ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200'} px-3 py-1.5 rounded-md border text-sm font-semibold`}
-          >
-            💵 {esIngreso ? '+' : '-'}${Math.abs(Number(dato.monto)).toLocaleString('es-UY')}
-          </span>
-          <span className={`px-2 py-1 rounded-md text-xs font-medium border ${
-            moneda === 'USD' 
-              ? 'bg-blue-50 text-blue-700 border-blue-200' 
-              : 'bg-gray-50 text-gray-700 border-gray-200'
-          }`}>
-            {moneda}
-          </span>
-        </div>
-      )
-    }
-
-    if (dato.cantidad && !['INGRESO', 'GASTO'].includes(dato.tipo)) {
-      const texto = dato.tipo === 'VENTA' ? `${dato.cantidad} vendidos` : dato.tipo === 'COMPRA' ? `${dato.cantidad} comprados` : `${dato.cantidad} ${dato.unidad || ''}`
-
-      detalles.push(
-        <span key="cantidad" className="bg-blue-50 text-blue-700 px-3 py-1.5 rounded-md border border-blue-200 text-sm font-medium">
-          📊 {texto}
-        </span>
-      )
-    }
-
-    if (dato.proveedor) {
-      detalles.push(
-        <span key="proveedor" className="bg-orange-50 text-orange-700 px-3 py-1.5 rounded-md border border-orange-200 text-sm font-medium">
-          🏪 {dato.proveedor}
-        </span>
-      )
-    }
-
-    if (dato.comprador) {
-      detalles.push(
-        <span key="comprador" className="bg-green-50 text-green-700 px-3 py-1.5 rounded-md border border-green-200 text-sm font-medium">
-          🤝 {dato.comprador}
-        </span>
-      )
-    }
-
-    if (dato.metodoPago) {
-      const esIngreso = dato.tipo === 'INGRESO' || dato.tipo === 'VENTA'
-      detalles.push(
-        <span key="metodo" className={`${esIngreso ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200'} px-3 py-1.5 rounded-md border text-sm font-medium`}>
-          💳 {dato.metodoPago}
-          {dato.diasPlazo && dato.diasPlazo > 0 && ` (${dato.diasPlazo} días)`}
-        </span>
-      )
-    }
-
-    if (dato.metodoPago && dato.pagado !== undefined) {
-      detalles.push(
-        <span key="pagado" className={`${dato.pagado ? 'bg-green-50 text-green-700 border-green-200' : 'bg-yellow-50 text-yellow-700 border-yellow-200'} px-3 py-1.5 rounded-md border text-sm font-medium`}>
-          {dato.pagado ? '✅ Pagado' : '⏳ Pendiente'}
-        </span>
-      )
-    }
-
-    if (dato.insumo) {
-      detalles.push(
-        <span key="insumo" className="bg-purple-50 text-purple-700 px-3 py-1.5 rounded-md border border-purple-200 text-sm font-medium">
-          📦 {dato.insumo}
-        </span>
-      )
-    }
-
-    if (dato.iva && dato.iva !== 0) {
-      detalles.push(
-        <span key="iva" className="bg-gray-50 text-gray-700 px-3 py-1.5 rounded-md border border-gray-200 text-sm font-medium">
-          💹 IVA: ${Number(dato.iva).toLocaleString('es-UY')}
-        </span>
-      )
-    }
-
-    return detalles
-  }
-
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -343,17 +256,40 @@ export default function DashboardMejorado({ session }: { session: any }) {
                         </div>
 
                         <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold text-gray-900 text-base">{obtenerNombreTipo(dato.tipo)}</h3>
+                          <div className="flex flex-wrap justify-between items-center gap-2 mb-1">
+                            <h3 className="font-semibold text-gray-900 text-base">{obtenerNombreTipo(dato.tipo)}</h3>
+                            {dato.imageUrl && (
+                              <button
+                                onClick={() => setImagenModal(dato.imageUrl)}
+                                className="flex items-center gap-1.5 shrink-0"
+                                style={{
+                                  padding: '4px 10px',
+                                  backgroundColor: '#0d9488',
+                                  border: '1px solid #0f766e',
+                                  borderRadius: '6px',
+                                  fontSize: '11px',
+                                  fontWeight: 600,
+                                  color: '#ffffff',
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                                  <circle cx="8.5" cy="8.5" r="1.5"/>
+                                  <polyline points="21 15 16 10 5 21"/>
+                                </svg>
+                                Ver foto
+                              </button>
+                            )}
+                          </div>
 
                           {dato.descripcion && <p className="text-gray-700 text-sm mb-2 leading-relaxed">{dato.descripcion}</p>}
 
-                          <div className="flex flex-wrap gap-2 mb-2">{renderDetalles(dato)}</div>
-
-                          <div className="flex flex-wrap gap-2 text-xs">
-                            {dato.usuario && <span className="bg-gray-50 text-gray-700 px-2 py-1 rounded-md border border-gray-200 font-medium">👤 {dato.usuario}</span>}
-                            {dato.lote && <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded-md border border-blue-200 font-medium">📍 {dato.lote}</span>}
-                            {dato.rodeo && <span className="bg-green-50 text-green-700 px-2 py-1 rounded-md border border-green-200 font-medium">🐮 {dato.rodeo}</span>}
-                            {dato.categoria && <span className="bg-purple-50 text-purple-700 px-2 py-1 rounded-md border border-purple-200 font-medium capitalize">{dato.categoria}</span>}
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
+                            {dato.usuario && <span>👤 {dato.usuario}</span>}
+                            {dato.lote && <span>📍 {dato.lote}</span>}
+                            {dato.rodeo && <span>🐮 {dato.rodeo}</span>}
+                            {dato.caravana && <span className="font-semibold text-amber-700">🏷️ {dato.caravana}</span>}
                           </div>
 
                           {dato.notas && <p className="text-xs text-gray-600 mt-2 pl-3 border-l-2 border-gray-300 italic">{dato.notas}</p>}
@@ -482,7 +418,30 @@ export default function DashboardMejorado({ session }: { session: any }) {
         </div>
       </div>
 
-      
+      {/* Modal de imagen */}
+      {imagenModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ backgroundColor: 'rgba(0,0,0,0.8)' }}
+          onClick={() => setImagenModal(null)}
+        >
+          <div className="relative max-w-4xl max-h-[90vh] w-full">
+            <button
+              onClick={() => setImagenModal(null)}
+              className="absolute -top-10 right-0 text-white text-3xl font-bold hover:text-gray-300"
+              style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+            >
+              ✕
+            </button>
+            <img
+              src={imagenModal}
+              alt="Foto del dato"
+              className="w-full h-auto max-h-[85vh] object-contain rounded-lg"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { X } from "lucide-react";
+import { toast } from '@/app/components/Toast'
 
 interface Potrero {
   loteId: string;
@@ -83,7 +84,7 @@ export default function ModalDividirOvinosCastracion({
 
       if (!res.ok) {
         const error = await res.json();
-        alert(error.error || "Error al dividir");
+        toast.error(error.error || "Error al dividir");
         return;
       }
 
@@ -91,7 +92,7 @@ export default function ModalDividirOvinosCastracion({
       onClose();
     } catch (error) {
       console.error("Error:", error);
-      alert("Error al dividir");
+      toast.error("Error al dividir");
     } finally {
       setLoading(false);
     }

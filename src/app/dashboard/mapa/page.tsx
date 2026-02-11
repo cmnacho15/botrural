@@ -3,8 +3,10 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import dynamic from 'next/dynamic'
+import { toast } from '@/app/components/Toast'
 
-const MapaPoligono = dynamic(() => import('@/app/components/MapaPoligono'), {
+// 🗺️ MapLibre GL para todas las vistas (WebGL = mejor rendimiento)
+const MapaPoligonoGL = dynamic(() => import('@/app/components/MapaPoligonoGL'), {
   ssr: false,
   loading: () => (
     <div className="w-full h-full flex items-center justify-center bg-gray-100">
@@ -98,7 +100,7 @@ function getColorModulo(moduloIndex: number): string {
 export default function MapaPage() {
   const [lotes, setLotes] = useState<Lote[]>([])
   const [loading, setLoading] = useState(true)
-  const [vistaActual, setVistaActual] = useState<'indice' | 'cultivo' | 'ndvi' | 'curvas' | 'coneat'>(
+  const [vistaActual, setVistaActual] = useState<'indice' | 'cultivo' | 'ndvi' | 'curvas' | 'coneat' | 'altimetria'>(
   'indice',
 )
   const [mapCenter, setMapCenter] = useState<[number, number]>([
@@ -110,6 +112,13 @@ export default function MapaPage() {
   const [modulos, setModulos] = useState<Array<{id: string, nombre: string}>>([])
   const [opacidadCurvas, setOpacidadCurvas] = useState(95)
   const [cultivoSeleccionado, setCultivoSeleccionado] = useState<string | null>(null)
+  // 🏔️ Estado para Altimetría
+  const [loadingAltimetria, setLoadingAltimetria] = useState(false)
+  const [altimetriaData, setAltimetriaData] = useState<Record<string, any>>({})
+  const [subVistaAltimetria, setSubVistaAltimetria] = useState<'elevacion' | 'pendiente'>('elevacion')
+  // 🏷️ Estados para controlar visibilidad de labels
+  const [mostrarNombres, setMostrarNombres] = useState(true)
+  const [mostrarAnimales, setMostrarAnimales] = useState(true)
   
   // Memorizar el key para que no cambie cuando solo cambia opacidad
   const mapaKey = useMemo(() =>
@@ -205,13 +214,18 @@ export default function MapaPage() {
     }
   }
 
-  // 🛰️ Obtener NDVI
+  // 🛰️ Obtener NDVI con mejor manejo de errores
   async function obtenerNDVIPotreros() {
     if (lotes.length === 0) return
 
     setLoadingNDVI(true)
 
     try {
+      // Mostrar mensaje de inicio para campos grandes
+      if (lotes.length > 15) {
+        toast.info(`Procesando ${lotes.length} potreros... esto puede demorar.`)
+      }
+
       const response = await fetch('/api/ndvi', {
         method: 'POST',
         headers: {
@@ -226,34 +240,41 @@ export default function MapaPage() {
       })
 
       if (!response.ok) {
+        const errorText = await response.text()
+        console.error('Error response:', errorText)
         throw new Error('Error obteniendo NDVI')
       }
 
       const data = await response.json()
 
-      console.log('📊 Datos NDVI recibidos:', data.ndvi)
+      console.log('📊 Datos NDVI recibidos:', Object.keys(data.ndvi).length, 'potreros')
+
+      // Contar exitosos y fallidos
+      let exitosos = 0
+      let fallidos = 0
 
       Object.keys(data.ndvi).forEach((loteId) => {
         const ndvi = data.ndvi[loteId]
-        console.log(`Lote ${loteId}:`, {
-          promedio: ndvi.promedio,
-          tieneMatriz: ndvi.matriz?.length > 0,
-          dimensiones: `${ndvi.width}x${ndvi.height}`,
-          bbox: ndvi.bbox,
-          validPixels: ndvi.validPixels,
-          totalPixels: ndvi.totalPixels,
-          porcentajeValido:
-            ndvi.totalPixels > 0
-              ? `${Math.round((ndvi.validPixels / ndvi.totalPixels) * 100)}%`
-              : '0%',
-          primerosValores: ndvi.matriz?.[0]?.slice(0, 5) || 'sin datos',
-        })
+        if (ndvi.promedio !== null && !ndvi.error) {
+          exitosos++
+        } else {
+          fallidos++
+        }
       })
 
       setNdviData(data.ndvi)
+
+      // Mostrar resultado
+      if (fallidos === 0) {
+        toast.success(`NDVI cargado para ${exitosos} potreros`)
+      } else if (exitosos > 0) {
+        toast.info(`NDVI: ${exitosos} OK, ${fallidos} sin datos`)
+      } else {
+        toast.error('No se pudieron obtener datos NDVI')
+      }
     } catch (error) {
       console.error('Error obteniendo NDVI:', error)
-      alert('Error obteniendo datos NDVI. Intenta de nuevo más tarde.')
+      toast.error('Error obteniendo datos NDVI. Intenta de nuevo.')
     } finally {
       setLoadingNDVI(false)
     }
@@ -266,8 +287,7 @@ export default function MapaPage() {
   const faltanDatos = lotes.some(
     (l) =>
       !ndviData[l.id] ||                        // No existe ese lote
-      !ndviData[l.id].matriz ||                 // No tiene matriz
-      ndviData[l.id].matriz.length === 0 ||     // Matriz vacía
+      (!ndviData[l.id].imagenBase64 && !ndviData[l.id].imagenUrl) || // No tiene imagen
       ndviData[l.id].validPixels === 0          // Sin pixeles válidos
   );
 
@@ -276,16 +296,118 @@ export default function MapaPage() {
   }
 }, [vistaActual, lotes, ndviData]);
 
-  // 🎨 Color según NDVI
+  // 🏔️ Obtener datos de altimetría - PROCESAR DE A UNO para evitar timeout
+  async function obtenerAltimetriaPotreros() {
+    if (lotes.length === 0) return
+
+    setLoadingAltimetria(true)
+
+    // Filtrar lotes que ya tienen datos en cache
+    const lotesSinDatos = lotes.filter(l => !altimetriaData[l.id] || altimetriaData[l.id].error)
+
+    if (lotesSinDatos.length === 0) {
+      setLoadingAltimetria(false)
+      return
+    }
+
+    // Estimar tiempo: ~15-20 seg por potrero
+    const tiempoEstimado = Math.ceil(lotesSinDatos.length * 0.3) // minutos
+    toast.info(`Generando mapas 3D profesionales... (${lotesSinDatos.length} potreros, ~${tiempoEstimado} min)`)
+
+    const nuevosResultados: Record<string, any> = { ...altimetriaData }
+    let exitosos = 0
+    let fallidos = 0
+
+    // Procesar de a uno para evitar timeout de Vercel
+    for (let i = 0; i < lotesSinDatos.length; i++) {
+      const lote = lotesSinDatos[i]
+
+      try {
+        const response = await fetch('/api/altimetria', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            lotes: [{ id: lote.id, coordenadas: lote.poligono }],
+          }),
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          const altData = data.altimetria[lote.id]
+
+          if (altData && !altData.error) {
+            nuevosResultados[lote.id] = altData
+            exitosos++
+            // Mostrar progreso
+            toast.info(`Altimetría: ${exitosos}/${lotesSinDatos.length} potreros listos`)
+          } else {
+            fallidos++
+          }
+        } else {
+          fallidos++
+        }
+
+        // Actualizar estado parcialmente para mostrar progreso
+        setAltimetriaData({ ...nuevosResultados })
+
+      } catch (error) {
+        console.error(`Error altimetría ${lote.nombre}:`, error)
+        fallidos++
+      }
+    }
+
+    if (fallidos === 0) {
+      toast.success(`Altimetría profesional lista para ${exitosos} potreros`)
+    } else if (exitosos > 0) {
+      toast.info(`Altimetría: ${exitosos} OK, ${fallidos} sin datos`)
+    } else {
+      toast.error('No se pudieron obtener datos de altimetría')
+    }
+
+    setLoadingAltimetria(false)
+  }
+
+  // Cargar altimetría cuando se pasa a vista altimetria
+  useEffect(() => {
+    if (vistaActual !== 'altimetria') return
+
+    const faltanDatos = lotes.some(
+      (l) => !altimetriaData[l.id] || altimetriaData[l.id].error
+    )
+
+    if (faltanDatos && !loadingAltimetria) {
+      obtenerAltimetriaPotreros()
+    }
+  }, [vistaActual, lotes, altimetriaData])
+
+  // 🎨 Color según NDVI - Paleta FieldData Natural
+  // Naranja (seco) → Amarillo → Verde lima → Verde oscuro (vegetación densa)
   function getColorNDVI(ndvi: number): string {
-    if (ndvi < 0.2) return '#8B4513'
-    if (ndvi < 0.3) return '#DAA520'
-    if (ndvi < 0.4) return '#FFFF00'
-    if (ndvi < 0.5) return '#ADFF2F'
-    if (ndvi < 0.6) return '#7CFC00'
-    if (ndvi < 0.7) return '#32CD32'
-    if (ndvi < 0.8) return '#228B22'
-    return '#006400'
+    // Agua (NDVI negativo) → verde muy oscuro
+    if (ndvi < 0) return '#143723'
+
+    // Paleta natural: naranja → amarillo → verde
+    const colors = [
+      { ndvi: 0.00, hex: '#BE4B23' },   // Naranja rojizo (muy seco)
+      { ndvi: 0.15, hex: '#DC6E28' },   // Naranja intenso
+      { ndvi: 0.25, hex: '#F59637' },   // Naranja claro
+      { ndvi: 0.35, hex: '#FABE46' },   // Amarillo anaranjado
+      { ndvi: 0.45, hex: '#F5DC5A' },   // Amarillo dorado
+      { ndvi: 0.55, hex: '#E1EB6E' },   // Amarillo verdoso
+      { ndvi: 0.65, hex: '#C3E178' },   // Verde lima claro
+      { ndvi: 0.75, hex: '#A0D278' },   // Verde claro
+      { ndvi: 0.85, hex: '#78BE64' },   // Verde medio
+      { ndvi: 0.95, hex: '#50A550' },   // Verde intenso
+      { ndvi: 1.00, hex: '#1E6E2D' },   // Verde muy oscuro
+    ]
+
+    // Encontrar el color más cercano
+    for (let i = colors.length - 1; i >= 0; i--) {
+      if (ndvi >= colors[i].ndvi) {
+        return colors[i].hex
+      }
+    }
+    return colors[0].hex
   }
   
   // 📦 Preparar datos de leyenda para el mapa (solo vista General)
@@ -412,6 +534,8 @@ export default function MapaPage() {
           animales: lote.animalesLote,
           ndviMatriz:
             vistaActual === 'ndvi' ? ndviData[lote.id] || null : null,
+          altimetriaData:
+            vistaActual === 'altimetria' ? altimetriaData[lote.id] || null : null,
         },
       }
     })
@@ -487,27 +611,27 @@ export default function MapaPage() {
           </div>
 
           {/* TOGGLE DE VISTAS */}
-          <div className="flex items-center gap-2 sm:gap-3">
-            <span className="text-xs sm:text-sm text-gray-600 font-medium">
+          <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
+            <span className="hidden sm:inline text-sm text-gray-600 font-medium">
               Vista:
             </span>
-            <div className="inline-flex rounded-lg border-2 border-gray-200 bg-white overflow-hidden">
+            <div className="flex flex-wrap sm:flex-nowrap gap-1.5 sm:gap-0 w-full sm:w-auto sm:inline-flex sm:rounded-lg sm:border-2 sm:border-gray-200 sm:bg-white sm:overflow-hidden">
               <button
                 onClick={() => setVistaActual('indice')}
-                className={`px-3 py-2 text-xs sm:text-sm font-medium transition ${
+                className={`flex-1 sm:flex-none px-2.5 sm:px-3 py-2 text-xs sm:text-sm font-medium transition rounded-lg sm:rounded-none ${
                   vistaActual === 'indice'
                     ? 'bg-blue-600 text-white'
-                    : 'text-gray-700 hover:bg-gray-50'
+                    : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200 sm:border-0'
                 }`}
               >
                 🗺️ General
               </button>
               <button
                 onClick={() => setVistaActual('cultivo')}
-                className={`px-3 py-2 text-xs sm:text-sm font-medium transition ${
+                className={`flex-1 sm:flex-none px-2.5 sm:px-3 py-2 text-xs sm:text-sm font-medium transition rounded-lg sm:rounded-none ${
                   vistaActual === 'cultivo'
                     ? 'bg-blue-600 text-white'
-                    : 'text-gray-700 hover:bg-gray-50'
+                    : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200 sm:border-0'
                 }`}
               >
                 🌾 Cultivos
@@ -515,10 +639,10 @@ export default function MapaPage() {
               <button
                 onClick={() => setVistaActual('ndvi')}
                 disabled={loadingNDVI}
-                className={`px-3 py-2 text-xs sm:text-sm font-medium transition relative ${
+                className={`flex-1 sm:flex-none px-2.5 sm:px-3 py-2 text-xs sm:text-sm font-medium transition relative rounded-lg sm:rounded-none ${
                   vistaActual === 'ndvi'
                     ? 'bg-green-600 text-white'
-                    : 'text-gray-700 hover:bg-gray-50'
+                    : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200 sm:border-0'
                 } ${loadingNDVI ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 🛰️ NDVI
@@ -527,25 +651,75 @@ export default function MapaPage() {
                 )}
               </button>
               <button
-  onClick={() => setVistaActual('curvas')}
-  className={`px-3 py-2 text-xs sm:text-sm font-medium transition ${
-    vistaActual === 'curvas'
-      ? 'bg-amber-600 text-white'
-      : 'text-gray-700 hover:bg-gray-50'
-  }`}
->
-  📏 Curvas
-</button>
-<button
-  onClick={() => setVistaActual('coneat')}
-  className={`px-3 py-2 text-xs sm:text-sm font-medium transition ${
-    vistaActual === 'coneat'
-      ? 'bg-green-600 text-white'
-      : 'text-gray-700 hover:bg-gray-50'
-  }`}
->
-  🌱 CONEAT
-</button>
+                onClick={() => setVistaActual('curvas')}
+                className={`flex-1 sm:flex-none px-2.5 sm:px-3 py-2 text-xs sm:text-sm font-medium transition rounded-lg sm:rounded-none ${
+                  vistaActual === 'curvas'
+                    ? 'bg-amber-600 text-white'
+                    : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200 sm:border-0'
+                }`}
+              >
+                📏 Curvas
+              </button>
+              <button
+                onClick={() => setVistaActual('coneat')}
+                className={`flex-1 sm:flex-none px-2.5 sm:px-3 py-2 text-xs sm:text-sm font-medium transition rounded-lg sm:rounded-none ${
+                  vistaActual === 'coneat'
+                    ? 'bg-green-600 text-white'
+                    : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200 sm:border-0'
+                }`}
+              >
+                🌱 CONEAT
+              </button>
+              <button
+                onClick={() => setVistaActual('altimetria')}
+                disabled={loadingAltimetria}
+                className={`flex-1 sm:flex-none px-2.5 sm:px-3 py-2 text-xs sm:text-sm font-medium transition relative rounded-lg sm:rounded-none ${
+                  vistaActual === 'altimetria'
+                    ? 'bg-amber-700 text-white'
+                    : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200 sm:border-0'
+                } ${loadingAltimetria ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                🏔️ Altimetría
+                {loadingAltimetria && (
+                  <span className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 rounded-full animate-pulse" />
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* CONTROLES DE VISUALIZACIÓN - Toggles para nombres y animales */}
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 sm:px-6 py-3 shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+            <span className="sm:hidden text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+              Vista
+            </span>
+            <div className="flex flex-wrap gap-4 sm:gap-6">
+              {/* Toggle Nombres */}
+              <label className="flex items-center gap-2 cursor-pointer group">
+                <input
+                  type="checkbox"
+                  checked={mostrarNombres}
+                  onChange={(e) => setMostrarNombres(e.target.checked)}
+                  className="w-4 h-4 text-blue-600 bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500 focus:ring-2 cursor-pointer"
+                />
+                <span className="text-sm text-gray-700 dark:text-gray-300 select-none group-hover:text-gray-900 dark:group-hover:text-white transition">
+                  Nombres y hectáreas
+                </span>
+              </label>
+
+              {/* Toggle Animales */}
+              <label className="flex items-center gap-2 cursor-pointer group">
+                <input
+                  type="checkbox"
+                  checked={mostrarAnimales}
+                  onChange={(e) => setMostrarAnimales(e.target.checked)}
+                  className="w-4 h-4 text-blue-600 bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500 focus:ring-2 cursor-pointer"
+                />
+                <span className="text-sm text-gray-700 dark:text-gray-300 select-none group-hover:text-gray-900 dark:group-hover:text-white transition">
+                  Animales
+                </span>
+              </label>
             </div>
           </div>
         </div>
@@ -574,24 +748,31 @@ export default function MapaPage() {
                   </div>
                 </div>
               ) : (
-                
-  <MapaPoligono
-  key={mapaKey}
-  initialCenter={mapCenter}
-  initialZoom={14}
-  existingPolygons={poligonosParaMapa}
-  readOnly={true}
-  modulosLeyenda={modulosLeyendaParaMapa}
-  mostrarLeyendaModulos={vistaActual === 'indice'}
-  mostrarCurvasNivel={vistaActual === 'curvas'}
-  mostrarConeat={vistaActual === 'coneat'}
-  opacidadCurvas={opacidadCurvas}
-  onOpacidadCurvasChange={setOpacidadCurvas}
-  mostrarResumenCultivos={vistaActual === 'cultivo'}
-  resumenCultivos={resumenCultivosParaMapa}
-  cultivoSeleccionado={cultivoSeleccionado}
-  onCultivoClick={setCultivoSeleccionado}
-/>
+                // 🗺️ MapLibre GL para todas las vistas (WebGL = mejor rendimiento)
+                <MapaPoligonoGL
+                  key={`gl-${mapaKey}`}
+                  initialCenter={mapCenter}
+                  initialZoom={14}
+                  existingPolygons={poligonosParaMapa}
+                  readOnly={true}
+                  showNDVI={vistaActual === 'ndvi'}
+                  showAltimetria={vistaActual === 'altimetria'}
+                  subVistaAltimetria={subVistaAltimetria}
+                  modulosLeyenda={modulosLeyendaParaMapa}
+                  mostrarLeyendaModulos={vistaActual === 'indice'}
+                  mostrarCurvasNivel={vistaActual === 'curvas'}
+                  mostrarConeat={vistaActual === 'coneat'}
+                  opacidadCurvas={opacidadCurvas}
+                  onOpacidadCurvasChange={setOpacidadCurvas}
+                  mostrarResumenCultivos={vistaActual === 'cultivo'}
+                  resumenCultivos={resumenCultivosParaMapa}
+                  cultivoSeleccionado={cultivoSeleccionado}
+                  onCultivoClick={setCultivoSeleccionado}
+                  mostrarNombres={mostrarNombres}
+                  mostrarAnimales={mostrarAnimales}
+                  onMostrarNombresChange={setMostrarNombres}
+                  onMostrarAnimalesChange={setMostrarAnimales}
+                />
               )}
             </div>
           </div>
@@ -606,6 +787,7 @@ export default function MapaPage() {
   {vistaActual === 'ndvi' && '🛰️ Índice de Vegetación (NDVI)'}
   {vistaActual === 'curvas' && '📏 Curvas de Nivel'}
   {vistaActual === 'coneat' && '🌱 Grupos CONEAT'}
+  {vistaActual === 'altimetria' && '🏔️ Altimetría del Terreno'}
 </h2>
             </div>
 
@@ -749,28 +931,54 @@ export default function MapaPage() {
                           )
                         })()}
 
-                      {/* Escala NDVI */}
+                      {/* Escala NDVI - Gradiente continuo estilo FieldData Natural */}
                       <div className="mb-5">
-  <h3 className="text-xs sm:text-sm font-semibold text-gray-700 mb-2 sm:mb-3">
-    📊 Escala de Vegetación
-  </h3>
+                        <h3 className="text-xs sm:text-sm font-semibold text-gray-700 mb-2 sm:mb-3">
+                          📊 Escala de Vegetación (NDVI)
+                        </h3>
+
+                        {/* Barra de gradiente continuo - Paleta Natural */}
+                        <div className="mb-3">
+                          <div
+                            className="h-5 sm:h-6 rounded-lg shadow-inner"
+                            style={{
+                              background: `linear-gradient(to right,
+                                rgb(190,75,35) 0%,
+                                rgb(220,110,40) 10%,
+                                rgb(245,150,55) 20%,
+                                rgb(250,190,70) 30%,
+                                rgb(245,220,90) 40%,
+                                rgb(225,235,110) 50%,
+                                rgb(195,225,120) 60%,
+                                rgb(160,210,120) 70%,
+                                rgb(120,190,100) 80%,
+                                rgb(80,165,80) 90%,
+                                rgb(30,110,45) 100%
+                              )`
+                            }}
+                          />
+                          <div className="flex justify-between mt-1 text-[10px] sm:text-xs text-gray-500">
+                            <span>0.0</span>
+                            <span>0.5</span>
+                            <span>1.0</span>
+                          </div>
+                        </div>
+
+                        {/* Leyenda descriptiva */}
                         <div className="space-y-1.5 text-[11px] sm:text-xs">
                           {[
-                            ['#006400', '0.8 - 1.0: Vegetación muy densa'],
-                            ['#228B22', '0.7 - 0.8: Vegetación densa'],
-                            ['#32CD32', '0.6 - 0.7: Vegetación media-alta'],
-                            ['#7CFC00', '0.5 - 0.6: Vegetación media'],
-                            ['#ADFF2F', '0.4 - 0.5: Vegetación baja-media'],
-                            ['#FFFF00', '0.3 - 0.4: Vegetación baja'],
-                            ['#DAA520', '0.2 - 0.3: Vegetación escasa'],
-                            ['#8B4513', '0.0 - 0.2: Sin vegetación'],
+                            ['rgb(30,110,45)', '0.8+ Vegetación densa'],
+                            ['rgb(120,190,100)', '0.6-0.8 Saludable'],
+                            ['rgb(195,225,120)', '0.4-0.6 Moderado'],
+                            ['rgb(245,220,90)', '0.2-0.4 Estrés leve'],
+                            ['rgb(190,75,35)', '<0.2 Suelo/Seco'],
                           ].map(([color, label]) => (
                             <div
                               key={label}
                               className="flex items-center gap-2 sm:gap-3"
                             >
                               <div
-                                className="w-7 h-3 sm:w-8 sm:h-4 rounded"
+                                className="w-5 h-3 sm:w-6 sm:h-4 rounded"
                                 style={{ backgroundColor: color as string }}
                               />
                               <span>{label}</span>
@@ -781,82 +989,10 @@ export default function MapaPage() {
 
                       <button
                         onClick={obtenerNDVIPotreros}
-                        className="w-full mb-4 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-xs sm:text-sm font-medium"
+                        className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-xs sm:text-sm font-medium"
                       >
                         🔄 Actualizar Datos NDVI
                       </button>
-
-                      {/* Calidad de datos */}
-                      {Object.keys(ndviData).length > 0 &&
-                        (() => {
-                          const totalPotreros = Object.keys(ndviData).length
-                          const potrerosConDatos = Object.values(ndviData).filter(
-                            (d: any) => d.validPixels > 0,
-                          ).length
-                          const coberturaPromedio =
-                            (Object.values(ndviData).reduce(
-                              (sum: number, d: any) =>
-                                sum + ((d.validPixels / d.totalPixels) || 0),
-                              0,
-                            ) /
-                              totalPotreros) *
-                            100
-
-                          return (
-                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 text-[11px] sm:text-xs">
-                              <p className="text-gray-700 font-semibold mb-2">
-                                📊 Calidad de Datos
-                              </p>
-                              <ul className="space-y-1.5 text-gray-600">
-                                <li className="flex items-center gap-2">
-                                  <span
-                                    className={
-                                      potrerosConDatos === totalPotreros
-                                        ? 'text-green-600'
-                                        : 'text-yellow-600'
-                                    }
-                                  >
-                                    {potrerosConDatos === totalPotreros
-                                      ? '✅'
-                                      : '⚠️'}
-                                  </span>
-                                  <span>
-                                    {potrerosConDatos} de {totalPotreros} potreros con
-                                    datos
-                                  </span>
-                                </li>
-                                <li className="flex items-center gap-2">
-                                  <span
-                                    className={
-                                      coberturaPromedio > 90
-                                        ? 'text-green-600'
-                                        : coberturaPromedio > 70
-                                        ? 'text-yellow-600'
-                                        : 'text-red-600'
-                                    }
-                                  >
-                                    {coberturaPromedio > 90
-                                      ? '✅'
-                                      : coberturaPromedio > 70
-                                      ? '⚠️'
-                                      : '❌'}
-                                  </span>
-                                  <span>
-                                    Cobertura: {coberturaPromedio.toFixed(1)}%
-                                  </span>
-                                </li>
-                              </ul>
-                            </div>
-                          )
-                        })()}
-
-                      <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4 text-[11px] sm:text-xs">
-                        <p className="text-gray-700">
-                          <strong>🛰️ Datos satelitales:</strong> Los valores NDVI se
-                          obtienen de imágenes Sentinel-2 de los últimos 45 días
-                          (Copernicus).
-                        </p>
-                      </div>
                     </>
                   )}
                 </>
@@ -1016,6 +1152,235 @@ export default function MapaPage() {
                 </>
               )}
 
+              {/* VISTA ALTIMETRÍA */}
+              {vistaActual === 'altimetria' && (
+                <>
+                  {loadingAltimetria ? (
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 sm:p-4 mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-amber-600" />
+                        <p className="text-sm text-gray-700">
+                          Descargando datos de elevación satelitales...
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      {/* 🏔️ Info de la fuente */}
+                      <div className="mb-4 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-lg p-3 sm:p-4">
+                        <h3 className="text-xs sm:text-sm font-semibold text-gray-800 mb-2">
+                          🛰️ Información del Satélite
+                        </h3>
+                        <div className="space-y-2 text-xs sm:text-[13px]">
+                          <div className="flex justify-between gap-2">
+                            <span className="text-gray-600">🛰️ Fuente:</span>
+                            <span className="font-semibold text-gray-900">Copernicus GLO-30</span>
+                          </div>
+                          <div className="flex justify-between gap-2">
+                            <span className="text-gray-600">📐 Resolución:</span>
+                            <span className="font-medium text-gray-800">30 metros/píxel</span>
+                          </div>
+                          <div className="flex justify-between gap-2">
+                            <span className="text-gray-600">🏛️ Proveedor:</span>
+                            <span className="font-medium text-gray-800">Agencia Espacial Europea</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Toggle sub-vista: Elevación / Pendiente */}
+                      <div className="mb-4">
+                        <div className="flex rounded-lg border-2 border-gray-200 overflow-hidden">
+                          <button
+                            onClick={() => setSubVistaAltimetria('elevacion')}
+                            className={`flex-1 px-3 py-2 text-xs sm:text-sm font-medium transition ${
+                              subVistaAltimetria === 'elevacion'
+                                ? 'bg-amber-600 text-white'
+                                : 'bg-white text-gray-700 hover:bg-gray-50'
+                            }`}
+                          >
+                            🏔️ Elevación
+                          </button>
+                          <button
+                            onClick={() => setSubVistaAltimetria('pendiente')}
+                            className={`flex-1 px-3 py-2 text-xs sm:text-sm font-medium transition ${
+                              subVistaAltimetria === 'pendiente'
+                                ? 'bg-amber-600 text-white'
+                                : 'bg-white text-gray-700 hover:bg-gray-50'
+                            }`}
+                          >
+                            📐 Pendiente
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Estadísticas generales del campo */}
+                      {Object.keys(altimetriaData).length > 0 && (
+                        <div className="mb-4 bg-white border border-gray-200 rounded-lg p-3 sm:p-4">
+                          <h3 className="text-xs sm:text-sm font-semibold text-gray-700 mb-3">
+                            📊 Resumen del Campo
+                          </h3>
+                          {(() => {
+                            const valores = Object.values(altimetriaData).filter((d: any) => !d.error)
+                            if (valores.length === 0) return null
+
+                            const minGlobal = Math.min(...valores.map((d: any) => d.elevacionMin))
+                            const maxGlobal = Math.max(...valores.map((d: any) => d.elevacionMax))
+                            const promedioGlobal = valores.reduce((sum: number, d: any) => sum + d.elevacionPromedio, 0) / valores.length
+                            const pendientePromGlobal = valores.reduce((sum: number, d: any) => sum + (d.pendientePromedio || 0), 0) / valores.length
+
+                            return (
+                              <div className="space-y-2.5 text-xs sm:text-[13px]">
+                                <div className="flex justify-between items-center p-2 bg-green-50 rounded-lg">
+                                  <span className="text-gray-700">⬇️ Punto más bajo:</span>
+                                  <span className="font-bold text-green-700">{minGlobal.toFixed(0)} m</span>
+                                </div>
+                                <div className="flex justify-between items-center p-2 bg-amber-50 rounded-lg">
+                                  <span className="text-gray-700">⬆️ Punto más alto:</span>
+                                  <span className="font-bold text-amber-700">{maxGlobal.toFixed(0)} m</span>
+                                </div>
+                                <div className="flex justify-between items-center p-2 bg-blue-50 rounded-lg">
+                                  <span className="text-gray-700">📍 Elevación promedio:</span>
+                                  <span className="font-bold text-blue-700">{promedioGlobal.toFixed(0)} m</span>
+                                </div>
+                                <div className="flex justify-between items-center p-2 bg-purple-50 rounded-lg">
+                                  <span className="text-gray-700">📐 Desnivel total:</span>
+                                  <span className="font-bold text-purple-700">{(maxGlobal - minGlobal).toFixed(0)} m</span>
+                                </div>
+                                <div className="flex justify-between items-center p-2 bg-orange-50 rounded-lg">
+                                  <span className="text-gray-700">↗️ Pendiente promedio:</span>
+                                  <span className="font-bold text-orange-700">{pendientePromGlobal.toFixed(1)}°</span>
+                                </div>
+                              </div>
+                            )
+                          })()}
+                        </div>
+                      )}
+
+                      {/* Escala de colores */}
+                      <div className="mb-5">
+                        <h3 className="text-xs sm:text-sm font-semibold text-gray-700 mb-2 sm:mb-3">
+                          {subVistaAltimetria === 'elevacion' ? '📊 Escala de Elevación' : '📊 Escala de Pendiente'}
+                        </h3>
+
+                        {subVistaAltimetria === 'elevacion' ? (
+                          <>
+                            {/* Barra de gradiente elevación */}
+                            <div className="mb-3">
+                              <div
+                                className="h-5 sm:h-6 rounded-lg shadow-inner"
+                                style={{
+                                  background: `linear-gradient(to right,
+                                    rgb(34,139,34) 0%,
+                                    rgb(144,238,144) 25%,
+                                    rgb(255,255,150) 50%,
+                                    rgb(255,200,100) 70%,
+                                    rgb(210,105,30) 85%,
+                                    rgb(139,90,43) 100%
+                                  )`
+                                }}
+                              />
+                              <div className="flex justify-between mt-1 text-[10px] sm:text-xs text-gray-500">
+                                <span>Bajo</span>
+                                <span>Medio</span>
+                                <span>Alto</span>
+                              </div>
+                            </div>
+
+                            {/* Leyenda elevación */}
+                            <div className="space-y-1.5 text-[11px] sm:text-xs">
+                              {[
+                                ['rgb(139,90,43)', 'Zonas altas / Lomas'],
+                                ['rgb(210,105,30)', 'Elevación media-alta'],
+                                ['rgb(255,200,100)', 'Elevación media'],
+                                ['rgb(144,238,144)', 'Zonas bajas'],
+                                ['rgb(34,139,34)', 'Bajos / Cañadas'],
+                              ].map(([color, label]) => (
+                                <div key={label} className="flex items-center gap-2 sm:gap-3">
+                                  <div
+                                    className="w-5 h-3 sm:w-6 sm:h-4 rounded"
+                                    style={{ backgroundColor: color as string }}
+                                  />
+                                  <span>{label}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            {/* Barra de gradiente pendiente */}
+                            <div className="mb-3">
+                              <div
+                                className="h-5 sm:h-6 rounded-lg shadow-inner"
+                                style={{
+                                  background: `linear-gradient(to right,
+                                    rgb(34,139,34) 0%,
+                                    rgb(144,238,144) 20%,
+                                    rgb(255,255,0) 40%,
+                                    rgb(255,165,0) 60%,
+                                    rgb(255,69,0) 80%,
+                                    rgb(139,0,0) 100%
+                                  )`
+                                }}
+                              />
+                              <div className="flex justify-between mt-1 text-[10px] sm:text-xs text-gray-500">
+                                <span>0°</span>
+                                <span>12°</span>
+                                <span>25°+</span>
+                              </div>
+                            </div>
+
+                            {/* Leyenda pendiente */}
+                            <div className="space-y-1.5 text-[11px] sm:text-xs">
+                              {[
+                                ['rgb(34,139,34)', '0-2° Plano (ideal siembra)'],
+                                ['rgb(144,238,144)', '2-5° Suave'],
+                                ['rgb(255,255,0)', '5-10° Moderado'],
+                                ['rgb(255,165,0)', '10-15° Inclinado'],
+                                ['rgb(255,69,0)', '15-25° Empinado'],
+                                ['rgb(139,0,0)', '>25° Muy empinado'],
+                              ].map(([color, label]) => (
+                                <div key={label} className="flex items-center gap-2 sm:gap-3">
+                                  <div
+                                    className="w-5 h-3 sm:w-6 sm:h-4 rounded"
+                                    style={{ backgroundColor: color as string }}
+                                  />
+                                  <span>{label}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </>
+                        )}
+                      </div>
+
+                      {/* Usos prácticos */}
+                      <div className="mb-5">
+                        <h3 className="text-xs sm:text-sm font-semibold text-gray-700 mb-2 sm:mb-3">
+                          💡 ¿Para qué sirve?
+                        </h3>
+                        <div className="space-y-2 text-xs sm:text-[13px]">
+                          <div className="p-2.5 bg-white rounded-lg border border-gray-200">
+                            <p className="font-medium text-gray-900 mb-1">💧 Planificar drenajes</p>
+                            <p className="text-gray-600">Identificar bajos y cañadas donde acumula agua</p>
+                          </div>
+                          <div className="p-2.5 bg-white rounded-lg border border-gray-200">
+                            <p className="font-medium text-gray-900 mb-1">🚜 Optimizar siembra</p>
+                            <p className="text-gray-600">Pendientes suaves (0-5°) son ideales para agricultura</p>
+                          </div>
+                          <div className="p-2.5 bg-white rounded-lg border border-gray-200">
+                            <p className="font-medium text-gray-900 mb-1">🐄 Manejo de pastoreo</p>
+                            <p className="text-gray-600">Zonas altas secan más rápido, bajos retienen humedad</p>
+                          </div>
+                          <div className="p-2.5 bg-white rounded-lg border border-gray-200">
+                            <p className="font-medium text-gray-900 mb-1">🌧️ Riesgo de erosión</p>
+                            <p className="text-gray-600">Pendientes &gt;10° requieren prácticas de conservación</p>
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </>
+              )}
+
               {/* VISTA CULTIVOS */}
               {vistaActual === 'cultivo' && (
                 <>
@@ -1157,34 +1522,24 @@ export default function MapaPage() {
                           />
                         </div>
 
-                        {vistaActual === 'ndvi' && (
-                          <>
-                            {ndvi?.promedio !== null && ndvi?.validPixels > 0 ? (
-                              <div className="mb-1.5 bg-green-50 rounded px-2 py-1">
-                                <div className="text-[11px] sm:text-xs text-gray-600">
-                                  📊 NDVI:{' '}
-                                  <span className="font-semibold">
-                                    {ndvi.promedio.toFixed(3)}
-                                  </span>
-                                  <span className="text-gray-500 ml-1">
-                                    {ndvi.promedio >= 0.7
-                                      ? '(Excelente)'
-                                      : ndvi.promedio >= 0.5
-                                      ? '(Bueno)'
-                                      : ndvi.promedio >= 0.3
-                                      ? '(Regular)'
-                                      : '(Bajo)'}
-                                  </span>
-                                </div>
-                              </div>
-                            ) : (
-                              <div className="mb-1.5 bg-red-50 rounded px-2 py-1">
-                                <div className="text-[11px] sm:text-xs text-red-600">
-                                  ⚠️ Sin datos satelitales disponibles
-                                </div>
-                              </div>
-                            )}
-                          </>
+                        {vistaActual === 'ndvi' && ndvi?.promedio !== null && ndvi?.validPixels > 0 && (
+                          <div className="mb-1.5 bg-green-50 rounded px-2 py-1">
+                            <div className="text-[11px] sm:text-xs text-gray-600">
+                              📊 NDVI:{' '}
+                              <span className="font-semibold">
+                                {ndvi.promedio.toFixed(3)}
+                              </span>
+                              <span className="text-gray-500 ml-1">
+                                {ndvi.promedio >= 0.7
+                                  ? '(Excelente)'
+                                  : ndvi.promedio >= 0.5
+                                  ? '(Bueno)'
+                                  : ndvi.promedio >= 0.3
+                                  ? '(Regular)'
+                                  : '(Bajo)'}
+                              </span>
+                            </div>
+                          </div>
                         )}
 
                         {vistaActual === 'cultivo' && (
@@ -1212,6 +1567,23 @@ export default function MapaPage() {
                                 Sin módulo asignado
                               </div>
                             )}
+                          </div>
+                        )}
+
+                        {vistaActual === 'altimetria' && altimetriaData[lote.id] && !altimetriaData[lote.id].error && (
+                          <div className="mb-1.5 bg-amber-50 rounded px-2 py-1.5 space-y-1">
+                            <div className="text-[11px] sm:text-xs text-gray-600 flex justify-between">
+                              <span>🏔️ Elevación:</span>
+                              <span className="font-semibold">
+                                {altimetriaData[lote.id].elevacionMin?.toFixed(0)} - {altimetriaData[lote.id].elevacionMax?.toFixed(0)} m
+                              </span>
+                            </div>
+                            <div className="text-[11px] sm:text-xs text-gray-600 flex justify-between">
+                              <span>📐 Pendiente prom:</span>
+                              <span className="font-semibold">
+                                {altimetriaData[lote.id].pendientePromedio?.toFixed(1)}°
+                              </span>
+                            </div>
                           </div>
                         )}
 
