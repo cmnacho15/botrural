@@ -181,7 +181,15 @@ export async function POST(request: Request) {
     }
 
     // 🤖 Clasificación inteligente de categorías con IA (solo para GASTOS)
-    const gastosParaClasificar = gastosCreados.filter(g => g.tipo === 'GASTO')
+    // Crear mapa de índices: gastosCreados -> gastosParaClasificar
+    const indicesGastos: number[] = []
+    const gastosParaClasificar = gastosCreados.filter((g, idx) => {
+      if (g.tipo === 'GASTO') {
+        indicesGastos.push(idx)
+        return true
+      }
+      return false
+    })
 
     if (gastosParaClasificar.length > 0) {
       try {
@@ -263,23 +271,26 @@ FORMATO DE RESPUESTA:
 
           console.log(`✅ [IMPORT-IA] Clasificaciones recibidas: ${clasificaciones.length}`)
 
-          // Aplicar categorías clasificadas
+          // Aplicar categorías clasificadas usando el mapa de índices
+          let aplicadas = 0
           clasificaciones.forEach(({ indice, categoria }) => {
-            const gastoOriginalIdx = gastosCreados.findIndex(g =>
-              g.tipo === 'GASTO' && gastosParaClasificar[indice] === g
-            )
+            // indice es el índice en gastosParaClasificar
+            // indicesGastos[indice] es el índice en gastosCreados
+            if (indice >= 0 && indice < indicesGastos.length) {
+              const idxOriginal = indicesGastos[indice]
 
-            if (gastoOriginalIdx !== -1) {
               // Validar que la categoría existe
               if (CATEGORIAS_GASTOS.includes(categoria)) {
-                gastosCreados[gastoOriginalIdx].categoria = categoria
+                gastosCreados[idxOriginal].categoria = categoria
+                aplicadas++
               } else {
-                gastosCreados[gastoOriginalIdx].categoria = 'Otros'
+                gastosCreados[idxOriginal].categoria = 'Otros'
+                aplicadas++
               }
             }
           })
 
-          console.log(`✅ [IMPORT-IA] ${clasificaciones.length} gastos clasificados exitosamente`)
+          console.log(`✅ [IMPORT-IA] ${aplicadas}/${gastosParaClasificar.length} gastos clasificados exitosamente`)
         } else {
           console.log('⚠️ [IMPORT-IA] No se pudo parsear respuesta IA, usando categorías por defecto')
         }
