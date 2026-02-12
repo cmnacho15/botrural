@@ -430,7 +430,10 @@ async function guardarVentaEnBD(savedData: any, phoneNumber: string) {
     } else {
       // GANADO: renglones con cantidad de animales (código original)
       for (const r of ventaData.renglones) {
-        const mapped = mapearCategoriaVenta(r.categoria)
+        // NO mapear bonificaciones (mantener categoría tal cual)
+        const mapped = r.esBonificacion
+          ? { categoria: r.categoria, tipoAnimal: r.tipoAnimal || "BOVINO" }
+          : mapearCategoriaVenta(r.categoria)
         
         // Evitar división por cero cuando cantidad es 0 (ej: "Compensación Kilos")
         const pesoPromedio = r.cantidad > 0
@@ -495,6 +498,7 @@ async function guardarVentaEnBD(savedData: any, phoneNumber: string) {
       descripcion = `Venta de lana (${descripcionCategorias})`
     } else {
       descripcionCategorias = ventaData.renglones
+        .filter((r: any) => !r.esBonificacion) // Excluir bonificaciones de la descripción
         .map((r: any) => {
           const mapped = mapearCategoriaVenta(r.categoria)
           return `${r.cantidad} ${mapped.categoria}${r.cantidad > 1 ? 's' : ''}`
