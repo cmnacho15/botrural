@@ -120,12 +120,14 @@ TIPO B - CAMPO A CAMPO:
 
 ====== EXTRACCIÓN DE COSTOS COMERCIALES (CRÍTICO) ======
 
+🚨 OBLIGATORIO: SIEMPRE extraer el objeto "impuestos" con TODOS los campos, aunque algunos sean 0.
+
 CLASIFICACIÓN DE COSTOS:
 1. **IVA**: Si existe impuesto al valor agregado (22% en Uruguay)
 2. **IMEBA**: Ley 16736 / A655 (Impuesto a la Enajenación de Bienes Agropecuarios)
 3. **INIA**: Ley 16065 (Instituto Nacional de Investigación Agropecuaria)
 4. **MEVIR**: Ley 15851 (Movimiento para Erradicar la Vivienda Insalubre Rural)
-5. **Comisión**: Del consignatario o intermediario
+5. **Comisión**: Del consignatario o intermediario (buscar "Comisión", "Com.", "Gastos Comercialización")
 6. **Otros**: TODO lo demás que reste del subtotal
 
 EJEMPLOS DE "OTROS":
@@ -134,10 +136,12 @@ EJEMPLOS DE "OTROS":
 - Ley 19355 Certif Elec
 - Cualquier otro descuento no clasificado arriba
 
-⚠️ IMPORTANTE: 
+⚠️ IMPORTANTE:
+- SIEMPRE incluir el objeto "impuestos" completo: {"iva": X, "imeba": Y, "inia": Z, "mevir": W, "comision": V, "otros": U}
+- Si un costo no está en la factura, poner 0 (pero NUNCA omitir el campo)
 - Si hay costos/impuestos que NO son IVA, IMEBA, INIA, MEVIR, ni Comisión → van a "otros"
 - Guardá el detalle en "otrosDetalle" con concepto y monto
-- Si NO hay costos comerciales (venta campo a campo simple), todos los campos van en 0
+- La SUMA de todos los campos debe ser EXACTAMENTE igual a "totalImpuestosUSD"
 
 ====== EXTRACCIÓN SEGÚN TIPO ======
 
@@ -344,9 +348,47 @@ RESPONDE SOLO JSON (sin markdown, sin explicaciones):
       data.subtotalUSD = data.renglones.reduce((sum, r) => sum + r.importeBrutoUSD, 0);
     }
     
+    // Validar y corregir impuestos
+    if (!data.impuestos) {
+      // Si no hay objeto impuestos, crearlo con todo en "otros"
+      data.impuestos = {
+        iva: 0,
+        imeba: 0,
+        inia: 0,
+        mevir: 0,
+        comision: 0,
+        otros: data.totalImpuestosUSD || 0,
+        otrosDetalle: []
+      };
+    } else {
+      // Asegurar que todos los campos existan
+      data.impuestos.iva = data.impuestos.iva || 0;
+      data.impuestos.imeba = data.impuestos.imeba || 0;
+      data.impuestos.inia = data.impuestos.inia || 0;
+      data.impuestos.mevir = data.impuestos.mevir || 0;
+      data.impuestos.comision = data.impuestos.comision || 0;
+      data.impuestos.otros = data.impuestos.otros || 0;
+
+      // Calcular suma del desglose
+      const sumaDesglose =
+        data.impuestos.iva +
+        data.impuestos.imeba +
+        data.impuestos.inia +
+        data.impuestos.mevir +
+        data.impuestos.comision +
+        data.impuestos.otros;
+
+      // Si hay totalImpuestosUSD y el desglose no coincide, ajustar "otros"
+      if (data.totalImpuestosUSD && Math.abs(sumaDesglose - data.totalImpuestosUSD) > 0.01) {
+        const diferencia = data.totalImpuestosUSD - sumaDesglose;
+        data.impuestos.otros += diferencia;
+        console.log(`⚠️ Ajuste de costos: diferencia de $${diferencia.toFixed(2)} agregada a "otros"`);
+      }
+    }
+
     // Calcular total de impuestos si falta
-    if (!data.totalImpuestosUSD && data.impuestos) {
-      data.totalImpuestosUSD = 
+    if (!data.totalImpuestosUSD) {
+      data.totalImpuestosUSD =
         (data.impuestos.iva || 0) +
         (data.impuestos.imeba || 0) +
         (data.impuestos.inia || 0) +
@@ -354,7 +396,7 @@ RESPONDE SOLO JSON (sin markdown, sin explicaciones):
         (data.impuestos.comision || 0) +
         (data.impuestos.otros || 0);
     }
-    
+
     if (!data.totalNetoUSD) {
       data.totalNetoUSD = data.subtotalUSD - (data.totalImpuestosUSD || 0);
     }

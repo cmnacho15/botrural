@@ -126,7 +126,7 @@ async function sendVentaConfirmation(phoneNumber: string, data: any) {
     totalesText +
     `Subtotal: $${data.subtotalUSD?.toFixed(2) || 0}\n` +
     (esGranos ? `Servicios: -$${data.totalServiciosUSD?.toFixed(2) || 0}\n` : "") +
-    `Impuestos: -$${data.totalImpuestosUSD?.toFixed(2) || 0}\n` +
+    `Costos comerciales: -$${data.totalImpuestosUSD?.toFixed(2) || 0}\n` +
     `*TOTAL: $${data.totalNetoUSD?.toFixed(2) || 0} USD*\n\n` +
     `¿Guardar?`
 
