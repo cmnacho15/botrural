@@ -426,8 +426,11 @@ export async function handleStockButtonResponse(
 
   const data = JSON.parse(pending.data)
 
+  console.log("🟣 [STOCK_CONSULTA] Tipo del pending:", data.tipo)
+  console.log("🟣 [STOCK_CONSULTA] Se esperaba: STOCK_CONSULTA")
+
   if (data.tipo !== "STOCK_CONSULTA") {
-    await sendWhatsAppMessage(phoneNumber, "Usá los botones correspondientes.")
+    await sendWhatsAppMessage(phoneNumber, `❌ [CONSULTA] pending tipo=${data.tipo} esperado=STOCK_CONSULTA\n\nUsá los botones correspondientes.`)
     return
   }
 
