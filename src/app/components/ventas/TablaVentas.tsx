@@ -321,10 +321,18 @@ export default function TablaVentas({ ventas, onRefresh }: TablaVentasProps) {
                       <td className="px-4 py-3 text-right text-sm text-gray-700">
                         {renglon.esBonificacion ? '-' : renglon.cantidad}
                       </td>
-                      <td className="px-4 py-3 text-right text-sm text-gray-700">{formatNumber(renglon.precioKgUSD)}</td>
-                      <td className="px-4 py-3 text-right text-sm text-gray-700">{formatNumber(renglon.pesoPromedio)}</td>
-                      <td className="px-4 py-3 text-right text-sm text-gray-700">{formatNumber(renglon.precioAnimalUSD)}</td>
-                      <td className="px-4 py-3 text-right text-sm font-medium text-yellow-600">{formatNumber(renglon.pesoTotalKg)}</td>
+                      <td className="px-4 py-3 text-right text-sm text-gray-700">
+                        {renglon.esBonificacion ? '-' : formatNumber(renglon.precioKgUSD)}
+                      </td>
+                      <td className="px-4 py-3 text-right text-sm text-gray-700">
+                        {renglon.esBonificacion ? '-' : formatNumber(renglon.pesoPromedio)}
+                      </td>
+                      <td className="px-4 py-3 text-right text-sm text-gray-700">
+                        {renglon.esBonificacion ? '-' : formatNumber(renglon.precioAnimalUSD)}
+                      </td>
+                      <td className="px-4 py-3 text-right text-sm font-medium text-yellow-600">
+                        {renglon.esBonificacion ? '-' : formatNumber(renglon.pesoTotalKg)}
+                      </td>
                       <td className="px-4 py-3 text-right text-sm font-semibold text-gray-900">{formatNumber(renglon.importeBrutoUSD)}</td>
                       {idx === 0 && (
                         <>
