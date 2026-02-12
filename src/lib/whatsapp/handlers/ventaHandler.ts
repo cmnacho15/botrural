@@ -297,6 +297,11 @@ async function guardarVentaEnBD(savedData: any, phoneNumber: string) {
       esGranos: esVentaGranos
     })
 
+    console.log("💰 [VENTA] totalImpuestosUSD:", ventaData.totalImpuestosUSD)
+    console.log("💰 [VENTA] impuestos desglose:", JSON.stringify(ventaData.impuestos))
+    console.log("💰 [VENTA] subtotalUSD:", ventaData.subtotalUSD)
+    console.log("💰 [VENTA] totalNetoUSD:", ventaData.totalNetoUSD)
+
     try {
       venta = await prisma.venta.create({
         data: {
