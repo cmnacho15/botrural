@@ -100,15 +100,27 @@ export async function parseVentaGanadoWithAzure(
 Te voy a pasar el texto extraído por OCR de una factura de venta de ganado.
 Tu trabajo es estructurar la información en formato JSON.
 
-IMPORTANTE sobre COSTOS COMERCIALES:
-- IMEBA: Buscar "IMEBA", "Ley 16736", "Ley 18726", "A655"
-- INIA: Buscar "INIA", "Ley 16065"
-- MEVIR: Buscar "MEVIR", "Ley 15851"
-- IVA: Buscar "IVA", "I.V.A."
-- Comisión: Buscar "Comisión", "Com."
-- Otros: Todo lo demás (D364, Ley 19300, Ley 19355, etc.)
+🚨 CRÍTICO - COSTOS COMERCIALES:
+Buscar en el desglose entre Subtotal y Total. Extraer TODOS los costos:
 
-Lee los números COMPLETOS con TODOS los decimales.
+1. IMEBA: "IMEBA", "Ley 16736", "Ley 18726", "A655", "Impuesto Enajenación"
+2. INIA: "INIA", "Ley 16065", "Instituto"
+3. MEVIR: "MEVIR", "Ley 15851", "Vivienda"
+4. IVA: "IVA", "I.V.A."
+5. Comisión: "Comisión", "Com.", "Gastos"
+6. Otros: D364/432/003, Ley 19300, Ley 19355, Certificación, SCEPB, etc.
+
+IMPORTANTE:
+- Lee CADA línea del desglose entre Subtotal y Total
+- Lee los números COMPLETOS (si dice 936.38, NO pongas 93.64)
+- SUMA todos los costos para verificar que totalImpuestosUSD = Subtotal - Total
+- NO omitas ningún costo, por pequeño que sea
+
+🚨 BONIFICACIONES:
+- Si hay bonificaciones, poner cantidad: 0, pesoTotalKg: 0
+- Solo el importeBrutoUSD debe tener valor
+- Marcar esBonificacion: true
+
 NO inventes valores. Si no encuentras un campo, usa null o 0.`;
 
     const promptUser = `Texto de la factura extraído por OCR:
@@ -188,6 +200,19 @@ CRÍTICO: Lee los números EXACTOS como aparecen. Si dice 936.38, NO pongas 93.6
     console.log("✅ [GPT-4o-mini] Documento interpretado exitosamente");
 
     // Validar y estructurar datos
+    // CRÍTICO: Limpiar bonificaciones (cantidad y peso deben ser 0)
+    const renglonesLimpios = (parsedData.renglones || []).map((r: any) => {
+      if (r.esBonificacion) {
+        return {
+          ...r,
+          cantidad: 0,
+          pesoTotalKg: 0,
+          pesoPromedio: 0
+        };
+      }
+      return r;
+    });
+
     const ventaData: ParsedVentaGanadoAzure = {
       tipo: "VENTA",
       tipoProducto: "GANADO",
@@ -199,9 +224,9 @@ CRÍTICO: Lee los números EXACTOS como aparecen. Si dice 936.38, NO pongas 93.6
       nroFactura: parsedData.nroFactura || undefined,
       nroLiquidacion: parsedData.nroLiquidacion || undefined,
       nroTropa: parsedData.nroTropa || undefined,
-      renglones: parsedData.renglones || [],
-      cantidadTotal: parsedData.renglones?.reduce((sum: number, r: any) => sum + (r.cantidad || 0), 0) || 0,
-      pesoTotalKg: parsedData.renglones?.reduce((sum: number, r: any) => sum + (r.pesoTotalKg || 0), 0) || 0,
+      renglones: renglonesLimpios,
+      cantidadTotal: renglonesLimpios.reduce((sum: number, r: any) => sum + (r.esBonificacion ? 0 : (r.cantidad || 0)), 0),
+      pesoTotalKg: renglonesLimpios.reduce((sum: number, r: any) => sum + (r.esBonificacion ? 0 : (r.pesoTotalKg || 0)), 0),
       subtotalUSD: parsedData.subtotalUSD || 0,
       impuestos: {
         iva: parsedData.impuestos?.iva || 0,
