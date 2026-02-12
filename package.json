@@ -12,6 +12,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.71.2",
     "@auth/prisma-adapter": "^2.11.1",
+    "@azure/ai-form-recognizer": "^5.1.0",
     "@mapbox/mapbox-gl-draw": "^1.5.1",
     "@react-leaflet/core": "^2.1.0",
     "@supabase/supabase-js": "^2.84.0",

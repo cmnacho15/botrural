@@ -4,6 +4,7 @@
 import { detectarTipoFactura, detectarEstadoDeCuenta } from "./detectors/tipo-factura-detector";
 import { detectarTipoVentaEspecifico } from "./detectors/venta-especifico-detector";
 import { processVentaGanadoImage, ParsedVentaGanado } from "./parsers/venta-ganado-parser";
+import { parseVentaGanadoWithAzure, ParsedVentaGanadoAzure } from "./parsers/azure-venta-parser";
 import { processVentaLanaImage, ParsedVentaLana } from "./parsers/venta-lana-parser";
 import { processVentaGranosImage, ParsedVentaGranos } from "./parsers/venta-granos-parser";
 
@@ -59,8 +60,8 @@ export async function processVentaImage(imageUrl: string, campoId?: string, user
 
       case "GANADO":
       default:
-        console.log("🐄 Procesando con parser de GANADO...");
-        return await processVentaGanadoImage(imageUrl, campoId, userId);
+        console.log("🐄 Procesando con parser de GANADO (Azure + GPT-4o-mini)...");
+        return await parseVentaGanadoWithAzure(imageUrl, campoId, userId) as any;
     }
 
   } catch (error) {
