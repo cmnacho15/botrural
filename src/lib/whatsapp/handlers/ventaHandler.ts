@@ -668,19 +668,19 @@ async function preguntarDescuentoStock(
  * Maneja respuesta a botones de descuento de stock
  */
 export async function handleStockButtonResponse(phoneNumber: string, buttonId: string) {
-  try {
-    console.log("🔵 [STOCK] handleStockButtonResponse INICIADO")
-    console.log("🔵 [STOCK] phoneNumber:", phoneNumber)
-    console.log("🔵 [STOCK] buttonId:", buttonId)
+  console.log("🔵 [STOCK] handleStockButtonResponse INICIADO")
+  console.log("🔵 [STOCK] phoneNumber:", phoneNumber)
+  console.log("🔵 [STOCK] buttonId:", buttonId)
 
+  try {
     const pending = await prisma.pendingConfirmation.findUnique({
       where: { telefono: phoneNumber }
     })
 
     console.log("🔵 [STOCK] pending encontrado:", pending ? "SÍ" : "NO")
     if (pending) {
-      const data = JSON.parse(pending.data)
-      console.log("🔵 [STOCK] pending.data.tipo:", data.tipo)
+      const previewData = JSON.parse(pending.data)
+      console.log("🔵 [STOCK] pending.data.tipo:", previewData.tipo)
     }
 
     if (!pending) {
@@ -695,39 +695,33 @@ export async function handleStockButtonResponse(phoneNumber: string, buttonId: s
       await sendWhatsAppMessage(phoneNumber, `Usá los botones correspondientes. (Debug: tipo=${data.tipo})`)
       return
     }
-  } catch (error) {
-    console.error("❌ [STOCK] ERROR en handleStockButtonResponse:", error)
-    await sendWhatsAppMessage(phoneNumber, "Error procesando descuento de stock.")
-    return
-  }
 
-  if (buttonId === "stock_skip") {
-    await sendWhatsAppMessage(
-      phoneNumber, 
-      `Omitido. Descontá ${data.categoria} desde la web.`
-    )
-    await prisma.pendingConfirmation.delete({ where: { telefono: phoneNumber } })
-    
-    if (data.renglonesPendientes?.length > 0) {
-      await preguntarDescuentoStock(
-        phoneNumber, 
-        data.campoId, 
-        data.renglonesPendientes, 
-        data.ventaId
+    if (buttonId === "stock_skip") {
+      await sendWhatsAppMessage(
+        phoneNumber,
+        `Omitido. Descontá ${data.categoria} desde la web.`
       )
+      await prisma.pendingConfirmation.delete({ where: { telefono: phoneNumber } })
+
+      if (data.renglonesPendientes?.length > 0) {
+        await preguntarDescuentoStock(
+          phoneNumber,
+          data.campoId,
+          data.renglonesPendientes,
+          data.ventaId
+        )
+      }
+      return
     }
-    return
-  }
 
-  const loteId = buttonId.replace("stock_confirm_", "")
-  const potrero = data.potreros.find((p: any) => p.loteId === loteId)
+    const loteId = buttonId.replace("stock_confirm_", "")
+    const potrero = data.potreros.find((p: any) => p.loteId === loteId)
 
-  if (!potrero) {
-    await sendWhatsAppMessage(phoneNumber, "Potrero no encontrado.")
-    return
-  }
+    if (!potrero) {
+      await sendWhatsAppMessage(phoneNumber, "Potrero no encontrado.")
+      return
+    }
 
-  try {
     const animalLote = await prisma.animalLote.findFirst({
       where: { loteId, categoria: potrero.categoria },
     })
