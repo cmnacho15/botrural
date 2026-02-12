@@ -122,26 +122,27 @@ TIPO B - CAMPO A CAMPO:
 
 🚨 OBLIGATORIO: SIEMPRE extraer el objeto "impuestos" con TODOS los campos, aunque algunos sean 0.
 
-CLASIFICACIÓN DE COSTOS:
-1. **IVA**: Si existe impuesto al valor agregado (22% en Uruguay)
-2. **IMEBA**: Ley 16736 / A655 (Impuesto a la Enajenación de Bienes Agropecuarios)
-3. **INIA**: Ley 16065 (Instituto Nacional de Investigación Agropecuaria)
-4. **MEVIR**: Ley 15851 (Movimiento para Erradicar la Vivienda Insalubre Rural)
-5. **Comisión**: Del consignatario o intermediario (buscar "Comisión", "Com.", "Gastos Comercialización")
-6. **Otros**: TODO lo demás que reste del subtotal
+CLASIFICACIÓN DE COSTOS (buscar en la factura por estos nombres):
+1. **IVA**: "IVA", "I.V.A.", "Impuesto al Valor Agregado" (22% en Uruguay)
+2. **IMEBA**: "IMEBA", "Ley 16736", "Ley 18726", "A655", "Impuesto Enajenación"
+3. **INIA**: "INIA", "Ley 16065", "Instituto Nacional Investigación"
+4. **MEVIR**: "MEVIR", "Ley 15851", "Vivienda Rural"
+5. **Comisión**: "Comisión", "Com.", "Gastos Comercialización", "Intermediación"
+6. **Otros**: TODO lo demás que NO sea IVA, IMEBA, INIA, MEVIR, ni Comisión
 
-EJEMPLOS DE "OTROS":
+EJEMPLOS DE "OTROS" (van a "otros" y "otrosDetalle"):
 - D364/432/003
 - Ley 19300/19438 SCEPB
 - Ley 19355 Certif Elec
 - Cualquier otro descuento no clasificado arriba
 
-⚠️ IMPORTANTE:
-- SIEMPRE incluir el objeto "impuestos" completo: {"iva": X, "imeba": Y, "inia": Z, "mevir": W, "comision": V, "otros": U}
-- Si un costo no está en la factura, poner 0 (pero NUNCA omitir el campo)
-- Si hay costos/impuestos que NO son IVA, IMEBA, INIA, MEVIR, ni Comisión → van a "otros"
-- Guardá el detalle en "otrosDetalle" con concepto y monto
-- La SUMA de todos los campos debe ser EXACTAMENTE igual a "totalImpuestosUSD"
+⚠️ REGLAS CRÍTICAS:
+1. Lee los números COMPLETOS con TODOS los decimales (ej: si dice 936.38, NO pongas 93.64)
+2. Si un concepto tiene múltiples líneas o aparece repetido, SUMÁ todos los montos
+3. NO dupliques valores: si pusiste IMEBA en el campo "imeba", NO lo pongas también en "otrosDetalle"
+4. En "otrosDetalle" solo van costos que NO son IVA, IMEBA, INIA, MEVIR, ni Comisión
+5. La SUMA exacta: iva + imeba + inia + mevir + comision + otros = totalImpuestosUSD
+6. Si un costo no está en la factura, poner 0 (NUNCA omitir el campo)
 
 ====== EXTRACCIÓN SEGÚN TIPO ======
 
@@ -368,6 +369,32 @@ RESPONDE SOLO JSON (sin markdown, sin explicaciones):
       data.impuestos.mevir = data.impuestos.mevir || 0;
       data.impuestos.comision = data.impuestos.comision || 0;
       data.impuestos.otros = data.impuestos.otros || 0;
+
+      // Calcular suma del desglose
+      const sumaDesglose =
+        data.impuestos.iva +
+        data.impuestos.imeba +
+        data.impuestos.inia +
+        data.impuestos.mevir +
+        data.impuestos.comision +
+        data.impuestos.otros;
+
+      // Limpiar otrosDetalle de duplicados (IMEBA, INIA, MEVIR, IVA, Comisión)
+      if (data.impuestos.otrosDetalle && Array.isArray(data.impuestos.otrosDetalle)) {
+        const conceptosDuplicados = ['IMEBA', 'INIA', 'MEVIR', 'IVA', 'COMISION', 'A655', 'LEY 16736', 'LEY 18726', 'LEY 16065', 'LEY 15851'];
+        data.impuestos.otrosDetalle = data.impuestos.otrosDetalle.filter((item: any) => {
+          const conceptoUpper = (item.concepto || '').toUpperCase();
+          const esDuplicado = conceptosDuplicados.some(dup => conceptoUpper.includes(dup));
+          if (esDuplicado) {
+            console.log(`🗑️ Eliminando duplicado de otrosDetalle: ${item.concepto} ($${item.monto})`);
+          }
+          return !esDuplicado;
+        });
+
+        // Recalcular "otros" sumando solo otrosDetalle limpio
+        const sumOtrosDetalle = data.impuestos.otrosDetalle.reduce((sum: number, item: any) => sum + (item.monto || 0), 0);
+        data.impuestos.otros = sumOtrosDetalle;
+      }
 
       // Calcular suma del desglose
       const sumaDesglose =
