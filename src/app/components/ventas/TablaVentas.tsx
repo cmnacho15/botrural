@@ -185,10 +185,15 @@ export default function TablaVentas({ ventas, onRefresh }: TablaVentasProps) {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-100">
-              {ventasFiltradas.map((venta) => (
+              {ventasFiltradas.map((venta, ventaIndex) => (
                 <Fragment key={venta.id}>
-                  {venta.renglones.map((renglon, idx) => (
-                    <tr key={renglon.id} className="hover:bg-gray-50">
+                  {venta.renglones.map((renglon, idx) => {
+                    // Color alternado por factura
+                    const bgColor = ventaIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50'
+                    const borderTop = idx === 0 ? 'border-t-4 border-t-blue-200' : ''
+
+                    return (
+                    <tr key={renglon.id} className={`hover:bg-blue-50 ${bgColor} ${borderTop}`}>
                       {idx === 0 && (
                         <>
                           <td className="px-4 py-3 text-sm text-gray-700 relative" rowSpan={venta.renglones.length}>
@@ -364,7 +369,8 @@ export default function TablaVentas({ ventas, onRefresh }: TablaVentasProps) {
                         </>
                       )}
                     </tr>
-                  ))}
+                    )
+                  })}
                 </Fragment>
               ))}
               {/* TOTALES */}
