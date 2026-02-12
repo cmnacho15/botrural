@@ -370,15 +370,6 @@ RESPONDE SOLO JSON (sin markdown, sin explicaciones):
       data.impuestos.comision = data.impuestos.comision || 0;
       data.impuestos.otros = data.impuestos.otros || 0;
 
-      // Calcular suma del desglose
-      const sumaDesglose =
-        data.impuestos.iva +
-        data.impuestos.imeba +
-        data.impuestos.inia +
-        data.impuestos.mevir +
-        data.impuestos.comision +
-        data.impuestos.otros;
-
       // Limpiar otrosDetalle de duplicados (IMEBA, INIA, MEVIR, IVA, Comisión)
       if (data.impuestos.otrosDetalle && Array.isArray(data.impuestos.otrosDetalle)) {
         const conceptosDuplicados = ['IMEBA', 'INIA', 'MEVIR', 'IVA', 'COMISION', 'A655', 'LEY 16736', 'LEY 18726', 'LEY 16065', 'LEY 15851'];
