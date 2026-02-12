@@ -175,6 +175,13 @@ TIPO B (CAMPO A CAMPO):
   * precioKgUSD: precio/kg (NO aplicar destare al precio)
   * importeBrutoUSD: pesoTotalKg × precioKgUSD
 
+====== FECHAS ======
+⚠️ CRÍTICO: Extraer fecha EXACTA como aparece en la factura
+- Si dice "05/02/2026" → usar "2026-02-05"
+- Si dice "23/03/2025" → usar "2025-03-23"
+- NO "corregir" fechas que parezcan futuras - usar el año EXACTO que aparece
+- Buscar en: "Fecha pesada", "Fecha", "Fecha factura", cabecera del documento
+
 ====== ROLES ======
 ⚠️ CRÍTICO: Nunca comprador y vendedor pueden ser iguales
 
