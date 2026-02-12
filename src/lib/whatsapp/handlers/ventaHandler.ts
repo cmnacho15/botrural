@@ -668,30 +668,36 @@ async function preguntarDescuentoStock(
  * Maneja respuesta a botones de descuento de stock
  */
 export async function handleStockButtonResponse(phoneNumber: string, buttonId: string) {
-  console.log("🔵 [STOCK] handleStockButtonResponse INICIADO")
-  console.log("🔵 [STOCK] phoneNumber:", phoneNumber)
-  console.log("🔵 [STOCK] buttonId:", buttonId)
+  try {
+    console.log("🔵 [STOCK] handleStockButtonResponse INICIADO")
+    console.log("🔵 [STOCK] phoneNumber:", phoneNumber)
+    console.log("🔵 [STOCK] buttonId:", buttonId)
 
-  const pending = await prisma.pendingConfirmation.findUnique({
-    where: { telefono: phoneNumber }
-  })
+    const pending = await prisma.pendingConfirmation.findUnique({
+      where: { telefono: phoneNumber }
+    })
 
-  console.log("🔵 [STOCK] pending encontrado:", pending ? "SÍ" : "NO")
-  if (pending) {
+    console.log("🔵 [STOCK] pending encontrado:", pending ? "SÍ" : "NO")
+    if (pending) {
+      const data = JSON.parse(pending.data)
+      console.log("🔵 [STOCK] pending.data.tipo:", data.tipo)
+    }
+
+    if (!pending) {
+      await sendWhatsAppMessage(phoneNumber, "No hay operación pendiente.")
+      return
+    }
+
     const data = JSON.parse(pending.data)
-    console.log("🔵 [STOCK] pending.data.tipo:", data.tipo)
-  }
-
-  if (!pending) {
-    await sendWhatsAppMessage(phoneNumber, "No hay operación pendiente.")
-    return
-  }
-
-  const data = JSON.parse(pending.data)
-  if (data.tipo !== "DESCUENTO_STOCK") {
-    console.log("🔴 [STOCK] TIPO INCORRECTO - tipo era:", data.tipo)
-    console.log("🔴 [STOCK] Se esperaba: DESCUENTO_STOCK")
-    await sendWhatsAppMessage(phoneNumber, `Usá los botones correspondientes. (Debug: tipo=${data.tipo})`)
+    if (data.tipo !== "DESCUENTO_STOCK") {
+      console.log("🔴 [STOCK] TIPO INCORRECTO - tipo era:", data.tipo)
+      console.log("🔴 [STOCK] Se esperaba: DESCUENTO_STOCK")
+      await sendWhatsAppMessage(phoneNumber, `Usá los botones correspondientes. (Debug: tipo=${data.tipo})`)
+      return
+    }
+  } catch (error) {
+    console.error("❌ [STOCK] ERROR en handleStockButtonResponse:", error)
+    await sendWhatsAppMessage(phoneNumber, "Error procesando descuento de stock.")
     return
   }
 

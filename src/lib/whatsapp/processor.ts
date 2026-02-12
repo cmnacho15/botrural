@@ -104,12 +104,16 @@ export async function processWhatsAppMessage(
       }
 
       if (messageText.startsWith("venta_")) {
+        console.log("🟦 [PROCESSOR] Detectado botón venta:", messageText)
         await handleVentaButtonResponse(from, messageText)
         return { status: "venta button processed" }
       }
 
       if (messageText.startsWith("stock_")) {
+        console.log("🟦 [PROCESSOR] Detectado botón stock:", messageText)
+        console.log("🟦 [PROCESSOR] Llamando a handleStockButtonResponse...")
         await handleStockButtonResponse(from, messageText)
+        console.log("🟦 [PROCESSOR] handleStockButtonResponse completado")
         return { status: "stock button processed" }
       }
 
