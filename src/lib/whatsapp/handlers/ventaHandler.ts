@@ -613,34 +613,30 @@ async function preguntarDescuentoStock(
   }
 
   // Guardar estado pendiente
+  console.log("💾 [STOCK] Guardando pending con tipo DESCUENTO_STOCK...")
+  const pendingData = {
+    tipo: "DESCUENTO_STOCK",
+    ventaId,
+    renglonId: renglon.id,
+    categoria: renglon.categoria,
+    cantidadVendida: renglon.cantidad,
+    potreros,
+    campoId,
+    renglonesPendientes: renglones.slice(1),
+  }
+
   await prisma.pendingConfirmation.upsert({
     where: { telefono: phoneNumber },
     create: {
       telefono: phoneNumber,
-      data: JSON.stringify({
-        tipo: "DESCUENTO_STOCK",
-        ventaId,
-        renglonId: renglon.id,
-        categoria: renglon.categoria,
-        cantidadVendida: renglon.cantidad,
-        potreros,
-        campoId,
-        renglonesPendientes: renglones.slice(1),
-      }),
+      data: JSON.stringify(pendingData),
     },
     update: {
-      data: JSON.stringify({
-        tipo: "DESCUENTO_STOCK",
-        ventaId,
-        renglonId: renglon.id,
-        categoria: renglon.categoria,
-        cantidadVendida: renglon.cantidad,
-        potreros,
-        campoId,
-        renglonesPendientes: renglones.slice(1),
-      }),
+      data: JSON.stringify(pendingData),
     },
   })
+
+  console.log("✅ [STOCK] Pending guardado exitosamente con tipo:", pendingData.tipo)
 
   if (potreros.length === 1) {
     const p = potreros[0]
@@ -672,10 +668,20 @@ async function preguntarDescuentoStock(
  * Maneja respuesta a botones de descuento de stock
  */
 export async function handleStockButtonResponse(phoneNumber: string, buttonId: string) {
-  const pending = await prisma.pendingConfirmation.findUnique({ 
-    where: { telefono: phoneNumber } 
+  console.log("🔵 [STOCK] handleStockButtonResponse INICIADO")
+  console.log("🔵 [STOCK] phoneNumber:", phoneNumber)
+  console.log("🔵 [STOCK] buttonId:", buttonId)
+
+  const pending = await prisma.pendingConfirmation.findUnique({
+    where: { telefono: phoneNumber }
   })
-  
+
+  console.log("🔵 [STOCK] pending encontrado:", pending ? "SÍ" : "NO")
+  if (pending) {
+    const data = JSON.parse(pending.data)
+    console.log("🔵 [STOCK] pending.data.tipo:", data.tipo)
+  }
+
   if (!pending) {
     await sendWhatsAppMessage(phoneNumber, "No hay operación pendiente.")
     return
@@ -683,7 +689,9 @@ export async function handleStockButtonResponse(phoneNumber: string, buttonId: s
 
   const data = JSON.parse(pending.data)
   if (data.tipo !== "DESCUENTO_STOCK") {
-    await sendWhatsAppMessage(phoneNumber, "Usá los botones correspondientes.")
+    console.log("🔴 [STOCK] TIPO INCORRECTO - tipo era:", data.tipo)
+    console.log("🔴 [STOCK] Se esperaba: DESCUENTO_STOCK")
+    await sendWhatsAppMessage(phoneNumber, `Usá los botones correspondientes. (Debug: tipo=${data.tipo})`)
     return
   }
 
