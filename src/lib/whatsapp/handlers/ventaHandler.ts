@@ -689,12 +689,18 @@ export async function handleStockButtonResponse(phoneNumber: string, buttonId: s
     }
 
     const data = JSON.parse(pending.data)
+    console.log("🟡 [STOCK] Tipo del pending:", data.tipo)
+    console.log("🟡 [STOCK] Se esperaba: DESCUENTO_STOCK")
+    console.log("🟡 [STOCK] Son iguales?:", data.tipo === "DESCUENTO_STOCK")
+
     if (data.tipo !== "DESCUENTO_STOCK") {
       console.log("🔴 [STOCK] TIPO INCORRECTO - tipo era:", data.tipo)
-      console.log("🔴 [STOCK] Se esperaba: DESCUENTO_STOCK")
-      await sendWhatsAppMessage(phoneNumber, `Usá los botones correspondientes. (Debug: tipo=${data.tipo})`)
+      // Enviar mensaje con el tipo al PRINCIPIO para asegurar que se vea
+      await sendWhatsAppMessage(phoneNumber, `❌ ERROR: pending tipo=${data.tipo} esperado=DESCUENTO_STOCK\n\nUsá los botones correspondientes.`)
       return
     }
+
+    console.log("✅ [STOCK] Tipo correcto! Continuando...")
 
     if (buttonId === "stock_skip") {
       await sendWhatsAppMessage(
