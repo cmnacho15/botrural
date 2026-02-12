@@ -1280,13 +1280,33 @@ export async function POST(request: Request) {
 
             if (tipoProducto === 'LANA') {
               // Calcular proporcionales de impuestos por renglón
-              const proporcion = v.subtotalUSD > 0 ? r.importeBrutoUSD / v.subtotalUSD : 0
-              const imebaRenglon = (impuestos.imeba || 0) * proporcion
-              const iniaRenglon = (impuestos.inia || 0) * proporcion
-              const mevirRenglon = (impuestos.mevir || 0) * proporcion
-              const comisionRenglon = (impuestos.comision || 0) * proporcion
-              const ivaRenglon = (impuestos.iva || 0) * proporcion
-              const otrosRenglon = (impuestos.otros || 0) * proporcion
+              const esBonif = (r as any).esBonificacion === true
+              const proporcion = esBonif ? 0 : (v.subtotalUSD > 0 ? r.importeBrutoUSD / v.subtotalUSD : 0)
+
+              // Calcular impuestos desglosados
+              let imebaRenglon = (impuestos.imeba || 0) * proporcion
+              let iniaRenglon = (impuestos.inia || 0) * proporcion
+              let mevirRenglon = (impuestos.mevir || 0) * proporcion
+              let comisionRenglon = (impuestos.comision || 0) * proporcion
+              let ivaRenglon = (impuestos.iva || 0) * proporcion
+              let otrosRenglon = (impuestos.otros || 0) * proporcion
+
+              // Verificar si el desglose coincide con el total (tolerancia de $1)
+              const sumDesglose = imebaRenglon + iniaRenglon + mevirRenglon + comisionRenglon + ivaRenglon + otrosRenglon
+              const totalEsperado = (v.totalImpuestosUSD || 0) * proporcion
+              const diferencia = Math.abs(sumDesglose - totalEsperado)
+
+              // Si el desglose está incompleto (diferencia > $1), usar totalImpuestosUSD
+              if (diferencia > 1 && totalEsperado > 0) {
+                // Poner todo en "Otros" y dejar el resto en 0
+                imebaRenglon = 0
+                iniaRenglon = 0
+                mevirRenglon = 0
+                comisionRenglon = 0
+                ivaRenglon = 0
+                otrosRenglon = totalEsperado
+              }
+
               const totalImpRenglon = imebaRenglon + iniaRenglon + mevirRenglon + comisionRenglon + ivaRenglon + otrosRenglon
               const netoRenglon = r.importeBrutoUSD - totalImpRenglon
 
@@ -1338,12 +1358,31 @@ export async function POST(request: Request) {
 
               // Si es bonificación, NO distribuir impuestos (ya viene como monto neto)
               const proporcion = esBonif ? 0 : (v.subtotalUSD > 0 ? r.importeBrutoUSD / v.subtotalUSD : 0)
-              const imebaRenglon = (impuestos.imeba || 0) * proporcion
-              const iniaRenglon = (impuestos.inia || 0) * proporcion
-              const mevirRenglon = (impuestos.mevir || 0) * proporcion
-              const comisionRenglon = (impuestos.comision || 0) * proporcion
-              const ivaRenglon = (impuestos.iva || 0) * proporcion
-              const otrosRenglon = (impuestos.otros || 0) * proporcion
+
+              // Calcular impuestos desglosados
+              let imebaRenglon = (impuestos.imeba || 0) * proporcion
+              let iniaRenglon = (impuestos.inia || 0) * proporcion
+              let mevirRenglon = (impuestos.mevir || 0) * proporcion
+              let comisionRenglon = (impuestos.comision || 0) * proporcion
+              let ivaRenglon = (impuestos.iva || 0) * proporcion
+              let otrosRenglon = (impuestos.otros || 0) * proporcion
+
+              // Verificar si el desglose coincide con el total (tolerancia de $1)
+              const sumDesglose = imebaRenglon + iniaRenglon + mevirRenglon + comisionRenglon + ivaRenglon + otrosRenglon
+              const totalEsperado = (v.totalImpuestosUSD || 0) * proporcion
+              const diferencia = Math.abs(sumDesglose - totalEsperado)
+
+              // Si el desglose está incompleto (diferencia > $1), usar totalImpuestosUSD
+              if (diferencia > 1 && totalEsperado > 0) {
+                // Poner todo en "Otros" y dejar el resto en 0
+                imebaRenglon = 0
+                iniaRenglon = 0
+                mevirRenglon = 0
+                comisionRenglon = 0
+                ivaRenglon = 0
+                otrosRenglon = totalEsperado
+              }
+
               const totalImpRenglon = imebaRenglon + iniaRenglon + mevirRenglon + comisionRenglon + ivaRenglon + otrosRenglon
               const netoRenglon = r.importeBrutoUSD - totalImpRenglon
 
