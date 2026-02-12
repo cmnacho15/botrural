@@ -88,17 +88,20 @@ export async function GET(request: Request) {
     } else if (renglon.tipo === 'GANADO') {
       const resumen = renglon.tipoAnimal === "BOVINO" ? resumenBovino : resumenOvino
 
-      if (!resumen[renglon.categoria]) {
-        resumen[renglon.categoria] = {
+      // Agrupar todas las bonificaciones bajo "Bonificaciones"
+      const categoria = (renglon as any).esBonificacion ? "Bonificaciones" : renglon.categoria
+
+      if (!resumen[categoria]) {
+        resumen[categoria] = {
           cantidad: 0,
           pesoTotal: 0,
           importeBruto: 0,
         }
       }
 
-      resumen[renglon.categoria].cantidad += renglon.cantidad
-      resumen[renglon.categoria].pesoTotal += renglon.pesoTotalKg
-      resumen[renglon.categoria].importeBruto += renglon.importeBrutoUSD
+      resumen[categoria].cantidad += renglon.cantidad
+      resumen[categoria].pesoTotal += renglon.pesoTotalKg
+      resumen[categoria].importeBruto += renglon.importeBrutoUSD
     }
   })
       

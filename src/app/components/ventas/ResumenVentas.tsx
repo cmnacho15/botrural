@@ -121,17 +121,30 @@ export default function ResumenVentas({ resumen }: ResumenVentasProps) {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-100">
-                {resumen.bovino.map((item, idx) => (
+                {resumen.bovino.map((item, idx) => {
+                  const esBonificacion = item.categoria === "Bonificaciones"
+                  return (
                   <tr key={idx} className="hover:bg-gray-50">
                     <td className="px-2 sm:px-4 py-2 sm:py-3 font-medium text-gray-900 text-xs sm:text-sm">{item.categoria}</td>
-                    <td className="px-2 sm:px-4 py-2 sm:py-3 text-right text-gray-700 text-xs sm:text-sm">{item.cantidad}</td>
-                    <td className="px-2 sm:px-4 py-2 sm:py-3 text-right text-gray-700 text-xs sm:text-sm">{formatNumber(item.precioKg)}</td>
-                    <td className="px-2 sm:px-4 py-2 sm:py-3 text-right text-gray-700 text-xs sm:text-sm">{formatNumber(item.pesoPromedio)}</td>
-                    <td className="px-2 sm:px-4 py-2 sm:py-3 text-right text-gray-700 text-xs sm:text-sm">{formatNumber(item.precioAnimal)}</td>
-                    <td className="px-2 sm:px-4 py-2 sm:py-3 text-right text-gray-700 text-xs sm:text-sm">{formatNumber(item.pesoTotal)}</td>
+                    <td className="px-2 sm:px-4 py-2 sm:py-3 text-right text-gray-700 text-xs sm:text-sm">
+                      {esBonificacion ? '-' : item.cantidad}
+                    </td>
+                    <td className="px-2 sm:px-4 py-2 sm:py-3 text-right text-gray-700 text-xs sm:text-sm">
+                      {esBonificacion ? '-' : formatNumber(item.precioKg)}
+                    </td>
+                    <td className="px-2 sm:px-4 py-2 sm:py-3 text-right text-gray-700 text-xs sm:text-sm">
+                      {esBonificacion ? '-' : formatNumber(item.pesoPromedio)}
+                    </td>
+                    <td className="px-2 sm:px-4 py-2 sm:py-3 text-right text-gray-700 text-xs sm:text-sm">
+                      {esBonificacion ? '-' : formatNumber(item.precioAnimal)}
+                    </td>
+                    <td className="px-2 sm:px-4 py-2 sm:py-3 text-right text-gray-700 text-xs sm:text-sm">
+                      {esBonificacion ? '-' : formatNumber(item.pesoTotal)}
+                    </td>
                     <td className="px-2 sm:px-4 py-2 sm:py-3 text-right font-semibold text-gray-900 text-xs sm:text-sm">{formatNumber(item.importeBruto)}</td>
                   </tr>
-                ))}
+                  )
+                })}
                 {/* TOTAL BOVINO */}
                 <tr className="bg-gray-100 font-bold">
                   <td className="px-2 sm:px-4 py-2 sm:py-3 text-gray-900 text-xs sm:text-sm">TOTAL</td>
@@ -168,17 +181,30 @@ export default function ResumenVentas({ resumen }: ResumenVentasProps) {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-100">
-                {resumen.ovino.map((item, idx) => (
+                {resumen.ovino.map((item, idx) => {
+                  const esBonificacion = item.categoria === "Bonificaciones"
+                  return (
                   <tr key={idx} className="hover:bg-gray-50">
                     <td className="px-2 sm:px-4 py-2 sm:py-3 font-medium text-gray-900 text-xs sm:text-sm">{item.categoria}</td>
-                    <td className="px-2 sm:px-4 py-2 sm:py-3 text-right text-gray-700 text-xs sm:text-sm">{item.cantidad}</td>
-                    <td className="px-2 sm:px-4 py-2 sm:py-3 text-right text-gray-700 text-xs sm:text-sm">{formatNumber(item.precioKg)}</td>
-                    <td className="px-2 sm:px-4 py-2 sm:py-3 text-right text-gray-700 text-xs sm:text-sm">{formatNumber(item.pesoPromedio)}</td>
-                    <td className="px-2 sm:px-4 py-2 sm:py-3 text-right text-gray-700 text-xs sm:text-sm">{formatNumber(item.precioAnimal)}</td>
-                    <td className="px-2 sm:px-4 py-2 sm:py-3 text-right text-gray-700 text-xs sm:text-sm">{formatNumber(item.pesoTotal)}</td>
+                    <td className="px-2 sm:px-4 py-2 sm:py-3 text-right text-gray-700 text-xs sm:text-sm">
+                      {esBonificacion ? '-' : item.cantidad}
+                    </td>
+                    <td className="px-2 sm:px-4 py-2 sm:py-3 text-right text-gray-700 text-xs sm:text-sm">
+                      {esBonificacion ? '-' : formatNumber(item.precioKg)}
+                    </td>
+                    <td className="px-2 sm:px-4 py-2 sm:py-3 text-right text-gray-700 text-xs sm:text-sm">
+                      {esBonificacion ? '-' : formatNumber(item.pesoPromedio)}
+                    </td>
+                    <td className="px-2 sm:px-4 py-2 sm:py-3 text-right text-gray-700 text-xs sm:text-sm">
+                      {esBonificacion ? '-' : formatNumber(item.precioAnimal)}
+                    </td>
+                    <td className="px-2 sm:px-4 py-2 sm:py-3 text-right text-gray-700 text-xs sm:text-sm">
+                      {esBonificacion ? '-' : formatNumber(item.pesoTotal)}
+                    </td>
                     <td className="px-2 sm:px-4 py-2 sm:py-3 text-right font-semibold text-gray-900 text-xs sm:text-sm">{formatNumber(item.importeBruto)}</td>
                   </tr>
-                ))}
+                  )
+                })}
                 {/* TOTAL OVINO */}
                 <tr className="bg-gray-100 font-bold">
                   <td className="px-2 sm:px-4 py-2 sm:py-3 text-gray-900 text-xs sm:text-sm">TOTAL</td>
