@@ -667,20 +667,20 @@ async function preguntarDescuentoStock(
 /**
  * Maneja respuesta a botones de descuento de stock
  */
-export async function handleStockButtonResponse(phoneNumber: string, buttonId: string) {
-  console.log("🔵 [STOCK] handleStockButtonResponse INICIADO")
-  console.log("🔵 [STOCK] phoneNumber:", phoneNumber)
-  console.log("🔵 [STOCK] buttonId:", buttonId)
+export async function handleVentaStockButtonResponse(phoneNumber: string, buttonId: string) {
+  console.log("🔵 [VENTA_STOCK] handleVentaStockButtonResponse INICIADO")
+  console.log("🔵 [VENTA_STOCK] phoneNumber:", phoneNumber)
+  console.log("🔵 [VENTA_STOCK] buttonId:", buttonId)
 
   try {
     const pending = await prisma.pendingConfirmation.findUnique({
       where: { telefono: phoneNumber }
     })
 
-    console.log("🔵 [STOCK] pending encontrado:", pending ? "SÍ" : "NO")
+    console.log("🔵 [VENTA_STOCK] pending encontrado:", pending ? "SÍ" : "NO")
     if (pending) {
       const previewData = JSON.parse(pending.data)
-      console.log("🔵 [STOCK] pending.data.tipo:", previewData.tipo)
+      console.log("🔵 [VENTA_STOCK] pending.data.tipo:", previewData.tipo)
     }
 
     if (!pending) {
@@ -689,18 +689,18 @@ export async function handleStockButtonResponse(phoneNumber: string, buttonId: s
     }
 
     const data = JSON.parse(pending.data)
-    console.log("🟡 [STOCK] Tipo del pending:", data.tipo)
-    console.log("🟡 [STOCK] Se esperaba: DESCUENTO_STOCK")
-    console.log("🟡 [STOCK] Son iguales?:", data.tipo === "DESCUENTO_STOCK")
+    console.log("🟡 [VENTA_STOCK] Tipo del pending:", data.tipo)
+    console.log("🟡 [VENTA_STOCK] Se esperaba: DESCUENTO_STOCK")
+    console.log("🟡 [VENTA_STOCK] Son iguales?:", data.tipo === "DESCUENTO_STOCK")
 
     if (data.tipo !== "DESCUENTO_STOCK") {
-      console.log("🔴 [STOCK] TIPO INCORRECTO - tipo era:", data.tipo)
+      console.log("🔴 [VENTA_STOCK] TIPO INCORRECTO - tipo era:", data.tipo)
       // Enviar mensaje con el tipo al PRINCIPIO para asegurar que se vea
       await sendWhatsAppMessage(phoneNumber, `❌ ERROR: pending tipo=${data.tipo} esperado=DESCUENTO_STOCK\n\nUsá los botones correspondientes.`)
       return
     }
 
-    console.log("✅ [STOCK] Tipo correcto! Continuando...")
+    console.log("✅ [VENTA_STOCK] Tipo correcto! Continuando...")
 
     if (buttonId === "stock_skip") {
       await sendWhatsAppMessage(

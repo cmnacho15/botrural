@@ -13,6 +13,7 @@ import {
   handleImageMessage,
   handleInvoiceButtonResponse,
   handleVentaButtonResponse,
+  handleVentaStockButtonResponse,
   handleStockButtonResponse,
   handleCambioPotrero,
   handleTokenRegistration,
@@ -111,9 +112,32 @@ export async function processWhatsAppMessage(
 
       if (messageText.startsWith("stock_")) {
         console.log("🟦 [PROCESSOR] Detectado botón stock:", messageText)
-        console.log("🟦 [PROCESSOR] Llamando a handleStockButtonResponse...")
-        await handleStockButtonResponse(from, messageText)
-        console.log("🟦 [PROCESSOR] handleStockButtonResponse completado")
+
+        // Verificar qué tipo de pending tiene el usuario para llamar al handler correcto
+        const pending = await prisma.pendingConfirmation.findUnique({
+          where: { telefono: from }
+        })
+
+        if (!pending) {
+          await sendWhatsAppMessage(from, "No hay operación pendiente.")
+          return { status: "stock button no pending" }
+        }
+
+        const data = JSON.parse(pending.data)
+        console.log("🟦 [PROCESSOR] Tipo de pending:", data.tipo)
+
+        if (data.tipo === "DESCUENTO_STOCK") {
+          console.log("🟦 [PROCESSOR] Llamando a handleVentaStockButtonResponse...")
+          await handleVentaStockButtonResponse(from, messageText)
+        } else if (data.tipo === "STOCK_CONSULTA") {
+          console.log("🟦 [PROCESSOR] Llamando a handleStockButtonResponse...")
+          await handleStockButtonResponse(from, messageText)
+        } else {
+          console.log("🟦 [PROCESSOR] Tipo de pending desconocido:", data.tipo)
+          await sendWhatsAppMessage(from, "Tipo de operación no reconocido. Usá los botones correspondientes.")
+        }
+
+        console.log("🟦 [PROCESSOR] Handler completado")
         return { status: "stock button processed" }
       }
 
