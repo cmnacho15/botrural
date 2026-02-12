@@ -1274,6 +1274,11 @@ export async function POST(request: Request) {
             ? formatNum(cotizacion)
             : 'N/D'
 
+          // Calcular subtotal SIN bonificaciones para distribuir impuestos correctamente
+          const subtotalSinBonif = renglonesDelTipo
+            .filter(r => !(r as any).esBonificacion)
+            .reduce((sum, r) => sum + r.importeBrutoUSD, 0)
+
           renglonesDelTipo.forEach((r, renglonIndex) => {
             const row = sheet.getRow(startRow)
             const esPrimerRenglon = renglonIndex === 0
@@ -1281,7 +1286,7 @@ export async function POST(request: Request) {
             if (tipoProducto === 'LANA') {
               // Calcular proporcionales de impuestos por renglón
               const esBonif = (r as any).esBonificacion === true
-              const proporcion = esBonif ? 0 : (v.subtotalUSD > 0 ? r.importeBrutoUSD / v.subtotalUSD : 0)
+              const proporcion = esBonif ? 0 : (subtotalSinBonif > 0 ? r.importeBrutoUSD / subtotalSinBonif : 0)
 
               // Calcular impuestos desglosados
               let imebaRenglon = (impuestos.imeba || 0) * proporcion
@@ -1357,7 +1362,7 @@ export async function POST(request: Request) {
               const esBonif = (r as any).esBonificacion === true
 
               // Si es bonificación, NO distribuir impuestos (ya viene como monto neto)
-              const proporcion = esBonif ? 0 : (v.subtotalUSD > 0 ? r.importeBrutoUSD / v.subtotalUSD : 0)
+              const proporcion = esBonif ? 0 : (subtotalSinBonif > 0 ? r.importeBrutoUSD / subtotalSinBonif : 0)
 
               // Calcular impuestos desglosados
               let imebaRenglon = (impuestos.imeba || 0) * proporcion

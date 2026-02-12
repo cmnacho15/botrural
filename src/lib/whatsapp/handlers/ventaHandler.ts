@@ -308,7 +308,7 @@ async function guardarVentaEnBD(savedData: any, phoneNumber: string) {
           campoId,
           tipoProducto: ventaData.tipoProducto || null,
           firmaId,
-          fecha: new Date(ventaData.fecha),
+          fecha: new Date(ventaData.fecha + 'T12:00:00Z'),
           comprador: ventaData.comprador,
           consignatario: ventaData.consignatario || null,
           nroTropa: ventaData.nroTropa || null,
@@ -506,7 +506,7 @@ async function guardarVentaEnBD(savedData: any, phoneNumber: string) {
     await prisma.gasto.create({
       data: {
         tipo: "INGRESO",
-        fecha: new Date(ventaData.fecha),
+        fecha: new Date(ventaData.fecha + 'T12:00:00Z'),
         descripcion: descripcion,
         categoria: esVentaGranos ? "Venta de Granos" : esVentaLana ? "Venta de Lana" : "Venta de Ganado",
         comprador: ventaData.comprador,
@@ -537,10 +537,10 @@ async function guardarVentaEnBD(savedData: any, phoneNumber: string) {
         tipo: "VENTA",
         descripcion: esVentaGranos
           ? `Venta de ${ventaData.renglones[0].tipoCultivoNombre} a ${ventaData.comprador}: ${ventaData.renglones[0].cantidadToneladas}ton`
-          : esVentaLana 
+          : esVentaLana
           ? `Venta de lana a ${ventaData.comprador}: ${ventaData.pesoTotalKg}kg`
           : `Venta a ${ventaData.comprador}: ${ventaData.cantidadTotal} animales`,
-        fecha: new Date(ventaData.fecha),
+        fecha: new Date(ventaData.fecha + 'T12:00:00Z'),
         cantidad: ventaData.cantidadTotal,
         monto: ventaData.totalNetoUSD,
         comprador: ventaData.comprador,
