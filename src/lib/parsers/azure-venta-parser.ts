@@ -93,8 +93,8 @@ export async function parseVentaGanadoWithAzure(
 
     console.log("📄 [AZURE] Texto extraído:", fullText.substring(0, 500) + "...");
 
-    // Paso 2: Interpretar con GPT-4o-mini
-    console.log("🤖 [GPT-4o-mini] Interpretando documento...");
+    // Paso 2: Interpretar con GPT-4o
+    console.log("🤖 [GPT-4o] Interpretando documento...");
 
     const promptSystem = `Eres un experto en facturas ganaderas uruguayas.
 Te voy a pasar el texto extraído por OCR de una factura de venta de ganado.
@@ -166,7 +166,7 @@ CRÍTICO: Lee los números EXACTOS como aparecen. Si dice 936.38, NO pongas 93.6
 
     const startTime = Date.now();
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-4o",
       messages: [
         { role: "system", content: promptSystem },
         { role: "user", content: promptUser }
@@ -184,7 +184,7 @@ CRÍTICO: Lee los números EXACTOS como aparecen. Si dice 936.38, NO pongas 93.6
         "FACTURA_PARSER",
         response,
         {
-          parser: "azure+gpt4o-mini",
+          parser: "azure+gpt4o",
           campoId: campoId || ""
         }
       );
@@ -192,12 +192,12 @@ CRÍTICO: Lee los números EXACTOS como aparecen. Si dice 936.38, NO pongas 93.6
 
     const content = response.choices[0].message.content;
     if (!content) {
-      console.error("❌ [GPT-4o-mini] No se obtuvo respuesta");
+      console.error("❌ [GPT-4o] No se obtuvo respuesta");
       return null;
     }
 
     const parsedData = JSON.parse(content);
-    console.log("✅ [GPT-4o-mini] Documento interpretado exitosamente");
+    console.log("✅ [GPT-4o] Documento interpretado exitosamente");
 
     // Validar y estructurar datos
     // CRÍTICO: Limpiar bonificaciones (cantidad y peso deben ser 0)

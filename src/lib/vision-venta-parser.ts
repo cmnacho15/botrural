@@ -60,7 +60,7 @@ export async function processVentaImage(imageUrl: string, campoId?: string, user
 
       case "GANADO":
       default:
-        console.log("🐄 Procesando con parser de GANADO (Azure + GPT-4o-mini)...");
+        console.log("🐄 Procesando con parser de GANADO (Azure + GPT-4o)...");
         return await parseVentaGanadoWithAzure(imageUrl, campoId, userId) as any;
     }
 
