@@ -1330,14 +1330,14 @@ export async function POST(request: Request) {
                 formatNum(pesoLana),
                 formatNum(precioLana),
                 formatNum(r.importeBrutoUSD),
-                imebaRenglon > 0 ? formatNeg(imebaRenglon) : '',
-                iniaRenglon > 0 ? formatNeg(iniaRenglon) : '',
-                mevirRenglon > 0 ? formatNeg(mevirRenglon) : '',
-                comisionRenglon > 0 ? formatNeg(comisionRenglon) : '',
-                ivaRenglon > 0 ? formatNeg(ivaRenglon) : '',
-                otrosRenglon > 0 ? formatNeg(otrosRenglon) : '',
-                totalImpRenglon > 0 ? formatNeg(totalImpRenglon) : '',
-                formatNum(netoRenglon),
+                '', // IMEBA - solo en TOTALES
+                '', // INIA - solo en TOTALES
+                '', // MEVIR - solo en TOTALES
+                '', // Comisión - solo en TOTALES
+                '', // IVA - solo en TOTALES
+                '', // Otros - solo en TOTALES
+                '', // Total Imp - solo en TOTALES
+                '', // Neto - solo en TOTALES
                 '', // Placeholder para factura
               ]
 
@@ -1350,13 +1350,6 @@ export async function POST(request: Request) {
 
               totalPeso += pesoLana
               totalSubtotal += r.importeBrutoUSD
-              totalImeba += imebaRenglon
-              totalInia += iniaRenglon
-              totalMevir += mevirRenglon
-              totalComision += comisionRenglon
-              totalIva += ivaRenglon
-              totalOtros += otrosRenglon
-              totalNeto += netoRenglon
             } else {
               // GANADO (VACUNO/OVINO)
               const esBonif = (r as any).esBonificacion === true
@@ -1404,14 +1397,14 @@ export async function POST(request: Request) {
                 esBonif ? '' : formatNum(r.pesoTotalKg),
                 esBonif ? '' : formatNum(r.precioKgUSD),
                 formatNum(r.importeBrutoUSD),
-                imebaRenglon > 0 ? formatNeg(imebaRenglon) : '',
-                iniaRenglon > 0 ? formatNeg(iniaRenglon) : '',
-                mevirRenglon > 0 ? formatNeg(mevirRenglon) : '',
-                comisionRenglon > 0 ? formatNeg(comisionRenglon) : '',
-                ivaRenglon > 0 ? formatNeg(ivaRenglon) : '',
-                otrosRenglon > 0 ? formatNeg(otrosRenglon) : '',
-                totalImpRenglon > 0 ? formatNeg(totalImpRenglon) : '',
-                formatNum(netoRenglon),
+                '', // IMEBA - solo en TOTALES
+                '', // INIA - solo en TOTALES
+                '', // MEVIR - solo en TOTALES
+                '', // Comisión - solo en TOTALES
+                '', // IVA - solo en TOTALES
+                '', // Otros - solo en TOTALES
+                '', // Total Imp - solo en TOTALES
+                '', // Neto - solo en TOTALES
                 '', // Placeholder para factura
               ]
 
@@ -1428,13 +1421,6 @@ export async function POST(request: Request) {
                 totalPeso += r.pesoTotalKg
               }
               totalSubtotal += r.importeBrutoUSD
-              totalImeba += imebaRenglon
-              totalInia += iniaRenglon
-              totalMevir += mevirRenglon
-              totalComision += comisionRenglon
-              totalIva += ivaRenglon
-              totalOtros += otrosRenglon
-              totalNeto += netoRenglon
             }
 
             // Aplicar color de fondo a toda la fila (mismo color para toda la venta)
@@ -1443,6 +1429,15 @@ export async function POST(request: Request) {
             })
             startRow++
           })
+
+          // Sumar los impuestos GLOBALES de esta venta (no por renglón)
+          totalImeba += impuestos.imeba || 0
+          totalInia += impuestos.inia || 0
+          totalMevir += impuestos.mevir || 0
+          totalComision += impuestos.comision || 0
+          totalIva += impuestos.iva || 0
+          totalOtros += impuestos.otros || 0
+          totalNeto += v.totalNetoUSD || 0
 
           ventaIndex++ // Incrementar para alternar color en la siguiente venta
         }

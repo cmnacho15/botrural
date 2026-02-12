@@ -100,6 +100,14 @@ export async function parseVentaGanadoWithAzure(
 Te voy a pasar el texto extraído por OCR de una factura de venta de ganado.
 Tu trabajo es estructurar la información en formato JSON.
 
+🚨 CRÍTICO - PRECIO EN PIE:
+El precio por kg debe ser el PRECIO EN PIE, NO el precio de 4ta balanza (frigorífico).
+- Buscar columna "Kgs. en pie" (peso vivo del animal)
+- Buscar columna "Importe" (subtotal de esa categoría)
+- CALCULAR: precioKgUSD = Importe / Kgs. en pie
+- Ejemplo: Si Importe=63,584.00 y Kgs. en pie=26,370.00 → precio=2.4112
+- NO usar la columna "Precio USD/kg" de 4ta balanza
+
 🚨 CRÍTICO - COSTOS COMERCIALES:
 Buscar en el desglose entre Subtotal y Total. Extraer TODOS los costos:
 
@@ -120,6 +128,7 @@ IMPORTANTE:
 - Si hay bonificaciones, poner cantidad: 0, pesoTotalKg: 0
 - Solo el importeBrutoUSD debe tener valor
 - Marcar esBonificacion: true
+- En categoria poner "Bonificación [CATEGORIA] ECO" (ej: "Bonificación Vaca ECO")
 
 NO inventes valores. Si no encuentras un campo, usa null o 0.`;
 
@@ -142,9 +151,20 @@ Extrae TODOS los datos y devuelve un JSON con esta estructura:
       "pesoTotalKg": 19130,
       "pesoPromedio": 478.25,
       "rendimiento": 48.95,
-      "precioKgUSD": 2.50,
+      "precioKgUSD": 2.4964,
       "importeBrutoUSD": 47755.38,
       "esBonificacion": false
+    },
+    {
+      "categoria": "Bonificación Vaca ECO",
+      "tipoAnimal": "BOVINO",
+      "cantidad": 0,
+      "pesoTotalKg": 0,
+      "pesoPromedio": 0,
+      "rendimiento": null,
+      "precioKgUSD": 0,
+      "importeBrutoUSD": 296.91,
+      "esBonificacion": true
     }
   ],
   "subtotalUSD": 48052.29,
@@ -154,15 +174,18 @@ Extrae TODOS los datos y devuelve un JSON con esta estructura:
     "inia": 187.28,
     "mevir": 93.64,
     "comision": 0,
-    "otros": 293.49
+    "otros": 277.49
   },
-  "totalImpuestosUSD": 1510.79,
-  "totalNetoUSD": 46541.50,
+  "totalImpuestosUSD": 1494.79,
+  "totalNetoUSD": 46557.50,
   "metodoPago": "Plazo",
   "fechaVencimiento": "YYYY-MM-DD"
 }
 
-CRÍTICO: Lee los números EXACTOS como aparecen. Si dice 936.38, NO pongas 93.64.`;
+CRÍTICO:
+- Lee los números EXACTOS como aparecen. Si dice 936.38, NO pongas 93.64.
+- CALCULA precioKgUSD = importeBrutoUSD / pesoTotalKg (NO uses precio de 4ta balanza)
+- Bonificaciones deben tener "Bonificación" en el nombre de categoría`;
 
     const startTime = Date.now();
     const response = await openai.chat.completions.create({
