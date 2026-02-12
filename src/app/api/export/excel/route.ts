@@ -1392,7 +1392,7 @@ export async function POST(request: Request) {
                 esPrimerRenglon ? (v.firma?.razonSocial || '') : '',
                 esPrimerRenglon ? v.comprador : '',
                 esPrimerRenglon ? (v.consignatario || '') : '',
-                esBonif ? `🎁 ${r.categoria}` : r.categoria,
+                esBonif ? `Bonificación ${r.categoria}` : r.categoria,
                 esBonif ? '' : r.cantidad,
                 esBonif ? '' : formatNum(r.pesoTotalKg),
                 esBonif ? '' : formatNum(r.precioKgUSD),

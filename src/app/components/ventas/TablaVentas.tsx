@@ -37,6 +37,7 @@ interface Venta {
     precioAnimalUSD: number
     pesoTotalKg: number
     importeBrutoUSD: number
+    esBonificacion: boolean
     descontadoDeStock: boolean
     animalLote: {
       id: string
@@ -307,7 +308,9 @@ export default function TablaVentas({ ventas, onRefresh }: TablaVentasProps) {
                       )}
                       <td className="px-4 py-3 text-sm">
                         <div className="flex flex-col gap-1">
-                          <span className="font-medium text-gray-900">{renglon.categoria}</span>
+                          <span className="font-medium text-gray-900">
+                            {renglon.esBonificacion ? `Bonificación ${renglon.categoria}` : renglon.categoria}
+                          </span>
                           {renglon.descontadoDeStock && renglon.animalLote && (
                             <span className="text-xs text-green-600">
                               ✓ Descontado de {renglon.animalLote.lote.nombre}
@@ -315,7 +318,9 @@ export default function TablaVentas({ ventas, onRefresh }: TablaVentasProps) {
                           )}
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-right text-sm text-gray-700">{renglon.cantidad}</td>
+                      <td className="px-4 py-3 text-right text-sm text-gray-700">
+                        {renglon.esBonificacion ? '-' : renglon.cantidad}
+                      </td>
                       <td className="px-4 py-3 text-right text-sm text-gray-700">{formatNumber(renglon.precioKgUSD)}</td>
                       <td className="px-4 py-3 text-right text-sm text-gray-700">{formatNumber(renglon.pesoPromedio)}</td>
                       <td className="px-4 py-3 text-right text-sm text-gray-700">{formatNumber(renglon.precioAnimalUSD)}</td>

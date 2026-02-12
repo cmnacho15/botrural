@@ -100,13 +100,26 @@ export async function parseVentaGanadoWithAzure(
 Te voy a pasar el texto extraído por OCR de una factura de venta de ganado.
 Tu trabajo es estructurar la información en formato JSON.
 
-🚨 CRÍTICO - PRECIO EN PIE:
-El precio por kg debe ser el PRECIO EN PIE, NO el precio de 4ta balanza (frigorífico).
-- Buscar columna "Kgs. en pie" (peso vivo del animal)
-- Buscar columna "Importe" (subtotal de esa categoría)
-- CALCULAR: precioKgUSD = Importe / Kgs. en pie
-- Ejemplo: Si Importe=63,584.00 y Kgs. en pie=26,370.00 → precio=2.4112
-- NO usar la columna "Precio USD/kg" de 4ta balanza
+🚨 CRÍTICO - EXTRACCIÓN DE DATOS POR CATEGORÍA (PASO A PASO):
+
+Para CADA categoría en la tabla principal de animales, seguir este orden:
+
+PASO 1 - EXTRAER de la tabla (NO calcular):
+  a) cantidad: número de animales/cabezas
+  b) pesoTotalKg: buscar columna "Kgs. en pie" o "En Pie" o "Kgs. Totales"
+     ⚠️ NUNCA usar "Kgs. 4ta balanza" (ese es peso frigorífico)
+  c) importeBrutoUSD: buscar columna "Importe" (subtotal de esa categoría)
+  d) rendimiento: buscar columna "Rendimiento" o "Rend" (opcional, puede ser null)
+
+PASO 2 - CALCULAR (usar valores extraídos en Paso 1):
+  a) pesoPromedio = pesoTotalKg / cantidad
+  b) precioKgUSD = importeBrutoUSD / pesoTotalKg
+     ⚠️ Este es el PRECIO EN PIE ($/kg vivo)
+     ⚠️ NUNCA usar columna "Precio USD/kg" (ese es precio frigorífico)
+
+EJEMPLO con VACA GORDA HEREFORD:
+  Paso 1 (extraer): cantidad=40, pesoTotalKg=19130, importeBrutoUSD=47755.38
+  Paso 2 (calcular): pesoPromedio=478.25, precioKgUSD=2.4964
 
 🚨 CRÍTICO - COSTOS COMERCIALES:
 Buscar en el desglose entre Subtotal y Total. Extraer TODOS los costos:
@@ -124,11 +137,16 @@ IMPORTANTE:
 - SUMA todos los costos para verificar que totalImpuestosUSD = Subtotal - Total
 - NO omitas ningún costo, por pequeño que sea
 
-🚨 BONIFICACIONES:
-- Si hay bonificaciones, poner cantidad: 0, pesoTotalKg: 0
-- Solo el importeBrutoUSD debe tener valor
-- Marcar esBonificacion: true
-- En categoria poner "Bonificación [CATEGORIA] ECO" (ej: "Bonificación Vaca ECO")
+🚨 BONIFICACIONES Y DESCUENTOS:
+Las bonificaciones (ej: "Bonificación Vaca ECO") NO son animales, son ajustes de precio.
+- cantidad: 0 (no son animales físicos)
+- pesoTotalKg: 0 (no tienen peso)
+- pesoPromedio: 0
+- precioKgUSD: 0 (no tiene sentido precio/kg sin peso)
+- importeBrutoUSD: el monto de la bonificación (puede ser positivo o negativo)
+- esBonificacion: true
+- categoria: extraer el texto tal cual (ej: "BONIFICACION VACA ECO")
+- rendimiento: null
 
 NO inventes valores. Si no encuentras un campo, usa null o 0.`;
 
@@ -156,7 +174,7 @@ Extrae TODOS los datos y devuelve un JSON con esta estructura:
       "esBonificacion": false
     },
     {
-      "categoria": "Bonificación Vaca ECO",
+      "categoria": "BONIFICACION VACA ECO",
       "tipoAnimal": "BOVINO",
       "cantidad": 0,
       "pesoTotalKg": 0,
@@ -164,7 +182,8 @@ Extrae TODOS los datos y devuelve un JSON con esta estructura:
       "rendimiento": null,
       "precioKgUSD": 0,
       "importeBrutoUSD": 296.91,
-      "esBonificacion": true
+      "esBonificacion": true,
+      "raza": null
     }
   ],
   "subtotalUSD": 48052.29,
@@ -182,10 +201,11 @@ Extrae TODOS los datos y devuelve un JSON con esta estructura:
   "fechaVencimiento": "YYYY-MM-DD"
 }
 
-CRÍTICO:
+CRÍTICO - VERIFICACIÓN FINAL:
 - Lee los números EXACTOS como aparecen. Si dice 936.38, NO pongas 93.64.
-- CALCULA precioKgUSD = importeBrutoUSD / pesoTotalKg (NO uses precio de 4ta balanza)
-- Bonificaciones deben tener "Bonificación" en el nombre de categoría`;
+- Para CADA categoría: pesoTotalKg debe venir de "Kgs. en pie" (NO "Kgs. 4ta balanza")
+- Para CADA categoría: precioKgUSD = importeBrutoUSD / pesoTotalKg
+- Bonificaciones: cantidad=0, pesoTotalKg=0, precioKgUSD=0, categoría con "Bonificación"`;
 
     const startTime = Date.now();
     const response = await openai.chat.completions.create({
@@ -223,14 +243,16 @@ CRÍTICO:
     console.log("✅ [GPT-4o] Documento interpretado exitosamente");
 
     // Validar y estructurar datos
-    // CRÍTICO: Limpiar bonificaciones (cantidad y peso deben ser 0)
+    // CRÍTICO: Limpiar bonificaciones (cantidad, peso y precio deben ser 0)
     const renglonesLimpios = (parsedData.renglones || []).map((r: any) => {
       if (r.esBonificacion) {
         return {
           ...r,
           cantidad: 0,
           pesoTotalKg: 0,
-          pesoPromedio: 0
+          pesoPromedio: 0,
+          precioKgUSD: 0,
+          rendimiento: null
         };
       }
       return r;
