@@ -1212,7 +1212,7 @@ export async function POST(request: Request) {
         // Encabezados de columna (incluye Cotiz. USD Día Ant después de Fecha)
         const headers = tipoProducto === 'LANA'
           ? ['Fecha', 'Cotiz. USD Día Ant', 'Nº Factura', 'Firma', 'Comprador', 'Consignatario', 'Categoría', 'Peso kg', '$/kg', 'Subtotal USD', 'IMEBA', 'INIA', 'MEVIR', 'Comisión', 'IVA', 'Otros', 'Total Imp', 'Neto USD', 'Ver Factura']
-          : ['Fecha', 'Cotiz. USD Día Ant', 'Nº Factura', 'Firma', 'Comprador', 'Consignatario', 'Categoría', 'Cant', 'Peso kg', '$/kg', 'Subtotal USD', 'IMEBA', 'INIA', 'MEVIR', 'Comisión', 'IVA', 'Otros', 'Neto USD', 'Ver Factura']
+          : ['Fecha', 'Cotiz. USD Día Ant', 'Nº Factura', 'Firma', 'Comprador', 'Consignatario', 'Categoría', 'Cant', 'Peso kg', '$/kg', 'Subtotal USD', 'IMEBA', 'INIA', 'MEVIR', 'Comisión', 'IVA', 'Otros', 'Total Imp', 'Neto USD', 'Ver Factura']
 
         const headerRow = sheet.getRow(startRow)
         headers.forEach((h, i) => {
@@ -1410,13 +1410,14 @@ export async function POST(request: Request) {
                 comisionRenglon > 0 ? formatNeg(comisionRenglon) : '',
                 ivaRenglon > 0 ? formatNeg(ivaRenglon) : '',
                 otrosRenglon > 0 ? formatNeg(otrosRenglon) : '',
+                totalImpRenglon > 0 ? formatNeg(totalImpRenglon) : '',
                 formatNum(netoRenglon),
                 '', // Placeholder para factura
               ]
 
-              // Agregar link a la factura solo en el primer renglón (ahora columna 19)
+              // Agregar link a la factura solo en el primer renglón (ahora columna 20)
               if (esPrimerRenglon && v.imageUrl) {
-                const cell = row.getCell(19)
+                const cell = row.getCell(20)
                 cell.value = { text: '📎 Ver', hyperlink: v.imageUrl } as any
                 cell.font = { color: { argb: 'FF0066CC' }, underline: true }
               }
@@ -1481,6 +1482,7 @@ export async function POST(request: Request) {
             totalComision > 0 ? formatNeg(totalComision) : '',
             totalIva > 0 ? formatNeg(totalIva) : '',
             totalOtros > 0 ? formatNeg(totalOtros) : '',
+            totalImpuestos > 0 ? formatNeg(totalImpuestos) : '',
             formatNum(totalNeto),
             '', // Columna factura vacía en totales
           ]
