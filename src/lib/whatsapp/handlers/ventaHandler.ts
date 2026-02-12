@@ -169,7 +169,11 @@ export async function handleVentaButtonResponse(phoneNumber: string, buttonId: s
   console.log("🔵 action extraída:", action)
 
   if (action === "confirm") {
-    console.log("🟢 CONFIRMADO - llamando a guardarVentaEnBD")
+    console.log("🟢 CONFIRMADO - limpiando pending antes de guardar")
+    // Limpiar pending ANTES de guardar para evitar conflictos con descuento de stock
+    await prisma.pendingConfirmation.delete({ where: { telefono: phoneNumber } }).catch(() => {})
+
+    console.log("🟢 Llamando a guardarVentaEnBD")
     await guardarVentaEnBD(savedData, phoneNumber)
   } else {
     console.log("🟡 CANCELADO")
